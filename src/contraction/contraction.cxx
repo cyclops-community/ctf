@@ -473,6 +473,7 @@ namespace CTF_int {
             C->order, idx_C,
             &num_tot, &idx_arr);
     num_no_ctr_B = 0, num_ctr = 0, num_no_ctr_A = 0, num_weigh = 0;
+    num_self_A = 0, num_self_B = 0, num_self_C = 0;
     for (i=0; i<num_tot; i++){
       if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
         num_weigh++;

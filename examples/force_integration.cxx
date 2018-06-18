@@ -57,7 +57,7 @@ int force_integration(int     n,
 
   uacc(F2["ij"],P["i"]);
 
-  particle loc_parts_new[nloc];
+  particle * loc_parts_new = new particle[nloc];
   P.read(nloc, inds, loc_parts_new);
   
   //check that something changed
@@ -88,6 +88,7 @@ int force_integration(int     n,
     }
   } 
   delete [] loc_parts;
+  delete [] loc_parts_new;
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
 
   if (dw.rank == 0){

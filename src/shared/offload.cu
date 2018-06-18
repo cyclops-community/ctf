@@ -17,7 +17,6 @@
 #endif
 
 namespace CTF_int{
-  volatile static int64_t int64_t_max = INT64_MAX;
   #ifndef PROFILE
   #define TAU_PROFILE(NAME,ARG,USER)
   #define TAU_PROFILE_TIMER(ARG1, ARG2, ARG3, ARG4)
