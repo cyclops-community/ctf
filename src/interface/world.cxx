@@ -209,6 +209,13 @@ namespace CTF {
         }
       }
   #endif
+      // Get the environment variable FILE_PATH
+      char * file_path = getenv("CTF_MODEL_FILE");
+      if (file_path != NULL){
+        std::string coeff_file;
+        coeff_file = std::string(file_path);
+        CTF_int::load_all_models(coeff_file);
+      }
     
       mst_size = getenv("CTF_MST_SIZE");
       stack_size = getenv("CTF_STACK_SIZE");
