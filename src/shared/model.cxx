@@ -565,24 +565,24 @@ namespace CTF_int {
     std::vector<std::string> file_content;
     std::ifstream infile(file_name);
 
-      bool found_line = false;
+    bool found_line = false;
     // If the file exists
     if(infile){
-    // Scan the file to find the line and replace with the new model coeffs
-    std::string line;
-    while(std::getline(infile,line)){
-      std::istringstream f(line);
-      // Get the model name from the line
-      std::string s;
-      std::getline(f,s,' ');
-      if (s == model_name){
-        line = new_coeff_str;
-        found_line = true;
+      // Scan the file to find the line and replace with the new model coeffs
+      std::string line;
+      while(std::getline(infile,line)){
+        std::istringstream f(line);
+        // Get the model name from the line
+        std::string s;
+        std::getline(f,s,' ');
+        if (s == model_name){
+          line = new_coeff_str;
+          found_line = true;
+        }
+        line += "\n";
+        file_content.push_back(line);
       }
-      line += "\n";
-      file_content.push_back(line);
     }
-  }
 
     // Append the string to the file if no match is found
     if(!found_line){
