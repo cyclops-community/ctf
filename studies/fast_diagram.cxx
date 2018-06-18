@@ -80,7 +80,7 @@ int fast_diagram(int const     n,
 //  W["abij"] -= Zs["ain"]*Ts["bnj"];
 //  W["abij"] = W["abij"];
 
-  double nrm = sqrt((W["abij"]-W_ans["abij"])*(W["abij"]-W_ans["abij"]));
+  double nrm = sqrt((double)((W["abij"]-W_ans["abij"])*(W["abij"]-W_ans["abij"])));
 
   int pass = (nrm <=1.E-10);
   

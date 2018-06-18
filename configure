@@ -565,13 +565,14 @@ fi
 
 if [ "x$LIB_PATH" = "x" ]; then
 	LIB_PATH=""
-fi
-
-if [ "x$LD_LIB_PATH" = "x" ]; then
+elif [ "x$LD_LIB_PATH" = "x" ]; then
   echo "LD_LIB_PATH was unspecified but LIB_PATH was, setting LD_LIB_PATH=$LIB_PATH."
 	LD_LIB_PATH=$LIB_PATH
 fi
-if [ "x$LD_LIBS" = "x" ]; then
+
+if [ "x$LIBS" = "x" ]; then
+	LIBS=""
+elif [ "x$LD_LIBS" = "x" ]; then
   echo "LD_LIBS was unspecified but LIBS was, setting LD_LIBS=$LIBS."
 	LD_LIBS=$LIBS
 fi
