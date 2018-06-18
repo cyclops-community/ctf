@@ -164,7 +164,7 @@ void train_sparse_mp3(int64_t n, int64_t m, World & dw){
 void train_world(double dtime, World & dw, double step_size){
   int n0 = 19, m0 = 75;
   int64_t n = n0;
-  int64_t approx_niter = std::max(1,(int)(10*log(dtime))); //log((dtime*2000./15.)/dw.np);
+  int64_t approx_niter = std::max(1,(int)(step_size*step_size*10*log(dtime))); //log((dtime*2000./15.)/dw.np);
   double ddtime = dtime/approx_niter;
 
   // Question # 1:
@@ -195,7 +195,7 @@ void train_world(double dtime, World & dw, double step_size){
       ctime = MPI_Wtime() - t_st;
       MPI_Allreduce(MPI_IN_PLACE, (void*)&ctime, 1, MPI_DOUBLE, MPI_MAX, dw.comm);
 
-      printf("rank = %d executing p = %d n= %ld m = %ld ctime = %lf ddtime = %lf\n", rnk, dw.np, n, m, ctime, ddtime);
+      //printf("rank = %d executing p = %d n= %ld m = %ld ctime = %lf ddtime = %lf\n", rnk, dw.np, n, m, ctime, ddtime);
 
     } while (ctime < ddtime && m<= 1000000);
 
@@ -251,26 +251,44 @@ void train_all(double time, bool write_coeff, bool dump_data, std::string coeff_
   for (int i=0; i<num_iterations; i++){
     // TODO probably need to adjust
     double step_size = 1.0 + 1.5 / pow(2.0, (double)i);
+    if (rank == 0){
+      printf("Starting iteration %d/%d with dimension increment factor %lf\n", i+1,num_iterations,step_size);
+    }
     // discard the last process
     if (color != end_color){
       train_world(dtime/5, w, step_size);
       CTF_int::update_all_models(cm);
+      if (rank == 0){
+        printf("Completed training round 1/5\n");
+      }
     }
 
     if (color != end_color)
       train_world(dtime/5, w, step_size);
     CTF_int::update_all_models(MPI_COMM_WORLD);
+    if (rank == 0){
+      printf("Completed training round 2/5\n");
+    }
     if (color != end_color){
       train_world(dtime/5, w, step_size);
       CTF_int::update_all_models(cm);
+      if (rank == 0){
+        printf("Completed training round 3/5\n");
+      }
     }
 
     if (color != end_color)
       train_world(dtime/5, w, step_size);
     CTF_int::update_all_models(MPI_COMM_WORLD);
+    if (rank == 0){
+      printf("Completed training round 4/5\n");
+    }
     train_world(dtime/5, dw, step_size);
     CTF_int::update_all_models(MPI_COMM_WORLD);
 
+    if (rank == 0){
+      printf("Completed training round 5/5\n");
+    }
     // double dtime for next iteration
     dtime *= time_jump;
   }
@@ -301,6 +319,7 @@ char* getCmdOption(char ** begin,
 int main(int argc, char ** argv){
   int rank, np;
   double time;
+  char * file_path;
   int const in_num = argc;
   char ** input_str = argv;
 
@@ -308,10 +327,15 @@ int main(int argc, char ** argv){
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &np);
 
+  if (getCmdOption(input_str, input_str+in_num, "-write")){
+    file_path = getCmdOption(input_str, input_str+in_num, "-write");
+  } else file_path = NULL;
+
   if (getCmdOption(input_str, input_str+in_num, "-time")){
     time = atof(getCmdOption(input_str, input_str+in_num, "-time"));
     if (time < 0) time = 5.0;
   } else time = 5.0;
+
 
   // Boolean expression that are used to pass command line argument to function train_all
   bool write_coeff = false;
@@ -319,16 +343,9 @@ int main(int argc, char ** argv){
 
   // Get the environment variable FILE_PATH
   std::string coeff_file;
-  if (std::find(input_str, input_str+in_num, std::string("-write")) != input_str + in_num){
-    std::cout<<"The write flag is turned on"<<std::endl;
+  if (file_path != NULL){
     write_coeff = true;
-    char * file_path = getenv("FILE_PATH");
-    if (file_path == NULL){
-      std::cout<<"ERROR: must specify environment variable CTF_MODEL_FILE if executing model_trainer with -write"<<std::endl;
-      assert(0);
-    } else {
-      coeff_file = std::string(file_path);
-    }
+    coeff_file = std::string(file_path);
   }
 
   char * data_dir = getenv("MODEL_DATA_DIR");
@@ -349,6 +366,7 @@ int main(int argc, char ** argv){
 
     if (rank == 0){
       printf("Executing a wide set of contractions to train model with time budget of %lf sec\n", time);
+      if (write_coeff) printf("At the end of execution write new coefficients will be written to model file %s\n",file_path);
     }
     train_all(time, write_coeff, dump_data, coeff_file, data_dir_str);
   }
