@@ -191,6 +191,7 @@ namespace CTF {
       int rblk = (rank+pr-rsrc)%pr;
       for (int64_t j=0; j<nmyr;  j++){
         pairs[i*nmyr+j].k = (cblk*nb+(i%nb))*nrow+rblk*mb+(j%mb);
+        //printf("RANK = %d, pairs[%ld].k=%ld\m",rank,i*nmyr+j,pairs[i*nmyr+j].k);
         if ((j+1)%mb == 0) rblk += pr;
       }
       if ((i+1)%nb == 0) cblk += pc;
@@ -359,6 +360,14 @@ namespace CTF {
 
   
 
+  static inline Idx_Partition get_map_from_desc(int const * desc){
+
+    int ictxt = desc[1];
+    int pr, pc, ipr, ipc;
+    CTF_SCALAPACK::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
+    return Partition(2,CTF_int::int2(pr, pc))["ij"];
+  }
+
   template<typename dtype>
   Matrix<dtype>::Matrix(int const *               desc,
                         dtype const *             data_,
@@ -367,7 +376,7 @@ namespace CTF {
                         char const *              name_,
                         int                       profile_)
     : Tensor<dtype>(2, false, CTF_int::int2(desc[2], desc[3]),  CTF_int::int2(NS, NS),
-                           wrld_, sr_, name_, profile_) {
+                           wrld_, "ij", get_map_from_desc(desc), Idx_Partition(), name_, profile_, sr_) {
     nrow = desc[2];
     ncol = desc[3];
     symm = NS;
@@ -377,7 +386,7 @@ namespace CTF {
     IASSERT(ipr == wrld_.rank%pr);
     IASSERT(ipc == wrld_.rank/pr);
     IASSERT(pr*pc == wrld_.np);
-    this->set_distribution("ij", Partition(2,CTF_int::int2(pr, pc))["ij"], Idx_Partition());
+    //this->set_distribution("ij", Partition(2,CTF_int::int2(pr, pc))["ij"], Idx_Partition());
     write_mat(desc[4],desc[5],pr,pc,desc[6],desc[7],desc[8],data_);
   }
 
