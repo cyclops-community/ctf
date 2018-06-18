@@ -285,41 +285,6 @@ void train_all(double time, bool write_coeff, bool dump_data, std::string coeff_
     CTF_int::dump_all_models(data_dir);
   }
   MPI_Comm_free(&cm);
-
-
-  //  std::set<int> ps;
-  //  frize(ps, dw.np);
-  // std::set<int>::iterator it;
-  // double dtime = time/ps.size();
-  // for (it=ps.begin(); it!=ps.end(); it++){
-  //   int np = *it;
-  //   int mw = dw.rank/np;
-  //   int mr = dw.rank%np;
-  //   int cm;
-  //   MPI_Comm_split(dw.comm, mw, mr, &cm);
-  //   World w(cm);
-  //
-  //
-  //   for (int i=0; i<5; i++){
-  //     // TODO probably change it to 1.2 ^ x
-  //     double step_size = 1.0 + 1.5 / pow(2.0, (double)i);
-  //      // std::cout<<"step size: "<<step_size<<std::endl;
-  //     train_world(dtime/5, w, step_size);
-  //     CTF_int::update_all_models(MPI_COMM_WORLD);
-  //
-  //     // TODO what should be the threshold
-  //     // CTF_int::active_switch_all_models(1000, 0.15);
-  //     }
-  // }
-  //  if(write_coeff)
-  //     CTF_int::write_all_models(coeff_file);
-  //  if(dump_data){
-  //     int rank, np;
-  //     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  //     MPI_Comm_size(MPI_COMM_WORLD, &np);
-  //     CTF_int::dump_all_models(data_dir, MPI_COMM_WORLD);
-  //  }
-
 }
 
 char* getCmdOption(char ** begin,
@@ -348,43 +313,35 @@ int main(int argc, char ** argv){
     if (time < 0) time = 5.0;
   } else time = 5.0;
 
-  // Get the environment variable FILE_PATH
-  char * file_path = getenv("FILE_PATH");
-  std::string coeff_file;
-
-  if(!file_path){
-     // If the enviroment variable is not defined, use the default path
-     coeff_file = std::string("../src/shared/model_coeff_record");
-  }else{
-     // Else, use the file path specified by the environment variable
-     coeff_file = std::string(file_path);
-  }
-
-  // If the user specifies -load, read the model coefficients from the file specified by the FILE_PATH environment variable
-  if(std::find(input_str, input_str+in_num, std::string("-load")) != input_str + in_num){
-    CTF_int::load_all_models(coeff_file);
-  }
-
   // Boolean expression that are used to pass command line argument to function train_all
   bool write_coeff = false;
   bool dump_data = false;
 
-  if(std::find(input_str, input_str+in_num, std::string("-write")) != input_str + in_num){
-     std::cout<<"The write flag is turned on"<<std::endl;
-     write_coeff = true;
+  // Get the environment variable FILE_PATH
+  std::string coeff_file;
+  if (std::find(input_str, input_str+in_num, std::string("-write")) != input_str + in_num){
+    std::cout<<"The write flag is turned on"<<std::endl;
+    write_coeff = true;
+    char * file_path = getenv("FILE_PATH");
+    if (file_path == NULL){
+      std::cout<<"ERROR: must specify environment variable CTF_MODEL_FILE if executing model_trainer with -write"<<std::endl;
+      assert(0);
+    } else {
+      coeff_file = std::string(file_path);
+    }
   }
 
   char * data_dir = getenv("MODEL_DATA_DIR");
   std::string data_dir_str;
   if(!data_dir){
-     data_dir_str = std::string("./src/shared/data");
+    data_dir_str = std::string("./src/shared/data");
   }
   else{
-     data_dir_str = std::string(data_dir);
- }
+    data_dir_str = std::string(data_dir);
+  }
 
   if(std::find(input_str, input_str+in_num, std::string("-dump")) != input_str + in_num){
-     dump_data = true;
+    dump_data = true;
   }
 
   {
