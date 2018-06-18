@@ -347,12 +347,10 @@ int main(int argc, char ** argv){
     if (test < 0) test = 0;
   } else test = 0;
   if (getCmdOption(input_str, input_str+in_num, "-sp_B")){
-    sp_B = atoi(getCmdOption(input_str, input_str+in_num, "-sp_B"));
-    if (sp_B < 0 || sp_B > 1) sp_B = 1;
+    sp_B = (bool)atoi(getCmdOption(input_str, input_str+in_num, "-sp_B"));
   } else sp_B = 1;
   if (getCmdOption(input_str, input_str+in_num, "-sp_C")){
-    sp_C = atoi(getCmdOption(input_str, input_str+in_num, "-sp_C"));
-    if (sp_C < 0 || sp_C > 1) sp_C = 1;
+    sp_C = (bool)atoi(getCmdOption(input_str, input_str+in_num, "-sp_C"));
   } else sp_C = 1;
 
 

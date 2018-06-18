@@ -215,7 +215,7 @@ char* getCmdOption(char ** begin,
 }
 
 int main(int argc, char ** argv){
-  int m, n, k, bench, bench_io;
+  int m, n, k, bench;
   int const in_num = argc;
   char ** input_str = argv;
 

@@ -135,7 +135,6 @@ Tensor<> get_core_tensor(Tensor<>& T, std::vector< Matrix <> > factor_matrices, 
   char matrix_arg[3];
   matrix_arg[0] = 'a';
   matrix_arg[2] = '\0';
-  Matrix<double> transpose();
   for (int i = 0; i < T.order; i++) {
     core_arg[i] = 'a';
     matrix_arg[1] = arg[i];
@@ -192,7 +191,6 @@ Tensor<> get_core_tensor_hooi(Tensor<>& T, std::vector< Matrix <> > factor_matri
   char matrix_arg[3];
   matrix_arg[0] = 'a';
   matrix_arg[2] = '\0';
-  Matrix<double> transpose();
   for (int i = 0; i < T.order; i++) {
     if (i != j) {
       core_arg[i] = 'a';

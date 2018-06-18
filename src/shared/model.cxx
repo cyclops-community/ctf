@@ -462,6 +462,7 @@ namespace CTF_int {
         printf("%s max error is %lf\n",name,max_err);*/
         cdealloc(b);
       }
+      MPI_Comm_free(&sub_comm);
       //broadcast new coefficient guess
       MPI_Bcast(coeff_guess, nparam, MPI_DOUBLE, 0, cm);
       /*for (int i=0; i<nparam; i++){
