@@ -525,6 +525,7 @@ namespace CTF_int {
       cdealloc(phase_lda);
       return;
     }
+    free(tps);
 #endif
     alloc_ptr(sizeof(MPI_Request)*(num_old_virt+num_new_virt), (void**)&reqs);
 
