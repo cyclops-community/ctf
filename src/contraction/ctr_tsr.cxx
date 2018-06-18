@@ -248,7 +248,7 @@ namespace CTF_int {
       this->is_inner  = 0;
     } else if (is_inner == 1) {
       if (c->A->wrld->cdt.rank == 0){
-        DPRINTF(3,"Folded tensor l=%d n=%d m=%d k=%d\n", inner_params->l, inner_params->n,
+        DPRINTF(3,"Folded tensor l=%ld n=%ld m=%ld k=%ld\n", inner_params->l, inner_params->n,
           inner_params->m, inner_params->k);
       }
 
