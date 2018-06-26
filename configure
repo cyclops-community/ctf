@@ -430,7 +430,7 @@ function defaultflags
     case $compiler in
         intel)
             if [ "x$AR"        = "x" ]; then AR='xiar'; fi
-            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-openmp -O3 -ipo'; fi
+            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-qopenmp -O3 -ipo'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
             if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
