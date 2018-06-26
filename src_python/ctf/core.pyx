@@ -420,9 +420,8 @@ cdef class itensor(term):
                 other.conv_type(self.dtype)
             deref((<itensor>self).it) << deref((<term>other).tm)
         else:
-            tsr_copy = tensor(copy=self.tsr)
-            tsr_copy.set_all(other)
-            deref((<itensor>self).it) << deref(itensor(tsr_copy,self.string).it)
+            tsr_copy = astensor(other,dtype=self.dtype)
+            deref((<itensor>self).it) << deref(itensor(tsr_copy,"").it)
 
     def __cinit__(self, tensor a, string):
         self.it = new Idx_Tensor(a.dt, string.encode())
@@ -661,6 +660,7 @@ cdef class tensor:
         out_dtype = get_np_dtype([self.dtype, other.dtype])
         out_dims = np.zeros(np.maximum(self.ndim, other.ndim), dtype=np.int)
         out_sp = min(self.sp,other.sp) 
+        print(self.sp,other.sp,out_sp)
         out_sym = [SYM.NS]*len(out_dims)
         ind_coll = get_num_str(3*out_dims.size)
         idx_C = ind_coll[0:out_dims.size]
@@ -2981,7 +2981,7 @@ def ones(shape, dtype = None, order='F'):
         ret.i(string) << 1.0
         return ret
    
-def eye(n, m=None, k=0, dtype=np.float64):
+def eye(n, m=None, k=0, dtype=np.float64, sp=False):
     mm = n
     if m is not None:
         mm = m
@@ -2991,7 +2991,7 @@ def eye(n, m=None, k=0, dtype=np.float64):
     else:
         l = min(l,n+k)
     
-    A = tensor([l, l], dtype=dtype)
+    A = tensor([l, l], dtype=dtype, sp=sp)
     if dtype == np.float64 or dtype == np.complex128 or dtype == np.complex64 or dtype == np.float32:
         A.i("ii") << 1.0
     elif dtype == np.bool or dtype == np.int64 or dtype == np.int32 or dtype == np.int16 or dtype == np.int8:  
@@ -3001,7 +3001,7 @@ def eye(n, m=None, k=0, dtype=np.float64):
     if m is None:
         return A
     else:
-        B = tensor([n, m], dtype=dtype)
+        B = tensor([n, m], dtype=dtype, sp=sp)
         if k >= 0:
             B.write_slice([0, k], [l, l+k], A)
         else:
@@ -3010,6 +3010,9 @@ def eye(n, m=None, k=0, dtype=np.float64):
 
 def identity(n, dtype=np.float64):
     return eye(n, dtype=dtype)
+
+def speye(n, m=None, k=0, dtype=np.float64):
+    return eye(n, m, k, dtype, sp=True)
 
 def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe'):
     numop = len(operands)
@@ -3119,11 +3122,11 @@ def match_tensor_types(first, other):
     if isinstance(first, tensor):
         tsr = first
     else:
-        tsr = tensor(copy=astensor(first))
+        tsr = tensor(copy=astensor(first),sp=other.sp)
     if isinstance(other, tensor):
         otsr = other
     else:
-        otsr = tensor(copy=astensor(other))
+        otsr = tensor(copy=astensor(other),sp=first.sp)
     out_dtype = get_np_dtype([tsr.dtype, otsr.dtype])
     if tsr.dtype != out_dtype:
         tsr = tensor(copy=tsr, dtype = out_dtype)
