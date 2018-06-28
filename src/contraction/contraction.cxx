@@ -4814,6 +4814,7 @@ namespace CTF_int {
       return SUCCESS;
     }
 
+
     CTF_int::contract_mst();
 
     //if (stype->tid_A == stype->tid_B || stype->tid_A == stype->tid_C){
@@ -4835,6 +4836,16 @@ namespace CTF_int {
 
     //CTF_ctr_type_t ntype = *stype;
     contraction new_ctr = contraction(*this);
+
+    if (C->is_sparse && !A->is_sparse){
+      new_ctr.A = new tensor(A, 1, 1);
+      new_ctr.A->sparsify(); 
+    }
+
+    if (C->is_sparse && !B->is_sparse){
+      new_ctr.B = new tensor(B, 1, 1);
+      new_ctr.B->sparsify(); 
+    }
 
     was_home_A = A->is_home;
     was_home_B = B->is_home;

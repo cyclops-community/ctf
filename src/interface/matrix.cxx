@@ -191,6 +191,7 @@ namespace CTF {
       int rblk = (rank+pr-rsrc)%pr;
       for (int64_t j=0; j<nmyr;  j++){
         pairs[i*nmyr+j].k = (cblk*nb+(i%nb))*nrow+rblk*mb+(j%mb);
+    //    pairs[i*nmyr+j].d = *(dtype*)this->sr->addid();
         //printf("RANK = %d, pairs[%ld].k=%ld\m",rank,i*nmyr+j,pairs[i*nmyr+j].k);
         if ((j+1)%mb == 0) rblk += pr;
       }
@@ -251,7 +252,8 @@ namespace CTF {
                                int     csrc,
                                int     lda,
                                dtype * data_){
-    if (mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0){
+    //FIXME: (1) can optimize sparse for this case (mapping cyclic), (2) can use permute to avoid sparse redistribution always
+    if (!this->is_sparse && (mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0)){
       if (this->edge_map[0].np == pr && this->edge_map[1].np == pc){
         if (lda == nrow/pc){
           memcpy((char*)data_, this->data, sizeof(dtype)*this->size);
@@ -276,11 +278,13 @@ namespace CTF {
       if (lda == nmyr){
         for (int64_t i=0; i<nmyr*nmyc; i++){
           data_[i] = pairs[i].d;
+          //printf("data %ld = %lf\n",i,data_[i]);
         }
       } else {
         for (int64_t i=0; i<nmyc; i++){
           for (int64_t j=0; j<nmyr; j++){
             data_[i*lda+j] = pairs[i*nmyr+j].d;
+            //printf("data %ld %ld = %lf\n",i,j,data_[i*lda+j]);
           }
         }
       }
