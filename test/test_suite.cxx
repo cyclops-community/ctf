@@ -45,6 +45,12 @@
 #include "../studies/fast_sym.cxx"
 #include "../studies/fast_sym_4D.cxx"
 
+#ifdef USE_SCALAPACK
+#include "../scalapack_tests/qr.cxx"
+#include "../scalapack_tests/svd.cxx"
+#endif
+
+
 using namespace CTF;
 
 namespace CTF_int{
@@ -167,12 +173,10 @@ int main(int argc, char ** argv){
       printf("Testing multi-tensor symmetric contraction with m = %d n = %d:\n",n*n,n);
     pass.push_back(multi_tsr_sym(n^2,n, dw));
    
-#ifndef PROFILE 
-#ifndef BGQ
     if (rank == 0)
       printf("Testing gemm on subworld algorithm with n,m,k = %d div = 3:\n",n*n);
     pass.push_back(test_subworld_gemm(n*n, n*n, n*n, 3, dw));
-#endif    
+
     if (rank == 0)
       printf("Testing non-symmetric Strassen's algorithm with n = %d:\n", 2*n*n);
     pass.push_back(strassen(2*n*n, NS, dw));
@@ -193,33 +197,32 @@ int main(int argc, char ** argv){
       printf("Testing SY times NS with n = %d:\n",n);
     pass.push_back(sy_times_ns(n,dw));
 
-#if 0
+#ifdef USE_SCALAPACK
     if (rank == 0)
-      printf("Testing skew-symmetric Strassen's algorithm with n = %d:\n",n*n);
-    pass.push_back(strassen(n*n, AS, dw));
-      if (rank == 0)
-    printf("Currently cannot do asymmetric Strassen's algorithm with n = %d:\n",n*n);
-    pass.push_back(0);
+      printf("Testing QR with m = %d n = %d:\n",n*n,n);
+    pass.push_back(test_qr(n*n,n,dw));
+ 
+    if (rank == 0)
+      printf("Testing SVD with m = %d n = %d k=%d:\n",n*n,n+1,n+1);
+    pass.push_back(test_svd(n*n,n+1,n+1,dw));
+ 
 #endif
-#ifndef BGQ
     if (np == 1<<(int)log2(np)){
       if (rank == 0)
         printf("Testing non-symmetric sliced GEMM algorithm with (%d %d %d):\n",16,32,8);
       pass.push_back(test_recursive_matmul(16, 32, 8, dw));
     }
-#endif    
-#endif
     if (rank == 0)
       printf("Testing 1D DFT with n = %d:\n",n*n);
     pass.push_back(test_dft(n*n, dw));
-#ifdef __clang__
-    if (rank == 0)
-      printf("WARNING: Skipping dft_3D test, due to known issue with Clang and optimizations -Ox for x>0\n");
-#else
+//#ifdef __clang__
+    //if (rank == 0)
+    //  printf("WARNING: Skipping dft_3D test, due to known issue with Clang and optimizations -Ox for x>0\n");
+//#else
     if (rank == 0)
       printf("Testing 3D DFT with n = %d:\n",n);
     pass.push_back(test_dft_3D(n, dw));
-#endif
+//#endif
     
     if (rank == 0)
       printf("Testing sparse summation with n = %d:\n",n);

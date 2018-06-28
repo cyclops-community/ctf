@@ -462,8 +462,8 @@ namespace CTF {
         ((std::pair<int64_t,dtype> *)a)[0] = std::pair<int64_t,dtype>(key,*((dtype*)b));
       }
 
-      void set_pairs(char * a, int64_t key, char const * b, int64_t n) const {
-        std::fill((std::pair<int64_t,dtype> *)a, (std::pair<int64_t,dtype> *)a + n, std::pair<int64_t,dtype>(key,*((dtype*)b)));
+      void set_pairs(char * a,  char const * b, int64_t n) const {
+        std::fill((std::pair<int64_t,dtype> *)a, (std::pair<int64_t,dtype> *)a + n, *(std::pair<int64_t,dtype> const*)b);
       }
 
       void copy(int64_t n, char const * a, int inc_a, char * b, int inc_b) const {

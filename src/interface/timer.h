@@ -71,7 +71,6 @@ namespace CTF {
       Timer * tmr_inner;
       Timer * tmr_outer;
       double save_excl_time;
-      double save_complete_time; 
       std::vector<Function_timer> saved_function_timers;
     public:
       char const * name;

@@ -5,7 +5,6 @@
 
 #include "../interface/common.h"
 
-volatile static int64_t int64_t_max = INT64_MAX;
 
 #include <inttypes.h>
 #include <execinfo.h>

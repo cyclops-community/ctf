@@ -48,7 +48,7 @@ namespace CTF_int {
     }
   }
 
-  template <> 
+  template <>
   inline void nosym_transpose_tmp<0>(int const *      edge_len,
                                      char const *     data,
                                      char *           swap_data,
@@ -119,7 +119,7 @@ namespace CTF_int {
         }
       }
     } else {
-      int n = edge_len[idim_new_lda1] - i_new_lda1; 
+      int n = edge_len[idim_new_lda1] - i_new_lda1;
       #pragma ivdep
       for (int i=0; i<edge_len[0]-CACHELINE+1; i+=CACHELINE){
         #pragma unroll
@@ -156,7 +156,7 @@ namespace CTF_int {
     }
   }
 
-  template 
+  template
   void nosym_transpose_inr<double,true>
                           (int const *               edge_len,
                            double const * __restrict data,
@@ -168,7 +168,7 @@ namespace CTF_int {
                            int64_t                   off_new,
                            int                       i_new_lda1);
 
-  template 
+  template
   void nosym_transpose_inr<double,false>
                           (int const *               edge_len,
                            double const * __restrict data,
@@ -206,7 +206,7 @@ namespace CTF_int {
 
 
 
-  template <> 
+  template <>
   inline void nosym_transpose_opt<0>(int const *      edge_len,
                                      char const *     data,
                                      char *           swap_data,
@@ -218,7 +218,7 @@ namespace CTF_int {
                                      int64_t          off_new,
                                      int              i_new_lda1,
                                      algstrct const * sr){
- 
+
     ASSERT(lda[0] == 1);
     if (idim_new_lda1 == 0){
       if (dir)
@@ -256,7 +256,7 @@ namespace CTF_int {
     {
       //FIXME: prealloc?
       char buf[sr->el_size*CACHELINE*CACHELINE];
-  
+
       int new_lda1_n = MIN(edge_len[idim_new_lda1]-i_new_lda1,CACHELINE);
       if (dir) {
         for (int i=0; i<edge_len[0]-CACHELINE+1; i+=CACHELINE){
@@ -294,7 +294,7 @@ namespace CTF_int {
         for (int j=0; j<new_lda1_n; j++){
           sr->copy(lda1_n, buf+sr->el_size*j*lda1_n, 1, swap_data+sr->el_size*(off_old+j*lda[idim_new_lda1]+edge_len[0]-lda1_n), 1);
         }
-  
+
       }
     }
   }
@@ -353,7 +353,6 @@ namespace CTF_int {
 #else
     int numThreads = 1;
 #endif
-
 
     // prepare perm and size for HPTT
     int perm[order];
@@ -418,13 +417,43 @@ namespace CTF_int {
       TAU_FSTOP(nosym_transpose);
       return;
     }
-    double st_time = MPI_Wtime();
 
     bool use_hptt = false;
 #if USE_HPTT
     use_hptt = hptt_is_applicable(all_fdim_A, new_order, A->sr->el_size);
 #endif
     int nvirt_A = A->calc_nvirt();
+
+
+#ifdef TUNE
+    double st_time = MPI_Wtime();
+    {
+      // Check if we need to execute this function for the sake of training
+      int64_t contig0 = 1;
+      for (int i=0; i<all_fdim_A; i++){
+        if (new_order[i] == i) contig0 *= all_flen_A[i];
+        else break;
+      } 
+
+      int64_t tot_sz = 1;
+      for (int i=0; i<all_fdim_A; i++){
+        tot_sz *= all_flen_A[i];
+      }
+      tot_sz *= nvirt_A;
+
+      double tps[] = {0.0, 1.0, (double)tot_sz};
+      bool should_run = true;
+      if (contig0 < 4){
+        should_run = non_contig_transp_mdl.should_observe(tps);
+      } else if (contig0 <= 64){
+        should_run = shrt_contig_transp_mdl.should_observe(tps);
+      } else {
+        should_run = long_contig_transp_mdl.should_observe(tps);
+      }
+      if (!should_run) return;
+    }
+#endif
+
     if (use_hptt){
       char * new_buffer;
       if (A->left_home_transp){
@@ -460,6 +489,7 @@ namespace CTF_int {
       }
     }
 
+#ifdef TUNE 
     int64_t contig0 = 1;
     for (int i=0; i<all_fdim_A; i++){
       if (new_order[i] == i) contig0 *= all_flen_A[i];
@@ -471,7 +501,7 @@ namespace CTF_int {
       tot_sz *= all_flen_A[i];
     }
     tot_sz *= nvirt_A;
- 
+
     double exe_time = MPI_Wtime() - st_time;
     double tps[] = {exe_time, 1.0, (double)tot_sz};
     if (contig0 < 4){
@@ -481,7 +511,7 @@ namespace CTF_int {
     } else {
       long_contig_transp_mdl.observe(tps);
     }
-
+#endif
     TAU_FSTOP(nosym_transpose);
   }
                         
@@ -539,6 +569,18 @@ namespace CTF_int {
     CTF_int::cdealloc(tswap_data);
     CTF_int::cdealloc(chunk_size);
 
+    int64_t contig0 = 1;
+    for (int i=0; i<order; i++){
+      if (new_order[i] == i) contig0 *= edge_len[i];
+      else break;
+    }
+
+    int64_t tot_sz = 1;
+    for (int i=0; i<order; i++){
+      tot_sz *= edge_len[i];
+    }
+    TAU_FSTOP(nosym_transpose);
+
   }
 
   void nosym_transpose(int              order,
@@ -575,17 +617,17 @@ namespace CTF_int {
       new_lda[new_order[j]] = new_lda[new_order[j-1]]*edge_len[new_order[j-1]];
     }
     ASSERT(local_size == new_lda[new_order[order-1]]*edge_len[new_order[order-1]]);
-#ifdef OPT_NOSYM_TR 
+#ifdef OPT_NOSYM_TR
     if (order <= 8){
       int idim_new_lda1 = new_order[0];
       CTF_int::alloc_ptr(local_size*sr->el_size, (void**)&tswap_data[0]);
       chunk_size[0] = local_size;
-#ifdef CL_BLOCK 
+#ifdef CL_BLOCK
 #define CASE_NTO(i) \
         case i: \
           nosym_transpose_opt<i-1>(edge_len,data,tswap_data[0],dir,idim_new_lda1,lda,new_lda,0,0,0,sr); \
         break;
-#else 
+#else
 #define CASE_NTO(i) \
         case i: \
           if (dir) nosym_transpose_tmp<i-1>(edge_len,data,tswap_data[0],lda,new_lda,0,0,sr); \
@@ -657,11 +699,11 @@ namespace CTF_int {
       } else {
         thread_chunk_size = local_size;
         last_dim = 1;
-      } 
+      }
       chunk_size[tid] = 0;
       if (last_max != 0 && tidx_off != last_max && (order != 1 || tid == 0)){
         chunk_size[tid] = thread_chunk_size;
-        if (thread_chunk_size <= 0) 
+        if (thread_chunk_size <= 0)
           printf("ERRORR thread_chunk_size = %ld, tid = %ld, local_size = %ld\n", thread_chunk_size, tid, local_size);
         CTF_int::alloc_ptr(thread_chunk_size*sr->el_size, (void**)&tswap_data[tid]);
         swap_data = tswap_data[tid];
@@ -685,7 +727,7 @@ namespace CTF_int {
             }
             printf("\n");*/
             idx[0] = tidx_off;
-          } 
+          }
 
           for (i=1; i<order; i++){
             off_old -= idx[i]*lda[i];
@@ -722,13 +764,13 @@ namespace CTF_int {
     for (int i=0; i<order; i++){
       if (new_order[i] == i) contig0 *= edge_len[i];
       else break;
-    } 
+    }
 
     int64_t tot_sz = 1;
     for (int i=0; i<order; i++){
       tot_sz *= edge_len[i];
     }
-    
+
     //if nothing transpose then transpose gratis
     if (contig0==tot_sz) return 0.0;
 

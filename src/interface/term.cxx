@@ -94,8 +94,8 @@ namespace CTF_int {
       sym_C[idx] = NS;
       idx++;
     }
-
-    tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, 1);
+    bool is_sparse_C = A.parent->is_sparse && B.parent->is_sparse;
+    tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, true, NULL, 1, is_sparse_C);
     Idx_Tensor * out = new Idx_Tensor(tsr_C, idx_C);
     //printf("A_inds =");
     //for (int i=0; i<A.parent->order; i++){

@@ -726,14 +726,26 @@ namespace CTF {
     return ans;
   }
 
+
   template<typename dtype>
-  static void real_norm1(Tensor<dtype> & A, double & nrm){
+  void real_norm1(Tensor<dtype> & A, double & nrm){
     char inds[A.order];
     for (int i=0; i<A.order; i++){
       inds[i] = 'a'+i;
     }
     nrm = Function<dtype,double>([](dtype a){ return (double)std::abs(a); })(A[inds]);
   }
+
+  template<>
+  inline void real_norm1<bool>(Tensor<bool> & A, double & nrm){
+    char inds[A.order];
+    for (int i=0; i<A.order; i++){
+      inds[i] = 'a'+i;
+    }
+    nrm = A[inds];
+  }
+
+
 
   template<typename dtype>
   void Tensor<dtype>::norm1(double & nrm){

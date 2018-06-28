@@ -324,11 +324,9 @@ int fast_tensor_ctr(int        n,
                     int        t,
                     int        v,
                     World &ctf){
-  int rank, i, num_pes;
-  int64_t * indices, size;
-  double * values;
+  int rank, i;
   
-  //MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_rank(ctf.comm, &rank);
   //MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
 
   int len_A[s+v];
@@ -583,10 +581,10 @@ int fast_tensor_ctr(int        n,
 
   int pass = (nrm <=1.E-3);
   
-//  if (rank == 0){
+  if (rank == 0){
     if (pass) printf("{ fast symmetric tensor contraction algorithm test } passed\n");
     else      printf("{ fast symmetric tensor contraction algorithm test } failed\n");
-//  } 
+  } 
   return pass;
 }
 

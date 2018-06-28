@@ -408,6 +408,7 @@ namespace CTF_int {
       //when A is sparse we must fold all indices and reduce block contraction entirely to coomm
       if ((A->order+B->order+C->order)%2 == 1 ||
           (A->order+B->order+C->order)/2 < nfold ){
+        CTF_int::cdealloc(fold_idx);
         return 0;
       } else {
         // do not allow weigh indices for sparse contractions
@@ -420,6 +421,8 @@ namespace CTF_int {
                 &num_tot, &idx_arr);
         for (i=0; i<num_tot; i++){
           if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
+            CTF_int::cdealloc(idx_arr);
+            CTF_int::cdealloc(fold_idx);
             return 0;
           }
         }
@@ -470,6 +473,7 @@ namespace CTF_int {
             C->order, idx_C,
             &num_tot, &idx_arr);
     num_no_ctr_B = 0, num_ctr = 0, num_no_ctr_A = 0, num_weigh = 0;
+    num_self_A = 0, num_self_B = 0, num_self_C = 0;
     for (i=0; i<num_tot; i++){
       if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
         num_weigh++;
@@ -4810,6 +4814,7 @@ namespace CTF_int {
       return SUCCESS;
     }
 
+
     CTF_int::contract_mst();
 
     //if (stype->tid_A == stype->tid_B || stype->tid_A == stype->tid_C){
@@ -4831,6 +4836,16 @@ namespace CTF_int {
 
     //CTF_ctr_type_t ntype = *stype;
     contraction new_ctr = contraction(*this);
+
+    if (C->is_sparse && !A->is_sparse){
+      new_ctr.A = new tensor(A, 1, 1);
+      new_ctr.A->sparsify(); 
+    }
+
+    if (C->is_sparse && !B->is_sparse){
+      new_ctr.B = new tensor(B, 1, 1);
+      new_ctr.B->sparsify(); 
+    }
 
     was_home_A = A->is_home;
     was_home_B = B->is_home;

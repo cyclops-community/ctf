@@ -1224,8 +1224,9 @@ namespace CTF_int {
   }
 
   void tensor::set_distribution(char const *          idx,
-                                Idx_Partition const & prl,
+                                Idx_Partition const & prl_,
                                 Idx_Partition const & blk){
+    Idx_Partition prl = prl_.reduce_order();
     topology * top = new topology(prl.part.order, prl.part.lens, wrld->cdt);
     int itopo = find_topology(top, wrld->topovec);
 /*    if (wrld->rank == 0){
@@ -1239,7 +1240,7 @@ namespace CTF_int {
     if (itopo == -1){
       itopo = wrld->topovec.size();
       wrld->topovec.push_back(top);
-    }
+    } else delete top;
     ASSERT(itopo != -1);
     assert(itopo != -1);
 
@@ -1284,7 +1285,7 @@ namespace CTF_int {
       ASSERT(0);
       assert(0);
     }
-
+    cdealloc(idx_A);
   }
 
 
@@ -1450,7 +1451,7 @@ namespace CTF_int {
               pad_key(order, nnz_blk[v], this->pad_edge_len, depadding, PairIterator(sr,new_pairs[v]), sr);
               data_ptr += old_nnz*sr->pair_size();
               new_nnz_tot += nnz_blk[v];
-            }
+            } else new_pairs[v] = NULL;
           }
           cdealloc(depadding);
           cdealloc(prepadding);
@@ -1458,7 +1459,7 @@ namespace CTF_int {
           this->data = sr->pair_alloc(new_nnz_tot);
           char * new_data_ptr = this->data;
           for (int v=0; v<nvirt; v++){
-            if (nnz_blk[v] > 0){
+            if (new_pairs[v] != NULL){
               sr->copy_pairs(new_data_ptr, new_pairs[v], nnz_blk[v]);
               sr->pair_dealloc(new_pairs[v]);
             }
@@ -2190,6 +2191,7 @@ namespace CTF_int {
                            int * const * old_permutation,
                            int const *  new_offsets,
                            int * const * new_permutation){
+
     int can_block_shuffle;
     char * shuffled_data;
   #if VERIFY_REMAP
@@ -2214,10 +2216,9 @@ namespace CTF_int {
       printf("CTF WARNING: Tensor %s is being redistributed to a mapping where its size is %ld, which is greater than INT_MAX=%d, so MPI could run into problems\n", name, size, INT_MAX);
 
   #ifdef HOME_CONTRACT
-    if (wrld->cdt.rank == 0)
-      DPRINTF(2,"Tensor %s leaving home %d\n", name, is_sparse);
-
     if (this->is_home){
+      if (wrld->cdt.rank == 0)
+        DPRINTF(2,"Tensor %s leaving home %d\n", name, is_sparse);
       if (is_sparse){
         if (this->has_home){
           this->home_buffer = sr->pair_alloc(nnz_loc);
@@ -2262,7 +2263,14 @@ namespace CTF_int {
     } else {
       if (is_sparse){
         //padded_reshuffle(sym, old_dist, new_dist, this->data, &shuffled_data, sr, wrld->cdt);
+#ifdef TUNE
+        // change-of-observe
+        double nnz_frac_ = ((double)nnz_tot)/(old_dist.size*wrld->cdt.np);
+        double tps_[] = {0.0, 1.0, (double)log2(wrld->cdt.np),  (double)std::max(old_dist.size, new_dist.size)*log2(wrld->cdt.np)*sr->el_size*nnz_frac_};
+        if (!spredist_mdl.should_observe(tps_)) return SUCCESS;
+
         double st_time = MPI_Wtime();
+#endif
         char * old_data = this->data;
 
         this->data = NULL;
@@ -2277,11 +2285,12 @@ namespace CTF_int {
         if (old_data != NULL){
           sr->pair_dealloc(old_data);
         }
-
+#ifdef TUNE
         double exe_time = MPI_Wtime()-st_time;
         double nnz_frac = ((double)nnz_tot)/(old_dist.size*wrld->cdt.np);
         double tps[] = {exe_time, 1.0, (double)log2(wrld->cdt.np),  (double)std::max(old_dist.size, new_dist.size)*log2(wrld->cdt.np)*sr->el_size*nnz_frac};
         spredist_mdl.observe(tps);
+#endif
       } else
         dgtog_reshuffle(sym, lens, old_dist, new_dist, &this->data, &shuffled_data, sr, wrld->cdt);
       //glb_cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr->mulid(), sr->addid());
@@ -2490,7 +2499,6 @@ namespace CTF_int {
 #endif
               for (int p=0; p<nnz_loc; p++){
                 int64_t k = pi[p].k();
-                //printf("p = %d k = %ld\n",p, k);
                 if ((k/lda_i)%lens[i] == (k/lda_j)%lens[j]){
                   int64_t k_new = (k%lda_j)+(k/(lda_j*lens[j])*lda_j);
                   //printf("p = %d k = %ld lda_j = %ld lens[j] = %d k_new = %ld\n",p, k, lda_j, lens[j], k_new);
