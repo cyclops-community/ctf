@@ -113,6 +113,7 @@ namespace CTF {
         //printf("HERE %d %d %d\n",it->pr,it->pc,it->ctxt);
         CTF_SCALAPACK::Cblacs_gridexit(it->ctxt);
       }
+      scalapack_grids.clear();
 #ifdef OFFLOAD
       offload_exit();
 #endif
