@@ -320,6 +320,13 @@ cdef class term:
             other = tensor(copy=other,dtype=self.dtype)
         return sum_term(self,other)
 
+    def __sub__(self, other):
+        if other.dtype != self.dtype:
+            other = tensor(copy=other,dtype=self.dtype)
+        other.scale(-1)
+        return sum_term(self,other)
+
+
     def __mul__(first, second):
         if (isinstance(first,term)):
             if (isinstance(second,term)):
@@ -420,9 +427,8 @@ cdef class itensor(term):
                 other.conv_type(self.dtype)
             deref((<itensor>self).it) << deref((<term>other).tm)
         else:
-            tsr_copy = tensor(copy=self.tsr)
-            tsr_copy.set_all(other)
-            deref((<itensor>self).it) << deref(itensor(tsr_copy,self.string).it)
+            tsr_copy = astensor(other,dtype=self.dtype)
+            deref((<itensor>self).it) << deref(itensor(tsr_copy,"").it)
 
     def __cinit__(self, tensor a, string):
         self.it = new Idx_Tensor(a.dt, string.encode())
@@ -431,8 +437,22 @@ cdef class itensor(term):
         self.string = string
         self.dtype = a.dtype
 
+    def __mul__(first, second):
+        if (isinstance(first,itensor)):
+            if (isinstance(second,term)):
+                return contract_term(first,second)
+            else:
+                first.scale(second)
+                return first
+        else:
+            if (isinstance(first,term)):
+                return contract_term(first,second)
+            else:
+                second.scale(first)
+                return second
+ 
     def scl(self, s):
-        self.it.multeq(s)
+        self.it.multeq(<double>s)
 
 def rev_array(arr):
     if len(arr) == 1:
@@ -1131,8 +1151,8 @@ cdef class tensor:
                 new_size *= newshape[i]
             if new_size != total_size:
                 raise ValueError("total size of new array must be unchanged")
-            B = tensor(newshape,dtype=self.dtype)
-            inds, vals = self.read_local()
+            B = tensor(newshape,sp=self.sp,dtype=self.dtype)
+            inds, vals = self.read_local_nnz()
             B.write(inds, vals)
             return B
         elif nega == 1:
@@ -1146,8 +1166,8 @@ cdef class tensor:
             if nega_size < 1:
                 raise ValueError("can not reshape into this size")
             newshape[pos] = nega_size
-            B = tensor(newshape,dtype=self.dtype)
-            inds, vals = self.read_local()
+            B = tensor(newshape,sp=self.sp,dtype=self.dtype)
+            inds, vals = self.read_local_nnz()
             B.write(inds, vals)
             return B
         else:
@@ -1945,22 +1965,23 @@ def array(A, dtype=None, copy=True, order='K', subok=False, ndmin=0):
         B.set_zero()
     return B
 
-def diag(A, k=0):
+def diag(A, k=0, sp=False):
     if not isinstance(A, tensor):
         raise ValueError('CTF PYTHON ERROR: A is not a tensor')
     dim = A.shape
+    sp = A.sp | sp
     if len(dim) == 0:
         raise ValueError('CTF PYTHON ERROR: diag requires an array of at least 1 dimension')
     if len(dim) == 1:
-        B = tensor((A.shape[0],A.shape[0]),dtype=A.dtype,sp=A.sp)
+        B = tensor((A.shape[0],A.shape[0]),dtype=A.dtype,sp=sp)
         B.i("ii") << A.i("i")
         absk = np.abs(k)
         if k>0:
-            B2 = tensor((A.shape[0],A.shape[0]+absk),dtype=A.dtype,sp=A.sp)
+            B2 = tensor((A.shape[0],A.shape[0]+absk),dtype=A.dtype,sp=sp)
             B2[:,absk:] = B
             return B2
         elif k < 0:
-            B2 = tensor((A.shape[0]+absk,A.shape[0]),dtype=A.dtype,sp=A.sp)
+            B2 = tensor((A.shape[0]+absk,A.shape[0]),dtype=A.dtype,sp=sp)
             B2[absk:,:] = B
             return B2
         else:
@@ -2016,6 +2037,9 @@ def diag(A, k=0):
             einsum_input = front + "->" + back
             return einsum(einsum_input,A)
     return None
+
+def spdiag(A, k=0):
+    return diag(A,k,sp=True)
 
 def diagonal(init_A, offset=0, axis1=0, axis2=1):
     A = astensor(init_A)
@@ -2196,6 +2220,16 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
             B = astensor(A.read(a)).reshape(ret_shape)
             return B
     raise ValueError('CTF PYTHON ERROR: CTF error: should not get here')
+
+def vecnorm(tensor A, ord=2):
+    if ord == 2:
+        return A.norm2()
+    elif ord == 1:
+        return A.norm1()
+    elif ord == np.inf:
+        return A.norm_infty()
+    else:
+        raise ValueError('CTF PYTHON ERROR: CTF only supports 1/2/inf vector norms')
 
 # the copy function need to call the constructor which return a copy.
 def copy(tensor A):
@@ -2981,7 +3015,7 @@ def ones(shape, dtype = None, order='F'):
         ret.i(string) << 1.0
         return ret
    
-def eye(n, m=None, k=0, dtype=np.float64):
+def eye(n, m=None, k=0, dtype=np.float64, sp=False):
     mm = n
     if m is not None:
         mm = m
@@ -2991,7 +3025,7 @@ def eye(n, m=None, k=0, dtype=np.float64):
     else:
         l = min(l,n+k)
     
-    A = tensor([l, l], dtype=dtype)
+    A = tensor([l, l], dtype=dtype, sp=sp)
     if dtype == np.float64 or dtype == np.complex128 or dtype == np.complex64 or dtype == np.float32:
         A.i("ii") << 1.0
     elif dtype == np.bool or dtype == np.int64 or dtype == np.int32 or dtype == np.int16 or dtype == np.int8:  
@@ -3001,7 +3035,7 @@ def eye(n, m=None, k=0, dtype=np.float64):
     if m is None:
         return A
     else:
-        B = tensor([n, m], dtype=dtype)
+        B = tensor([n, m], dtype=dtype, sp=sp)
         if k >= 0:
             B.write_slice([0, k], [l, l+k], A)
         else:
@@ -3010,6 +3044,9 @@ def eye(n, m=None, k=0, dtype=np.float64):
 
 def identity(n, dtype=np.float64):
     return eye(n, dtype=dtype)
+
+def speye(n, m=None, k=0, dtype=np.float64):
+    return eye(n, m, k, dtype, sp=True)
 
 def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe'):
     numop = len(operands)
@@ -3119,11 +3156,11 @@ def match_tensor_types(first, other):
     if isinstance(first, tensor):
         tsr = first
     else:
-        tsr = tensor(copy=astensor(first))
+        tsr = tensor(copy=astensor(first),sp=other.sp)
     if isinstance(other, tensor):
         otsr = other
     else:
-        otsr = tensor(copy=astensor(other))
+        otsr = tensor(copy=astensor(other),sp=first.sp)
     out_dtype = get_np_dtype([tsr.dtype, otsr.dtype])
     if tsr.dtype != out_dtype:
         tsr = tensor(copy=tsr, dtype = out_dtype)

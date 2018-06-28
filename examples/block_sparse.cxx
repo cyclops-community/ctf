@@ -49,6 +49,8 @@ Matrix<> flatten_block_sparse_matrix(Matrix< Tensor<> > A, std::vector<int> rang
     ends[1] = range_pfx[i]+ranges[i];
     flatA.slice(offs,ends,0.0,A_blks[b],zeros,A_blks[b].lens,1.0);
   }
+  free(blk_inds);
+  delete [] A_blks;
   return flatA;
 
 }
@@ -118,8 +120,8 @@ int block_sparse(std::vector<int> ranges, World & dw){
     A_blks[i].d.fill_random(0,1);
   }
   A.write(nblk,A_blks);
-  int64_t B_blk_inds[nblk];
-  Tensor<> B_blks[nblk];
+  int64_t * B_blk_inds = new int64_t[nblk];
+  Tensor<> * B_blks = new Tensor<>[nblk];
   for (int64_t i=0; i<nblk; i++){
     int64_t j = rand()%nblk;
     B_blk_inds[i] = i + j*nblk;
@@ -127,6 +129,8 @@ int block_sparse(std::vector<int> ranges, World & dw){
     B_blks[i].fill_random(1.,1.);
   }
   B.write(nblk,B_blk_inds,B_blks);
+  delete [] B_blks;
+  delete [] B_blk_inds;
   Matrix< Tensor<> > C(nblk, nblk, SP, self_world, tmon);
 
   C["ij"] = Function< Tensor<> >(

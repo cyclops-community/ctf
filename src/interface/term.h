@@ -159,9 +159,6 @@ namespace CTF_int {
        *        allows a scalar output
        */     
       operator int() const;
-
-
-
   };
 
   class Sum_Term : public Term {

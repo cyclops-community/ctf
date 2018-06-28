@@ -1312,12 +1312,15 @@ namespace CTF_int {
                char const *      beta){
     // each for loop iteration does one addition, o and r are also incremented within
     // only incrementing r allows multiple reads of the same val
-    for (int64_t t=0,r=0; t<ntsr && r<nread; r++){
+    int64_t r = 0;
+    for (int64_t t=0; t<ntsr && r<nread; r++){
       while (t<ntsr && r<nread && prs_tsr[t].k() != prs_read[r].k()){
         if (prs_tsr[t].k() < prs_read[r].k())
           t++;
-        else
+        else {
+          prs_read[r].write_val(sr->addid());
           r++;
+        }
       }
       // scale and add if match found
       if (t<ntsr && r<nread){
@@ -1332,11 +1335,22 @@ namespace CTF_int {
         if (alpha != NULL){
           sr->mul(prs_tsr[t].d(), alpha, b);
         } else {
-          prs_tsr[t].read_val(b);
+          if (beta == NULL){
+            prs_read[r].write_val(prs_tsr[t].d());
+          } else {
+            prs_tsr[t].read_val(b);
+          }
         }
-        sr->add(a, b, c);
-        prs_read[r].write_val(c);
+        if (beta == NULL && alpha != NULL){
+          prs_read[r].write_val(b);
+        } else if (beta != NULL){
+          sr->add(a, b, c);
+          prs_read[r].write_val(c);
+        }
       }
+    }
+    for (; r<nread; r++){
+      prs_read[r].write_val(sr->addid());
     }
   }
              

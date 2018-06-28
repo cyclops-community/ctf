@@ -4,16 +4,26 @@
 #include <mpi.h>
 #include "init_models.h"
 
-namespace CTF_int { 
+#include <fstream>
+#include <sstream>
+
+
+namespace CTF_int {
   class Model {
     public:
       virtual void update(MPI_Comm cm){};
       virtual void print(){};
       virtual void print_uo(){};
+      virtual void load_coeff(std::string file_name){};
+      virtual void write_coeff(std::string file_name){};
+      virtual void dump_data(std::string path){};
   };
 
   void update_all_models(MPI_Comm cm);
   void print_all_models();
+  void load_all_models(std::string file_name);
+  void write_all_models(std::string file_name);
+  void dump_all_models(std::string path);
 
   /**
    * \brief Linear performance models, which given measurements, provides new model guess
@@ -34,10 +44,13 @@ namespace CTF_int {
       double over_time;
       /** \brief under_time amount of time that the model would have underestimated the obeservations */
       double under_time;
+      /** \brief is_active whether this model is active for training */
+      bool is_active;
+
     public:
-      /** \brief the number of latest observations we want to  consider when updating the model */ 
+      /** \brief the number of latest observations we want to  consider when updating the model */
       int hist_size;
-      /** \brief matrix containing parameter/time obervations, 
+      /** \brief matrix containing parameter/time obervations,
                  with hist_size columns and nmat_lda rows,
                  stores the last hist_size paramstime obervations */
       double * time_param_mat;
@@ -49,7 +62,7 @@ namespace CTF_int {
       /** \brief name of model */
       char * name;
 
-      /** 
+      /**
        * \brief constructor
        * \param[in] init_guess array of size nparam consisting of initial model parameter guesses
        * \param[in] name identifier
@@ -71,7 +84,13 @@ namespace CTF_int {
        * \param[in] time_param array of size nparam+1 of form [exe_sec,val_1,val_2,...,val_nparam]
        */
       void observe(double const * time_param);
-      
+
+      /**
+       * \brief decides whether the current instance should be observed
+       * \param[in] time_param array of size nparam+1 of form [exe_sec,val_1,val_2,...,val_nparam]
+       */
+      bool should_observe(double const * time_param);
+
       /**
        * \brief estimates model time based on observarions
        * \param[in] param array of size nparam of form [val_1,val_2,...,val_nparam]
@@ -88,6 +107,28 @@ namespace CTF_int {
        * \brief prints time estimate errors
        */
       void print_uo();
+
+      /**
+       * \brief return the turned model coefficients
+       */
+      double* get_coeff();
+
+      /**
+       * \brief load model coefficients from file
+       * \param[in] file_name the file we wish to load model coefficients from
+       */
+      void load_coeff(std::string file_name);
+
+      /**
+       * \brief write model coefficients to file
+       * \param[in] file_name the file we wish to write model coefficients to
+       */
+      void write_coeff(std::string file_name);
+
+      /**
+       * \brief dump model data to a file
+       */
+      void dump_data(std::string path);
   };
 
   /**
@@ -99,7 +140,7 @@ namespace CTF_int {
       LinModel<nparam*(nparam+1)*(nparam+2)/6+nparam*(nparam+1)/2+nparam> lmdl;
 
     public:
-      /** 
+      /**
        * \brief constructor
        * \param[in] init_guess array of size nparam consisting of initial model parameter guesses
        * \param[in] name identifier
@@ -120,7 +161,13 @@ namespace CTF_int {
        * \param[in] time_param array of size nparam+1 of form [exe_sec,val_1,val_2,...,val_nparam]
        */
       void observe(double const * time_param);
-      
+
+      /**
+       * \brief decides whether the current instance should be observed
+       * \param[in] time_param array of size nparam+1 of form [exe_sec,val_1,val_2,...,val_nparam]
+       */
+      bool should_observe(double const * time_param);
+
       /**
        * \brief estimates model time based on observarions
        * \param[in] param array of size nparam of form [val_1,val_2,...,val_nparam]
@@ -137,6 +184,29 @@ namespace CTF_int {
        * \brief prints time estimate errors
        */
       void print_uo();
+
+      /**
+       * \brief return the turned model coefficients
+       */
+      double* get_coeff();
+
+      /**
+       * \brief load model coefficients from file
+       * \param[in] file_name the file we wish to load model coefficients from
+       */
+      void load_coeff(std::string file_name);
+
+      /**
+       * \brief write model coefficients to file
+       * \param[in] file_name the file we wish to write model coefficients to
+       */
+      void write_coeff(std::string file_name);
+
+      /**
+       * \brief write model coefficients to file
+       * \param[in] path the path that we wish to dump all files to
+       */
+      void dump_data(std::string path);
 
   };
 

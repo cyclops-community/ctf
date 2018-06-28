@@ -1,6 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
 #include "common.h"
+#include "world.h"
 #include "../shared/blas_symbs.h"
 #include "../shared/lapack_symbs.h"
 #include <stdlib.h>
@@ -190,6 +191,8 @@ namespace CTF {
       int rblk = (rank+pr-rsrc)%pr;
       for (int64_t j=0; j<nmyr;  j++){
         pairs[i*nmyr+j].k = (cblk*nb+(i%nb))*nrow+rblk*mb+(j%mb);
+    //    pairs[i*nmyr+j].d = *(dtype*)this->sr->addid();
+        //printf("RANK = %d, pairs[%ld].k=%ld\m",rank,i*nmyr+j,pairs[i*nmyr+j].k);
         if ((j+1)%mb == 0) rblk += pr;
       }
       if ((i+1)%nb == 0) cblk += pc;
@@ -236,7 +239,7 @@ namespace CTF {
         }
       }
       this->write(nmyr*nmyc, pairs);
-      CTF_int::cdealloc(pairs);
+      delete [] pairs;
     }
   }
 
@@ -249,7 +252,8 @@ namespace CTF {
                                int     csrc,
                                int     lda,
                                dtype * data_){
-    if (mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0){
+    //FIXME: (1) can optimize sparse for this case (mapping cyclic), (2) can use permute to avoid sparse redistribution always
+    if (!this->is_sparse && (mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0)){
       if (this->edge_map[0].np == pr && this->edge_map[1].np == pc){
         if (lda == nrow/pc){
           memcpy((char*)data_, this->data, sizeof(dtype)*this->size);
@@ -274,11 +278,13 @@ namespace CTF {
       if (lda == nmyr){
         for (int64_t i=0; i<nmyr*nmyc; i++){
           data_[i] = pairs[i].d;
+          //printf("data %ld = %lf\n",i,data_[i]);
         }
       } else {
         for (int64_t i=0; i<nmyc; i++){
           for (int64_t j=0; j<nmyr; j++){
             data_[i*lda+j] = pairs[i*nmyr+j].d;
+            //printf("data %ld %ld = %lf\n",i,j,data_[i*lda+j]);
           }
         }
       }
@@ -296,7 +302,17 @@ namespace CTF {
     int ctxt;
     IASSERT(this->wrld->comm == MPI_COMM_WORLD);
     CTF_SCALAPACK::Cblacs_get(-1, 0, &ctxt);
-    CTF_SCALAPACK::Cblacs_gridinit(&ctxt, &C, pr, pc);
+    CTF_int::grid_wrapper gw;
+    gw.pr = pr;
+    gw.pc = pc;
+    std::set<CTF_int::grid_wrapper>::iterator s = CTF_int::scalapack_grids.find(gw);
+    if (s != CTF_int::scalapack_grids.end()){
+      ctxt = s->ctxt;
+    } else {
+      CTF_SCALAPACK::Cblacs_gridinit(&ctxt, &C, pr, pc);
+      gw.ctxt = ctxt;
+      CTF_int::scalapack_grids.insert(gw);
+    }
     ictxt = ctxt;
 
     desc = (int*)malloc(sizeof(int)*9);
@@ -348,6 +364,14 @@ namespace CTF {
 
   
 
+  static inline Idx_Partition get_map_from_desc(int const * desc){
+
+    int ictxt = desc[1];
+    int pr, pc, ipr, ipc;
+    CTF_SCALAPACK::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
+    return Partition(2,CTF_int::int2(pr, pc))["ij"];
+  }
+
   template<typename dtype>
   Matrix<dtype>::Matrix(int const *               desc,
                         dtype const *             data_,
@@ -356,7 +380,7 @@ namespace CTF {
                         char const *              name_,
                         int                       profile_)
     : Tensor<dtype>(2, false, CTF_int::int2(desc[2], desc[3]),  CTF_int::int2(NS, NS),
-                           wrld_, sr_, name_, profile_) {
+                           wrld_, "ij", get_map_from_desc(desc), Idx_Partition(), name_, profile_, sr_) {
     nrow = desc[2];
     ncol = desc[3];
     symm = NS;
@@ -366,7 +390,7 @@ namespace CTF {
     IASSERT(ipr == wrld_.rank%pr);
     IASSERT(ipc == wrld_.rank/pr);
     IASSERT(pr*pc == wrld_.np);
-    this->set_distribution("ij", Partition(2,CTF_int::int2(pr, pc))["ij"], Idx_Partition());
+    //this->set_distribution("ij", Partition(2,CTF_int::int2(pr, pc))["ij"], Idx_Partition());
     write_mat(desc[4],desc[5],pr,pc,desc[6],desc[7],desc[8],data_);
   }
 
@@ -439,6 +463,8 @@ namespace CTF {
     CTF_SCALAPACK::porgqr<dtype>(m,n,n,dQ,1,1,desca,tau,work,lwork,&info);
     Q = Matrix<dtype>(desca, dQ, (*(this->wrld)));
     free(work);
+    free(tau);
+    free(desca);
     //make upper-tri
     int syns[] = {SY, NS};
     Tensor<dtype> tR(R,syns);
