@@ -320,6 +320,13 @@ cdef class term:
             other = tensor(copy=other,dtype=self.dtype)
         return sum_term(self,other)
 
+    def __sub__(self, other):
+        if other.dtype != self.dtype:
+            other = tensor(copy=other,dtype=self.dtype)
+        other.scale(-1)
+        return sum_term(self,other)
+
+
     def __mul__(first, second):
         if (isinstance(first,term)):
             if (isinstance(second,term)):
@@ -430,8 +437,22 @@ cdef class itensor(term):
         self.string = string
         self.dtype = a.dtype
 
+    def __mul__(first, second):
+        if (isinstance(first,itensor)):
+            if (isinstance(second,term)):
+                return contract_term(first,second)
+            else:
+                first.scale(second)
+                return first
+        else:
+            if (isinstance(first,term)):
+                return contract_term(first,second)
+            else:
+                second.scale(first)
+                return second
+ 
     def scl(self, s):
-        self.it.multeq(s)
+        self.it.multeq(<double>s)
 
 def rev_array(arr):
     if len(arr) == 1:
@@ -660,7 +681,6 @@ cdef class tensor:
         out_dtype = get_np_dtype([self.dtype, other.dtype])
         out_dims = np.zeros(np.maximum(self.ndim, other.ndim), dtype=np.int)
         out_sp = min(self.sp,other.sp) 
-        print(self.sp,other.sp,out_sp)
         out_sym = [SYM.NS]*len(out_dims)
         ind_coll = get_num_str(3*out_dims.size)
         idx_C = ind_coll[0:out_dims.size]
@@ -1131,8 +1151,8 @@ cdef class tensor:
                 new_size *= newshape[i]
             if new_size != total_size:
                 raise ValueError("total size of new array must be unchanged")
-            B = tensor(newshape,dtype=self.dtype)
-            inds, vals = self.read_local()
+            B = tensor(newshape,sp=self.sp,dtype=self.dtype)
+            inds, vals = self.read_local_nnz()
             B.write(inds, vals)
             return B
         elif nega == 1:
@@ -1146,8 +1166,8 @@ cdef class tensor:
             if nega_size < 1:
                 raise ValueError("can not reshape into this size")
             newshape[pos] = nega_size
-            B = tensor(newshape,dtype=self.dtype)
-            inds, vals = self.read_local()
+            B = tensor(newshape,sp=self.sp,dtype=self.dtype)
+            inds, vals = self.read_local_nnz()
             B.write(inds, vals)
             return B
         else:
@@ -1945,22 +1965,23 @@ def array(A, dtype=None, copy=True, order='K', subok=False, ndmin=0):
         B.set_zero()
     return B
 
-def diag(A, k=0):
+def diag(A, k=0, sp=False):
     if not isinstance(A, tensor):
         raise ValueError('CTF PYTHON ERROR: A is not a tensor')
     dim = A.shape
+    sp = A.sp | sp
     if len(dim) == 0:
         raise ValueError('CTF PYTHON ERROR: diag requires an array of at least 1 dimension')
     if len(dim) == 1:
-        B = tensor((A.shape[0],A.shape[0]),dtype=A.dtype,sp=A.sp)
+        B = tensor((A.shape[0],A.shape[0]),dtype=A.dtype,sp=sp)
         B.i("ii") << A.i("i")
         absk = np.abs(k)
         if k>0:
-            B2 = tensor((A.shape[0],A.shape[0]+absk),dtype=A.dtype,sp=A.sp)
+            B2 = tensor((A.shape[0],A.shape[0]+absk),dtype=A.dtype,sp=sp)
             B2[:,absk:] = B
             return B2
         elif k < 0:
-            B2 = tensor((A.shape[0]+absk,A.shape[0]),dtype=A.dtype,sp=A.sp)
+            B2 = tensor((A.shape[0]+absk,A.shape[0]),dtype=A.dtype,sp=sp)
             B2[absk:,:] = B
             return B2
         else:
@@ -2016,6 +2037,9 @@ def diag(A, k=0):
             einsum_input = front + "->" + back
             return einsum(einsum_input,A)
     return None
+
+def spdiag(A, k=0):
+    return diag(A,k,sp=True)
 
 def diagonal(init_A, offset=0, axis1=0, axis2=1):
     A = astensor(init_A)
@@ -2196,6 +2220,16 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
             B = astensor(A.read(a)).reshape(ret_shape)
             return B
     raise ValueError('CTF PYTHON ERROR: CTF error: should not get here')
+
+def vecnorm(tensor A, ord=2):
+    if ord == 2:
+        return A.norm2()
+    elif ord == 1:
+        return A.norm1()
+    elif ord == np.inf:
+        return A.norm_infty()
+    else:
+        raise ValueError('CTF PYTHON ERROR: CTF only supports 1/2/inf vector norms')
 
 # the copy function need to call the constructor which return a copy.
 def copy(tensor A):
