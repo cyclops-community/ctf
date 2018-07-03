@@ -116,7 +116,7 @@ namespace CTF_int {
   }
 
 //FIXME: be smarter about regularization, magnitude of coefficients is different!
-#define REG_LAMBDA 1.E5
+#define REG_LAMBDA 1.E6
 
   template <int nparam>
   LinModel<nparam>::LinModel(double const * init_guess, char const * name_, int hist_size_){
@@ -137,6 +137,9 @@ namespace CTF_int {
     nobs = 0;
     is_tuned = false;
     tot_time = 0.0;
+    avg_tot_time = 0.0;
+    avg_over_time = 0.0;
+    avg_under_time = 0.0;
     over_time = 0.0;
     under_time = 0.0;
     get_all_models().push_back(this);
@@ -301,8 +304,13 @@ namespace CTF_int {
           for (int i=0; i<nparam; i++){
             b[i] = 0.0;
             for (int j=0; j<nparam; j++){
-              if (i==j) A[ncol*j+i] = REG_LAMBDA;
-              else      A[ncol*j+i] = 0.0;
+              if (i==j){
+                if (coeff_guess[i] != 0.0){
+                  A[ncol*j+i] = std::min(REG_LAMBDA,(avg_tot_time/coeff_guess[i])/1000.);
+                } else {
+                  A[ncol*j+i] = 1;
+                }
+              } else      A[ncol*j+i] = 0.0;
             }
           }
           i_st = nparam;
@@ -449,7 +457,7 @@ namespace CTF_int {
         cdealloc(iwork);
         cdealloc(A);
         memcpy(coeff_guess, b, nparam*sizeof(double));
-  /*      print();
+        /*print();
         double max_resd_sq = 0.0;
         for (int i=0; i<ncol-nparam; i++){
           max_resd_sq = std::max(max_resd_sq, b[nparam+i]);
@@ -506,8 +514,13 @@ namespace CTF_int {
     if (tot_nrcol >= min_obs  && under_time_ratio < threshold && over_time_ratio < threshold && threshold < threshold){
       is_active = false;
       std::cout<<"Model "<<name<<" has been turned off"<<std::endl;
-   }
-
+    }
+    avg_tot_time = tot_time_total/np;
+    avg_over_time = over_time_total/np;
+    avg_under_time = under_time_total/np;
+    tot_time = 0.0;
+    over_time = 0.0;
+    under_time = 0.0;
 #endif
 
   }
@@ -530,7 +543,7 @@ namespace CTF_int {
 
   template <int nparam>
   void LinModel<nparam>::print_uo(){
-    printf("%s is_tuned = %d (%ld) tot_time = %lf over_time = %lf under_time = %lf\n",name,(int)is_tuned,nobs,tot_time,over_time,under_time);
+    printf("%s is_tuned = %d (%ld) avg_tot_time = %lf avg_over_time = %lf avg_under_time = %lf\n",name,(int)is_tuned,nobs,avg_tot_time,avg_over_time,avg_under_time);
   }
 
 

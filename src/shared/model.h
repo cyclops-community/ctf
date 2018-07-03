@@ -44,6 +44,12 @@ namespace CTF_int {
       double over_time;
       /** \brief under_time amount of time that the model would have underestimated the obeservations */
       double under_time;
+      /** \brief average previous tot_time total time over all observations */
+      double avg_tot_time;
+      /** \brief average previous over_time amount of time that the model would have overestimated the obeservations */
+      double avg_over_time;
+      /** \brief average previous under_time amount of time that the model would have underestimated the obeservations */
+      double avg_under_time;
       /** \brief is_active whether this model is active for training */
       bool is_active;
 
