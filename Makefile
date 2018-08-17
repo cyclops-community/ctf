@@ -140,20 +140,20 @@ python_uninstall:
 .PHONY: python_test
 .NOTPARALLEL: python_test
 ifneq (,$(findstring USE_SCALAPACK,$(DEFS)))
-python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test python_la_test 
-	echo "Cyclops Python tests completed."
-else
-python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test 
+python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test python_sparse_test python_la_test 
+	echo "Cyclops Python tests completed."                                                                                 
+else                                                                                                                     
+python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test python_sparse_test 
 	echo "Cyclops Python tests completed."
 endif
 
 .PHONY: python_test%
 .NOTPARALLEL: python_test%
 ifneq (,$(findstring USE_SCALAPACK,$(DEFS)))
-python_test%: python_base_test% python_fancyindex_test% python_einsum_test% python_ufunc_test% python_dot_test% python_la_test%
-	echo "Cyclops Python tests completed."
-else
-python_test%: python_base_test% python_fancyindex_test% python_einsum_test% python_ufunc_test% python_dot_test%
+python_test%: python_base_test% python_fancyindex_test% python_einsum_test% python_ufunc_test% python_dot_test% python_sparse_test% python_la_test%
+	echo "Cyclops Python tests completed."                                                                                        
+else                                                                                                                            
+python_test%: python_base_test% python_fancyindex_test% python_einsum_test% python_ufunc_test% python_dot_test% python_sparse_test%
 	echo "Cyclops Python tests completed."
 endif
 
@@ -204,6 +204,15 @@ python_dot_test: $(BDIR)/lib_python/ctf/core.o
 .PHONY: python_dot_test%
 python_dot_test%: $(BDIR)/lib_python/ctf/core.o
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_dot.py;
+
+.PHONY: python_sparse_test
+python_sparse_test: $(BDIR)/lib_python/ctf/core.o
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_sparse.py; 
+
+.PHONY: python_sparse_test%
+python_sparse_test%: $(BDIR)/lib_python/ctf/core.o
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_sparse.py;
+
 
 
 .PHONY: test_live
