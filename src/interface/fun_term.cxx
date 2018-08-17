@@ -31,30 +31,33 @@ namespace CTF_int {
   }
 
   void Unifun_Term::execute(CTF::Idx_Tensor output) const {
-    CTF::Idx_Tensor opA = A->execute();
+    CTF::Idx_Tensor opA = A->execute(this->get_uniq_inds());
     summation s(opA.parent, opA.idx_map, opA.scale, output.parent, output.idx_map, output.scale, func);
     s.execute();
   }
  
-  CTF::Idx_Tensor Unifun_Term::execute() const {
+  CTF::Idx_Tensor Unifun_Term::execute(std::vector<char> out_inds) const {
     printf("Univar Unifunction applications cannot currently be a part of a longer algebraic expression\n");
     assert(0); 
     return CTF::Idx_Tensor(NULL);
   }
  
-  CTF::Idx_Tensor Unifun_Term::estimate_time(double & cost) const {
+  CTF::Idx_Tensor Unifun_Term::estimate_time(double & cost, std::vector<char> out_inds) const {
     printf("Univar Unifunction applications cannot currently be a part of a longer algebraic expression\n");
     assert(0); 
     return CTF::Idx_Tensor(NULL);
   }
   double Unifun_Term::estimate_time(CTF::Idx_Tensor output) const{
     double cost = 0.0;
-    CTF::Idx_Tensor opA = A->estimate_time(cost);
+    CTF::Idx_Tensor opA = A->estimate_time(cost, this->get_uniq_inds());
     summation s(opA.parent, opA.idx_map, opA.scale, output.parent, output.idx_map, output.scale, func);
     cost += s.estimate_time();
     return cost;
   }
 
+  std::vector<char> Unifun_Term::get_uniq_inds() const{
+    return A->get_uniq_inds();
+  }
 
   void Unifun_Term::get_inputs(std::set<CTF::Idx_Tensor*, CTF_int::tensor_name_less >* inputs_set) const {
     A->get_inputs(inputs_set);
@@ -91,8 +94,8 @@ namespace CTF_int {
   }
 
   void Bifun_Term::execute(CTF::Idx_Tensor output) const {
-    CTF::Idx_Tensor opA = A->execute();
-    CTF::Idx_Tensor opB = B->execute();
+    CTF::Idx_Tensor opA = A->execute(A->get_uniq_inds());
+    CTF::Idx_Tensor opB = B->execute(B->get_uniq_inds());
 /*    char * scl;
     scl = NULL;
     if (opA.scale != NULL || opB.scale != NULL) 
@@ -111,26 +114,39 @@ namespace CTF_int {
 //    if (scl != NULL) cdealloc(scl);
   }
  
-  CTF::Idx_Tensor Bifun_Term::execute() const {
+  CTF::Idx_Tensor Bifun_Term::execute(std::vector<char> out_inds) const {
     printf("Bivar Bifunction applications cannot currently be a part of a longer algebraic expression\n");
     assert(0); 
     return CTF::Idx_Tensor(NULL);
   }
  
-  CTF::Idx_Tensor Bifun_Term::estimate_time(double & cost) const {
+  CTF::Idx_Tensor Bifun_Term::estimate_time(double & cost, std::vector<char> out_inds) const {
     printf("Bivar Bifunction applications cannot currently be a part of a longer algebraic expression\n");
     assert(0); 
     return CTF::Idx_Tensor(NULL);
   }
   double Bifun_Term::estimate_time(CTF::Idx_Tensor output) const{
     double cost = 0.0;
-    CTF::Idx_Tensor opA = A->estimate_time(cost);
-    CTF::Idx_Tensor opB = B->estimate_time(cost);
+    CTF::Idx_Tensor opA = A->estimate_time(cost, A->get_uniq_inds());
+    CTF::Idx_Tensor opB = B->estimate_time(cost, B->get_uniq_inds());
     contraction c(opA.parent, opA.idx_map, opB.parent, opB.idx_map, output.sr->mulid(), output.parent, output.idx_map, output.scale, func);
     cost += c.estimate_time();
     return cost;
   }
 
+  std::vector<char> Bifun_Term::get_uniq_inds() const{
+    std::vector<char> iA = A->get_uniq_inds();
+    std::vector<char> iB = B->get_uniq_inds();
+    
+    std::set<char> uniq_inds;
+    for (int i=0; i<(int)iA.size(); i++){
+      uniq_inds.insert(iA[i]);
+    }
+    for (int i=0; i<(int)iB.size(); i++){
+      uniq_inds.insert(iB[i]);
+    }
+    return std::vector<char>(uniq_inds.begin(), uniq_inds.end());
+  }
 
   void Bifun_Term::get_inputs(std::set<CTF::Idx_Tensor*, CTF_int::tensor_name_less >* inputs_set) const {
     A->get_inputs(inputs_set);

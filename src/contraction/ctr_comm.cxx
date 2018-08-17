@@ -14,7 +14,7 @@ namespace CTF_int {
 
   void bivar_function::operator()(Term const & A, Term const & B, Term const & C) const {
     Bifun_Term ft(A.clone(), B.clone(), this);
-    ft.execute(C.execute());
+    ft.execute(C.execute(C.get_uniq_inds()));
   }
 
 
