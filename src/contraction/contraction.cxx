@@ -3949,7 +3949,8 @@ namespace CTF_int {
         krnl_type = 4;
       }
     } else {
-      // FIXME: currently this type of contraction cannot be done with sparse tensors
+      // Shouldn't be here ever anymore
+      //printf("%d %d %d\n", A->is_sparse, B->is_sparse, C->is_sparse);
       ASSERT(!B->is_sparse && !C->is_sparse);
       assert(!B->is_sparse && !C->is_sparse);
 
@@ -4835,17 +4836,142 @@ namespace CTF_int {
     }*/ 
 
     //CTF_ctr_type_t ntype = *stype;
-    contraction new_ctr = contraction(*this);
 
     if (C->is_sparse && !A->is_sparse){
-      new_ctr.A = new tensor(A, 1, 1);
-      new_ctr.A->sparsify(); 
+      contraction pre_new_ctr = contraction(*this);
+      pre_new_ctr.A = new tensor(A, 1, 1);
+      pre_new_ctr.A->sparsify(); 
+      pre_new_ctr.execute();
+      delete pre_new_ctr.A;
+      return SUCCESS;
     }
 
     if (C->is_sparse && !B->is_sparse){
-      new_ctr.B = new tensor(B, 1, 1);
-      new_ctr.B->sparsify(); 
+      contraction pre_new_ctr = contraction(*this);
+      pre_new_ctr.B = new tensor(B, 1, 1);
+      pre_new_ctr.B->sparsify(); 
+      pre_new_ctr.execute();
+      delete pre_new_ctr.B;
+      return SUCCESS;
     }
+ 
+    /*if (!C->is_sparse && (A->is_sparse && B->is_sparse)){
+      pre_new_ctr.C = new tensor(C, 0, 1);
+      pre_new_ctr.C->sparsify();
+      pre_new_ctr.C->has_home = 0;
+      pre_new_ctr.C->is_home = 0;
+    }*/
+
+    //if any of the tensors are sparse and we have a Hadamard index, take the smallest of the two operand tensor and add to it a new index to get rid of the Hadamard index
+    if (this->is_sparse()){
+      int num_tot, * idx_arr;
+      inv_idx(A->order, idx_A,
+              B->order, idx_B,
+              C->order, idx_C,
+              &num_tot, &idx_arr);
+      int iA = -1, iB = -1;
+      int has_weigh = false;
+      //consider the number of rows/cols in matrix that will beformed during contraction, taking into account enlarging of A/B, since CSR format will require storage proportional to that
+      int64_t szA1=1, szA2=1, szB1=1, szB2=1;
+      for (int i=0; i<num_tot; i++){
+        if (idx_arr[3*i+0] != -1 &&
+            idx_arr[3*i+1] != -1 &&
+            idx_arr[3*i+2] != -1){
+          has_weigh = true;
+          iA = idx_arr[3*i+0];
+          iB = idx_arr[3*i+1];
+          szA1 *= A->lens[iA];
+          szA2 *= A->lens[iA];
+          szB1 *= B->lens[iB];
+          szB2 *= B->lens[iB];
+        } else if (idx_arr[3*i+0] != -1 &&
+                   idx_arr[3*i+1] != -1 &&
+                   idx_arr[3*i+2] == -1){
+          szA1 *= A->lens[idx_arr[3*i+0]];
+          szB1 *= B->lens[idx_arr[3*i+1]];
+        } else if (idx_arr[3*i+0] != -1 &&
+                   idx_arr[3*i+1] == -1 &&
+                   idx_arr[3*i+2] != -1){
+          szA1 *= A->lens[idx_arr[3*i+0]];
+        } else if (idx_arr[3*i+0] == -1 &&
+                   idx_arr[3*i+1] != -1 &&
+                   idx_arr[3*i+2] != -1){
+          szB1 *= B->lens[idx_arr[3*i+1]];
+        }
+      }
+
+      if (has_weigh){
+        int64_t A_sz = A->is_sparse ? A->nnz_tot : A->size;
+        A_sz = std::max(A_sz, std::min(szA1, szA2));
+        int64_t B_sz = B->is_sparse ? B->nnz_tot : B->size;
+        B_sz = std::max(B_sz, std::min(szB1, szB2));
+        int iX;
+        tensor * X;
+        int const * idx_X;
+        if (A_sz < B_sz){
+          iX = iA;
+          X = A;
+          idx_X = idx_A;
+        } else {
+          iX = iB;
+          X = B;
+          idx_X = idx_B;
+        }
+        int * lensX = (int*)alloc(sizeof(int)*(X->order+1));
+        int * symX = (int*)alloc(sizeof(int)*(X->order+1));
+        int * nidxX = (int*)alloc(sizeof(int)*(X->order));
+        int * sidxX = (int*)alloc(sizeof(int)*(X->order+1));
+        int * cidxX = (int*)alloc(sizeof(int)*(X->order+1));
+        for (int i=0; i<X->order; i++){
+          if (i < iX){
+            lensX[i] = X->lens[i];
+            symX[i] = X->sym[i];
+            sidxX[i] = i;
+            nidxX[i] = i;
+            cidxX[i] = idx_X[i];
+          } else {
+            lensX[i+1] = X->lens[i];
+            symX[i+1] = X->sym[i];
+            nidxX[i] = i;
+            sidxX[i+1] = i;
+            cidxX[i+1] = idx_X[i];
+          }
+        }
+        lensX[iX] = lensX[iX+1];
+        symX[iX] = NS;
+        sidxX[iX] = sidxX[iX+1];
+        //introduce new contraction index 'num_tot'
+        cidxX[iX] = num_tot;
+        char * nname = (char*)alloc(strlen(X->name) + 2);
+        char d[] = "d";
+        strcpy(nname, X->name);
+        strcat(nname, d);
+        tensor * X2 = new tensor(X->sr, X->order+1, lensX, symX, X->wrld, 1, nname, X->profile, 1);
+        free(nname);
+        summation s(X, nidxX, X->sr->mulid(), X2, sidxX, X->sr->mulid());
+        s.execute();
+        contraction nc = contraction(*this);
+        if (A_sz < B_sz){
+          nc.A = X2;
+          memcpy(nc.idx_A, cidxX, sizeof(int)*(X->order+1));
+          nc.idx_B[iB] = num_tot;
+        } else {
+          nc.B = X2;
+          memcpy(nc.idx_B, cidxX, sizeof(int)*(X->order+1));
+          nc.idx_A[iA] = num_tot;
+        }
+        nc.execute();
+        delete X2;
+        free(lensX);
+        free(symX);
+        free(sidxX);
+        free(nidxX);
+        free(cidxX);
+        return SUCCESS;
+      }
+    }
+
+    contraction new_ctr = contraction(*this);
 
     was_home_A = A->is_home;
     was_home_B = B->is_home;
@@ -4854,7 +4980,6 @@ namespace CTF_int {
     if (was_home_A){
 //      clone_tensor(stype->tid_A, 0, &ntype.tid_A, 0);
       new_ctr.A = new tensor(A, 0, 0); //tensors[ntype.tid_A];
-      new_ctr.A = new_ctr.A;
       new_ctr.A->data = A->data;
       new_ctr.A->home_buffer = A->home_buffer;
       new_ctr.A->is_home = 1;
@@ -4864,7 +4989,7 @@ namespace CTF_int {
       new_ctr.A->topo = A->topo;
       copy_mapping(A->order, A->edge_map, new_ctr.A->edge_map);
       new_ctr.A->set_padding();
-      if (A->is_sparse){
+      if (new_ctr.A->is_sparse){
         CTF_int::alloc_ptr(new_ctr.A->calc_nvirt()*sizeof(int64_t), (void**)&new_ctr.A->nnz_blk);
         new_ctr.A->set_new_nnz_glb(A->nnz_blk);
       }
@@ -4892,6 +5017,7 @@ namespace CTF_int {
       }
     }
     if (was_home_C){
+      ASSERT(!C->is_sparse);
       ASSERT(!C->is_sparse);
       if (C == A){ //stype->tid_C == stype->tid_A){
         new_ctr.C = new_ctr.A; //tensors[ntype.tid_C];
@@ -4984,6 +5110,7 @@ namespace CTF_int {
         delete new_ctr.B;
       }
     }
+
     return SUCCESS;
   #endif
   }
