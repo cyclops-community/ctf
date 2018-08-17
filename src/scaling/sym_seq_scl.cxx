@@ -10,7 +10,7 @@
 namespace CTF_int {
 
   void endomorphism::operator()(Term const & A) const { 
-    CTF::Idx_Tensor op_A = A.execute();
+    CTF::Idx_Tensor op_A = A.execute(A.get_uniq_inds());
     scaling s(op_A.parent, op_A.idx_map, op_A.scale, this);
     s.execute();
   }
