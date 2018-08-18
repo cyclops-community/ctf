@@ -52,11 +52,11 @@ class KnowValues(unittest.TestCase):
         c_np = ctf.to_nparray(c_dn)
         #print(c_dn)
 
-        print(c_np,c_dn)
-        #c_sp.i("ijk") << 2.3*a_sp.i("ijl")*b_sp.i("kjl") + 7*c_sp.i("ijk") - a_sp.i("ijk") - 1. * a_sp.i("ijk") - 2 * b_sp.i("ijk")
-        c_dn.i("ijk") << 0.0*a_dn.i("ijl")*b_dn.i("kjl") + c_dn.i("ijk") #- a_dn.i("ijk") - 1. * a_dn.i("ijk") - 2 * b_dn.i("ijk")
-        c_np += 0.0*numpy.einsum("ijl,kjl->ijk",a_np,b_np) + c_np #- a_np - 1. * a_np - 2 * b_np
-        print(c_np,c_dn)
+        #print(c_np,c_dn)
+        c_sp.i("ijk") << 2.3*a_sp.i("ijl")*b_sp.i("kjl") + 7*c_sp.i("ijk") - a_sp.i("ijk") - 1. * a_sp.i("ijk") - 2 * b_sp.i("ijk")
+        c_dn.i("ijk") << 2.3*a_dn.i("ijl")*b_dn.i("kjl") + 7*c_dn.i("ijk") - a_dn.i("ijk") - 1. * a_dn.i("ijk") - 2 * b_dn.i("ijk")
+        c_np += 2.3*numpy.einsum("ijl,kjl->ijk",a_np,b_np) + 7*c_np - a_np - 1. * a_np - 2 * b_np
+        #print(c_np,c_dn)
         self.assertTrue(allclose(c_np,c_dn))  
         self.assertTrue(allclose(c_np,c_sp))  
 

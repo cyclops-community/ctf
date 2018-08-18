@@ -131,6 +131,7 @@ namespace CTF_int {
     sym_C = (int*)alloc(sizeof(int)*num_out_inds);
     len_C = (int*)alloc(sizeof(int)*num_out_inds);
     order_C = 0;
+    //FIXME: symmetry logic is incorrect here, setting all intermediates to fully nonsymmetric for now
     for (j=0; j<num_out_inds; j++){
       bool found = false;
       int len = -1;
@@ -158,8 +159,8 @@ namespace CTF_int {
       if (found){
         idx_C[order_C] = out_inds[j];
         len_C[order_C] = len;
-        if (sym_prev > 0)
-          sym_C[order_C-1] = sym_prev;
+        //if (sym_prev > 0)
+        //  sym_C[order_C-1] = sym_prev;
         sym_C[order_C] = NS;
         order_C++;
       }
@@ -560,32 +561,37 @@ namespace CTF_int {
     for (int i=0; i<(int)operands.size(); i++){
       tmp_ops.push_back(operands[i]->clone());
     }
-    while (tmp_ops.size() > 2){
+    while (tmp_ops.size() > terms_to_leave){
       Term * pop_A = tmp_ops.back();
       tmp_ops.pop_back();
+      //include all terms except the one to execute to determine out_inds for executing that term
+      std::vector<char> out_inds_A = det_uniq_inds(tmp_ops, out_inds);
       Term * pop_B = tmp_ops.back();
       tmp_ops.pop_back();
-      Idx_Tensor op_A(NULL,NULL,0);
-      Idx_Tensor op_B(NULL,NULL,0);
+      tmp_ops.push_back(pop_A);
+      std::vector<char> out_inds_B = det_uniq_inds(tmp_ops, out_inds);
+      tmp_ops.pop_back();
+      Idx_Tensor * op_A;
+      Idx_Tensor * op_B;
       if (est_time){
-        op_A = pop_A->estimate_time(*cost,out_inds);
-        op_B = pop_B->estimate_time(*cost,out_inds);
+        op_A = new Idx_Tensor(pop_A->estimate_time(*cost,out_inds_A));
+        op_B = new Idx_Tensor(pop_B->estimate_time(*cost,out_inds_B));
       } else {
-        op_A = pop_A->execute(out_inds);
-        op_B = pop_B->execute(out_inds);
+        op_A = new Idx_Tensor(pop_A->execute(out_inds_A));
+        op_B = new Idx_Tensor(pop_B->execute(out_inds_B));
       }
-      if (op_A.parent == NULL) {
-        sr->safemul(op_A.scale, op_B.scale, op_B.scale);
-        tmp_ops.push_back(op_B.clone());
-      } else if (op_B.parent == NULL) {
-        sr->safemul(op_A.scale, op_B.scale, op_A.scale);
-        tmp_ops.push_back(op_A.clone());
+      if (op_A->parent == NULL) {
+        sr->safemul(op_A->scale, op_B->scale, op_B->scale);
+        tmp_ops.push_back(op_B->clone());
+      } else if (op_B->parent == NULL) {
+        sr->safemul(op_A->scale, op_B->scale, op_A->scale);
+        tmp_ops.push_back(op_A->clone());
       } else {
-        Idx_Tensor * intm = get_full_intm(op_A, op_B, det_uniq_inds(tmp_ops, out_inds), !est_time);
-        sr->safemul(tscale, op_A.scale, tscale);
-        sr->safemul(tscale, op_B.scale, tscale);
-        contraction c(op_A.parent, op_A.idx_map,
-                      op_B.parent, op_B.idx_map, tscale,
+        Idx_Tensor * intm = get_full_intm(*op_A, *op_B, det_uniq_inds(tmp_ops, out_inds), !est_time);
+        sr->safemul(tscale, op_A->scale, tscale);
+        sr->safemul(tscale, op_B->scale, tscale);
+        contraction c(op_A->parent, op_A->idx_map,
+                      op_B->parent, op_B->idx_map, tscale,
                       intm->parent, intm->idx_map, intm->scale);
         if (est_time){
           *cost += c.estimate_time();
@@ -595,6 +601,8 @@ namespace CTF_int {
         sr->safecopy(tscale, sr->mulid());
         tmp_ops.push_back(intm);
       }
+      delete op_A;
+      delete op_B;
       delete pop_A;
       delete pop_B;
     } 
@@ -610,10 +618,15 @@ namespace CTF_int {
       assert(tmp_ops.size() == 2);
       Term * pop_B = tmp_ops.back();
       tmp_ops.pop_back();
+      //include all terms except the one to execute to determine out_inds for executing that term
+      std::vector<char> out_inds_B = det_uniq_inds(tmp_ops, out_inds);
       Term * pop_A = tmp_ops.back();
       tmp_ops.pop_back();
-      Idx_Tensor op_A = pop_A->execute(out_inds);
-      Idx_Tensor op_B = pop_B->execute(out_inds);
+      tmp_ops.push_back(pop_B);
+      std::vector<char> out_inds_A = det_uniq_inds(tmp_ops, out_inds);
+      tmp_ops.pop_back();
+      Idx_Tensor op_A = pop_A->execute(out_inds_A);
+      Idx_Tensor op_B = pop_B->execute(out_inds_B);
       /*if (tscale != NULL) cdealloc(tscale);
       tscale = NULL;
       sr->safecopy(tscale, this->scale);*/
