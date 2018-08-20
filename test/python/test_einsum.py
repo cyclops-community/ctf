@@ -7,9 +7,6 @@ import os
 import sys
 
 def allclose(a, b):
-    if abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() > 1e-5:
-      print(ctf.to_nparray(a))
-      print(ctf.to_nparray(b))
     return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() <= 1e-5
 
 

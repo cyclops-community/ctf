@@ -85,6 +85,11 @@ namespace CTF_int {
       virtual void get_inputs(std::set<CTF::Idx_Tensor*, tensor_name_less >* inputs_set) const = 0;
 
       /**
+      * \brief multiply scaling factor by mulscl
+      */
+      void mult_scl(char const * mulscl);
+
+      /**
        * \brief constructs a new term which multiplies by tensor A
        * \param[in] A term to multiply by
        */
@@ -127,6 +132,10 @@ namespace CTF_int {
 
       void operator=(double scl);
       void operator+=(double scl);
+      void operator<<(CTF_int::Term const & B);
+      void operator<<(double scl);
+ 
+
       void operator-=(double scl);
       void operator*=(double scl);
 
