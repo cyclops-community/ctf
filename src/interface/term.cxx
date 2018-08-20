@@ -213,6 +213,10 @@ namespace CTF_int {
     }
   }
 
+  void Term::mult_scl(char const * mulscl){
+    sr->safemul(scale,mulscl,scale);
+  }
+
   Contract_Term Term::operator*(Term const & A) const {
     Contract_Term trm(this->clone(),A.clone());
     return trm;
@@ -676,9 +680,14 @@ namespace CTF_int {
     std::vector< Term* > tmp_ops = contract_down_terms(sr, scale, operands, out_inds, 2, true, &cost);
     {
       assert(tmp_ops.size() == 2);
+      Term * pop_B = tmp_ops.back();
+      tmp_ops.pop_back();
+      //include all terms except the one to execute to determine out_inds for executing that term
+      std::vector<char> out_inds_B = det_uniq_inds(tmp_ops, out_inds);
       Term * pop_A = tmp_ops.back();
       tmp_ops.pop_back();
-      Term * pop_B = tmp_ops.back();
+      tmp_ops.push_back(pop_B);
+      std::vector<char> out_inds_A = det_uniq_inds(tmp_ops, out_inds);
       tmp_ops.pop_back();
       Idx_Tensor op_A = pop_A->estimate_time(cost,out_inds);
       Idx_Tensor op_B = pop_B->estimate_time(cost,out_inds);
@@ -724,6 +733,13 @@ namespace CTF_int {
   void operator-=(double & d, CTF_int::Term const & tsr){
     d -= (double)tsr;
   }
+
+  void Term::operator<<(Term const & B){
+    B.execute(this->execute(this->get_uniq_inds()));
+    sr->safecopy(scale,sr->mulid());
+  }
+  void Term::operator<<(double scl){ this->execute(this->get_uniq_inds()) += Idx_Tensor(sr,scl); }
+
 
   void operator+=(double & d, CTF_int::Term const & tsr){
     d += (double)tsr;

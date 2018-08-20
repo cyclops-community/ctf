@@ -122,7 +122,11 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
         Contract_Term operator*(Term A);
         Sum_Term operator+(Term A);
         Sum_Term operator-(Term A);
-    
+        void operator<<(double scl);
+        void operator<<(Term B);
+        void mult_scl(char *);
+
+
     cdef cppclass Sum_Term(Term):
         Sum_Term(Term * B, Term * A);
         Sum_Term operator+(Term A);
@@ -180,8 +184,6 @@ cdef extern from "ctf.hpp" namespace "CTF":
         void operator=(Term B);
         void operator=(Idx_Tensor B);
         void multeq(double scl);
-        void operator<<(Term B);
-        void operator<<(double scl);
 
     cdef cppclass Typ_Idx_Tensor[dtype](Idx_Tensor):
         Typ_Idx_Tensor(ctensor *, char *)
@@ -313,7 +315,16 @@ cdef class term:
             return self.dtype
 
     def scale(self, scl):
-        self.tm = (deref(self.tm) * <double>scl).clone()
+        if isinstance(scl, (np.int, np.float, np.double, np.number)):
+            self.tm = (deref(self.tm) * <double>scl).clone()
+        else:
+            st = np.ndarray([],dtype=self.dtype).itemsize
+            beta = <char*>malloc(st)
+            b = np.asarray([scl],dtype=self.dtype)[0]
+            nb = np.array([b])
+            for j in range(0,st):
+                beta[j] = nb.view(dtype=np.int8)[j]
+            self.tm.mult_scl(beta)
 
     def __add__(self, other):
         if other.dtype != self.dtype:
@@ -346,6 +357,17 @@ cdef class term:
 
     def __repr__(self):
         raise ValueError("CTF PYTHON ERROR: in abstract __repr__ function")
+
+    def __lshift__(self, other):
+        if isinstance(other, term):
+            if other.dtype != self.dtype:
+                other.conv_type(self.dtype)
+            deref((<itensor>self).tm) << deref((<term>other).tm)
+        else:
+            tsr_copy = astensor(other,dtype=self.dtype)
+            deref((<itensor>self).tm) << deref(itensor(tsr_copy,"").it)
+
+
 
 cdef class contract_term(term):
     cdef term a
@@ -419,16 +441,6 @@ cdef class itensor(term):
 
     def __repr__(self):
         return "tsr is" + self.tsr.__repr__()
-
-
-    def __lshift__(self, other):
-        if isinstance(other, term):
-            if other.dtype != self.dtype:
-                other.conv_type(self.dtype)
-            deref((<itensor>self).it) << deref((<term>other).tm)
-        else:
-            tsr_copy = astensor(other,dtype=self.dtype)
-            deref((<itensor>self).it) << deref(itensor(tsr_copy,"").it)
 
     def __cinit__(self, tensor a, string):
         self.it = new Idx_Tensor(a.dt, string.encode())
