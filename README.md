@@ -29,7 +29,7 @@ then execute ./configure with the appropriate options. Successful execution of t
 
 The strict library dependencies of Cyclops are MPI and BLAS libraries.
 
-Some functionality in Cyclops requires LAPACK and ScaLAPACK. A standard build of the latter can be constructed automatically by running configure with `--build-scalapack`.
+Some functionality in Cyclops requires LAPACK and ScaLAPACK. A standard build of the latter can be constructed automatically by running configure with `--build-scalapack` (requires cmake to build ScaLAPACK, manual build can also be provided along by providing the library path).
 
 Faster transposition in Cyclops is made possible by the HPTT library. To obtain a build of HPTT automatically run configure with `--build-hptt`.
 
