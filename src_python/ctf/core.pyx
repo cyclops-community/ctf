@@ -3109,28 +3109,32 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
         output = tensor(out_lens, dtype=out_dtype)
     else:
         output = out
-    if numop == 1:
-        output.i(out_inds) << operands[0].i(inds[0])
-    elif numop == 2:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])
-    elif numop == 3:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])
-    elif numop == 4:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])
-    elif numop == 5:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])
-    elif numop == 6:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])
-    elif numop == 7:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])
-    elif numop == 8:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])*operands[7].i(inds[7])
-    elif numop == 9:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])*operands[7].i(inds[7])*operands[8].i(inds[8])
-    elif numop == 10:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])*operands[7].i(inds[7])*operands[8].i(inds[8])*operands[9].i(inds[9])
-    else:
-        raise ValueError('CTF PYTHON ERROR: CTF einsum currently allows no more than 10 operands')
+    # if numop == 1:
+    #     output.i(out_inds) << operands[0].i(inds[0])
+    # elif numop == 2:
+    #     output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])
+    # elif numop == 3:
+    #     output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])
+    # elif numop == 4:
+    #     output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])
+    # elif numop == 5:
+    #     output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])
+    # elif numop == 6:
+    #     output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])
+    # elif numop == 7:
+    #     output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])
+    # elif numop == 8:
+    #     output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])*operands[7].i(inds[7])
+    # elif numop == 9:
+    #     output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])*operands[7].i(inds[7])*operands[8].i(inds[8])
+    # elif numop == 10:
+    #     output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])*operands[7].i(inds[7])*operands[8].i(inds[8])*operands[9].i(inds[9])
+    # else:
+    #     raise ValueError('CTF PYTHON ERROR: CTF einsum currently allows no more than 10 operands')
+    mul = operands[0].i(inds[0])
+    for i in range(1, numop):
+        mul *= operands[i].i(inds[i])
+    output.i(out_inds) << mul
     return output
 
 def svd(tensor A, rank=None):
