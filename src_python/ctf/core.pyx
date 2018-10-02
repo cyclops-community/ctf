@@ -3250,6 +3250,12 @@ def power(first, second):
 
     return out_tsr
 
+
+def sqrt(tensor A):
+    if not isinstance(A, tensor):
+        raise ValueError('CTF PYTHON ERROR: A is not a tensor')
+    return power(A, 0.5)
+
 def abs(initA):
     cdef tensor A = astensor(initA)
     cdef tensor oA = tensor(copy=A)
