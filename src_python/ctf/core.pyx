@@ -796,7 +796,12 @@ cdef class tensor:
     def __div__(self, other):
         return div(self,other)
 
-    
+    def __len__(self):
+        # ctf.tensor([])
+        if self.shape == ():
+            return 0
+        return self.shape[0]
+
     def __pow__(self, other, modulus):
         if modulus is not None:
             raise ValueError('CTF PYTHON ERROR: powering function does not accept third parameter (modulus)')
