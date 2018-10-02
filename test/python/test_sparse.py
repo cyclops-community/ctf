@@ -22,10 +22,14 @@ class KnowValues(unittest.TestCase):
 
         d1 = ctf.einsum('ijk,jkl->ijkl', a1, b1)
         e1 = numpy.einsum('ijk,jkl->ijkl', ctf.to_nparray(a1), ctf.to_nparray(b1))
-        self.assertTrue(allclose(d1,e1))  
+        self.assertTrue(allclose(d1,e1))
+
         d2 = ctf.einsum('ijk,jkl->ijkl', a1, c1)
         e2 = numpy.einsum('ijk,jkl->ijkl', ctf.to_nparray(a1), ctf.to_nparray(c1))
-        self.assertTrue(allclose(d2,e2))  
+        # print(e2)
+        # print(d2)
+        # print(ctf.to_nparray(d2))
+        self.assertTrue(allclose(d2,e2)) 
 
     def test_scaled_expression(self):
         n = 5
@@ -65,6 +69,28 @@ class KnowValues(unittest.TestCase):
         .2*b1.i("ijk") << .7*a1.i("kij")
         b0 = .2*b0 + .7*a0.transpose([1,2,0])
         self.assertTrue(allclose(b0,b1))
+
+    def test_sum(self):
+        n = 5
+        a_sp = ctf.tensor((n-2,n-1,n), sp=1)
+        a_dn = ctf.tensor((n-2,n-1,n), sp=0)
+        a_np = numpy.zeros((n-2,n-1,n))
+
+        a_sp.fill_sp_random(0., 1., 0.1)
+        a_dn += a_sp
+        a_np += ctf.to_nparray(a_sp)
+
+        self.assertTrue(allclose(ctf.sum(a_sp, axis=1),ctf.sum(a_dn, axis=1)))  
+        self.assertTrue(allclose(ctf.sum(a_sp, axis=1),numpy.sum(a_np, axis=1))) 
+
+    def test_speye(self):
+        n = 5
+        a_sp = ctf.speye(n, n+2, 1)
+        a_dn = ctf.eye(n, n+2, 1)
+        a_np = numpy.eye(n, n+2, 1)
+
+        self.assertTrue(allclose(a_sp,a_dn))
+        self.assertTrue(allclose(a_sp,a_np))
 
 if __name__ == "__main__":
     numpy.random.seed(5330);
