@@ -124,6 +124,23 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(c1.dtype == numpy.complex)
         self.assertTrue(allclose(c0, c1))
 
+    def test_einsum_long_operands(self):
+        a = numpy.arange(10).astype(numpy.complex)+1j
+        b = numpy.arange(5, 15).astype(numpy.complex)+1j
+        c = ctf.astensor(a)
+        d = ctf.astensor(b)
+        a1 = numpy.einsum('i,i,i,i,i,i,i,i,i,i,i,i->i',a,b,a,b,a,b,a,b,a,b,a,b)
+        c1 = ctf.einsum('i,i,i,i,i,i,i,i,i,i,i,i->i',c,d,c,d,c,d,c,d,c,d,c,d).to_nparray()
+
+        e = numpy.random.random((3, 3, 3))
+        f = ctf.astensor(e)
+        e1 = numpy.einsum('ijk,ijk,ijk,ijk,ijk,ijk,ijk,ijk,ijk,ijk,ijk,ijk->ijk', e, e, e, e, e, e, e, e, e, e, e, e)
+        f1 = ctf.einsum('ijk,ijk,ijk,ijk,ijk,ijk,ijk,ijk,ijk,ijk,ijk,ijk->ijk', f, f, f, f, f, f, f, f, f, f, f, f)
+
+        self.assertTrue(c1.dtype == numpy.complex)
+        self.assertTrue(allclose(a1, c1))
+        self.assertTrue(allclose(e1, f1))
+
 
 if __name__ == "__main__":
     numpy.random.seed(5330);
