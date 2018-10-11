@@ -1,4 +1,5 @@
 import os, sys
+import numpy as np
 sys.path.insert(0, os.path.abspath("."))
 
 cdef extern from "ctf.hpp" namespace "CTF_int":
@@ -17,9 +18,17 @@ def seed(seed):
 def all_seed(seed):
     init_rng(seed)
 
-def random(shape):
+def random(shape, sp=None, p=None, dtype=None):
     import ctf
-    A = ctf.tensor(shape)
-    A.fill_random()
+    if dtype is None:
+        dtype = np.float64
+    if sp is None:
+        A = ctf.tensor(shape)
+        A.fill_random()
+    else:
+        if p is None:
+            p = 0.1
+        A = ctf.tensor(shape, sp=True)
+        A.fill_sp_random(frac_sp=p)
     return A
  

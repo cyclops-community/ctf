@@ -166,6 +166,7 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void get_imag[dtype](ctensor * A, ctensor * B)
     cdef void set_real[dtype](ctensor * A, ctensor * B)
     cdef void set_imag[dtype](ctensor * A, ctensor * B)
+    cdef void subsample(ctensor * A, double probability)
     cdef void matrix_svd(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
     cdef void matrix_svd_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
     cdef void matrix_qr(ctensor * A, ctensor * Q, ctensor * R)
@@ -1773,7 +1774,12 @@ cdef class tensor:
             #A.set_all(b)
             #return self.compare_tensors(A,op)
             return self.compare_tensors(astensor(b,dtype=self.dtype),op)
-            
+
+    #extract a sample of the entries (if sparse of the current nonzeros)
+    #keep each entry with probability p
+    #transforms tensor into sparse format if not already
+    def sample(tensor self, p):
+        subsample(self.dt, p)
 
     # change the operators "<","<=","==","!=",">",">=" when applied to tensors
     # also for each operator we need to add the template.
