@@ -100,6 +100,11 @@ namespace CTF_int{
   }
 
 
+  void subsample(tensor * A, double probability){
+    int ret = A->sparsify([=](char const * c){ return CTF_int::get_rand48() < probability; });
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function sparisfy\n"); IASSERT(0); return; }
+  }
+
 
   void matrix_qr(tensor * A, tensor * Q, tensor * R){
     switch (A->sr->el_size){
