@@ -1682,6 +1682,16 @@ cdef class tensor:
     def sum(self, axis = None, dtype = None, out = None, keepdims = None):
         return sum(self, axis, dtype, out, keepdims)
 
+    def mean(self, axis = None, dtype = None, out = None, keepdims = None):
+        # basic implementation on tensor.mean()
+        if axis == None:
+            num = 1
+            for elem in self.shape:
+                num *= elem
+            return sum(self, axis, dtype, out, keepdims) / num
+        else:
+            return sum(self, axis, dtype, out, keepdims) / self.shape[axis]
+
     def norm1(self):
         if self.dtype == np.float64:
             return (<Tensor[double]*>self.dt).norm1()
