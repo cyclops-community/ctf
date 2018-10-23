@@ -157,6 +157,8 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
 
 cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef int64_t sum_bool_tsr(ctensor *);
+    cdef void log_helper[dtype](ctensor * A, ctensor * B);
+    cdef void log10_helper[dtype](ctensor * A, ctensor * B);
     cdef void pow_helper[dtype](ctensor * A, ctensor * B, ctensor * C, char * idx_A, char * idx_B, char * idx_C);
     cdef void abs_helper[dtype](ctensor * A, ctensor * B);
     cdef void all_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
@@ -3159,6 +3161,8 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     output.i(out_inds) << mul
     return output
 
+
+
 def svd(tensor A, rank=None):
     if not isinstance(A,tensor) or A.ndim != 2:
         raise ValueError('CTF PYTHON ERROR: SVD called on invalid tensor, must be CTF double matrix')
@@ -3272,6 +3276,60 @@ def sqrt(tensor A):
     if not isinstance(A, tensor):
         raise ValueError('CTF PYTHON ERROR: A is not a tensor')
     return power(A, 0.5)
+
+# add more parameters
+def log(initA):
+    # change this
+    cdef tensor A = astensor(initA)
+    if A.dtype in [np.int8, np.int16, np.int32, np.int64]:
+        A = A.astype(np.float64)
+
+    cdef tensor oA = tensor(copy=A)
+    if A.dtype == np.float64:
+        log_helper[double](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.float32:
+        log_helper[float](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.complex64:
+        log_helper[complex64_t](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.complex128:
+        log_helper[complex128_t](<ctensor*>A.dt, <ctensor*>oA.dt)
+
+    if type(initA) == int:
+        return float(oA.to_nparray())
+    elif type(initA) == float:
+        return float(oA.to_nparray())
+    # Python complex mixed with Cython complex type
+    # elif type(initA) == complex:
+        # return complex(oA.to_nparray())
+    else:
+        return oA
+
+# add more parameters
+def log10(initA):
+    # change this
+    cdef tensor A = astensor(initA)
+    if A.dtype in [np.int8, np.int16, np.int32, np.int64]:
+        A = A.astype(np.float64)
+
+    cdef tensor oA = tensor(copy=A)
+    if A.dtype == np.float64:
+        log10_helper[double](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.float32:
+        log10_helper[float](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.complex64:
+        log10_helper[complex64_t](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.complex128:
+        log10_helper[complex128_t](<ctensor*>A.dt, <ctensor*>oA.dt)
+
+    if type(initA) == int:
+        return float(oA.to_nparray())
+    elif type(initA) == float:
+        return float(oA.to_nparray())
+    # Python complex mixed with Cython complex type
+    # elif type(initA) == complex:
+        # return complex(oA.to_nparray())
+    else:
+        return oA
 
 def abs(initA):
     cdef tensor A = astensor(initA)

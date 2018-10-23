@@ -3,6 +3,21 @@
   
 namespace CTF_int{
 
+  /**
+   * \python log10 function
+   * \param[in] A tensor, param[in,out] B tensor (becomes absolute value of A)
+   * \return None
+   */
+  template <typename dtype>
+  void log10_helper(tensor * A, tensor * B);
+
+  /**
+   * \python natural log function
+   * \param[in] A tensor, param[in,out] B tensor (becomes absolute value of A)
+   * \return None
+   */
+  template <typename dtype>
+  void log_helper(tensor * A, tensor * B);
 
   /**
    * \python absolute value function

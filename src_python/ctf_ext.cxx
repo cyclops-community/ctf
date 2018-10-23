@@ -14,6 +14,24 @@ namespace CTF_int{
   typedef int8_t TYPE9;
 
   template <typename dtype>
+  void log10_helper(tensor * A, tensor * B){
+    char str[A->order];
+    for(int i=0;i<A->order;i++) {
+      str[i] = 'a' + i;
+    }
+    B->operator[](str) = CTF::Function<dtype>([](dtype a){ return std::log10(a); })(A->operator[](str));
+  }
+
+  template <typename dtype>
+  void log_helper(tensor * A, tensor * B){
+    char str[A->order];
+    for(int i=0;i<A->order;i++) {
+      str[i] = 'a' + i;
+    }
+    B->operator[](str) = CTF::Function<dtype>([](dtype a){ return std::log(a); })(A->operator[](str));
+  }
+
+  template <typename dtype>
   void abs_helper(tensor * A, tensor * B){
     char str[A->order];
     for(int i=0;i<A->order;i++) {
@@ -443,6 +461,17 @@ CONV_FCOMPLEX_INST(double,double)
 	template void abs_helper<int16_t>(tensor * A, tensor * B);
 	template void abs_helper<int8_t>(tensor * A, tensor * B);
 
+  // ctf.log() function in c++ file (add more type)
+  template void log_helper< std::complex<double> >(tensor * A, tensor * B);
+  template void log_helper< std::complex<float> >(tensor * A, tensor * B);
+  template void log_helper<double>(tensor * A, tensor * B);
+  template void log_helper<float>(tensor * A, tensor * B);
+
+  // ctf.log10() function in c++ file (add more type)
+  template void log10_helper< std::complex<double> >(tensor * A, tensor * B);
+  template void log10_helper< std::complex<float> >(tensor * A, tensor * B);
+  template void log10_helper<double>(tensor * A, tensor * B);
+  template void log10_helper<float>(tensor * A, tensor * B);
 
 	// ctf.pow() function in c++ file (add more type)
 	template void pow_helper< std::complex<double> >(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C);
