@@ -2290,6 +2290,11 @@ def astensor(A, dtype = None, order=None):
     t.from_nparray(narr)
     return t
 
+def matmul(tA, tB, out=None):
+    if (not isinstance(tA, tensor)) or (not isinstance(tB, tensor)):
+        raise ValueError("input should be tensors")
+    return dot(tA, tB)
+
 def dot(tA, tB, out=None):
     if out is not None:
         raise ValueError("now ctf does not support to specify out")
