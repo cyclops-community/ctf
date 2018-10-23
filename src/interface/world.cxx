@@ -111,7 +111,7 @@ namespace CTF {
     if (get_num_instances() == 0){
       for (std::set<grid_wrapper>::iterator it=scalapack_grids.begin(); it!=scalapack_grids.end(); it++){
         //printf("HERE %d %d %d\n",it->pr,it->pc,it->ctxt);
-        CTF_SCALAPACK::Cblacs_gridexit(it->ctxt);
+        CTF_SCALAPACK::cblacs_gridexit(it->ctxt);
       }
       scalapack_grids.clear();
 #ifdef OFFLOAD
