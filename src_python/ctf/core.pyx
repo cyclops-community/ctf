@@ -337,7 +337,6 @@ cdef class term:
         other.scale(-1)
         return sum_term(self,other)
 
-
     def __mul__(first, second):
         if (isinstance(first,term)):
             if (isinstance(second,term)):
@@ -348,7 +347,7 @@ cdef class term:
         else:
             second.scale(first)
             return second
-                
+
     def __dealloc__(self):
         del self.tm
 
@@ -789,6 +788,9 @@ cdef class tensor:
 
         out_tsr.i(idx_C) << tsr.i(idx_A)*otsr.i(idx_B)
         return out_tsr
+
+    def __neg__(self):
+        return self * (-1)
 
     def __truediv__(self, other):
         return div(self,other)
