@@ -301,7 +301,7 @@ namespace CTF {
     char C = 'C';
     int ctxt;
     IASSERT(this->wrld->comm == MPI_COMM_WORLD);
-    CTF_SCALAPACK::Cblacs_get(-1, 0, &ctxt);
+    CTF_SCALAPACK::cblacs_get(-1, 0, &ctxt);
     CTF_int::grid_wrapper gw;
     gw.pr = pr;
     gw.pc = pc;
@@ -309,7 +309,7 @@ namespace CTF {
     if (s != CTF_int::scalapack_grids.end()){
       ctxt = s->ctxt;
     } else {
-      CTF_SCALAPACK::Cblacs_gridinit(&ctxt, &C, pr, pc);
+      CTF_SCALAPACK::cblacs_gridinit(&ctxt, &C, pr, pc);
       gw.ctxt = ctxt;
       CTF_int::scalapack_grids.insert(gw);
     }
@@ -332,7 +332,7 @@ namespace CTF {
                                dtype *     data_){
     int ictxt = desc[1];
     int pr, pc, ipr, ipc;
-    CTF_SCALAPACK::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
+    CTF_SCALAPACK::cblacs_gridinfo(ictxt, &pr, &pc, &ipr, &ipc);
     IASSERT(ipr == this->wrld->rank%pr);
     IASSERT(ipc == this->wrld->rank/pr);
 
@@ -368,7 +368,7 @@ namespace CTF {
 
     int ictxt = desc[1];
     int pr, pc, ipr, ipc;
-    CTF_SCALAPACK::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
+    CTF_SCALAPACK::cblacs_gridinfo(ictxt, &pr, &pc, &ipr, &ipc);
     return Partition(2,CTF_int::int2(pr, pc))["ij"];
   }
 
@@ -386,7 +386,7 @@ namespace CTF {
     symm = NS;
     int ictxt = desc[1];
     int pr, pc, ipr, ipc;
-    CTF_SCALAPACK::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
+    CTF_SCALAPACK::cblacs_gridinfo(ictxt, &pr, &pc, &ipr, &ipc);
     IASSERT(ipr == wrld_.rank%pr);
     IASSERT(ipc == wrld_.rank/pr);
     IASSERT(pr*pc == wrld_.np);
