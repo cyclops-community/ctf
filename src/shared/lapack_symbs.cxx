@@ -88,11 +88,11 @@ namespace CTF_SCALAPACK{
   extern "C"
   void BLACS_GRIDINIT(int * icontxt, char * order, int * nprow, int * npcol);
 
-  extern "C" 
+  extern "C"
   void PDGESVD( char *,
                 char *,
                 int *,
-                int *, 
+                int *,
                 double *,
                 int *,
                 int *,
@@ -110,11 +110,11 @@ namespace CTF_SCALAPACK{
                 int *,
                 int *);
 
-  extern "C" 
+  extern "C"
   void PSGESVD( char *,
                 char *,
                 int *,
-                int *, 
+                int *,
                 float *,
                 int *,
                 int *,
@@ -132,11 +132,11 @@ namespace CTF_SCALAPACK{
                 int *,
                 int *);
 
-  extern "C" 
+  extern "C"
   void PCGESVD( char *,
                 char *,
                 int *,
-                int *, 
+                int *,
                 std::complex<float> *,
                 int *,
                 int *,
@@ -155,11 +155,11 @@ namespace CTF_SCALAPACK{
                 float *,
                 int *);
 
-  extern "C" 
+  extern "C"
   void PZGESVD( char *,
                 char *,
                 int *,
-                int *, 
+                int *,
                 std::complex<double> *,
                 int *,
                 int *,
@@ -178,8 +178,8 @@ namespace CTF_SCALAPACK{
                 double *,
                 int *);
 
-  
-  extern "C" 
+
+  extern "C"
   void PSGEQRF(int *,
                int *,
                float *,
@@ -190,8 +190,8 @@ namespace CTF_SCALAPACK{
                float *,
                int *,
                int *);
-  
-  extern "C" 
+
+  extern "C"
   void PDGEQRF(int *,
                int *,
                double *,
@@ -202,9 +202,9 @@ namespace CTF_SCALAPACK{
                double *,
                int *,
                int *);
-   
 
-  extern "C" 
+
+  extern "C"
   void PCGEQRF(int *,
                int *,
                std::complex<float> *,
@@ -215,8 +215,8 @@ namespace CTF_SCALAPACK{
                std::complex<float> *,
                int *,
                int *);
-  
-  extern "C" 
+
+  extern "C"
   void PZGEQRF(int *,
                int *,
                std::complex<double> *,
@@ -227,9 +227,9 @@ namespace CTF_SCALAPACK{
                std::complex<double> *,
                int *,
                int *);
-   
 
-  extern "C" 
+
+  extern "C"
   void PSORGQR(int *,
                 int *,
                 int *,
@@ -242,9 +242,9 @@ namespace CTF_SCALAPACK{
                 int *,
                 int *);
 
-  
 
-  extern "C" 
+
+  extern "C"
   void PDORGQR(int *,
                 int *,
                 int *,
@@ -258,7 +258,7 @@ namespace CTF_SCALAPACK{
                 int *);
 
 
-  extern "C" 
+  extern "C"
   void PCUNGQR(int *,
                 int *,
                 int *,
@@ -271,9 +271,9 @@ namespace CTF_SCALAPACK{
                 int *,
                 int *);
 
-  
 
-  extern "C" 
+
+  extern "C"
   void PZUNGQR(int *,
                 int *,
                 int *,
@@ -298,22 +298,22 @@ namespace CTF_SCALAPACK{
 
                 int *, int *);
 
-    extern "C" 
+    extern "C"
     void Cblacs_pinfo(int*, int*);
-    extern "C" 
+    extern "C"
     void Cblacs_get(int, int, int*);
-    extern "C" 
+    extern "C"
     void Cblacs_gridinit(int*, char*, int, int);
-    extern "C" 
+    extern "C"
     void Cblacs_gridinfo(int, int*, int*, int*, int*);
-    extern "C" 
+    extern "C"
     void Cblacs_gridmap(int*, int*, int, int, int);
-    extern "C" 
+    extern "C"
     void Cblacs_barrier(int , char*);
-    extern "C" 
+    extern "C"
     void Cblacs_gridexit(int);
 #endif
-  
+
 
   template <>
   void pgesvd<float>(char    JOBU,
@@ -449,7 +449,7 @@ namespace CTF_SCALAPACK{
 #endif
   }
 
-  template <> 
+  template <>
   void pgeqrf<float>(int         M,
                      int         N,
                      float *     A,
@@ -467,7 +467,7 @@ namespace CTF_SCALAPACK{
 #endif
   }
 
-  template <> 
+  template <>
   void pgeqrf<double>(int         M,
                       int         N,
                       double *    A,
@@ -485,7 +485,7 @@ namespace CTF_SCALAPACK{
 #endif
   }
 
-  template <> 
+  template <>
   void pgeqrf< std::complex<float> >(int                   M,
                                      int                   N,
                                      std::complex<float> * A,
@@ -504,7 +504,7 @@ namespace CTF_SCALAPACK{
   }
 
 
-  template <> 
+  template <>
   void pgeqrf< std::complex<double> >(int                    M,
                                       int                    N,
                                       std::complex<double> * A,
@@ -522,7 +522,7 @@ namespace CTF_SCALAPACK{
 #endif
   }
 
-  
+
   template <>
   void porgqr<float>(int         M,
                      int         N,
@@ -541,7 +541,7 @@ namespace CTF_SCALAPACK{
     assert(0);
 #endif
   }
-  
+
   template <>
   void porgqr<double>(int         M,
                       int         N,
@@ -560,7 +560,7 @@ namespace CTF_SCALAPACK{
     assert(0);
 #endif
   }
-  
+
   template <>
   void porgqr< std::complex<float> >(int                    M,
                                      int                    N,
@@ -579,8 +579,8 @@ namespace CTF_SCALAPACK{
     assert(0);
 #endif
   }
-  
-  
+
+
   template <>
   void porgqr< std::complex<double> >(int                     M,
                                       int                     N,
@@ -675,3 +675,4 @@ namespace CTF_SCALAPACK{
   }
 
 }
+
