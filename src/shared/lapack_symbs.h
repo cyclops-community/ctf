@@ -1,5 +1,7 @@
 #ifndef __LAPACK_SYMBS__
 #define __LAPACK_SYMBS__
+#include <stdlib.h>
+#include <complex>
 #include <assert.h>
 
 namespace CTF_LAPACK{
@@ -35,19 +37,173 @@ namespace CTF_SCALAPACK {
     assert(0);
   }
 
-  template <typename dtype> 
-  inline void pgeqrf(int         M,
+  template <typename dtype>
+  void pgeqrf(int         M,
+              int         N,
+              dtype *     A,
+              int         IA,
+              int         JA,
+              int const * DESCA,
+              dtype *     TAU2,
+              dtype *     WORK,
+              int         LWORK,
+              int *       INFO){
+    assert(0);
+  }
+
+  template <>
+  void pgeqrf<float>(int         M,
                      int         N,
-                     dtype *     A,
+                     float *     A,
                      int         IA,
                      int         JA,
                      int const * DESCA,
-                     dtype *     TAU2,
-                     dtype *     WORK,
+                     float *     TAU2,
+                     float *     WORK,
                      int         LWORK,
-                     int *       INFO){
-    assert(0);
-  }
+                     int *       INFO);
+  template <>
+  void pgeqrf<double>(int         M,
+                      int         N,
+                      double *    A,
+                      int         IA,
+                      int         JA,
+                      int const * DESCA,
+                      double *    TAU2,
+                      double *    WORK,
+                      int         LWORK,
+                      int *       INFO);
+  template <>
+  void pgeqrf< std::complex<float> >(int                   M,
+                                     int                   N,
+                                     std::complex<float> * A,
+                                     int                   IA,
+                                     int                   JA,
+                                     int const *           DESCA,
+                                     std::complex<float> * TAU2,
+                                     std::complex<float> * WORK,
+                                     int                   LWORK,
+                                     int *                 INFO);
+  template <>
+  void pgeqrf< std::complex<double> >(int                    M,
+                                      int                    N,
+                                      std::complex<double> * A,
+                                      int                    IA,
+                                      int                    JA,
+                                      int const *            DESCA,
+                                      std::complex<double> * TAU2,
+                                      std::complex<double> * WORK,
+                                      int                    LWORK,
+                                      int *                  INFO);
+  template <>
+  void pgesvd<float>(char    JOBU,
+                     char    JOBVT,
+                     int     M,
+                     int     N,
+                     float * A,
+                     int     IA,
+                     int     JA,
+                     int *   DESCA,
+                     float * S,
+                     float * U,
+                     int     IU,
+                     int     JU,
+                     int *   DESCU,
+                     float * VT,
+                     int     IVT,
+                     int     JVT,
+                     int *   DESCVT,
+                     float * WORK,
+                     int     LWORK,
+                     int *   info);
+
+  template <>
+  void pgesvd<float>(char    JOBU,
+                     char    JOBVT,
+                     int     M,
+                     int     N,
+                     float * A,
+                     int     IA,
+                     int     JA,
+                     int *   DESCA,
+                     float * S,
+                     float * U,
+                     int     IU,
+                     int     JU,
+                     int *   DESCU,
+                     float * VT,
+                     int     IVT,
+                     int     JVT,
+                     int *   DESCVT,
+                     float * WORK,
+                     int     LWORK,
+                     int *   info);
+  template <>
+  void pgesvd<double>(char     JOBU,
+                      char     JOBVT,
+                      int      M,
+                      int      N,
+                      double * A,
+                      int      IA,
+                      int      JA,
+                      int *    DESCA,
+                      double * S,
+                      double * U,
+                      int      IU,
+                      int      JU,
+                      int *    DESCU,
+                      double * VT,
+                      int      IVT,
+                      int      JVT,
+                      int *    DESCVT,
+                      double * WORK,
+                      int      LWORK,
+                      int *    info);
+
+  template <>
+  void pgesvd< std::complex<float> >(char                  JOBU,
+                                     char                  JOBVT,
+                                     int                   M,
+                                     int                   N,
+                                     std::complex<float> * A,
+                                     int                   IA,
+                                     int                   JA,
+                                     int *                 DESCA,
+                                     std::complex<float> * cS,
+                                     std::complex<float> * U,
+                                     int                   IU,
+                                     int                   JU,
+                                     int *                 DESCU,
+                                     std::complex<float> * VT,
+                                     int                   IVT,
+                                     int                   JVT,
+                                     int *                 DESCVT,
+                                     std::complex<float> * WORK,
+                                     int                   LWORK,
+                                     int *                 info);
+
+
+  template <>
+  void pgesvd< std::complex<double> >(char                   JOBU,
+                                      char                   JOBVT,
+                                      int                    M,
+                                      int                    N,
+                                      std::complex<double> * A,
+                                      int                    IA,
+                                      int                    JA,
+                                      int *                  DESCA,
+                                      std::complex<double> * cS,
+                                      std::complex<double> * U,
+                                      int                    IU,
+                                      int                    JU,
+                                      int *                  DESCU,
+                                      std::complex<double> * VT,
+                                      int                    IVT,
+                                      int                    JVT,
+                                      int *                  DESCVT,
+                                      std::complex<double> * WORK,
+                                      int                    LWORK,
+                                      int *                  info);
 
   template <typename dtype>
   void porgqr(int         M,
@@ -63,6 +219,59 @@ namespace CTF_SCALAPACK {
               int *       INFO){
     assert(0); // PORGQR not defined for this type
   }
+
+  template <>
+  void porgqr<float>(int         M,
+                     int         N,
+                     int         K,
+                     float *     A,
+                     int         IA,
+                     int         JA,
+                     int const * DESCA,
+                     float *     TAU2,
+                     float *     WORK,
+                     int         LWORK,
+                     int *       INFO);
+
+  template <>
+  void porgqr<double>(int         M,
+                      int         N,
+                      int         K,
+                      double *    A,
+                      int         IA,
+                      int         JA,
+                      int const * DESCA,
+                      double *    TAU2,
+                      double *    WORK,
+                      int         LWORK,
+                      int *       INFO);
+
+  template <>
+  void porgqr< std::complex<float> >(int                    M,
+                                     int                    N,
+                                     int                    K,
+                                     std::complex<float>  * A,
+                                     int                    IA,
+                                     int                    JA,
+                                     int const *            DESCA,
+                                     std::complex<float>  * TAU2,
+                                     std::complex<float>  * WORK,
+                                     int                    LWORK,
+                                     int *                  INFO);
+
+
+  template <>
+  void porgqr< std::complex<double> >(int                     M,
+                                      int                     N,
+                                      int                     K,
+                                      std::complex<double>  * A,
+                                      int                     IA,
+                                      int                     JA,
+                                      int const *             DESCA,
+                                      std::complex<double>  * TAU2,
+                                      std::complex<double>  * WORK,
+                                      int                     LWORK,
+                                      int *                   INFO);
 
   void cdescinit( int *  desc,
                   int    m,
@@ -90,3 +299,4 @@ namespace CTF_SCALAPACK {
   void cblacs_gridexit(int contxt);
 }
 #endif
+
