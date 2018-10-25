@@ -529,7 +529,7 @@ namespace CTF {
     dtype * s_data = S.get_raw_data(&sc);
 
     int phase = S.edge_map[0].calc_phase();
-    if (this->wrld->rank < phase){
+    if ((int)((this->wrld->rank) < phase){
       for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
         s_data[i/phase] = s[i];
       } 
