@@ -522,6 +522,7 @@ namespace CTF_int {
 //      bnvirt = INT64_MAX;
       btopo = -1;
       bmemuse = INT64_MAX;
+      bool fully_distributed = false;
       for (i=wrld->rank; i<(int64_t)wrld->topovec.size(); i+=wrld->np){
         this->clear_mapping();
         this->set_padding();
@@ -543,8 +544,10 @@ namespace CTF_int {
             continue;
           }
           int64_t sum_phases = 0;
+          int64_t prod_phys_phases = 1;
           for (int j=0; j<this->order; j++){
             int phase = this->edge_map[j].calc_phase();
+            prod_phys_phases *= this->edge_map[j].calc_phys_phase();
             int max_lcm_phase = phase;
             for (int k=0; k<this->order; k++){
               max_lcm_phase = std::max(max_lcm_phase,lcm(phase,this->edge_map[k].calc_phase()));
@@ -562,9 +565,11 @@ namespace CTF_int {
   //          bnvirt = nvirt;
             btopo = i;
             bmemuse = memuse;
-          } else if (memuse < bmemuse){
+            fully_distributed = prod_phys_phases == wrld->np; 
+          } else if ((memuse < bmemuse && !fully_distributed) || (memuse < bmemuse && prod_phys_phases == wrld->np)){
             btopo = i;
             bmemuse = memuse;
+            fully_distributed = prod_phys_phases == wrld->np; 
           }
         } else
           DPRINTF(1,"Unsuccessful in map_tensor() in set_zero()\n");
@@ -573,7 +578,9 @@ namespace CTF_int {
         bmemuse = INT64_MAX;
       /* pick lower dimensional mappings, if equivalent */
       ///btopo = get_best_topo(bnvirt, btopo, wrld->cdt, 0, bmemuse);
+      int btopo1 = get_best_topo((1-fully_distributed)*INT64_MAX+fully_distributed*bmemuse, btopo, wrld->cdt);
       btopo = get_best_topo(bmemuse, btopo, wrld->cdt);
+      if (btopo != btopo1 && btopo1 != -1) btopo = btopo1;
 
       if (btopo == -1 || btopo == INT_MAX) {
         if (wrld->rank==0)
