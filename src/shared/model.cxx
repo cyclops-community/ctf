@@ -216,6 +216,7 @@ namespace CTF_int {
 #ifndef TUNE
     ASSERT(0);
     assert(0);
+    return false;
 #else
     return is_active;
 #endif
@@ -527,7 +528,11 @@ namespace CTF_int {
 
   template <int nparam>
   double LinModel<nparam>::est_time(double const * param){
-    return std::max(0.0,cddot(nparam, param, 1, coeff_guess, 1));
+    double d = 0.;
+    for (int i=0; i<nparam; i++){
+      d+=param[i]*coeff_guess[i];
+    }
+    return std::max(0.0,d);
   }
 
   template <int nparam>
@@ -651,8 +656,8 @@ namespace CTF_int {
 
           // Convert the string to char* and update the model coefficients
           char buf[s.length()+1];
-          for(int i=0;i<(int)s.length();i++){
-            buf[i] = s[i];
+          for(int j=0;j<(int)s.length();j++){
+            buf[j] = s[j];
           }
           buf[s.length()] = '\0';
           coeff_guess[i] = std::atof(buf);
