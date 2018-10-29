@@ -75,6 +75,8 @@ void read_off_memory_status(statm_t& result)
   int instance_counter = 0;
   int64_t mem_used[MAX_THREADS];
   int64_t tot_mem_used;
+  int64_t tot_mem_available = -1;
+
   void inc_tot_mem_used(int64_t a){
     tot_mem_used += a;
     ASSERT(tot_mem_used >= 0);
@@ -626,21 +628,24 @@ void read_off_memory_status(statm_t& result)
 
     return total;
   #else
-    #ifdef __MACH__
-    int mib[] = {CTL_HW,HW_MEMSIZE};
-    int64_t mem;
-    size_t len = 8;
-    sysctl(mib, 2, &mem, &len, NULL, 0);
-    return mem;
-    #else
-    int64_t pages = (int64_t)sysconf(_SC_PHYS_PAGES);
-    int64_t page_size = (int64_t)sysconf(_SC_PAGE_SIZE);
-    if (mem_size != 0)
-      return MIN((int64_t)(pages * page_size), (int64_t)mem_size);
-    else
-      return pages * page_size;
+    if (tot_mem_available == -1){
+      #ifdef __MACH__
+      int mib[] = {CTL_HW,HW_MEMSIZE};
+      int64_t mem;
+      size_t len = 8;
+      sysctl(mib, 2, &mem, &len, NULL, 0);
+      tot_mem_available = mem;
+      #else
+      int64_t pages = (int64_t)sysconf(_SC_PHYS_PAGES);
+      int64_t page_size = (int64_t)sysconf(_SC_PAGE_SIZE);
+      if (mem_size != 0)
+        tot_mem_available = MIN((int64_t)(pages * page_size), (int64_t)mem_size);
+      else
+        tot_mem_available = pages * page_size;
+      #endif
+    }
+    return tot_mem_available;
     #endif
-  #endif
 #endif
   }
 
