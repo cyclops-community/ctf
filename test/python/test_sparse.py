@@ -66,6 +66,16 @@ class KnowValues(unittest.TestCase):
         b0 = .2*b0 + .7*a0.transpose([1,2,0])
         self.assertTrue(allclose(b0,b1))
 
+    def test_sample(self):
+        A = ctf.tensor((4,3,5))
+        nrm = A.norm2()
+        A.sample(.5)
+        nrm2 = A.norm2()
+        A.sample(.3)
+        nrm3 = A.norm2()
+        self.assertTrue(nrm2<=nrm)
+        self.assertTrue(nrm3<=nrm2)
+
 if __name__ == "__main__":
     numpy.random.seed(5330);
     if ctf.comm().rank() != 0:
