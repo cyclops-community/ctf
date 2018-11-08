@@ -4960,17 +4960,16 @@ namespace CTF_int {
         free(nname);
         summation s(X, nidxX, X->sr->mulid(), X2, sidxX, X->sr->mulid());
         s.execute();
-        contraction nc = contraction(*this);
+        contraction * nc;
         if (A_sz < B_sz){
-          nc.A = X2;
-          memcpy(nc.idx_A, cidxX, sizeof(int)*(X->order+1));
-          nc.idx_B[iB] = num_tot;
+          nc = new contraction(X2, cidxX, B, idx_B, alpha, C, idx_C, beta, func);
+          nc->idx_B[iB] = num_tot;
         } else {
-          nc.B = X2;
-          memcpy(nc.idx_B, cidxX, sizeof(int)*(X->order+1));
-          nc.idx_A[iA] = num_tot;
+          nc = new contraction(A, idx_A, X2, cidxX, alpha, C, idx_C, beta, func);
+          nc->idx_A[iA] = num_tot;
         }
-        nc.execute();
+        nc->execute();  
+        delete nc;
         delete X2;
         free(lensX);
         free(symX);
