@@ -543,7 +543,9 @@ namespace CTF_int {
 
   template <int nparam>
   void LinModel<nparam>::print_uo(){
-    printf("%s is_tuned = %d (%ld) avg_tot_time = %lf avg_over_time = %lf avg_under_time = %lf\n",name,(int)is_tuned,nobs,avg_tot_time,avg_over_time,avg_under_time);
+    if (nobs > 0){
+      printf("%s is_tuned = %d is_active = %d (%ld) avg_tot_time = %lf avg_over_time = %lf avg_under_time = %lf\n",name,(int)is_tuned,(int)is_active,nobs,avg_tot_time,avg_over_time,avg_under_time);
+    }
   }
 
 
@@ -651,8 +653,8 @@ namespace CTF_int {
 
           // Convert the string to char* and update the model coefficients
           char buf[s.length()+1];
-          for(int i=0;i<(int)s.length();i++){
-            buf[i] = s[i];
+          for(int j=0;j<(int)s.length();j++){
+            buf[j] = s[j];
           }
           buf[s.length()] = '\0';
           coeff_guess[i] = std::atof(buf);
