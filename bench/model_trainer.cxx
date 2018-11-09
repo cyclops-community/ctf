@@ -19,7 +19,73 @@ namespace CTF_int{
 
 void train_off_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, bool sp_C);
 
+void train_ttm(int64_t sz, int64_t r, World & dw){
+  Timer TTM("TTM");
+  TTM.start();
+  for (int order=2; order<7; order++){
+    int n = 1;
+    while (std::pow(n,order) < sz){
+      n++;
+    }
+    int m = r;
+    Matrix<> M(n,m,dw);
+    M.fill_random(-.5,.5);
+    int * lens_n = (int*)malloc(order*sizeof(int));
+    int * lens_nm = (int*)malloc(order*sizeof(int));
+    int * lens_nmm = (int*)malloc(order*sizeof(int));
+    char * base_inds = (char*)malloc((order-1)*sizeof(char));
+    for (int i=0; i<order; i++){
+      if (i<order-2)
+        base_inds[i] = 'a'+i;
+      lens_n[i] = n;
+      lens_nm[i] = n;
+      lens_nmm[i] = n;
+
+      if (i>=order-2){
+        lens_nmm[i] = m;
+      }
+      if (i>=order-1){
+        lens_nm[i] = m;
+      }
+    }
+    base_inds[order-2] = '\0';
+    char * inds_C = (char*)malloc((order+1)*sizeof(char));
+    char * inds_A = (char*)malloc((order+1)*sizeof(char));
+    char const * inds_M = "xy";
+    Tensor<> T(order,lens_n,dw);
+    Tensor<> U(order,lens_nm,dw);
+    Tensor<> V(order,lens_nmm,dw);
+    Tensor<> W(order-1,lens_nmm,dw);
+    T.fill_random(-.2,.8);
+    strcpy(inds_A, base_inds);
+    strcpy(inds_C, base_inds);
+    strcat(inds_A, "zx");
+    strcat(inds_C, "zy");
+    U[inds_C] = T[inds_A]*M[inds_M];
+    strcpy(inds_A, base_inds);
+    strcpy(inds_C, base_inds);
+    strcat(inds_A, "xq");
+    strcat(inds_C, "yq");
+    V[inds_C] = U[inds_A]*M[inds_M];
+    //include one weigh index
+    strcpy(inds_A, base_inds);
+    strcpy(inds_C, base_inds);
+    strcat(inds_A, "xy");
+    strcat(inds_C, "y");
+    W[inds_C] = U[inds_A]*M[inds_M];
+    free(lens_n);
+    free(lens_nm);
+    free(lens_nmm);
+    free(base_inds);
+    free(inds_C);
+    free(inds_A);
+  }
+  TTM.stop();
+}
+
 void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
+  Timer dns_vec_mat("dns_vec_mat");
+  dns_vec_mat.start();
   Vector<> b(n, dw);
   Vector<> c(m, dw);
   Matrix<> A(m, n, dw);
@@ -69,10 +135,13 @@ void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
 
   t3(c["i"],b["i"],b["i"]);
   t3(A["ij"],G["ij"],F["ij"]);*/
+  dns_vec_mat.stop();
 }
 
 
 void train_sps_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, bool sp_C){
+  Timer sps_vec_mat("sps_vec_mat");
+  sps_vec_mat.start();
   Vector<> b(n, dw);
   Vector<> c(m, dw);
   Matrix<> A(m, n, dw);
@@ -83,25 +152,15 @@ void train_sps_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, b
   Matrix<> F(m, m, NS, dw);
 
   srand48(dw.rank);
-  b.fill_random(-.5, .5);
-  c.fill_random(-.5, .5);
-  A.fill_random(-.5, .5);
-  B.fill_random(-.5, .5);
-  A1.fill_random(-.5, .5);
-  A2.fill_random(-.5, .5);
-  G.fill_random(-.5, .5);
-  F.fill_random(-.5, .5);
   for (double sp = .01; sp<.32; sp*=2.){
-    if (sp_A) A.sparsify([=](double a){ return fabs(a)<=.5*sp; });
-    if (sp_B){
-      G.sparsify([=](double a){ return fabs(a)<=.5*sp; });
-      F.sparsify([=](double a){ return fabs(a)<=.5*sp; });
-    }
-    if (sp_C){
-      b.sparsify([=](double a){ return fabs(a)<=.5*sp; });
-      B.sparsify([=](double a){ return fabs(a)<=.5*sp; });
-      c.sparsify([=](double a){ return fabs(a)<=.5*sp; });
-    }
+    b.fill_sp_random(-.5, .5, sp);
+    c.fill_sp_random(-.5, .5, sp);
+    A.fill_sp_random(-.5, .5, sp);
+    B.fill_sp_random(-.5, .5, sp);
+    A1.fill_sp_random(-.5, .5, sp);
+    A2.fill_sp_random(-.5, .5, sp);
+    G.fill_sp_random(-.5, .5, sp);
+    F.fill_sp_random(-.5, .5, sp);
 
     B["ij"] += A["ik"]*G["kj"];
     if (!sp_C) B["ij"] += A["ij"]*A1["ij"];
@@ -135,9 +194,12 @@ void train_sps_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, b
     t3(c["i"],b["i"],b["i"]);
     t3(A["ij"],G["ij"],F["ij"]);*/
   }
+  sps_vec_mat.stop();
 }
 
 void train_ccsd(int64_t n, int64_t m, World & dw){
+  Timer ccsd_t("CCSD");
+  ccsd_t.start();
   int nv = sqrt(n);
   int no = sqrt(m);
   Integrals V(no, nv, dw);
@@ -147,10 +209,13 @@ void train_ccsd(int64_t n, int64_t m, World & dw){
   ccsd(V,T,0);
   T["ai"] = (1./T.ai->norm2())*T["ai"];
   T["abij"] = (1./T.abij->norm2())*T["abij"];
+  ccsd_t.stop();
 }
 
 
 void train_sparse_mp3(int64_t n, int64_t m, World & dw){
+  Timer sparse_mp3_t("spoarse_mp3");
+  sparse_mp3_t.start();
   int nv = sqrt(n);
   int no = sqrt(m);
   for (double sp = .001; sp<.2; sp*=4.){
@@ -158,6 +223,7 @@ void train_sparse_mp3(int64_t n, int64_t m, World & dw){
     sparse_mp3(nv, no, dw, sp, 0, 1, 0, 1, 0);
     sparse_mp3(nv, no, dw, sp, 0, 1, 0, 1, 1);
   }
+  sparse_mp3_t.stop();
 }
 
 
@@ -177,6 +243,7 @@ void train_world(double dtime, World & dw, double step_size){
     int64_t m = m0;
     volatile double ctime = 0.0;
     do {
+      train_ttm(n*m+9,m-4,dw);
       train_dns_vec_mat(n, m, dw);
       train_sps_vec_mat(n-2, m, dw, 0, 0, 0);
       train_sps_vec_mat(n+1, m-2, dw, 1, 0, 0);
