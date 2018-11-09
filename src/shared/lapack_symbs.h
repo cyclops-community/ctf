@@ -5,7 +5,7 @@
 #include <assert.h>
 
 namespace CTF_LAPACK{
-  void cdgelsd(int m, int n, int k, double const * A, int lda_A, double * B, int lda_B, double * S, int cond, int rank, double * work, int lwork, int * iwork, int * info);
+  void cdgelsd(int m, int n, int k, double const * A, int lda_A, double * B, int lda_B, double * S, double cond, int * rank, double * work, int lwork, int * iwork, int * info);
 
   void cdgeqrf(int M, int N, double * A, int LDA, double * TAU2, double * WORK, int LWORK, int * INFO);
 

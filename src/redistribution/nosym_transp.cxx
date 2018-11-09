@@ -460,7 +460,7 @@ namespace CTF_int {
         assert(dir == 0);
         new_buffer = A->home_buffer;
       } else {
-        CTF_int::alloc_ptr(A->sr->el_size*A->size, (void**)&new_buffer);
+        new_buffer = A->sr->alloc(A->size);
       }
       for (int i=0; i<nvirt_A; i++){
         nosym_transpose_hptt(all_fdim_A, new_order, all_flen_A, dir,
@@ -471,10 +471,10 @@ namespace CTF_int {
         if (A->left_home_transp){ 
           A->is_home = true;
           A->left_home_transp = false;
-          cdealloc(A->data);
+          A->sr->dealloc(A->data);
           A->data = A->home_buffer;
         } else {
-          cdealloc(A->data);
+          A->sr->dealloc(A->data);
           A->data = new_buffer;
         }
       } else {
