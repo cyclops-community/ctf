@@ -23,11 +23,11 @@ void train_ttm(int64_t sz, int64_t r, World & dw){
   Timer TTM("TTM");
   TTM.start();
   for (int order=2; order<7; order++){
-    int n = 1;
+    int64_t n = 1;
     while (std::pow(n,order) < sz){
       n++;
     }
-    int m = r;
+    int64_t m = r;
     Matrix<> M(n,m,dw);
     M.fill_random(-.5,.5);
     int * lens_n = (int*)malloc(order*sizeof(int));
@@ -243,12 +243,14 @@ void train_world(double dtime, World & dw, double step_size){
     int64_t m = m0;
     volatile double ctime = 0.0;
     do {
-      train_ttm(n*m+9,m-4,dw);
+      if (n<80){
+        train_ttm(n*m+13,n,dw);
+      }
       train_dns_vec_mat(n, m, dw);
       train_sps_vec_mat(n-2, m, dw, 0, 0, 0);
-      train_sps_vec_mat(n+1, m-2, dw, 1, 0, 0);
-      train_sps_vec_mat(n+6, m-4, dw, 1, 1, 0);
-      train_sps_vec_mat(n+2, m-3, dw, 1, 1, 1);
+      train_sps_vec_mat(n-4, m-2, dw, 1, 0, 0);
+      train_sps_vec_mat(n-1, m-4, dw, 1, 1, 0);
+      train_sps_vec_mat(n-2, m-3, dw, 1, 1, 1);
       train_off_vec_mat(n+7, m-4, dw, 0, 0, 0);
       train_off_vec_mat(n-2, m+6, dw, 1, 0, 0);
       train_off_vec_mat(n-5, m+2, dw, 1, 1, 0);
