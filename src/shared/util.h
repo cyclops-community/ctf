@@ -338,7 +338,7 @@ namespace CTF_int {
 
   inline
   int lcm(int a, int b){
-    return a*b/gcd(a,b);
+    return ((int64_t)a)*((int64_t)b)/gcd(a,b);
   }
 
   /**
