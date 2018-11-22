@@ -522,6 +522,7 @@ namespace CTF_int {
 //      bnvirt = INT64_MAX;
       btopo = -1;
       bmemuse = INT64_MAX;
+      bool fully_distributed = false;
       for (i=wrld->rank; i<(int64_t)wrld->topovec.size(); i+=wrld->np){
         this->clear_mapping();
         this->set_padding();
@@ -543,8 +544,10 @@ namespace CTF_int {
             continue;
           }
           int64_t sum_phases = 0;
+          int64_t prod_phys_phases = 1;
           for (int j=0; j<this->order; j++){
             int phase = this->edge_map[j].calc_phase();
+            prod_phys_phases *= this->edge_map[j].calc_phys_phase();
             int max_lcm_phase = phase;
             for (int k=0; k<this->order; k++){
               max_lcm_phase = std::max(max_lcm_phase,lcm(phase,this->edge_map[k].calc_phase()));
@@ -562,9 +565,11 @@ namespace CTF_int {
   //          bnvirt = nvirt;
             btopo = i;
             bmemuse = memuse;
-          } else if (memuse < bmemuse){
+            fully_distributed = prod_phys_phases == wrld->np; 
+          } else if ((memuse < bmemuse && !fully_distributed) || (memuse < bmemuse && prod_phys_phases == wrld->np)){
             btopo = i;
             bmemuse = memuse;
+            fully_distributed = prod_phys_phases == wrld->np; 
           }
         } else
           DPRINTF(1,"Unsuccessful in map_tensor() in set_zero()\n");
@@ -573,7 +578,9 @@ namespace CTF_int {
         bmemuse = INT64_MAX;
       /* pick lower dimensional mappings, if equivalent */
       ///btopo = get_best_topo(bnvirt, btopo, wrld->cdt, 0, bmemuse);
+      int btopo1 = get_best_topo((1-fully_distributed)*INT64_MAX+fully_distributed*bmemuse, btopo, wrld->cdt);
       btopo = get_best_topo(bmemuse, btopo, wrld->cdt);
+      if (btopo != btopo1 && btopo1 != -1) btopo = btopo1;
 
       if (btopo == -1 || btopo == INT_MAX) {
         if (wrld->rank==0)
@@ -1354,11 +1361,14 @@ namespace CTF_int {
       memcpy(nnz_blk_old, nnz_blk, calc_nvirt()*sizeof(int64_t));
       memset(nnz_blk, 0, calc_nvirt()*sizeof(int64_t));
       int64_t i=0;
+      bool * keep_vals;
+      CTF_int::alloc_ptr(nnz_loc*sizeof(bool), (void**)&keep_vals);
       for (int v=0; v<calc_nvirt(); v++){
         for (int64_t j=0; j<nnz_blk_old[v]; j++,i++){
 //          printf("Filtering %ldth/%ld elements %p %d %d\n",i,nnz_loc,pi.ptr,sr->el_size,sr->pair_size());
           ASSERT(i<nnz_loc);
-          if (f(pi[i].d())){
+          keep_vals[i] = f(pi[i].d());
+          if (keep_vals[i]){
             nnz_loc_new++;
             nnz_blk[v]++;
           }
@@ -1372,13 +1382,14 @@ namespace CTF_int {
         PairIterator pi_new(sr, data);
         nnz_loc_new = 0;
         for (int64_t i=0; i<nnz_loc; i++){
-          if (f(pi[i].d())){
+          if (keep_vals[i]){
             pi_new[nnz_loc_new].write(pi[i].ptr);
             nnz_loc_new++;
           }
         }
         sr->dealloc(old_data);
       }
+      CTF_int::cdealloc(keep_vals);
 
       this->set_new_nnz_glb(nnz_blk);
       //FIXME compute max nnz_loc?
@@ -1417,54 +1428,55 @@ namespace CTF_int {
                                   *virt_phys_rank[i];
       }
       if (idx_lyr == 0){
-        if (!f(this->sr->addid())){
+        //invalid for nondeterministic f
+        /*if (!f(this->sr->addid())){
           spsfy_tsr(this->order, this->size, nvirt,
                     this->pad_edge_len, this->sym, phase,
                     phys_phase, virt_phase, virt_phys_rank,
                     this->data, this->data, this->nnz_blk, this->sr, edge_lda, f);
-        } else {
-          //printf("sparsifying with padding handling\n");
-          // if zero passes filter, then padding may be included, so get rid of it
-          int * depadding;
-          CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&depadding);
-          for (int i=0; i<this->order; i++){
-            if (i == 0) edge_lda[0] = 1;
-            else edge_lda[i] = edge_lda[i-1]*this->pad_edge_len[i-1];
-            depadding[i] = -padding[i];
-          }
-          int * prepadding;
-          CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&prepadding);
-          memset(prepadding, 0, sizeof(int)*order);
-          spsfy_tsr(this->order, this->size, nvirt,
-                    this->pad_edge_len, this->sym, phase,
-                    phys_phase, virt_phase, virt_phys_rank,
-                    this->data, this->data, this->nnz_blk, this->sr, edge_lda, f);
-          char * new_pairs[nvirt];
-          char const * data_ptr = this->data;
-          int64_t new_nnz_tot = 0;
-          for (int v=0; v<nvirt; v++){
-            if (nnz_blk[v] > 0){
-              int64_t old_nnz = nnz_blk[v];
-              new_pairs[v] = (char*)sr->pair_alloc(nnz_blk[v]);
-              depad_tsr(order, nnz_blk[v], this->lens, this->sym, this->padding, prepadding,
-                        data_ptr, new_pairs[v], nnz_blk+v, sr);
-              pad_key(order, nnz_blk[v], this->pad_edge_len, depadding, PairIterator(sr,new_pairs[v]), sr);
-              data_ptr += old_nnz*sr->pair_size();
-              new_nnz_tot += nnz_blk[v];
-            } else new_pairs[v] = NULL;
-          }
-          cdealloc(depadding);
-          cdealloc(prepadding);
-          sr->pair_dealloc(this->data);
-          this->data = sr->pair_alloc(new_nnz_tot);
-          char * new_data_ptr = this->data;
-          for (int v=0; v<nvirt; v++){
-            if (new_pairs[v] != NULL){
-              sr->copy_pairs(new_data_ptr, new_pairs[v], nnz_blk[v]);
-              sr->pair_dealloc(new_pairs[v]);
-            }
+        } else {*/
+        //printf("sparsifying with padding handling\n");
+        // if zero passes filter, then padding may be included, so get rid of it
+        int * depadding;
+        CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&depadding);
+        for (int i=0; i<this->order; i++){
+          if (i == 0) edge_lda[0] = 1;
+          else edge_lda[i] = edge_lda[i-1]*this->pad_edge_len[i-1];
+          depadding[i] = -padding[i];
+        }
+        int * prepadding;
+        CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&prepadding);
+        memset(prepadding, 0, sizeof(int)*order);
+        spsfy_tsr(this->order, this->size, nvirt,
+                  this->pad_edge_len, this->sym, phase,
+                  phys_phase, virt_phase, virt_phys_rank,
+                  this->data, this->data, this->nnz_blk, this->sr, edge_lda, f);
+        char * new_pairs[nvirt];
+        char const * data_ptr = this->data;
+        int64_t new_nnz_tot = 0;
+        for (int v=0; v<nvirt; v++){
+          if (nnz_blk[v] > 0){
+            int64_t old_nnz = nnz_blk[v];
+            new_pairs[v] = (char*)sr->pair_alloc(nnz_blk[v]);
+            depad_tsr(order, nnz_blk[v], this->lens, this->sym, this->padding, prepadding,
+                      data_ptr, new_pairs[v], nnz_blk+v, sr);
+            pad_key(order, nnz_blk[v], this->pad_edge_len, depadding, PairIterator(sr,new_pairs[v]), sr);
+            data_ptr += old_nnz*sr->pair_size();
+            new_nnz_tot += nnz_blk[v];
+          } else new_pairs[v] = NULL;
+        }
+        cdealloc(depadding);
+        cdealloc(prepadding);
+        sr->pair_dealloc(this->data);
+        this->data = sr->pair_alloc(new_nnz_tot);
+        char * new_data_ptr = this->data;
+        for (int v=0; v<nvirt; v++){
+          if (new_pairs[v] != NULL){
+            sr->copy_pairs(new_data_ptr, new_pairs[v], nnz_blk[v]);
+            sr->pair_dealloc(new_pairs[v]);
           }
         }
+        //}
       } else {
         memset(nnz_blk, 0, sizeof(int64_t)*nvirt);
         this->data = NULL;

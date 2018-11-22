@@ -99,7 +99,7 @@ namespace CTF_int {
 //DGELSD computes the minimum-norm solution to a real linear least squares problem:
 //    minimize 2-norm(| b - A*x |)
 //    http://www.netlib.org/lapack/explore-html/d7/d3b/group__double_g_esolve_ga94bd4a63a6dacf523e25ff617719f752.html#ga94bd4a63a6dacf523e25ff617719f752
-  void cdgelsd(int m, int n, int k, double const * A, int lda_A, double * B, int lda_B, double * S, int cond, int * rank, double * work, int lwork, int * iwork, int * info){
+  void cdgelsd(int m, int n, int k, double const * A, int lda_A, double * B, int lda_B, double * S, double cond, int * rank, double * work, int lwork, int * iwork, int * info){
 #ifdef TUNE
     CTF_LAPACK::cdgelsd(m, n, k, A, lda_A, B, lda_B, S, cond, rank, work, lwork, iwork, info);
 #endif
@@ -216,6 +216,7 @@ namespace CTF_int {
 #ifndef TUNE
     ASSERT(0);
     assert(0);
+    return false;
 #else
     return is_active;
 #endif
@@ -527,7 +528,11 @@ namespace CTF_int {
 
   template <int nparam>
   double LinModel<nparam>::est_time(double const * param){
-    return std::max(0.0,cddot(nparam, param, 1, coeff_guess, 1));
+    double d = 0.;
+    for (int i=0; i<nparam; i++){
+      d+=param[i]*coeff_guess[i];
+    }
+    return std::max(0.0,d);
   }
 
   template <int nparam>
@@ -651,8 +656,8 @@ namespace CTF_int {
 
           // Convert the string to char* and update the model coefficients
           char buf[s.length()+1];
-          for(int i=0;i<(int)s.length();i++){
-            buf[i] = s[i];
+          for(int j=0;j<(int)s.length();j++){
+            buf[j] = s[j];
           }
           buf[s.length()] = '\0';
           coeff_guess[i] = std::atof(buf);
