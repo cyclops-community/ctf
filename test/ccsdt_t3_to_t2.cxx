@@ -14,10 +14,7 @@ int ccsdt_t3_to_t2(int     n,
                    int     m,
                    World & dw){
 
-  int rank, i, num_pes;
-  int64_t np;
-  double * pairs;
-  int64_t * indices;
+  int rank, num_pes;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
@@ -54,26 +51,16 @@ int ccsdt_t3_to_t2(int     n,
 
   //* Writes noise to local data based on global index
   srand48(2013);
-  AS_A.get_local_data(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  AS_A[std::vector<int64_t>(indices,indices+np)] = pairs;
-  delete [] pairs;
-  free(indices);
-  AS_B.get_local_data(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.33+indices[i]);
-  AS_B[std::vector<int64_t>(indices,indices+np)] = pairs;
-  delete [] pairs;
-  free(indices);
-  AS_C.get_local_data(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.66+indices[i]);
-  AS_C[std::vector<int64_t>(indices,indices+np)]=pairs;
+  AS_A.fill_random(0.,1.);
+  AS_B.fill_random(0.,1.);
+  AS_C.fill_random(0.,1.);
  
 
   NS_A["abij"] = AS_A["abij"];
   NS_B["abcijk"] = AS_B["abcijk"];
 /*  printf("norm of NS_B is %lf of AS_B is %lf, should be same\n",
          NS_B.reduce(OP_SQN<>RM2), AS_B.reduce(OP_SQN<>RM2));*/
-  NS_C.write(np, indices, pairs);
+  NS_C["abij"] += AS_C["abij"];
   /*printf("norm of NS_C is %lf of AS_C is %lf, should be same\n",
          NS_C.reduce(OP_SQN<>RM2), AS_C.reduce(OP_SQN<>RM2));*/
 #if 0
@@ -104,7 +91,7 @@ int ccsdt_t3_to_t2(int     n,
   
   NS_C["abij"] += 0.5*NS_A["mnje"]*NS_B["abeimn"];
 
-  NS_C["abij"] -= NS_C["abji"];
+  NS_C["abji"] -= 0.5*NS_A["mnje"]*NS_B["abeimn"];
 
   double nrm_AS, nrm_NS;
 
@@ -154,8 +141,6 @@ int ccsdt_t3_to_t2(int     n,
   } else 
     MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
 
-  delete [] pairs;
-  free(indices);
   return pass;
 } 
 
