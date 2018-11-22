@@ -46,7 +46,7 @@
 namespace CTF_LAPACK{
 #ifdef USE_LAPACK
   extern "C"
-  void DGELSD(int * m, int * n, int * k, double const * A, int * lda_A, double * B, int * lda_B, double * S, int * cond, int * rank, double * work, int * lwork, int * iwork, int * info);
+  void DGELSD(int * m, int * n, int * k, double const * A, int * lda_A, double * B, int * lda_B, double * S, double * cond, int * rank, double * work, int * lwork, int * iwork, int * info);
 
   extern "C"
   void DGEQRF(int const *  M, int const *  N, double * A, int const *  LDA, double * TAU2, double * WORK, int const *  LWORK, int  * INFO);
@@ -55,9 +55,9 @@ namespace CTF_LAPACK{
   void DORMQR(char const * SIDE, char const * TRANS, int const *  M, int const *  N, int const *  K, double const * A, int const *  LDA, double const * TAU2, double * C, int const *  LDC, double * WORK, int const *  LWORK, int  * INFO);
 #endif
 
-  void cdgelsd(int m, int n, int k, double const * A, int lda_A, double * B, int lda_B, double * S, int cond, int rank, double * work, int lwork, int * iwork, int * info){
+  void cdgelsd(int m, int n, int k, double const * A, int lda_A, double * B, int lda_B, double * S, double cond, int * rank, double * work, int lwork, int * iwork, int * info){
 #ifdef USE_LAPACK
-    DGELSD(&m, &n, &k, A, &lda_A, B, &lda_B, S, &cond, &rank, work, &lwork, iwork, info);
+    DGELSD(&m, &n, &k, A, &lda_A, B, &lda_B, S, &cond, rank, work, &lwork, iwork, info);
 #else
     assert(0);
 #endif

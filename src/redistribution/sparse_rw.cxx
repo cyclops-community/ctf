@@ -309,6 +309,8 @@ namespace CTF_int {
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_rank);
     
     memset(virt_rank, 0, sizeof(int)*order);
+    bool * keep_vals; 
+    CTF_int::alloc_ptr(size*sizeof(bool), (void**)&keep_vals);
     
     int virt_blk = 0;
     for (p=0;;p++){
@@ -324,7 +326,8 @@ namespace CTF_int {
         /* Increment virtual bucket */
         for (i=0; i<imax; i++){
           ASSERT(buf_offset+i<size);
-          nnz_blk[virt_blk] += f(data+(buf_offset+i)*sr->el_size);
+          keep_vals[buf_offset+i] = f(data+(buf_offset+i)*sr->el_size);
+          nnz_blk[virt_blk] += keep_vals[buf_offset+i];
         }
         buf_offset += imax;
         /* Increment indices and set up offsets */
@@ -358,6 +361,7 @@ namespace CTF_int {
       nnz_blk_lda[i] = nnz_blk_lda[i-1]+nnz_blk[i-1];
     } 
     vpairs = sr->pair_alloc(nnz_blk_lda[nvirt-1]+nnz_blk[nvirt-1]);
+
     
     memset(nnz_blk, 0, sizeof(int64_t)*nvirt); 
     virt_blk = 0;
@@ -379,7 +383,7 @@ namespace CTF_int {
         /* Increment virtual bucket */
         for (i=0; i<imax; i++){
           ASSERT(buf_offset+i<size);
-          if (f(data+(buf_offset+i)*sr->el_size)){
+          if (keep_vals[buf_offset+i]){
 
             pairs[nnz_blk[virt_blk]].write_key(idx_offset+i*phase[0]+phase_rank[0]);
             pairs[nnz_blk[virt_blk]].write_val(data+(buf_offset+i)*sr->el_size);
@@ -417,6 +421,7 @@ namespace CTF_int {
       if (act_lda >= order) break;
     }
 
+    CTF_int::cdealloc(keep_vals);
     CTF_int::cdealloc(nnz_blk_lda);
     CTF_int::cdealloc(idx);
     CTF_int::cdealloc(virt_rank);

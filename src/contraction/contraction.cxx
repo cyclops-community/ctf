@@ -2466,20 +2466,23 @@ namespace CTF_int {
             B->order, idx_B,
             C->order, idx_C,
             &num_tot, &idx_arr);
+    TAU_FSTART(evaluate_mappings)
     int64_t max_memuse = proc_bytes_available();
     for (j=0; j<6; j++){
       // Attempt to map to all possible permutations of processor topology 
-  #if DEBUG < 3 
-      for (int t=global_comm.rank+1; t<(int)wrld->topovec.size()+8; t+=global_comm.np){
-  #else
+  #if DEBUG > 2
       for (int t=1; t<(int)wrld->topovec.size()+8; t++){
+  #else
+      for (int t=global_comm.rank+1; t<(int)wrld->topovec.size()+8; t+=global_comm.np){
   #endif
+        TAU_FSTART(evaluate_mappings_clear_and_init);
         A->clear_mapping();
         B->clear_mapping();
         C->clear_mapping();
         A->set_padding();
         B->set_padding();
         C->set_padding();
+        TAU_FSTOP(evaluate_mappings_clear_and_init);
       
         topology * topo_i = NULL;
         if (t < 8){
@@ -2531,10 +2534,11 @@ namespace CTF_int {
         }
         TAU_FSTOP(check_ctr_mapping);
         est_time = 0.0;
-        TAU_FSTART(est_ctr_map_time);
+        TAU_FSTART(evaluate_mappings_set_padding2);
         A->set_padding();
         B->set_padding();
         C->set_padding();
+        TAU_FSTOP(evaluate_mappings_set_padding2);
   #if DEBUG >= 3
         if (global_comm.rank == 0){
           printf("\nTest mappings:\n");
@@ -2562,6 +2566,7 @@ namespace CTF_int {
           nnz_frac_C = std::min(1.,std::max(nnz_frac_C,nnz_frac_A*nnz_frac_B*len_ctr));
         }
 
+        TAU_FSTART(evaluate_mappings_folding);
   #if FOLD_TSR
         if (can_fold()){
           est_time = est_time_fold();
@@ -2584,6 +2589,7 @@ namespace CTF_int {
             est_time = sctr->est_time_rec(sctr->num_lyr);
           }
         }
+        TAU_FSTOP(evaluate_mappings_folding);
   #if DEBUG >= 3
         if (global_comm.rank == 0){
           printf("mapping passed contr est_time = %E sec\n", est_time);
@@ -2594,6 +2600,7 @@ namespace CTF_int {
         need_remap_A = 0;
         need_remap_B = 0;
         need_remap_C = 0;
+        TAU_FSTART(evaluate_mappings_comp_maps);
         if (topo_i == old_topo_A){
           for (d=0; d<A->order; d++){
             if (!comp_dim_map(&A->edge_map[d],&old_map_A[d]))
@@ -2624,6 +2631,8 @@ namespace CTF_int {
           }
         } else
           need_remap_C = 1;
+        TAU_FSTOP(evaluate_mappings_comp_maps);
+        TAU_FSTART(est_ctr_map_time);
         if (need_remap_C) {
           est_time += 2.*C->est_redist_time(*dC, nnz_frac_C); 
           memuse = std::max(1.0*memuse,2.*C->get_redist_mem(*dC, nnz_frac_C));
@@ -2637,9 +2646,9 @@ namespace CTF_int {
           printf("total (with redistribution and transp) est_time = %E\n", est_time);
         }
   #endif
+        TAU_FSTOP(est_ctr_map_time);
         ASSERT(est_time >= 0.0);
 
-        TAU_FSTOP(est_ctr_map_time);
         TAU_FSTART(get_avail_res);
         if ((int64_t)memuse >= max_memuse){
           if (global_comm.rank == 0)
@@ -2648,9 +2657,9 @@ namespace CTF_int {
           delete sctr;
           continue;
         } 
-        TAU_FSTOP(get_avail_res);
         if ((!A->is_sparse && A->size > INT_MAX) ||(!B->is_sparse &&  B->size > INT_MAX) || (!C->is_sparse && C->size > INT_MAX)){
           DPRINTF(1,"MPI does not handle enough bits for topo %d with order\n", j);
+          TAU_FSTOP(get_avail_res);
           delete sctr;
           continue;
         }
@@ -2661,8 +2670,10 @@ namespace CTF_int {
           btopo = 6*t+j;
         }  
         delete sctr;
+        TAU_FSTOP(get_avail_res);
       }
     }
+    TAU_FSTOP(evaluate_mappings)
     TAU_FSTART(all_select_ctr_map);
     double gbest_time;
     MPI_Allreduce(&best_time, &gbest_time, 1, MPI_DOUBLE, MPI_MIN, global_comm.cm);
@@ -3218,8 +3229,6 @@ namespace CTF_int {
     is_top = 1;
     nphys_dim = A->topo->order;
 
-    TAU_FSTART(construct_contraction);
-
     inv_idx(A->order, idx_A,
             B->order, idx_B,
             C->order, idx_C,
@@ -3590,7 +3599,6 @@ namespace CTF_int {
     is_top = 1;
     nphys_dim = A->topo->order;
 
-    TAU_FSTART(construct_contraction);
 
     inv_idx(A->order, idx_A,
             B->order, idx_B,
@@ -3987,6 +3995,8 @@ namespace CTF_int {
                                    iparam const * inner_params,
                                    int *          nvirt_all,
                                    int            is_used){
+
+    TAU_FSTART(construct_contraction);
     int i;
     mapping * map;
     int * phys_mapped;
@@ -4950,17 +4960,16 @@ namespace CTF_int {
         free(nname);
         summation s(X, nidxX, X->sr->mulid(), X2, sidxX, X->sr->mulid());
         s.execute();
-        contraction nc = contraction(*this);
+        contraction * nc;
         if (A_sz < B_sz){
-          nc.A = X2;
-          memcpy(nc.idx_A, cidxX, sizeof(int)*(X->order+1));
-          nc.idx_B[iB] = num_tot;
+          nc = new contraction(X2, cidxX, B, idx_B, alpha, C, idx_C, beta, func);
+          nc->idx_B[iB] = num_tot;
         } else {
-          nc.B = X2;
-          memcpy(nc.idx_B, cidxX, sizeof(int)*(X->order+1));
-          nc.idx_A[iA] = num_tot;
+          nc = new contraction(A, idx_A, X2, cidxX, alpha, C, idx_C, beta, func);
+          nc->idx_A[iA] = num_tot;
         }
-        nc.execute();
+        nc->execute();  
+        delete nc;
         delete X2;
         free(lensX);
         free(symX);

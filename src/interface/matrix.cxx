@@ -297,6 +297,7 @@ namespace CTF {
     int pr, pc;
     pr = this->edge_map[0].calc_phase();       
     pc = this->edge_map[1].calc_phase();       
+    IASSERT(this->wrld->np == pr*pc);
 
     char C = 'C';
     int ctxt;
@@ -494,8 +495,8 @@ namespace CTF {
     this->get_desc(ictxt, desca);
 
     int pr, pc;
-    pr = this->edge_map[0].calc_phase();       
-    pc = this->edge_map[1].calc_phase();       
+    pr = this->edge_map[0].calc_phase();
+    pc = this->edge_map[1].calc_phase();
     //CTF_SCALAPACK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
     int64_t mpr = m/pr + (m % pr != 0);
     int64_t kpr = k/pr + (k % pr != 0);
@@ -529,7 +530,7 @@ namespace CTF {
     dtype * s_data = S.get_raw_data(&sc);
 
     int phase = S.edge_map[0].calc_phase();
-    if (this->wrld->rank < phase){
+    if ((int)(this->wrld->rank) < phase){
       for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
         s_data[i/phase] = s[i];
       } 
