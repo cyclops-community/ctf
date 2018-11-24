@@ -2475,14 +2475,12 @@ namespace CTF_int {
   #else
       for (int t=global_comm.rank+1; t<(int)wrld->topovec.size()+8; t+=global_comm.np){
   #endif
-        TAU_FSTART(evaluate_mappings_clear_and_init);
         A->clear_mapping();
         B->clear_mapping();
         C->clear_mapping();
         A->set_padding();
         B->set_padding();
         C->set_padding();
-        TAU_FSTOP(evaluate_mappings_clear_and_init);
       
         topology * topo_i = NULL;
         if (t < 8){
@@ -2511,9 +2509,7 @@ namespace CTF_int {
         } else topo_i = wrld->topovec[t-8];
         ASSERT(topo_i != NULL);
       
-        TAU_FSTART(map_ctr_to_topo);
         ret = map_to_topology(topo_i, j);
-        TAU_FSTOP(map_ctr_to_topo);
 
         if (ret == NEGATIVE){
           //printf("map_to_topology returned negative\n");
@@ -2527,18 +2523,13 @@ namespace CTF_int {
         B->topo = topo_i;
         C->topo = topo_i;
         
-        TAU_FSTART(check_ctr_mapping);
         if (check_mapping() == 0){ 
-          TAU_FSTOP(check_ctr_mapping);
           continue;
         }
-        TAU_FSTOP(check_ctr_mapping);
         est_time = 0.0;
-        TAU_FSTART(evaluate_mappings_set_padding2);
         A->set_padding();
         B->set_padding();
         C->set_padding();
-        TAU_FSTOP(evaluate_mappings_set_padding2);
   #if DEBUG >= 3
         if (global_comm.rank == 0){
           printf("\nTest mappings:\n");
@@ -2565,8 +2556,14 @@ namespace CTF_int {
           }
           nnz_frac_C = std::min(1.,std::max(nnz_frac_C,nnz_frac_A*nnz_frac_B*len_ctr));
         }
+        // check this early on to avoid 64-bit integer overflow
+        double size_memuse = A->size*nnz_frac_A*A->sr->el_size + B->size*nnz_frac_B*B->sr->el_size + C->size*nnz_frac_C*C->sr->el_size;
+        if (size_memuse >= (double)max_memuse){
+          if (global_comm.rank == 0)
+            DPRINTF(1,"Not enough memory available for topo %d with order %d to store tensors %ld/%ld\n", t,j,(int64_t)size_memuse,max_memuse);
+          continue;
+        } 
 
-        TAU_FSTART(evaluate_mappings_folding);
   #if FOLD_TSR
         if (can_fold()){
           est_time = est_time_fold();
@@ -2589,7 +2586,6 @@ namespace CTF_int {
             est_time = sctr->est_time_rec(sctr->num_lyr);
           }
         }
-        TAU_FSTOP(evaluate_mappings_folding);
   #if DEBUG >= 3
         if (global_comm.rank == 0){
           printf("mapping passed contr est_time = %E sec\n", est_time);
@@ -2600,7 +2596,6 @@ namespace CTF_int {
         need_remap_A = 0;
         need_remap_B = 0;
         need_remap_C = 0;
-        TAU_FSTART(evaluate_mappings_comp_maps);
         if (topo_i == old_topo_A){
           for (d=0; d<A->order; d++){
             if (!comp_dim_map(&A->edge_map[d],&old_map_A[d]))
@@ -2631,8 +2626,6 @@ namespace CTF_int {
           }
         } else
           need_remap_C = 1;
-        TAU_FSTOP(evaluate_mappings_comp_maps);
-        TAU_FSTART(est_ctr_map_time);
         if (need_remap_C) {
           est_time += 2.*C->est_redist_time(*dC, nnz_frac_C); 
           memuse = std::max(1.0*memuse,2.*C->get_redist_mem(*dC, nnz_frac_C));
@@ -2646,20 +2639,16 @@ namespace CTF_int {
           printf("total (with redistribution and transp) est_time = %E\n", est_time);
         }
   #endif
-        TAU_FSTOP(est_ctr_map_time);
         ASSERT(est_time >= 0.0);
 
-        TAU_FSTART(get_avail_res);
         if ((int64_t)memuse >= max_memuse){
           if (global_comm.rank == 0)
             DPRINTF(1,"Not enough memory available for topo %d with order %d memory %ld/%ld\n", t,j,memuse,max_memuse);
-          TAU_FSTOP(get_avail_res);
           delete sctr;
           continue;
         } 
         if ((!A->is_sparse && A->size > INT_MAX) ||(!B->is_sparse &&  B->size > INT_MAX) || (!C->is_sparse && C->size > INT_MAX)){
           DPRINTF(1,"MPI does not handle enough bits for topo %d with order\n", j);
-          TAU_FSTOP(get_avail_res);
           delete sctr;
           continue;
         }
@@ -2670,7 +2659,6 @@ namespace CTF_int {
           btopo = 6*t+j;
         }  
         delete sctr;
-        TAU_FSTOP(get_avail_res);
       }
     }
     TAU_FSTOP(evaluate_mappings)
@@ -3509,7 +3497,27 @@ namespace CTF_int {
     }
   #endif
 
-
+    if (blk_sz_A < vrt_sz_A){
+      printf("blk_sz_A = %ld, vrt_sz_A = %ld\n", blk_sz_A, vrt_sz_A);
+      printf("sizes are %ld %ld %ld\n",A->size,B->size,C->size);
+      A->print_map(stdout, 0);
+      B->print_map(stdout, 0);
+      C->print_map(stdout, 0);
+    }
+    if (blk_sz_B < vrt_sz_B){
+      printf("blk_sz_B = %ld, vrt_sz_B = %ld\n", blk_sz_B, vrt_sz_B);
+      printf("sizes are %ld %ld %ld\n",A->size,B->size,C->size);
+      A->print_map(stdout, 0);
+      B->print_map(stdout, 0);
+      C->print_map(stdout, 0);
+    }
+    if (blk_sz_C < vrt_sz_C){
+      printf("blk_sz_C = %ld, vrt_sz_C = %ld\n", blk_sz_C, vrt_sz_C);
+      printf("sizes are %ld %ld %ld\n",A->size,B->size,C->size);
+      A->print_map(stdout, 0);
+      B->print_map(stdout, 0);
+      C->print_map(stdout, 0);
+    }
     ASSERT(blk_sz_A >= vrt_sz_A);
     ASSERT(blk_sz_B >= vrt_sz_B);
     ASSERT(blk_sz_C >= vrt_sz_C);
