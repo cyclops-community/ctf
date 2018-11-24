@@ -22,7 +22,7 @@ void recursive_matmul(int        n,
   MPI_Comm_rank(pcomm, &rank);
   MPI_Comm_size(pcomm, &num_pes);
 
-  if (num_pes == 1){
+  if (num_pes == 1 || m == 1 || n == 1 || k==1){
     C["ij"] += 1.0*A["ik"]*B["kj"];
   } else {
     for (div=2; num_pes%div!=0; div++){}
