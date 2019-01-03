@@ -4850,7 +4850,7 @@ namespace CTF_int {
     if (C->is_sparse && !A->is_sparse){
       contraction pre_new_ctr = contraction(*this);
       pre_new_ctr.A = new tensor(A, 1, 1);
-      pre_new_ctr.A->sparsify(); 
+      pre_new_ctr.A->sparsify([](char const *){ return true; });
       pre_new_ctr.execute();
       delete pre_new_ctr.A;
       return SUCCESS;
@@ -4859,7 +4859,7 @@ namespace CTF_int {
     if (C->is_sparse && !B->is_sparse){
       contraction pre_new_ctr = contraction(*this);
       pre_new_ctr.B = new tensor(B, 1, 1);
-      pre_new_ctr.B->sparsify(); 
+      pre_new_ctr.B->sparsify([](char const *){ return true; });
       pre_new_ctr.execute();
       delete pre_new_ctr.B;
       return SUCCESS;
