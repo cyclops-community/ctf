@@ -30,9 +30,9 @@ bool svd(Matrix<dtype> A,
 
   bool pass_orthogonality = true;
 
-  double nrm;
-  E.norm2(nrm);
-  if (nrm > m*n*1.E-6){
+  double nrm1, nrm2, nrm3;
+  E.norm2(nrm1);
+  if (nrm1 > m*n*1.E-6){
     pass_orthogonality = false;
   }
 
@@ -40,22 +40,28 @@ bool svd(Matrix<dtype> A,
 
   E["ij"] -= VT["ik"]*conj<dtype>(VT)["jk"];
 
-  E.norm2(nrm);
-  if (nrm > m*n*1.E-6){
+  E.norm2(nrm2);
+  if (nrm2 > m*n*1.E-6){
     pass_orthogonality = false;
   }
 
   A["ij"] -= U["ik"]*S["k"]*VT["kj"];
 
   bool pass_residual = true;
-  A.norm2(nrm);
-  if (nrm > m*n*n*1.E-6){
+  A.norm2(nrm3);
+  if (nrm3 > m*n*n*1.E-6){
     pass_residual = false;
   }
 
 #ifndef TEST_SUITE
   if (dw.rank == 0){
     printf("SVD orthogonality check returned %d, residual check %d\n", pass_orthogonality, pass_residual);
+  }
+#else
+  if (!pass_residual || ! pass_orthogonality){
+    if (dw.rank == 0){
+      printf("SVD orthogonality check returned %d (%lf, %lf), residual check %d (%lf)\n", pass_orthogonality, nrm1, nrm2, pass_residual, nrm3);
+    }
   }
 #endif
   return pass_residual & pass_orthogonality;

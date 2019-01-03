@@ -213,8 +213,8 @@ namespace CTF {
         if (lda == nrow/pc){
           memcpy(this->data, (char*)data_, sizeof(dtype)*this->size);
         } else {
-          for (int i=0; i<ncol/pc; i++){
-            memcpy(this->data+i*lda*sizeof(dtype),(char*)(data_+i*lda), nrow*sizeof(dtype)/pr);
+          for (int64_t i=0; i<ncol/pc; i++){
+            memcpy(this->data+i*lda*sizeof(dtype),(char*)(data_+i*lda), ((int64_t)nrow)*sizeof(dtype)/pr);
           }
         }
       } else {
@@ -258,7 +258,7 @@ namespace CTF {
         if (lda == nrow/pc){
           memcpy((char*)data_, this->data, sizeof(dtype)*this->size);
         } else {
-          for (int i=0; i<ncol/pc; i++){
+          for (int64_t i=0; i<ncol/pc; i++){
             memcpy((char*)(data_+i*lda), this->data+i*lda*sizeof(dtype), nrow*sizeof(dtype)/pr);
           }
         }
@@ -437,11 +437,11 @@ namespace CTF {
 
     this->read_mat(desca, A);
 
-    dtype * tau = (dtype*)malloc(n*sizeof(dtype));
+    dtype * tau = (dtype*)malloc(((int64_t)n)*sizeof(dtype));
     dtype dlwork;
     CTF_SCALAPACK::pgeqrf<dtype>(m,n,A,1,1,desca,tau,(dtype*)&dlwork,-1,&info);
     int lwork = get_int_fromreal<dtype>(dlwork);
-    dtype * work = (dtype*)malloc(lwork*sizeof(dtype));
+    dtype * work = (dtype*)malloc(((int64_t)lwork)*sizeof(dtype));
     CTF_SCALAPACK::pgeqrf<dtype>(m,n,A,1,1,desca,tau,work,lwork,&info);
  
 
@@ -453,14 +453,14 @@ namespace CTF {
       R = Matrix<dtype>(Q);
     else {
       R = Matrix<dtype>(desca,dQ,*this->wrld,*this->sr);
-      R = R.slice(0,m*(n-1)+n-1);
+      R = R.slice(0,((int64_t)m)*(n-1)+n-1);
     }
 
 
     free(work);
     CTF_SCALAPACK::porgqr<dtype>(m,n,n,dQ,1,1,desca,tau,(dtype*)&dlwork,-1,&info);
     lwork = get_int_fromreal<dtype>(dlwork);
-    work = (dtype*)malloc(lwork*sizeof(dtype));
+    work = (dtype*)malloc(((int64_t)lwork)*sizeof(dtype));
     CTF_SCALAPACK::porgqr<dtype>(m,n,n,dQ,1,1,desca,tau,work,lwork,&info);
     Q = Matrix<dtype>(desca, dQ, (*(this->wrld)));
     free(work);
@@ -502,14 +502,16 @@ namespace CTF {
     int64_t kpr = k/pr + (k % pr != 0);
     int64_t kpc = k/pc + (k % pc != 0);
     int64_t npc = n/pc + (n % pc != 0);
+
     CTF_SCALAPACK::cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, mpr, &info);
     CTF_SCALAPACK::cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, kpr, &info);
-    dtype * A = (dtype*)malloc(this->size*sizeof(dtype));
+
+    dtype * A = (dtype*)CTF_int::alloc(this->size*sizeof(dtype));
 
 
-    dtype * u = (dtype*)new dtype[mpr*kpc];
-    dtype * s = (dtype*)new dtype[k];
-    dtype * vt = (dtype*)new dtype[kpr*npc];
+    dtype * u = (dtype*)CTF_int::alloc(sizeof(dtype)*mpr*kpc);
+    dtype * s = (dtype*)CTF_int::alloc(sizeof(dtype)*k);
+    dtype * vt = (dtype*)CTF_int::alloc(sizeof(dtype)*kpr*npc);
     this->read_mat(desca, A);
 
     int lwork;
@@ -517,7 +519,7 @@ namespace CTF {
     CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
 
     lwork = get_int_fromreal<dtype>(dlwork);
-    dtype * work = (dtype*)malloc(sizeof(dtype)*lwork);
+    dtype * work = (dtype*)CTF_int::alloc(sizeof(dtype)*((int64_t)lwork));
 
     CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
 
@@ -537,18 +539,18 @@ namespace CTF {
     }
     if (rank > 0 && rank < k) {
       S = S.slice(0, rank-1);
-      U = U.slice(0, rank*(m)-1);
-      VT = VT.slice(0, k*n-(k-rank+1));
+      U = U.slice(0, rank*((int64_t)m)-1);
+      VT = VT.slice(0, k*((int64_t)n)-(k-rank+1));
     }
 
-    free(A);
-    delete [] u;
-    delete [] s;
-    delete [] vt;
+    CTF_int::cdealloc(A);
+    CTF_int::cdealloc(u);
+    CTF_int::cdealloc(s);
+    CTF_int::cdealloc(vt);
     free(desca);
     free(descu);
     free(descvt);
-    free(work);
+    CTF_int::cdealloc(work);
 
   }
   
