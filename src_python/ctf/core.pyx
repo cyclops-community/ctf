@@ -480,6 +480,22 @@ def get_num_str(n):
     
 
 cdef class tensor:
+    """ 
+    The class for tensor.
+
+    Attributes
+    ----------
+    nbytes : int
+        The number of bytes for the tensor.
+    size : int
+        Total number of elements in the tensor.
+
+    Methods
+    -------
+    get_dims()
+        Return the tensor dimensions.
+
+    """
     cdef ctensor * dt
     cdef int order
     cdef int sp
@@ -671,7 +687,7 @@ cdef class tensor:
                     self.dt = new ctensor(<ctensor*>ccopy.dt, True, True)
         free(clens)
         free(csym)
-    
+
     def __dealloc__(self):
         del self.dt
     
@@ -741,6 +757,43 @@ cdef class tensor:
             out_tsr = None
         return [idx_A, idx_B, idx_C, out_tsr]
 
+    def __len__(self):
+        if self.shape == ():
+            raise TypeError("CTF PYTHON ERROR: len() of unsized object")
+        return self.shape[0]
+
+    def __abs__(self):
+        return abs(self)
+
+    def __nonzero__(self):
+        if self.size != 1 and self.shape != ():
+            raise TypeError("CTF PYTHON ERROR: The truth value of a tensor with more than one element is ambiguous. Use ctf.any() or ctf.all()")
+        if int(self.to_nparray() == 0) == 1:
+            return False
+        else:
+            return True
+
+    def __int__(self):
+        if self.size != 1 and self.shape != ():
+            raise TypeError("CTF PYTHON ERROR: only length-1 tensors can be converted to Python scalars")
+        return int(self.to_nparray())
+
+    def __float__(self):
+        if self.size != 1 and self.shape != ():
+            raise TypeError("CTF PYTHON ERROR: only length-1 tensors can be converted to Python scalars")
+        return float(self.to_nparray())
+
+    # def __complex__(self, real, imag):
+    #     # complex() confliction in Cython?
+    #     return
+
+    def __neg__(self):
+        neg_one = astensor([-1], dtype=self.dtype)
+        [tsr, otsr] = match_tensor_types(self, neg_one)
+        [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
+        out_tsr.i(idx_C) << tsr.i(idx_A)*otsr.i(idx_B)
+        return out_tsr
+
     def __add__(self, other):
         [tsr, otsr] = match_tensor_types(self,other)
 
@@ -750,7 +803,6 @@ cdef class tensor:
         out_tsr.i(idx_C) << otsr.i(idx_B)
         return out_tsr
 
-  
     def __iadd__(self, other_in):
         other = astensor(other_in)
         if np.result_type(self.dtype, other.dtype) != self.dtype:
@@ -758,21 +810,32 @@ cdef class tensor:
         [idx_A, idx_B, idx_C, out_tsr] = self.ufunc_interpret(other, False)
         if len(idx_C) != self.ndim:
             raise ValueError('CTF PYTHON ERROR: invalid call to __iadd__ (+=)')
-        self.i(idx_C) << other.i(idx_A)
+        if self.dtype != other.dtype:
+            [tsr, otsr] = match_tensor_types(self,other) # solve the bug when np.float64 += np.int64
+            self.i(idx_C) << otsr.i(idx_A)
+        else:
+            self.i(idx_C) << other.i(idx_A)
         return self
  
+    def __mul__(self, other):
+        [tsr, otsr] = match_tensor_types(self,other)
+
+        [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
+
+        out_tsr.i(idx_C) << tsr.i(idx_A)*otsr.i(idx_B)
+        return out_tsr
+
     def __imul__(self, other_in):
         other = astensor(other_in)
         if np.result_type(self.dtype, other.dtype) != self.dtype:
-            raise TypeError('CTF PYTHON ERROR: refusing to downgrade type within __iadd__ (+=), as done by numpy')
+            raise TypeError('CTF PYTHON ERROR: refusing to downgrade type within __imul__ (*=), as done by numpy')
         [idx_A, idx_B, idx_C, out_tsr] = self.ufunc_interpret(other, False)
         if len(idx_C) != self.ndim or idx_C != idx_A:
-            raise ValueError('CTF PYTHON ERROR: invalid call to __iadd__ (+=)')
+            raise ValueError('CTF PYTHON ERROR: invalid call to __imul__ (*=)')
         self_copy = tensor(copy=self)
         self.set_zero()
         self.i(idx_C) << self_copy.i(idx_A)*other.i(idx_B)
         return self
-
 
     def __sub__(self, other):
         [tsr, otsr] = match_tensor_types(self,other)
@@ -783,25 +846,83 @@ cdef class tensor:
         out_tsr.i(idx_C) << -1*otsr.i(idx_B)
         return out_tsr
 
-    def __mul__(self, other):
-        [tsr, otsr] = match_tensor_types(self,other)
-
-        [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
-
-        out_tsr.i(idx_C) << tsr.i(idx_A)*otsr.i(idx_B)
-        return out_tsr
+    def __isub__(self, other_in):
+        other = astensor(other_in)
+        if np.result_type(self.dtype, other.dtype) != self.dtype:
+            raise TypeError('CTF PYTHON ERROR: refusing to downgrade type within __isub__ (-=), as done by numpy')
+        [idx_A, idx_B, idx_C, out_tsr] = self.ufunc_interpret(other, False)
+        if len(idx_C) != self.ndim:
+            raise ValueError('CTF PYTHON ERROR: invalid call to __isub__ (-=)')
+        if self.dtype != other.dtype:
+            [tsr, otsr] = match_tensor_types(self,other) # solve the bug when np.float64 -= np.int64
+            self.i(idx_C) << -1*otsr.i(idx_A)
+        else:
+            self.i(idx_C) << -1*other.i(idx_A)
+        return self
 
     def __truediv__(self, other):
         return div(self,other)
 
+    def __itruediv__(self, other_in):
+        other = astensor(other_in)
+        if np.result_type(self.dtype, other.dtype) != self.dtype:
+            raise TypeError('CTF PYTHON ERROR: refusing to downgrade type within __itruediv__ (/=), as done by numpy')
+        [idx_A, idx_B, idx_C, out_tsr] = self.ufunc_interpret(other, False)
+        if len(idx_C) != self.ndim or idx_C != idx_A:
+            raise ValueError('CTF PYTHON ERROR: invalid call to __itruediv__ (/=)')
+        if isinstance(other_in, tensor):
+            otsr = tensor(copy=other)
+        else:
+            otsr = other
+        otsr.invert_elements()
+        self_copy = tensor(copy=self)
+        self.set_zero()
+        self.i(idx_C) << self_copy.i(idx_A)*otsr.i(idx_B)
+        return self
+
     def __div__(self, other):
         return div(self,other)
 
-    
+    def __idiv__(self, other_in):
+        # same with __itruediv__
+        other = astensor(other_in)
+        if np.result_type(self.dtype, other.dtype) != self.dtype:
+            raise TypeError('CTF PYTHON ERROR: refusing to downgrade type within __idiv__ (/=), as done by numpy')
+        [idx_A, idx_B, idx_C, out_tsr] = self.ufunc_interpret(other, False)
+        if len(idx_C) != self.ndim or idx_C != idx_A:
+            raise ValueError('CTF PYTHON ERROR: invalid call to __idiv__ (/=)')
+        if isinstance(other_in, tensor):
+            otsr = tensor(copy=other)
+        else:
+            otsr = other
+        otsr.invert_elements()
+        self_copy = tensor(copy=self)
+        self.set_zero()
+        self.i(idx_C) << self_copy.i(idx_A)*otsr.i(idx_B)
+        return self
+
+    # def __floordiv__(self, other):
+    #     return
+
+    # def __mod__(self, other):
+    #     return
+
+    # def __divmod__(self):
+    #     return
+
     def __pow__(self, other, modulus):
         if modulus is not None:
             raise ValueError('CTF PYTHON ERROR: powering function does not accept third parameter (modulus)')
         return power(self,other)
+
+    # def __ipow__(self, other_in):
+    #     [tsr, otsr] = match_tensor_types(self, other)
+
+    #     [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
+
+    #     tensor_pow_helper(tsr, otsr, self, idx_A, idx_B, idx_C)
+    #     return self
+
 
     def invert_elements(self):
         if self.dtype == np.float64:
@@ -1968,6 +2089,53 @@ def imag(tensor A):
 
 # similar to astensor.
 def array(A, dtype=None, copy=True, order='K', subok=False, ndmin=0):
+    """
+    array(A, dtype=None, copy=True, order='K', subok=False, ndmin=0)
+    Create a tensor.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor like object.
+
+    dtype: data-type, optional
+        The desired data-type for the tensor. If the dtype is not specified, the dtype will be determined as `np.array()`.
+
+    copy: bool, optional
+        If copy is true, the object is copied.
+
+    order: {‘K’, ‘A’, ‘C’, ‘F’}, optional
+        Specify the memory layout for the tensor.
+
+    subok: bool, optional
+        Currently subok is not supported in `ctf.array()`.
+
+    ndmin: int, optional
+        Currently ndmin is not supported in `ctf.array()`.
+
+    Returns
+    -------
+    output: tensor
+        A tensor object with specified requirements.
+
+    See Also
+    --------
+    ctf : ctf.astensor()
+
+    Notes
+    -----
+    The input of ctf.array() should be tensor or numpy.ndarray
+
+    Examples
+    --------
+    >>> import ctf
+    >>> import numpy as np
+    >>> a = np.array([1, 2, 3.])
+    array([1., 2., 3.])
+    >>> b = ctf.array(a)
+    array([1., 2., 3.])
+
+    """
     if ndmin != 0:
         raise ValueError('CTF PYTHON ERROR: ndmin not supported in ctf.array()')
     if dtype is None:
@@ -3248,6 +3416,32 @@ def power(first, second):
     return out_tsr
 
 def abs(initA):
+    """
+    abs(A)
+    Calculate the elementwise absolute value of a tensor.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor.
+
+    Returns
+    -------
+    output: tensor
+        A tensor containing the absolute value of each element in input tensor. For complex number :math:`a + bi`, the absolute value is calculated as :math:`\sqrt{a^2 + b^2}`
+
+    References
+    ----------
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([-2, 3])
+    array([-2,  3])
+    >>> abs(a)
+    array([2, 3])
+
+    """
     cdef tensor A = astensor(initA)
     cdef tensor oA = tensor(copy=A)
     if A.dtype == np.float64:
