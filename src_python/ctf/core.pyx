@@ -2508,11 +2508,11 @@ def exp(init_x, out=None, where=True, casting='same_kind', order='F', dtype=None
         elif x_dtype == np.complex64 or x_dtype == np.complex128 or x_dtype == np.complex256:
             ret_dtype = x_dtype
     if casting == "unsafe":
-        ret = tensor(x.shape, dtype = ret_dtype)
+        ret = tensor(x.shape, dtype = ret_dtype, sp=x.sp)
         ret.exp_python(x, cast = 'unsafe', dtype = ret_dtype)
         return ret
     else:
-        ret = tensor(x.shape, dtype = ret_dtype)
+        ret = tensor(x.shape, dtype = ret_dtype, sp=x.sp)
         ret.exp_python(x)
         return ret
 
