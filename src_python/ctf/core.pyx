@@ -757,10 +757,10 @@ cdef class tensor:
             out_tsr = None
         return [idx_A, idx_B, idx_C, out_tsr]
 
-    def __len__(self):
-        if self.shape == ():
-            raise TypeError("CTF PYTHON ERROR: len() of unsized object")
-        return self.shape[0]
+    # def __len__(self):
+    #     if self.shape == ():
+    #         raise TypeError("CTF PYTHON ERROR: len() of unsized object")
+    #     return self.shape[0]
 
     def __abs__(self):
         return abs(self)
