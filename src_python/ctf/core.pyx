@@ -225,12 +225,12 @@ cdef extern from "ctf.hpp" namespace "CTF":
 
 
 #from enum import Enum
-def enum(**enums):
+def _enum(**enums):
     return type('Enum', (), enums)
 
-SYM = enum(NS=0, SY=1, AS=2, SH=3)
+SYM = _enum(NS=0, SY=1, AS=2, SH=3)
 
-def ord_comp(o1,o2):
+def _ord_comp(o1,o2):
     i1 = 0
     i2 = 0
     if isinstance(o1,int):
@@ -243,10 +243,10 @@ def ord_comp(o1,o2):
         i2 = ord(o2)
     return i1==i2
 
-def get_np_div_dtype(typ1, typ2):
+def _get_np_div_dtype(typ1, typ2):
     return (np.zeros(1,dtype=typ1)/np.ones(1,dtype=typ2)).dtype
 
-def get_np_dtype(typs):
+def _get_np_dtype(typs):
     return np.sum([np.zeros(1,dtype=typ) for typ in typs]).dtype
 
 cdef char* char_arr_py_to_c(a):
@@ -377,7 +377,7 @@ cdef class contract_term(term):
     def __cinit__(self, term a, term b):
         self.a = a
         self.b = b
-        self.dtype = get_np_dtype([a.dtype,b.dtype])
+        self.dtype = _get_np_dtype([a.dtype,b.dtype])
         if self.dtype != a.dtype:
             self.a.conv_type(self.dtype)
         if self.dtype != b.dtype:
@@ -401,7 +401,7 @@ cdef class sum_term(term):
     def __cinit__(self, term a, term b):
         self.a = a
         self.b = b
-        self.dtype = get_np_dtype([a.dtype,b.dtype])
+        self.dtype = _get_np_dtype([a.dtype,b.dtype])
         if self.dtype != a.dtype:
             self.a.conv_type(self.dtype)
         if self.dtype != b.dtype:
@@ -474,7 +474,7 @@ def rev_array(arr):
         arr2 = arr[::-1]
         return arr2
 
-def get_num_str(n):
+def _get_num_str(n):
     allstr = "abcdefghijklmonpqrstuvwzyx0123456789,./;'][=-`"
     return allstr[0:n]
     
@@ -643,7 +643,7 @@ cdef class tensor:
         self.strides = tuple(strides)
         rlens = lens[:]
         rsym = self.sym[:]
-        if ord_comp(self.order, 'F'):
+        if _ord_comp(self.order, 'F'):
             rlens = rev_array(lens)
             if self.ndim > 1:
                 rsym = rev_array(self.sym)
@@ -707,11 +707,11 @@ cdef class tensor:
         if self.order != other.order:
             raise ValueError("Universal functions among tensors with different order, i.e. Fortran vs C are not currently supported")
         out_order = self.order
-        out_dtype = get_np_dtype([self.dtype, other.dtype])
+        out_dtype = _get_np_dtype([self.dtype, other.dtype])
         out_dims = np.zeros(np.maximum(self.ndim, other.ndim), dtype=np.int)
         out_sp = min(self.sp,other.sp) 
         out_sym = [SYM.NS]*len(out_dims)
-        ind_coll = get_num_str(3*out_dims.size)
+        ind_coll = _get_num_str(3*out_dims.size)
         idx_C = ind_coll[0:out_dims.size]
         idx_A = ""
         idx_B = ""
@@ -789,13 +789,13 @@ cdef class tensor:
 
     def __neg__(self):
         neg_one = astensor([-1], dtype=self.dtype)
-        [tsr, otsr] = match_tensor_types(self, neg_one)
+        [tsr, otsr] = _match_tensor_types(self, neg_one)
         [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
         out_tsr.i(idx_C) << tsr.i(idx_A)*otsr.i(idx_B)
         return out_tsr
 
     def __add__(self, other):
-        [tsr, otsr] = match_tensor_types(self,other)
+        [tsr, otsr] = _match_tensor_types(self,other)
 
         [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
 
@@ -811,14 +811,14 @@ cdef class tensor:
         if len(idx_C) != self.ndim:
             raise ValueError('CTF PYTHON ERROR: invalid call to __iadd__ (+=)')
         if self.dtype != other.dtype:
-            [tsr, otsr] = match_tensor_types(self,other) # solve the bug when np.float64 += np.int64
+            [tsr, otsr] = _match_tensor_types(self,other) # solve the bug when np.float64 += np.int64
             self.i(idx_C) << otsr.i(idx_A)
         else:
             self.i(idx_C) << other.i(idx_A)
         return self
  
     def __mul__(self, other):
-        [tsr, otsr] = match_tensor_types(self,other)
+        [tsr, otsr] = _match_tensor_types(self,other)
 
         [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
 
@@ -838,7 +838,7 @@ cdef class tensor:
         return self
 
     def __sub__(self, other):
-        [tsr, otsr] = match_tensor_types(self,other)
+        [tsr, otsr] = _match_tensor_types(self,other)
 
         [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
 
@@ -854,7 +854,7 @@ cdef class tensor:
         if len(idx_C) != self.ndim:
             raise ValueError('CTF PYTHON ERROR: invalid call to __isub__ (-=)')
         if self.dtype != other.dtype:
-            [tsr, otsr] = match_tensor_types(self,other) # solve the bug when np.float64 -= np.int64
+            [tsr, otsr] = _match_tensor_types(self,other) # solve the bug when np.float64 -= np.int64
             self.i(idx_C) << -1*otsr.i(idx_A)
         else:
             self.i(idx_C) << -1*other.i(idx_A)
@@ -916,7 +916,7 @@ cdef class tensor:
         return power(self,other)
 
     # def __ipow__(self, other_in):
-    #     [tsr, otsr] = match_tensor_types(self, other)
+    #     [tsr, otsr] = _match_tensor_types(self, other)
 
     #     [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
 
@@ -1041,7 +1041,7 @@ cdef class tensor:
                     if out.shape != dims_keep:
                         raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
             B = tensor((1,), dtype=np.bool)
-            index_A = get_num_str(self.ndim)
+            index_A = _get_num_str(self.ndim)
             if self.dtype == np.float64:
                 all_helper[double](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
             elif self.dtype == np.int64:
@@ -1101,7 +1101,7 @@ cdef class tensor:
                 if out is not None:
                     if tuple(dim_keep) != tuple(out.shape):
                         raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
-            index_A = get_num_str(self.ndim)
+            index_A = _get_num_str(self.ndim)
             index_temp = rev_array(index_A)
             index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
             index_B = rev_array(index_B)
@@ -1159,7 +1159,7 @@ cdef class tensor:
                     if dim_ret[i] is not out.shape[i]:
                         raise ValueError('CTF PYTHON ERROR: output parameter dimensions mismatch')
             B = tensor(dim_ret, dtype=np.bool)
-            index_A = get_num_str(self.ndim)
+            index_A = _get_num_str(self.ndim)
             index_temp = rev_array(index_A)
             index_B = ""
             for i in range(len(dim)):
@@ -1196,7 +1196,7 @@ cdef class tensor:
 
     # the core function when we want to sum the ctensor...
     def i(self, string):
-        if ord_comp(self.order, 'F'):
+        if _ord_comp(self.order, 'F'):
             return itensor(self, rev_array(string))
         else:
             return itensor(self, string)
@@ -1631,7 +1631,7 @@ cdef class tensor:
         cdef int * clens
         cdef int * coffs
         cdef int * cends
-        if ord_comp(self.order, 'F'):
+        if _ord_comp(self.order, 'F'):
             clens = int_arr_py_to_c(rev_array(A.shape))
             coffs = int_arr_py_to_c(rev_array(offsets))
             cends = int_arr_py_to_c(rev_array(ends))
@@ -1673,7 +1673,7 @@ cdef class tensor:
 
         cdef int * coffs
         cdef int * cends
-        if ord_comp(self.order, 'F'):
+        if _ord_comp(self.order, 'F'):
             if A_offsets is None:
                 caoffs = int_arr_py_to_c(rev_array(np.zeros(len(self.shape), dtype=np.int32)))
             else:
@@ -1713,7 +1713,7 @@ cdef class tensor:
     # implements basic indexing and slicing as per numpy.ndarray
     # indexing can be done to different values with each process, as it produces a local scalar, but slicing must be the same globally, as it produces a global CTF ctensor
     def __getitem__(self, key_init):
-        [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape] = setgetitem_helper(self, key_init)
+        [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape] = _setgetitem_helper(self, key_init)
 
         if is_everything:
             return self
@@ -1737,7 +1737,7 @@ cdef class tensor:
 
  
     def set_zero(self):
-        mystr = get_num_str(self.ndim)
+        mystr = _get_num_str(self.ndim)
         self.i(mystr).scl(0.0)
 
     def set_all(self, value):
@@ -1753,7 +1753,7 @@ cdef class tensor:
  
     def __setitem__(self, key_init, value_init):
         value = deepcopy(value_init)
-        [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape] = setgetitem_helper(self, key_init)
+        [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape] = _setgetitem_helper(self, key_init)
         if is_single_val:
             self.write([key],np.asarray(value,dtype=self.dtype))
             return
@@ -1808,6 +1808,16 @@ cdef class tensor:
     def norm2(self):
         if self.dtype == np.float64:
             return (<Tensor[double]*>self.dt).norm2()
+        elif self.dtype == np.float32:
+            return (<Tensor[float]*>self.dt).norm2()
+        elif self.dtype == np.int64:
+            return (<Tensor[int64_t]*>self.dt).norm2()
+        elif self.dtype == np.int32:
+            return (<Tensor[int32_t]*>self.dt).norm2()
+        elif self.dtype == np.int16:
+            return (<Tensor[int16_t]*>self.dt).norm2()
+        elif self.dtype == np.int8:
+            return (<Tensor[int8_t]*>self.dt).norm2()
 #        elif self.dtype == np.complex128:
 #            return (<Tensor[double complex]*>self.dt).norm2()
         else:
@@ -1826,7 +1836,7 @@ cdef class tensor:
         dim = self.shape
         if axes is None:
             B = tensor(dim, dtype=self.dtype)
-            index = get_num_str(self.ndim)
+            index = _get_num_str(self.ndim)
             rev_index = str(index[::-1])
             B.i(rev_index) << self.i(index)
             return B
@@ -1851,7 +1861,7 @@ cdef class tensor:
             if axes_list.count(axes_list[i]) > 1:
                 raise ValueError("repeated axis in transpose")
 
-        index = get_num_str(self.ndim)
+        index = _get_num_str(self.ndim)
         rev_index = ""
         for i in range(len(dim)):
             rev_index += index[axes_list[i]]
@@ -2025,7 +2035,7 @@ cdef class tensor:
 
 # 
 
-def trilSquare(tensor A):
+def _trilSquare(tensor A):
     if not isinstance(A, tensor):
         raise ValueError('CTF PYTHON ERROR: A is not a tensor')
     if A.ndim != 2:
@@ -2056,16 +2066,15 @@ def tril(A, k=0):
         A[0:k,:] = 0
     if A.shape[0] != A.shape[1] or k != 0:
         B = A[ max(0, k) : min(k+A.shape[1],A.shape[0]), max(0, -k) : min(A.shape[1], A.shape[0] - k)]
-        C = trilSquare(B)
+        C = _trilSquare(B)
         A[ max(0, k) : min(k+A.shape[1],A.shape[0]), max(0, -k) : min(A.shape[1], A.shape[0] - k)] = C
     else:
-        A = trilSquare(A)
+        A = _trilSquare(A)
     return A
 
 def triu(A,k=0):
     return transpose(tril(A.transpose(), -k))
 
-# call this function to get the real part of complex number in ctensor
 def real(tensor A):
     if not isinstance(A, tensor):
         raise ValueError('CTF PYTHON ERROR: A is not a tensor')
@@ -2076,7 +2085,6 @@ def real(tensor A):
         get_real[double](<ctensor*>A.dt, <ctensor*>ret.dt)
         return ret
 
-# call this function to get the imaginary part of complex number in ctensor
 def imag(tensor A):
     if not isinstance(A, tensor):
         raise ValueError('CTF PYTHON ERROR: A is not a tensor')
@@ -2087,7 +2095,6 @@ def imag(tensor A):
         get_imag[double](<ctensor*>A.dt, <ctensor*>ret.dt)
         return ret
 
-# similar to astensor.
 def array(A, dtype=None, copy=True, order='K', subok=False, ndmin=0):
     """
     array(A, dtype=None, copy=True, order='K', subok=False, ndmin=0)
@@ -2134,13 +2141,12 @@ def array(A, dtype=None, copy=True, order='K', subok=False, ndmin=0):
     array([1., 2., 3.])
     >>> b = ctf.array(a)
     array([1., 2., 3.])
-
     """
     if ndmin != 0:
         raise ValueError('CTF PYTHON ERROR: ndmin not supported in ctf.array()')
     if dtype is None:
         dtype = A.dtype
-    if ord_comp(order, 'K') or ord_comp(order, 'A'):
+    if _ord_comp(order, 'K') or _ord_comp(order, 'A'):
         if np.isfortran(A):
             B = astensor(A,dtype=dtype,order='F')
         else:
@@ -2152,6 +2158,50 @@ def array(A, dtype=None, copy=True, order='K', subok=False, ndmin=0):
     return B
 
 def diag(A, k=0, sp=False):
+    """
+    diag(A, k=0, sp=False)
+    Return the diagonal tensor of A.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor with 1-D or 2-D dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
+
+    k: int, optional
+        `k=0` is the diagonal. `k<0`, diagnals below the main diagonal. `k>0`, diagonals above the main diagonal.
+
+    sp: bool, optional
+        If sp is true, the returned tensor is sparse.
+
+    Returns
+    -------
+    output: tensor
+        Diagonal tensor of A.
+
+    Notes
+    -----
+    When the input tensor is sparse, returned tensor will also be sparse.
+
+    See Also
+    --------
+    ctf : ctf.diagonal()
+          ctf.triu()
+          ctf.tril()
+          ctf.trace()
+          ctf.spdiag()
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.ones([3,])
+    >>> ctf.diag(a, k=1)
+    array([[0., 1., 0., 0.],
+           [0., 0., 1., 0.],
+           [0., 0., 0., 1.]])
+    >>> b = ctf.zeros([4,4])
+    >>> ctf.diag(b)
+    array([0., 0., 0., 0.])
+    """
     if not isinstance(A, tensor):
         raise ValueError('CTF PYTHON ERROR: A is not a tensor')
     dim = A.shape
@@ -2218,16 +2268,38 @@ def diag(A, k=0, sp=False):
                 square = False
                 break
         if square == True:
-            back = get_num_str(len(dim)-1)
+            back = _get_num_str(len(dim)-1)
             front = back[len(back)-1]+back[len(back)-1]+back[0:len(back)-1]
             einsum_input = front + "->" + back
             return einsum(einsum_input,A)
     return None
 
 def spdiag(A, k=0):
+    """
+    spdiag(A, k=0)
+    Return the sparse diagonal tensor of A.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor with 1-D or 2-D dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
+
+    k: int, optional
+        `k=0` is the diagonal. `k<0`, diagnals below the main diagonal. `k>0`, diagonals above the main diagonal.
+
+    Returns
+    -------
+    output: tensor
+        Sparse diagonal tensor of A.
+
+    Notes
+    -----
+    Same with ctf.diag(A,k,sp=True)
+    """
     return diag(A,k,sp=True)
 
 def diagonal(init_A, offset=0, axis1=0, axis2=1):
+
     A = astensor(init_A)
     if axis1 == axis2:
         raise ValueError('CTF PYTHON ERROR: axis1 and axis2 cannot be the same')
@@ -2281,7 +2353,7 @@ def diagonal(init_A, offset=0, axis1=0, axis2=1):
                 square = False
                 break
         if square == True:
-            back = get_num_str(len(dim)-1)
+            back = _get_num_str(len(dim)-1)
             front = back[len(back)-1]+back[len(back)-1]+back[0:len(back)-1]
             einsum_input = front + "->" + back
             return einsum(einsum_input,A)
@@ -2407,16 +2479,6 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
             return B
     raise ValueError('CTF PYTHON ERROR: CTF error: should not get here')
 
-def vecnorm(tensor A, ord=2):
-    if ord == 2:
-        return A.norm2()
-    elif ord == 1:
-        return A.norm1()
-    elif ord == np.inf:
-        return A.norm_infty()
-    else:
-        raise ValueError('CTF PYTHON ERROR: CTF only supports 1/2/inf vector norms')
-
 # the copy function need to call the constructor which return a copy.
 def copy(tensor A):
     B = tensor(A.shape, dtype=A.get_type(), copy=A)
@@ -2473,7 +2535,7 @@ def tensordot(tA, tB, axes=2):
         new_shape = A.shape[0:len(A.shape)-axes] + B.shape[axes:len(B.shape)]
 
         # following is to check the return tensor type
-        new_dtype = get_np_dtype([A.dtype, B.dtype])
+        new_dtype = _get_np_dtype([A.dtype, B.dtype])
        
         if axes <= 0:
             ret_shape = A.shape + B.shape
@@ -2575,7 +2637,7 @@ def tensordot(tA, tB, axes=2):
         for i in range(len(axes_arr[0])):
             if A.shape[axes_arr[0][i]] != B.shape[axes_arr[1][i]]:
                 raise ValueError("shape mismatch")
-        new_dtype = get_np_dtype([A.dtype, B.dtype])
+        new_dtype = _get_np_dtype([A.dtype, B.dtype])
 
         # start manage the string input for .i()
         string_index = 33
@@ -2768,7 +2830,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
     # if there is no axis input, sum all the entries
     index = ""
     if axis is None:
-        index_A = get_num_str(len(dim))
+        index_A = _get_num_str(len(dim))
             #ret_dim = []
             #for i in range(len(dim)):
             #    ret_dim.append(1)
@@ -2811,7 +2873,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
                     B = tensor(ret_dim, dtype = out.get_type())
                     C = tensor(A.shape, dtype = out.get_type())
 
-        index = get_num_str(len(dim))
+        index = _get_num_str(len(dim))
         index_A = index[0:len(dim)]
         index_B = index[0:axis] + index[axis+1:len(dim)]
         if isinstance(C, tensor):
@@ -2846,7 +2908,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
         del temp_dim[index_removal]
         ret_dim = tuple(temp_dim)
         B = tensor(ret_dim, dtype = dtype)
-        index = get_num_str(len(decrease_dim))
+        index = _get_num_str(len(decrease_dim))
         index_A = index[0:len(decrease_dim)]
         index_B = index[0:axis_list[i]] + index[axis_list[i]+1:len(decrease_dim)]
         B.i(index_B) << temp.i(index_A)
@@ -2857,7 +2919,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
 # ravel, the default order is Fortran
 def ravel(init_A, order="F"):
     A = astensor(init_A) 
-    if ord_comp(order, A.order):
+    if _ord_comp(order, A.order):
         return A.reshape(-1)
     else:
         return tensor(copy=A, order=order).reshape(-1)
@@ -2881,7 +2943,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             if out is not None and out.shape != dims_keep:
                 raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
         B = tensor((1,), dtype=np.bool)
-        index_A = get_num_str(len(A.shape))
+        index_A = _get_num_str(len(A.shape))
         if A.get_type() == np.float64:
             any_helper[double](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
         elif A.get_type() == np.int64:
@@ -2936,7 +2998,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             if out is not None:
                 if tuple(dim_keep) != tuple(out.shape):
                     raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
-        index_A = get_num_str(len(dim))
+        index_A = _get_num_str(len(dim))
         index_temp = rev_array(index_A)
         index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
         index_B = rev_array(index_B)
@@ -2994,7 +3056,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
                 if dim_ret[i] != out.shape[i]:
                     raise ValueError('CTF PYTHON ERROR: output parameter dimensions mismatch')
         B = tensor(dim_ret, dtype=np.bool)
-        index_A = get_num_str(len(dim))
+        index_A = _get_num_str(len(dim))
         index_temp = rev_array(index_A)
         index_B = ""
         for i in range(len(dim)):
@@ -3030,7 +3092,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
         raise ValueError("an integer is required")
     return None
 
-def stackdim(in_tup, dim):
+def _stackdim(in_tup, dim):
     if type(in_tup) != tuple:
         raise ValueError('CTF PYTHON ERROR: The type of input should be tuple')
     ttup = []
@@ -3040,7 +3102,7 @@ def stackdim(in_tup, dim):
         if ttup[i].ndim == 0:
             ttup[i] = ttup[i].reshape([1])
         max_dim = max(max_dim,ttup[i].ndim)
-    new_dtype = get_np_dtype([t.dtype for t in ttup])
+    new_dtype = _get_np_dtype([t.dtype for t in ttup])
     tup = []
     for i in range(len(ttup)):
         tup.append(astensor(ttup[i],dtype=new_dtype))
@@ -3067,14 +3129,34 @@ def stackdim(in_tup, dim):
 
 
 def hstack(in_tup):
-    return stackdim(in_tup, 1)
+    return _stackdim(in_tup, 1)
 
 def vstack(in_tup):
-    return stackdim(in_tup, 0)
-
-
+    return _stackdim(in_tup, 0)
 
 def conj(init_A):
+    """
+    conj(A)
+    Return the conjugate tensor A element-wisely.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor.
+
+    Returns
+    -------
+    output: tensor
+        The element-wise complex conjugate of input tensor A. If tensor A is not complex, just return a copy of A. 
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([2+3j, 3-2j])
+    array([2.+3.j, 3.-2.j])
+    >>> ctf.conj(a)
+    array([2.-3.j, 3.+2.j])
+    """
     cdef tensor A = astensor(init_A) 
     if A.get_type() == np.complex64:
         B = tensor(A.shape, dtype=A.get_type())
@@ -3091,8 +3173,9 @@ def conj(init_A):
 # Issues:
 # 1. A type is not bool
 def all(inA, axis=None, out=None, keepdims = False):
+
     if isinstance(inA, tensor):
-        return comp_all(inA, axis, out, keepdims)
+        return _comp_all(inA, axis, out, keepdims)
     else:
         if isinstance(inA, np.ndarray):
             return np.all(inA,axis,out,keepdims)
@@ -3102,8 +3185,7 @@ def all(inA, axis=None, out=None, keepdims = False):
             raise ValueError('CTF PYTHON ERROR: ctf.all called on invalid operand')
         
 
-#def comp_all(tensor A, axis=None, out=None, keepdims = None):
-def comp_all(tensor A, axis=None, out=None, keepdims=None):
+def _comp_all(tensor A, axis=None, out=None, keepdims=None):
     if keepdims is None:
         keepdims = False
     if axis is not None:
@@ -3116,9 +3198,35 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
         x = A.bool_sum()
         return x == A.tot_size() 
 
-# issues:
-# when the input is numpy array
 def transpose(init_A, axes=None):
+    """
+    transpose(A, axes=None)
+    Permute the dimensions of the input tensor.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor.
+
+    axes: list of ints, optional
+        If axes is None, the dimensions are inversed, otherwise permute the dimensions according to the axes value.
+
+    Returns
+    -------
+    output: tensor
+        Tensor with permuted axes of A.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.zeros([3,4,5])
+    >>> a.shape
+    (3, 4, 5)
+    >>> ctf.transpose(a, axes=[0, 2, 1]).shape
+    (3, 5, 4)
+    >>> ctf.transpose(a).shape
+    (5, 4, 3)
+    """
     A = astensor(init_A)
 
     dim = A.shape
@@ -3128,7 +3236,7 @@ def transpose(init_A, axes=None):
             new_dim.append(dim[i])
         new_dim = tuple(new_dim)
         B = tensor(new_dim, dtype=A.get_type())
-        index = get_num_str(len(dim))
+        index = _get_num_str(len(dim))
         rev_index = str(index[::-1])
         B.i(rev_index) << A.i(index)
         return B
@@ -3161,7 +3269,7 @@ def transpose(init_A, axes=None):
         if axes_list.count(axes_list[i]) > 1:
             raise ValueError("repeated axis in transpose")
 
-    index = get_num_str(len(dim))
+    index = _get_num_str(len(dim))
     rev_index = ""
     rev_dims = np.asarray(dim)
     for i in range(len(dim)):
@@ -3172,6 +3280,34 @@ def transpose(init_A, axes=None):
     return B
 
 def ones(shape, dtype = None, order='F'):
+    """
+    ones(shape, dtype = None, order='F')
+    Return a tensor filled with ones with specified shape and dtype.
+
+    Parameters
+    ----------
+    shape: int or sequence of ints
+        Shape of the returned tensor.
+
+    dtype: numpy data-type, optional
+        The data-type for the tensor.
+
+    order: {‘C’, ‘F’}, optional
+        Not support by current CTF Python.
+
+    Returns
+    -------
+    output: tensor
+        Tensor with specified shape and dtype.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.ones([2, 2])
+    >>> a
+        array([[1., 1.],
+              [1., 1.]])
+    """
     if isinstance(shape,int):
         shape = (shape,)
     shape = np.asarray(shape)
@@ -3200,8 +3336,43 @@ def ones(shape, dtype = None, order='F'):
             string_index += 1
         ret.i(string) << 1.0
         return ret
-   
+
 def eye(n, m=None, k=0, dtype=np.float64, sp=False):
+    """
+    eye(n, m=None, k=0, dtype=np.float64, sp=False)
+    Return a 2D tensor with ones on the diagonal and zeros elsewhere.
+
+    Parameters
+    ----------
+    n: int
+        Number of rows.
+
+    m: int, optional
+        Number of columns, default set to n.
+
+    k: int, optional
+        Diagonal index, specify ones on main diagonal, upper diagonal or lower diagonal.
+
+    dtype: data-type, optional
+        Numpy data-type of returned tensor, default `np.float64`.
+
+    sp: bool, optional
+        If `true` the returned tensor will be sparse, default `sp=False`.
+
+    Returns
+    -------
+    output: tensor
+        
+
+    Examples
+    --------
+    >>> import ctf
+    >>> e = ctf.eye(3,m=4,k=-1)
+    >>> e
+    array([[0., 0., 0., 0.],
+           [1., 0., 0., 0.],
+           [0., 1., 0., 0.]])
+    """
     mm = n
     if m is not None:
         mm = m
@@ -3229,9 +3400,74 @@ def eye(n, m=None, k=0, dtype=np.float64, sp=False):
         return B
 
 def identity(n, dtype=np.float64):
+    """
+    identity(n, dtype=np.float64)
+    Return a squared 2-D tensor where the main diagonal contains ones and elsewhere zeros.
+
+    Parameters
+    ----------
+    n: int
+        Number of rows.
+
+    dtype: data-type, optional
+        Numpy data-type of returned tensor, default `np.float64`.
+
+    Returns
+    -------
+    output: tensor
+
+    See Also
+    --------
+    ctf : ctf.eye()
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.identity(3)
+    >>> a
+    array([[1., 0., 0.],
+           [0., 1., 0.],
+           [0., 0., 1.]])
+    """
     return eye(n, dtype=dtype)
 
 def speye(n, m=None, k=0, dtype=np.float64):
+    """
+    speye(n, m=None, k=0, dtype=np.float64)
+    Return a sparse 2D tensor with ones on the diagonal and zeros elsewhere.
+
+    Parameters
+    ----------
+    n: int
+        Number of rows.
+
+    m: int, optional
+        Number of columns, default set to n.
+
+    k: int, optional
+        Diagonal index, specify ones on main diagonal, upper diagonal or lower diagonal.
+
+    dtype: data-type, optional
+        Numpy data-type of returned tensor, default `np.float64`.
+
+    Returns
+    -------
+    output: tensor
+
+    See Also
+    --------
+    ctf : ctf.eye()
+
+    Examples
+    --------
+    >>> import ctf
+    >>> e = ctf.speye(3,m=4,k=-1)
+    >>> e
+    array([[0., 0., 0., 0.],
+           [1., 0., 0., 0.],
+           [0., 1., 0., 0.]])
+
+    """
     return eye(n, m, k, dtype, sp=True)
 
 def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe'):
@@ -3279,7 +3515,7 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
                 out_lens.append(dind_lens[ind])
                 uniq_subs.remove(ind)
     if out is None:
-        out_dtype = get_np_dtype([x.dtype for x in operands])
+        out_dtype = _get_np_dtype([x.dtype for x in operands])
         output = tensor(out_lens, dtype=out_dtype)
     else:
         output = out
@@ -3322,7 +3558,7 @@ def svd(tensor A, rank=None):
         matrix_svd(A.dt, VT.dt, S.dt, U.dt, rank)
     elif A.dtype == np.complex128 or A.dtype == np.complex64:
         matrix_svd_cmplx(A.dt, VT.dt, S.dt, U.dt, rank)
-    return [U, S, VT]   
+    return [U, S, VT]
  
 def qr(tensor A):
     if not isinstance(A,tensor) or A.ndim != 2:
@@ -3335,10 +3571,43 @@ def qr(tensor A):
     elif A.dtype == np.complex128 or A.dtype == np.complex64:
         matrix_qr_cmplx(B.dt, Q.dt, R.dt)
     return [Q.T(), R.T()]
- 
 
+def vecnorm(A, ord=2):
+    """
+    vecnorm(A, ord=2)
+    Return norm of tensor A.
 
-def match_tensor_types(first, other):
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor with 1-D or 2-D dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
+
+    ord: {int 1, 2, inf}, optional
+        Order of the norm.
+
+    Returns
+    -------
+    output: tensor
+        Norm of tensor A.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> import ctf.linalg as la
+    >>> a = ctf.astensor([3,4.])
+    >>> la.vecnorm(a)
+    5.0
+    """
+    if ord == 2:
+        return A.norm2()
+    elif ord == 1:
+        return A.norm1()
+    elif ord == np.inf:
+        return A.norm_infty()
+    else:
+        raise ValueError('CTF PYTHON ERROR: CTF only supports 1/2/inf vector norms')
+
+def _match_tensor_types(first, other):
     if isinstance(first, tensor):
         tsr = first
     else:
@@ -3347,14 +3616,12 @@ def match_tensor_types(first, other):
         otsr = other
     else:
         otsr = tensor(copy=astensor(other),sp=first.sp)
-    out_dtype = get_np_dtype([tsr.dtype, otsr.dtype])
+    out_dtype = _get_np_dtype([tsr.dtype, otsr.dtype])
     if tsr.dtype != out_dtype:
         tsr = tensor(copy=tsr, dtype = out_dtype)
     if otsr.dtype != out_dtype:
         otsr = tensor(copy=otsr, dtype = out_dtype)
     return [tsr, otsr]
-
-
 
 def div(first, other):
     if isinstance(first, tensor):
@@ -3365,7 +3632,7 @@ def div(first, other):
         otsr = other
     else:
         otsr = tensor(copy=astensor(other))
-    out_dtype = get_np_div_dtype(tsr.dtype, otsr.dtype)
+    out_dtype = _get_np_div_dtype(tsr.dtype, otsr.dtype)
     if tsr.dtype != out_dtype:
         tsr = tensor(copy=tsr, dtype = out_dtype)
     if otsr.dtype != out_dtype:
@@ -3382,12 +3649,12 @@ def div(first, other):
     return out_tsr
 
 
-def tensor_pow_helper(tensor tsr, tensor otsr, tensor out_tsr, idx_A, idx_B, idx_C):
-    if ord_comp(tsr.order, 'F'):
+def _tensor_pow_helper(tensor tsr, tensor otsr, tensor out_tsr, idx_A, idx_B, idx_C):
+    if _ord_comp(tsr.order, 'F'):
         idx_A = rev_array(idx_A)
-    if ord_comp(otsr.order, 'F'):
+    if _ord_comp(otsr.order, 'F'):
         idx_B = rev_array(idx_B)
-    if ord_comp(out_tsr.order, 'F'):
+    if _ord_comp(out_tsr.order, 'F'):
         idx_C = rev_array(idx_C)
     if out_tsr.dtype == np.float64:
         pow_helper[double](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
@@ -3407,11 +3674,38 @@ def tensor_pow_helper(tensor tsr, tensor otsr, tensor out_tsr, idx_A, idx_B, idx
         pow_helper[int8_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
 
 def power(first, second):
-    [tsr, otsr] = match_tensor_types(first,second)
+    """
+    power(A, B)
+    Elementwisely raise tensor A to powers from the tensor B.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Bases tensor.
+
+    B: tensor_like
+        Exponents tensor
+
+    Returns
+    -------
+    output: tensor
+        The output tensor containing elementwise bases A raise to exponents of B.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([2., 3])
+    array([2., 3.])
+    >>> b = ctf.astensor([2., 3])
+    array([2., 3.])
+    >>> ctf.power(a, b)
+    array([ 4., 27.])
+    """
+    [tsr, otsr] = _match_tensor_types(first,second)
 
     [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
 
-    tensor_pow_helper(tsr, otsr, out_tsr, idx_A, idx_B, idx_C)
+    _tensor_pow_helper(tsr, otsr, out_tsr, idx_A, idx_B, idx_C)
 
     return out_tsr
 
@@ -3462,8 +3756,7 @@ def abs(initA):
         abs_helper[int8_t](<ctensor*>A.dt, <ctensor*>oA.dt)
     return oA
 
-
-def setgetitem_helper(obj, key_init):
+def _setgetitem_helper(obj, key_init):
     is_everything = 1
     is_contig = 1
     inds = []
