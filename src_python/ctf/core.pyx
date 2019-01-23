@@ -55,6 +55,9 @@ if is_mpi_init == 0:
   MPI_Init(&is_mpi_init, <char***>NULL)
 
 def MPI_Stop():
+    """ 
+    Kill all working nodes.
+    """
     MPI_Finalize()
 
 cdef extern from "ctf.hpp" namespace "CTF_int":
@@ -2295,6 +2298,13 @@ def spdiag(A, k=0):
     Notes
     -----
     Same with ctf.diag(A,k,sp=True)
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([[1,2,3], [4,5,6], [7,8,9]])
+    >>> ctf.spdiag(a)
+    array([1, 5, 9])
     """
     return diag(A,k,sp=True)
 
@@ -2479,8 +2489,32 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
             return B
     raise ValueError('CTF PYTHON ERROR: CTF error: should not get here')
 
-# the copy function need to call the constructor which return a copy.
 def copy(tensor A):
+    """
+    copy(A)
+    Return a copy of tensor A.
+
+    Parameters
+    ----------
+    A: tensor
+        Input tensor.
+
+    Returns
+    -------
+    output: tensor
+        A tensor representation of A.
+
+    Examples
+    --------
+    >>> a = ctf.astensor([1,2,3])
+    >>> a
+    array([1, 2, 3])
+    >>> b = ctf.copy(a)
+    >>> b
+    array([1, 2, 3])
+    >>> id(a) == id(b)
+    False
+    """
     B = tensor(A.shape, dtype=A.get_type(), copy=A)
     return B
 
@@ -2491,8 +2525,38 @@ def reshape(A, newshape, order='F'):
     return A.reshape(newshape)
 
 
-# the default order is Fortran
 def astensor(A, dtype = None, order=None):
+    """
+    astensor(A, dtype = None, order=None)
+    Convert the input data to tensor.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input data.
+
+    dtype: data-type, optional
+        Numpy data-type, if it is not specified, the function will return the tensor with same type as `np.asarray` returned ndarray.
+
+    order: {‘C’, ‘F’}, optional
+        C or Fortran memory order, default is 'F'.
+
+    Returns
+    -------
+    output: tensor
+        A tensor representation of A.
+
+    See Also
+    --------
+    numpy: numpy.asarray()
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([1,2,3])
+    >>> a
+    array([1, 2, 3])
+    """
     if isinstance(A,tensor):
         if order is not None and order != A.order:
             raise ValueError('CTF PYTHON ERROR: CTF does not support this type of order conversion in astensor()')
@@ -2925,6 +2989,40 @@ def ravel(init_A, order="F"):
         return tensor(copy=A, order=order).reshape(-1)
 
 def any(tensor init_A, axis=None, out=None, keepdims=None):
+    """
+    any(A, axis=None, out=None, keepdims = False)
+    Return whether given an axis any elements are True.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor.
+
+    axis: None or int, optional
+        Axis along which logical OR is applied.
+
+    out: tensor_like, optional
+        Objects which will place the result.
+
+    keepdims: bool, optional
+        If keepdims is set to True, the reduced axis will remain 1 in shape.
+
+    Returns
+    -------
+    output: tensor_like
+        Output tensor or scalar.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([[0, 0], [1, 1]])
+    >>> ctf.any(a)
+    True
+    >>> ctf.any(a, axis=0)
+    array([ True,  True])
+    >>> ctf.any(a, axis=1)
+    array([False,  True])
+    """
     cdef tensor A = astensor(init_A) 
     
     if keepdims is None:
@@ -3169,11 +3267,37 @@ def conj(init_A):
     else:
         return A.copy()
 
-# check whether along the given axis all array elements are true (not 0)
-# Issues:
-# 1. A type is not bool
 def all(inA, axis=None, out=None, keepdims = False):
+    """
+    all(A, axis=None, out=None, keepdims = False)
+    Return whether given an axis elements are True.
 
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor.
+
+    axis: None or int, optional
+        Currently not supported in CTF Python.
+
+    out: tensor, optional
+        Currently not supported in CTF Python.
+
+    keepdims : bool, optional
+        Currently not supported in CTF Python.
+
+    Returns
+    -------
+    output: tensor_like
+        Output tensor or scalar.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([[0, 1], [1, 1]])
+    >>> ctf.all(a)
+    False
+    """
     if isinstance(inA, tensor):
         return _comp_all(inA, axis, out, keepdims)
     else:
