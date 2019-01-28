@@ -1261,7 +1261,7 @@ cdef class tensor:
         newshape = []
         if not isinstance(integer[0], (int, np.integer)):
             if len(integer)!=1:
-                raise ValueError("invalid shape argument to reshape")
+                raise ValueError("CTF PYTHON ERROR: invalid shape argument to reshape")
             else:
                 integer = integer[0]
             
@@ -1271,7 +1271,7 @@ cdef class tensor:
             for i in range(len(integer)):
                 newshape.append(integer[i])
         else:
-            raise ValueError("invalid shape input to reshape")
+            raise ValueError("CTF PYTHON ERROR: invalid shape input to reshape")
         for i in range(len(dim)):
             total_size *= dim[i]
         newshape = np.asarray(newshape, dtype=np.int64)
@@ -1284,7 +1284,7 @@ cdef class tensor:
             for i in range(len(newshape)):
                 new_size *= newshape[i]
             if new_size != total_size:
-                raise ValueError("total size of new array must be unchanged")
+                raise ValueError("CTF PYTHON ERROR: total size of new array must be unchanged")
             B = tensor(newshape,sp=self.sp,dtype=self.dtype)
             inds, vals = self.read_local_nnz()
             B.write(inds, vals)
@@ -2028,13 +2028,6 @@ cdef class tensor:
         #else:
             #assert False
 
-
-#cdef class mtx(tensor):
-#    def __cinit__(self, nrow, ncol, sp=0, sym=None, dtype=np.float64):
-#        super(mtx, self).__cinit__([nrow, ncol], sp=sp, sym=[sym, SYM.NS], dtype=dtype)
-
-# 
-
 def _trilSquare(tensor A):
     if not isinstance(A, tensor):
         raise ValueError('CTF PYTHON ERROR: A is not a tensor')
@@ -2056,6 +2049,32 @@ def _trilSquare(tensor A):
     return B
     
 def tril(A, k=0):
+    """
+    tril(A, k=0)
+    Return lower triangle of a CTF tensor.
+
+    Parameters
+    ----------
+    A: tensor_like
+        2-D input tensor.
+
+    k: int
+        Specify last diagonal not zeroed. Default `k=0` which indicates elements under the main diagonal are zeroed.
+
+    Returns
+    -------
+    output: tensor
+        Lower triangular 2-d tensor of input tensor.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([[1,2,3],[4,5,6],[7,8,9]])
+    >>> ctf.tril(a, k=1)
+    array([[1, 2, 0],
+           [4, 5, 6],
+           [7, 8, 9]])
+    """
     k = -1-k
     if not isinstance(A, tensor):
         raise ValueError('CTF PYTHON ERROR: A is not a tensor')
@@ -2072,10 +2091,67 @@ def tril(A, k=0):
         A = _trilSquare(A)
     return A
 
-def triu(A,k=0):
+def triu(A, k=0):
+    """
+    triu(A, k=0)
+    Return upper triangle of a CTF tensor.
+
+    Parameters
+    ----------
+    A: tensor_like
+        2-D input tensor.
+
+    k: int
+        Specify last diagonal not zeroed. Default `k=0` which indicates elements under the main diagonal are zeroed.
+
+    Returns
+    -------
+    output: tensor
+        Upper triangular 2-d tensor of input tensor.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([[1,2,3],[4,5,6],[7,8,9]])
+    >>> ctf.triu(a, k=-1)
+    array([[1, 2, 3],
+           [4, 5, 6],
+           [0, 8, 9]])
+    """
     return transpose(tril(A.transpose(), -k))
 
 def real(tensor A):
+    """
+    real(A)
+    Return the real part of the tensor elementwisely.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor.
+
+    Returns
+    -------
+    output: tensor
+        A tensor with real part of the input tensor.
+
+    See Also
+    --------
+    numpy : numpy.real()
+
+    Notes
+    -----
+    The input should be a CTF tensor.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([1+2j, 3+4j, 5+6j, 7+8j])
+    >>> a
+    array([1.+2.j, 3.+4.j, 5.+6.j, 7.+8.j])
+    >>> ctf.real(a)
+    array([1., 3., 5., 7.])
+    """
     if not isinstance(A, tensor):
         raise ValueError('CTF PYTHON ERROR: A is not a tensor')
     if A.get_type() != np.complex64 and A.get_type() != np.complex128 and A.get_type() != np.complex256:
@@ -2086,6 +2162,37 @@ def real(tensor A):
         return ret
 
 def imag(tensor A):
+    """
+    imag(A)
+    Return the image part of the tensor elementwisely.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor.
+
+    Returns
+    -------
+    output: tensor
+        A tensor with real part of the input tensor.
+
+    See Also
+    --------
+    numpy : numpy.imag()
+
+    Notes
+    -----
+    The input should be a CTF tensor.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([1+2j, 3+4j, 5+6j, 7+8j])
+    >>> a
+    array([1.+2.j, 3.+4.j, 5.+6.j, 7.+8.j])
+    >>> ctf.imag(a)
+    array([2., 4., 6., 8.])
+    """
     if not isinstance(A, tensor):
         raise ValueError('CTF PYTHON ERROR: A is not a tensor')
     if A.get_type() != np.complex64 and A.get_type() != np.complex128 and A.get_type() != np.complex256:
@@ -2402,6 +2509,44 @@ def diagonal(init_A, offset=0, axis1=0, axis2=1):
     raise ValueError('CTF PYTHON ERROR: diagonal error')
 
 def trace(init_A, offset=0, axis1=0, axis2=1, dtype=None, out=None):
+    """
+    trace(A, offset=0, axis1=0, axis2=1, dtype=None, out=None)
+    Return the sum over the diagonal of input tensor.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor.
+
+    offset: int, optional
+        Default is 0 which indicates the main diagonal.
+
+    axis1: int, optional
+        Default is 0 which indicates the first axis of 2-D tensor where diagonal is taken.
+
+    axis2: int, optional
+        Default is 1 which indicates the second axis of 2-D tensor where diagonal is taken.
+
+    dtype: data-type, optional
+        Numpy data-type, currently not supported in CTF Python trace().
+
+    out: tensor
+        Currently not supported in CTF Python trace().
+
+    Returns
+    -------
+    output: tensor or scalar
+        Sum along diagonal of input tensor.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([[1,2,3], [4,5,6], [7,8,9]])
+    >>> ctf.trace(a)
+    15
+    """
+    if dtype != None or out != None:
+        raise ValueError('CTF PYTHON ERROR: CTF Python trace currently does not support dtype and out')
     A = astensor(init_A)
     dim = A.shape
     if len(dim) == 1 or len(dim)==0:
@@ -2413,10 +2558,46 @@ def trace(init_A, offset=0, axis1=0, axis2=1, dtype=None, out=None):
         return sum(diagonal(A, offset=offset, axis1 = axis1, axis2 = axis2), axis=len(A.shape)-2)
     return None
 
-# the take function now lack of the "permute function" which can take the elements from the ctensor.
 def take(init_A, indices, axis=None, out=None, mode='raise'):
+    """
+    take(A, indices, axis=None, out=None, mode='raise')
+    Take elements from a tensor along axis.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor.
+
+    indices: tensor_like
+        Indices of the values wnat to be extracted.
+
+    axis: int, optional
+        Select values from which axis, default None.
+
+    out: tensor
+        Currently not supported in CTF Python take().
+
+    mode: {‘raise’, ‘wrap’, ‘clip’}, optional
+        Currently not supported in CTF Python take().
+
+    Returns
+    -------
+    output: tensor or scalar
+        Elements extracted from the input tensor.
+
+    See Also
+    --------
+    numpy: numpy.take()
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([[1,2,3], [4,5,6], [7,8,9]])
+    >>> ctf.take(a, [0, 1, 2])
+    array([1, 2, 3])
+    """
     if out is not None:
-        raise ValueError("Now ctf does not support to specify 'out' in functions")
+        raise ValueError("CTF Python Now ctf does not support to specify 'out' in functions")
     A = astensor(init_A)
     indices = np.asarray(indices)
 
@@ -2428,9 +2609,11 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
                 indices[0] += A.shape[0]
             if indices[0] > 0 and indices[0] > A.shape[0]:
                 error = "index "+str(indices[0])+" is out of bounds for size " + str(A.shape[0])
+                error = "CTF PYTHON ERROR: " + error
                 raise IndexError(error)
             if indices[0] < 0:
                 error = "index "+str(indices[0]-A.shape[0])+" is out of bounds for size " + str(A.shape[0])
+                error = "CTF PYTHON ERROR: " + error
                 raise IndexError(error)
             return A.read(indices)[0]
         # if the indices is 1-D array
@@ -2444,9 +2627,11 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
                     indices_ravel[i] += total_size
                     if indices_ravel[i] < 0:
                         error = "index "+str(indices_ravel[i]-total_size)+" is out of bounds for size " + str(total_size)
+                        error = "CTF PYTHON ERROR: " + error
                         raise IndexError(error)
                 if indices_ravel[i] > 0 and indices_ravel[0] > total_size:
                     error = "index "+str(indices_ravel[i])+" is out of bounds for size " + str(total_size)
+                    error = "CTF PYTHON ERROR: " + error
                     raise IndexError(error)
             if len(indices.shape) == 1:
                 B = astensor(A.read(indices_ravel))
@@ -2455,19 +2640,19 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
             return B
     else:
         if type(axis) != int:
-            raise TypeError("the axis should be int type")
+            raise TypeError("CTF PYTHON ERROR: the axis should be int type")
         if axis < 0:
             axis += len(A.shape)
             if axis < 0:
-                raise IndexError("axis out of bounds")
+                raise IndexError("CTF PYTHON ERROR: axis out of bounds")
         if axis > len(A.shape):
-            raise IndexError("axis out of bounds")
+            raise IndexError("CTF PYTHON ERROR: axis out of bounds")
         if indices.shape == () or indices.shape== (1,):
             total_size = 1
             for i in range(len(A.shape)):
                 total_size *= A[i]
             if indices >= A.shape[axis]:
-                raise IndexError("index out of bounds")
+                raise IndexError("CTF PYTHON ERROR: index out of bounds")
             ret_shape = list(A.shape)
             if indices.shape == ():
                 del ret_shape[axis]
@@ -2490,7 +2675,7 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
             return B.to_nparray()
         else:
             if len(indices.shape) > 1:
-                raise ValueError("current ctf does not support when specify axis and the len(indices.shape) > 1")
+                raise ValueError("CTF PYTHON ERROR: current ctf does not support when specify axis and the len(indices.shape) > 1")
             total_size = 1
             for i in range(len(A.shape)):
                 total_size *= A[i]
@@ -2550,8 +2735,39 @@ def copy(tensor A):
     B = tensor(A.shape, dtype=A.get_type(), copy=A)
     return B
 
-# the default order is Fortran
 def reshape(A, newshape, order='F'):
+    """
+    reshape(A, newshape, order='F')
+    Reshape the input tensor A to new shape.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor.
+
+    newshape: tuple of ints or int
+        New shape where the input tensor is shaped to.
+
+    order: {‘C’, ‘F’}, optional
+        Currently not supported by CTF Python.
+
+    Returns
+    -------
+    output: tensor
+        Tensor with new shape of A.
+
+    See Also
+    --------
+    ctf: ctf.tensor.reshape()
+
+    Examples
+    --------
+    >>> import ctf
+    a = ctf.astensor([1,2,3,4])
+    >>> ctf.reshape(a, (2, 2))
+    array([[1, 2],
+           [3, 4]])
+    """
     if A.order != order:
       raise ValueError('CTF PYTHON ERROR: CTF does not support reshape with a new element order (Fortran vs C)')
     return A.reshape(newshape)
@@ -2651,6 +2867,46 @@ def dot(tA, tB, out=None):
     return tensordot(A, B, axes=([-1],[0]))
 
 def tensordot(tA, tB, axes=2):
+    """
+    tensordot(A, B, axes=2)
+    Return the tensor dot product of two tensors A and B along axes.
+
+    Parameters
+    ----------
+    A: tensor_like
+        First input tensor.
+
+    B: tensor_like
+        Second input tensor.
+
+    axes: int or array_like
+        Sum over which axes.
+
+    Returns
+    -------
+    output: tensor
+        Tensor dot product of two tensors.
+
+    See Also
+    --------
+    numpy: numpy.tensordot()
+
+    Examples
+    --------
+    >>> import ctf
+    >>> import numpy as np
+    >>> a = np.arange(60.).reshape(3,4,5)
+    >>> b = np.arange(24.).reshape(4,3,2)
+    >>> a = ctf.astensor(a)
+    >>> b = ctf.astensor(b)
+    >>> c = ctf.tensordot(a,b, axes=([1,0],[0,1]))
+    >>> c
+    array([[4400., 4730.],
+           [4532., 4874.],
+           [4664., 5018.],
+           [4796., 5162.],
+           [4928., 5306.]])
+    """
     A = astensor(tA)
     B = astensor(tB)
     
@@ -2822,29 +3078,72 @@ def tensordot(tA, tB, axes=2):
 # not sure out and dtype can be specified together, now this is not allowed in this function
 # haven't implemented the out that store the value into the out, now only return a new tensor
 def exp(init_x, out=None, where=True, casting='same_kind', order='F', dtype=None, subok=True):
+    """
+    exp(A, out=None, where=True, casting='same_kind', order='F', dtype=None, subok=True)
+    Exponential of all elements in input tensor A.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor or tensor like array.
+
+    out: tensor, optional
+        Crrently not support by CTF Python.
+
+    where: array_like, optional
+        Crrently not support by CTF Python.
+
+    casting: same_kind or unsafe
+        Default same_kind.
+
+    order: optional
+        Crrently not support by CTF Python.
+
+    dtype: data-type, optional
+        Output data-type for the exp result.
+
+    subok: bool
+        Crrently not support by CTF Python.
+
+    Returns
+    -------
+    output: tensor_like
+        Output tensor for the exponential.
+
+    See Also
+    --------
+    numpy: numpy.exp()
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([1,2,3])
+    >>> ctf.exp(a)
+    array([ 2.71828183,  7.3890561 , 20.08553692])
+    """
     x = astensor(init_x)
 
     # delete this one and add for out
     if out is not None:
-        raise ValueError("current not support to specify out")
+        raise ValueError("CTF PYTHON ERROR: current not support to specify out")
 
     if out is not None and out.shape != x.shape:
         raise ValueError("Shape does not match")
     if casting == 'same_kind' and (out is not None or dtype is not None):
         if out is not None and dtype is not None:
-            raise TypeError("out and dtype should not be specified together")
+            raise TypeError("CTF PYTHON ERROR: out and dtype should not be specified together")
         type_list = [np.int8, np.int16, np.int32, np.int64]
         for i in range(4):
             if out is not None and out.dtype == type_list[i]:
-                raise TypeError("Can not cast according to the casting rule 'same_kind'")
+                raise TypeError("CTF PYTHON ERROR: Can not cast according to the casting rule 'same_kind'")
             if dtype is not None and dtype == type_list[i]:
-                raise TypeError("Can not cast according to the casting rule 'same_kind'")
+                raise TypeError("CTF PYTHON ERROR: Can not cast according to the casting rule 'same_kind'")
     
     # we need to add more templates initialization in exp_python() function
     if casting == 'unsafe':
         # add more, not completed when casting == unsafe
         if out is not None and dtype is not None:
-            raise TypeError("out and dtype should not be specified together")
+            raise TypeError("CTF PYTHON ERROR: out and dtype should not be specified together")
             
     if dtype is not None:
         ret_dtype = dtype
@@ -2875,12 +3174,72 @@ def exp(init_x, out=None, where=True, casting='same_kind', order='F', dtype=None
         return ret
 
 def to_nparray(t):
+    """
+    to_nparray(A)
+    Convert the tensor to numpy array.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor or tensor like array.
+
+    Returns
+    -------
+    output: ndarray
+        Numpy ndarray representation of tensor like input A.
+
+    See Also
+    --------
+    numpy: numpy.asarray()
+
+    Examples
+    --------
+    >>> import ctf
+    >>> import numpy as np
+    >>> a = ctf.zeros([3,4])
+    >>> b = ctf.to_nparray(a)
+    >>> b
+    array([[0., 0., 0., 0.],
+           [0., 0., 0., 0.],
+           [0., 0., 0., 0.]])
+    >>> type(b)
+    <class 'numpy.ndarray'>
+    """
     if isinstance(t,tensor):
         return t.to_nparray()
     else:
         return np.asarray(t)
 
 def from_nparray(arr):
+    """
+    from_nparray(A)
+    Convert the numpy array to tensor.
+
+    Parameters
+    ----------
+    A: ndarray
+        Input numpy array.
+
+    Returns
+    -------
+    output: tensor
+        Tensor representation of input numpy array.
+
+    See Also
+    --------
+    ctf: ctf.astensor()
+
+    Examples
+    --------
+    >>> import ctf
+    >>> import numpy as np
+    >>> a = np.array([1,2,3])
+    >>> b = ctf.from_nparray(a)
+    >>> b
+    array([1, 2, 3])
+    >>> type(b)
+    <class 'ctf.core.tensor'>
+    """
     return astensor(arr)
 
 def zeros_like(init_A, dtype=None, order='F'):
@@ -2989,16 +3348,83 @@ def empty(shape, dtype=np.float64, order='F'):
     return zeros(shape, dtype, order)
 
 def empty_like(A, dtype=None):
+    """
+    empty_like(A, dtype=None)
+    Return uninitialized tensor of with same shape and dtype of tensor A. Currently in CTF Python is same with ctf.zero_like.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor where the output tensor shape and dtype defined as.
+
+    dtype: data-type, optional
+        Output data-type for the empty tensor.
+
+    Returns
+    -------
+    output: tensor_like
+        Output tensor.
+
+    See Also
+    --------
+    ctf: ctf.zeros_like()
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.zeros([3,4], dtype=np.int64)
+    >>> b = ctf.empty_like(a)
+    >>> b
+    array([[0, 0, 0, 0],
+           [0, 0, 0, 0],
+           [0, 0, 0, 0]])
+    """
     if dtype is None: 
         dtype = A.dtype
     return empty(A.shape, dtype=dtype)
 
-# Maybe there are issues that when keepdims, dtype and out are all specified.  
 def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
+    """
+    sum(A, axis = None, dtype = None, out = None, keepdims = None)
+    Sum of elements in tensor or along specified axis.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor.
+
+    axis: None, int or tuple of ints
+        Axis or axes where the sum of elements is performed.
+
+    dtype: data-type, optional
+        Data-type for the output tensor.
+
+    out: tensor, optional
+        Alternative output tensor.
+
+    keepdims: None, bool, optional
+        If set to true, axes summed over will remain size one.
+
+    Returns
+    -------
+    output: tensor_like
+        Output tensor.
+
+    See Also
+    --------
+    numpy: numpy.sum()
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.ones([3,4], dtype=np.int64)
+    >>> ctf.sum(a)
+    12
+    """
     A = astensor(init_A)
   
     if not isinstance(out,tensor) and out is not None:
-        raise ValueError("output must be a tensor")
+        raise ValueError("CTF PYTHON ERROR: output must be a tensor")
   
   # if dtype not specified, assign np.float64 to it
     if dtype is None:
@@ -3010,7 +3436,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
 
   # it keepdims == true and axis not specified
     if isinstance(out,tensor) and axis is None:
-        raise ValueError("output parameter for reduction operation add has too many dimensions")
+        raise ValueError("CTF PYTHON ERROR: output parameter for reduction operation add has too many dimensions")
     
     # get_dims of tensor A
     dim = A.shape
@@ -3019,22 +3445,22 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
     # check whether the axis entry is out of bounds, if axis input is positive e.g. axis = 5
     if isinstance(axis, (int, np.integer)):
         if axis is not None and (axis >= len(dim) or axis <= (-len(dim)-1)):
-            raise ValueError("'axis' entry is out of bounds")
+            raise ValueError("CTF PYTHON ERROR: 'axis' entry is out of bounds")
     elif axis is None:
         axis = None
     else:
         # check whether the axis parameter has the correct type, number etc.
         axis = np.asarray(axis, dtype=np.int64)
         if len(axis.shape) > 1:
-            raise ValueError("the object cannot be interpreted as integer")
+            raise ValueError("CTF PYTHON ERROR: the object cannot be interpreted as integer")
         for i in range(len(axis)):
             if axis[i] >= len(dim) or axis[i] <= (-len(dim)-1):
-                raise ValueError("'axis' entry is out of bounds")
+                raise ValueError("CTF PYTHON ERROR: 'axis' entry is out of bounds")
         for i in range(len(axis)):
             if axis[i] < 0:
                 axis[i] += len(dim)
             if axis[i] in axis_tuple:
-                raise ValueError("duplicate value in 'axis'")
+                raise ValueError("CTF PYTHON ERROR: duplicate value in 'axis'")
             axis_tuple += (axis[i],)
     
     # if out has been specified, assign a outputdim
@@ -3132,8 +3558,37 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
         del decrease_dim[index_removal]
     return B
     
-# ravel, the default order is Fortran
 def ravel(init_A, order="F"):
+    """
+    ravel(A, order="F")
+    Return flattened CTF tensor of input tensor A.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor.
+
+    order: {‘C’,’F’, ‘A’, ‘K’}, optional
+        Currently not support by current CTF Python.
+
+    Returns
+    -------
+    output: tensor_like
+        Flattened tensor.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([1,2,3,4,5,6,7,8]).reshape(2,2,2)
+    >>> a
+    array([[[1, 2],
+            [3, 4]],
+           [[5, 6],
+            [7, 8]]])
+    >>> ctf.ravel(a)
+    array([1, 2, 3, 4, 5, 6, 7, 8])
+
+    """
     A = astensor(init_A) 
     if _ord_comp(order, A.order):
         return A.reshape(-1)
@@ -3379,9 +3834,54 @@ def _stackdim(in_tup, dim):
 
 
 def hstack(in_tup):
+    """
+    hstack(in_tup)
+    Stack the tensor in column-wise.
+
+    Parameters
+    ----------
+    in_tup: tuple of tensors
+        Input tensor.
+
+    Returns
+    -------
+    output: tensor_like
+        Output horizontally stacked tensor.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([1,2,3])
+    >>> b = ctf.astensor([4,5,6])
+    >>> ctf.hstack((a, b))
+    array([1, 2, 3, 4, 5, 6])
+    """
     return _stackdim(in_tup, 1)
 
 def vstack(in_tup):
+    """
+    vstack(in_tup)
+    Stack the tensor in row-wise.
+
+    Parameters
+    ----------
+    in_tup: tuple of tensors
+        Input tensor.
+
+    Returns
+    -------
+    output: tensor_like
+        Output vertically stacked tensor.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([1,2,3])
+    >>> b = ctf.astensor([4,5,6])
+    >>> ctf.vstack((a, b))
+    array([[1, 2, 3],
+           [4, 5, 6]])
+    """
     return _stackdim(in_tup, 0)
 
 def conj(init_A):
@@ -3787,7 +4287,7 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     array([1, 5, 9])
     """
     if order != 'K' or casting != 'safe':
-        raise ValueError('CTF PYTHON ERROR: CTF einsum currently does not support order and casting')
+        raise ValueError('CTF PYTHON ERROR: CTF Python einsum currently does not support order and casting')
     numop = len(operands)
     inds = []
     j=0
@@ -3802,7 +4302,7 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
             else:
                 uniq_subs.add(subscripts[j])
             if operands[i].ndim <= len(inds[i]):
-                raise ValueError("einsum subscripts string contains too many subscripts for operand {0}".format(i))
+                raise ValueError("CTF PYTHON ERROR: einsum subscripts string contains too many subscripts for operand {0}".format(i))
             dind_lens[subscripts[j]] = operands[i].shape[len(inds[i])]
             inds[i] += subscripts[j]
             all_inds.append(subscripts[j])
@@ -3861,6 +4361,29 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     return output
 
 def svd(tensor A, rank=None):
+    """
+    svd(A, rank=None)
+    Compute Single Value Decomposition of tensor A.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor 2-D dimensions.
+    
+    rank: int or None, optional
+        Target rank for SVD, default `k=0`.
+
+    Returns
+    -------
+    U: tensor
+        A unitary CTF tensor with 2-D dimensions.
+
+    S: tensor
+        A 1-D tensor with singular values.
+
+    VT: tensor
+        A unitary CTF tensor with 2-D dimensions.
+    """
     if not isinstance(A,tensor) or A.ndim != 2:
         raise ValueError('CTF PYTHON ERROR: SVD called on invalid tensor, must be CTF double matrix')
     if rank is None:
@@ -3878,6 +4401,23 @@ def svd(tensor A, rank=None):
     return [U, S, VT]
  
 def qr(tensor A):
+    """
+    qr(A)
+    Compute QR factorization of tensor A.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor 2-D dimensions.
+
+    Returns
+    -------
+    Q: tensor
+        A CTF tensor with 2-D dimensions and orthonormal columns.
+
+    R: tensor
+        An upper triangular 2-D CTF tensor.
+    """
     if not isinstance(A,tensor) or A.ndim != 2:
         raise ValueError('CTF PYTHON ERROR: QR called on invalid tensor, must be CTF double matrix')
     B = tensor(copy=A.T())
