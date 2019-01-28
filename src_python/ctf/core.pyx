@@ -470,7 +470,7 @@ cdef class itensor(term):
     def scl(self, s):
         self.it.multeq(<double>s)
 
-def rev_array(arr):
+def _rev_array(arr):
     if len(arr) == 1:
         return arr
     else:
@@ -488,9 +488,9 @@ cdef class tensor:
 
     Attributes
     ----------
-    nbytes : int
+    nbytes: int
         The number of bytes for the tensor.
-    size : int
+    size: int
         Total number of elements in the tensor.
 
     Methods
@@ -561,12 +561,9 @@ cdef class tensor:
     def convert_type(tensor self, tensor B):
         conv_type(type_index[self.dtype], type_index[B.dtype], <ctensor*>self.dt, <ctensor*>B.dt);
 
-    # get "shape" or dimensions of the ctensor
     def get_dims(self):
         return self.shape
     
-
-    # get type of the ctensor
     def get_type(self):
         return self.dtype
 
@@ -647,9 +644,9 @@ cdef class tensor:
         rlens = lens[:]
         rsym = self.sym[:]
         if _ord_comp(self.order, 'F'):
-            rlens = rev_array(lens)
+            rlens = _rev_array(lens)
             if self.ndim > 1:
-                rsym = rev_array(self.sym)
+                rsym = _rev_array(self.sym)
                 rsym[0:-1] = rsym[1:]
                 rsym[-1] = SYM.NS
         cdef int * clens
@@ -864,7 +861,7 @@ cdef class tensor:
         return self
 
     def __truediv__(self, other):
-        return div(self,other)
+        return _div(self,other)
 
     def __itruediv__(self, other_in):
         other = astensor(other_in)
@@ -884,7 +881,7 @@ cdef class tensor:
         return self
 
     def __div__(self, other):
-        return div(self,other)
+        return _div(self,other)
 
     def __idiv__(self, other_in):
         # same with __itruediv__
@@ -1105,9 +1102,9 @@ cdef class tensor:
                     if tuple(dim_keep) != tuple(out.shape):
                         raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
             index_A = _get_num_str(self.ndim)
-            index_temp = rev_array(index_A)
+            index_temp = _rev_array(index_A)
             index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
-            index_B = rev_array(index_B)
+            index_B = _rev_array(index_B)
             B = tensor(dim_ret, dtype=np.bool)
             if self.dtype == np.float64:
                 all_helper[double](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
@@ -1163,12 +1160,12 @@ cdef class tensor:
                         raise ValueError('CTF PYTHON ERROR: output parameter dimensions mismatch')
             B = tensor(dim_ret, dtype=np.bool)
             index_A = _get_num_str(self.ndim)
-            index_temp = rev_array(index_A)
+            index_temp = _rev_array(index_A)
             index_B = ""
             for i in range(len(dim)):
                 if i not in axis:
                     index_B += index_temp[i]
-            index_B = rev_array(index_B)
+            index_B = _rev_array(index_B)
             if self.dtype == np.float64:
                 all_helper[double](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
             elif self.dtype == np.int64:
@@ -1200,7 +1197,7 @@ cdef class tensor:
     # the core function when we want to sum the ctensor...
     def i(self, string):
         if _ord_comp(self.order, 'F'):
-            return itensor(self, rev_array(string))
+            return itensor(self, _rev_array(string))
         else:
             return itensor(self, string)
 
@@ -1635,9 +1632,9 @@ cdef class tensor:
         cdef int * coffs
         cdef int * cends
         if _ord_comp(self.order, 'F'):
-            clens = int_arr_py_to_c(rev_array(A.shape))
-            coffs = int_arr_py_to_c(rev_array(offsets))
-            cends = int_arr_py_to_c(rev_array(ends))
+            clens = int_arr_py_to_c(_rev_array(A.shape))
+            coffs = int_arr_py_to_c(_rev_array(offsets))
+            cends = int_arr_py_to_c(_rev_array(ends))
             czeros = int_arr_py_to_c(np.zeros(len(self.shape), dtype=np.int32))
         else:
             clens = int_arr_py_to_c(A.shape)
@@ -1678,15 +1675,15 @@ cdef class tensor:
         cdef int * cends
         if _ord_comp(self.order, 'F'):
             if A_offsets is None:
-                caoffs = int_arr_py_to_c(rev_array(np.zeros(len(self.shape), dtype=np.int32)))
+                caoffs = int_arr_py_to_c(_rev_array(np.zeros(len(self.shape), dtype=np.int32)))
             else:
-                caoffs = int_arr_py_to_c(rev_array(A_offsets))
+                caoffs = int_arr_py_to_c(_rev_array(A_offsets))
             if A_ends is None:
-                caends = int_arr_py_to_c(rev_array(A.shape))
+                caends = int_arr_py_to_c(_rev_array(A.shape))
             else:
-                caends = int_arr_py_to_c(rev_array(A_ends))
-            coffs = int_arr_py_to_c(rev_array(offsets))
-            cends = int_arr_py_to_c(rev_array(ends))
+                caends = int_arr_py_to_c(_rev_array(A_ends))
+            coffs = int_arr_py_to_c(_rev_array(offsets))
+            cends = int_arr_py_to_c(_rev_array(ends))
         else:
             if A_offsets is None:
                 caoffs = int_arr_py_to_c(np.zeros(len(self.shape), dtype=np.int32))
@@ -1876,7 +1873,7 @@ cdef class tensor:
         vals = np.zeros(self.tot_size(), dtype=self.dtype)
         self.read_all(vals)
         #return np.asarray(np.ascontiguousarray(np.reshape(vals, self.shape, order='F')),order='C')
-        #return np.reshape(vals, rev_array(self.shape)).transpose()
+        #return np.reshape(vals, _rev_array(self.shape)).transpose()
         return np.reshape(vals, self.shape)
         #return np.reshape(vals, self.shape, order='C')
 
@@ -2309,13 +2306,46 @@ def spdiag(A, k=0):
     return diag(A,k,sp=True)
 
 def diagonal(init_A, offset=0, axis1=0, axis2=1):
+    """
+    diagonal(A, offset=0, axis1=0, axis2=1)
+    Return the diagonal of tensor A if A is 2D. If A is a higher order square tensor (same shape for every dimension), return diagonal of tensor determined by axis1=0, axis2=1.
 
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor.
+
+    offset: int, optional
+        Default is 0 which indicates the main diagonal.
+
+    axis1: int, optional
+        Default is 0 which indicates the first axis of 2-D tensor where diagonal is taken.
+
+    axis2: int, optional
+        Default is 1 which indicates the second axis of 2-D tensor where diagonal is taken.
+
+    Returns
+    -------
+    output: tensor
+        Diagonal of input tensor.
+
+    Notes
+    -----
+    `ctf.diagonal` only supports diagonal of square tensor with order more than 2.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([[1,2,3], [4,5,6], [7,8,9]])
+    >>> ctf.diagonal(a)
+    array([1, 5, 9])
+    """
     A = astensor(init_A)
     if axis1 == axis2:
         raise ValueError('CTF PYTHON ERROR: axis1 and axis2 cannot be the same')
     dim = A.shape
     if len(dim) == 1 or len(dim)==0:
-        raise ValueError('CTF PYTHON ERROR: diag requires an array of at least two dimensions')
+        raise ValueError('CTF PYTHON ERROR: diagonal requires an array of at least two dimensions')
     if axis1 ==1 and axis2 == 0:
         offset = -offset
     if offset < 0 and dim[0] + offset <=0:
@@ -2367,7 +2397,9 @@ def diagonal(init_A, offset=0, axis1=0, axis2=1):
             front = back[len(back)-1]+back[len(back)-1]+back[0:len(back)-1]
             einsum_input = front + "->" + back
             return einsum(einsum_input,A)
-    return None
+        else:
+            raise ValueError('CTF PYTHON ERROR: diagonal requires a higher order (>2) tensor to be square')
+    raise ValueError('CTF PYTHON ERROR: diagonal error')
 
 def trace(init_A, offset=0, axis1=0, axis2=1, dtype=None, out=None):
     A = astensor(init_A)
@@ -2574,8 +2606,40 @@ def astensor(A, dtype = None, order=None):
     return t
 
 def dot(tA, tB, out=None):
+    """
+    dot(A, B, out=None)
+    Return the dot product of two tensors A and B.
+
+    Parameters
+    ----------
+    A: tensor_like
+        First input tensor.
+
+    B: tensor_like
+        Second input tensor.
+
+    out: tensor
+        Currently not supported in CTF Python.
+
+    Returns
+    -------
+    output: tensor
+        Dot product of two tensors.
+
+    See Also
+    --------
+    numpy: numpy.dot()
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([[1,2,3], [4,5,6], [7,8,9]])
+    >>> b = ctf.astensor([1,1,1])
+    >>> ctf.dot(a, b)
+    array([ 6, 15, 24])
+    """
     if out is not None:
-        raise ValueError("now ctf does not support to specify out")
+        raise ValueError("CTF PYTHON ERROR: CTF currently does not support output parameter.")
 
     if (isinstance(tA, (np.int, np.float, np.complex, np.number)) and 
         isinstance(tB, (np.int, np.float, np.complex, np.number))):
@@ -2819,21 +2883,109 @@ def to_nparray(t):
 def from_nparray(arr):
     return astensor(arr)
 
-
-# return a zero tensor just like the tensor A
 def zeros_like(init_A, dtype=None, order='F'):
+    """
+    zeros_like(A, dtype=None, order='F')
+    Return the tensor of zeros with same shape and dtype of tensor A.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor where the output tensor shape and dtype defined as.
+
+    dtype: data-type, optional
+        Output data-type for the empty tensor.
+
+    order: {‘C’, ‘F’}, optional, default: ‘F’
+        Currently not support by CTF Python.
+
+    Returns
+    -------
+    output: tensor_like
+        Output tensor.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> import numpy as np
+    >>> a = ctf.zeros([3,4], dtype=np.int64)
+    >>> b = ctf.zeros_like(a)
+    >>> b
+    array([[0, 0, 0, 0],
+           [0, 0, 0, 0],
+           [0, 0, 0, 0]])
+    """
     A = astensor(init_A)
     shape = A.shape
     if dtype is None:
         dtype = A.get_type()
     return zeros(shape, dtype, order)
 
-# return tensor with all zeros
 def zeros(shape, dtype=np.float64, order='F'):
+    """
+    zeros(shape, dtype=np.float64, order='F')
+    Return the tensor with specified shape and dtype with all elements filled as zeros.
+
+    Parameters
+    ----------
+    shape: int or tuple of int
+        Shape of the empty tensor.
+
+    dtype: data-type, optional
+        Output data-type for the empty tensor.
+
+    order: {‘C’, ‘F’}, optional, default: ‘F’
+        Currently not support by CTF Python.
+
+    Returns
+    -------
+    output: tensor_like
+        Output tensor.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> import numpy as np
+    >>> a = ctf.zeros([3,4], dtype=np.int64)
+    >>> a
+    array([[0, 0, 0, 0],
+           [0, 0, 0, 0],
+           [0, 0, 0, 0]])
+    """
     A = tensor(shape, dtype=dtype)
     return A
 
 def empty(shape, dtype=np.float64, order='F'):
+    """
+    empty(shape, dtype=np.float64, order='F')
+    Return the tensor with specified shape and dtype without initialization. Currently not supported by CTF Python, this function same with the ctf.zeros().
+
+    Parameters
+    ----------
+    shape: int or tuple of int
+        Shape of the empty tensor.
+
+    dtype: data-type, optional
+        Output data-type for the empty tensor.
+
+    order: {‘C’, ‘F’}, optional, default: ‘F’
+        Currently not support by CTF Python.
+
+    Returns
+    -------
+    output: tensor_like
+        Output tensor.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> import numpy as np
+    >>> a = ctf.empty([3,4], dtype=np.int64)
+    >>> a
+    array([[0, 0, 0, 0],
+           [0, 0, 0, 0],
+           [0, 0, 0, 0]])
+    """
     return zeros(shape, dtype, order)
 
 def empty_like(A, dtype=None):
@@ -3097,9 +3249,9 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
                 if tuple(dim_keep) != tuple(out.shape):
                     raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
         index_A = _get_num_str(len(dim))
-        index_temp = rev_array(index_A)
+        index_temp = _rev_array(index_A)
         index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
-        index_B = rev_array(index_B)
+        index_B = _rev_array(index_B)
         B = tensor(dim_ret, dtype=np.bool)
         if A.get_type() == np.float64:
             any_helper[double](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
@@ -3155,12 +3307,12 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
                     raise ValueError('CTF PYTHON ERROR: output parameter dimensions mismatch')
         B = tensor(dim_ret, dtype=np.bool)
         index_A = _get_num_str(len(dim))
-        index_temp = rev_array(index_A)
+        index_temp = _rev_array(index_A)
         index_B = ""
         for i in range(len(dim)):
             if i not in axis:
                 index_B += index_temp[i]
-        index_B = rev_array(index_B)
+        index_B = _rev_array(index_B)
         if A.get_type() == np.float64:
             any_helper[double](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
         elif A.get_type() == np.int64:
@@ -3595,6 +3747,47 @@ def speye(n, m=None, k=0, dtype=np.float64):
     return eye(n, m, k, dtype, sp=True)
 
 def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe'):
+    """
+    einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe')
+    Einstein summation on operands.
+
+    Parameters
+    ----------
+    subscripts: str
+        Subscripts for summation.
+
+    operands: list of tensor
+        List of tensors.
+
+    out: tensor or None
+        If the out is not None, calculated result will stored into out tensor.
+
+    dtype: data-type, optional
+        Numpy data-type of returned tensor, dtype of returned tensor will be specified by operand tensors.
+
+    order: {‘C’, ‘F’, ‘A’, ‘K’}, optional
+        Currently not supported by CTF Python.
+
+    casting: {‘no’, ‘equiv’, ‘safe’, ‘same_kind’, ‘unsafe’}, optional
+        Currently not supported by CTF Python.
+
+    Returns
+    -------
+    output: tensor
+
+    See Also
+    --------
+    numpy : numpy.einsum()
+
+    Examples
+    --------
+    >>> import ctf
+    >>> a = ctf.astensor([[1,2,3], [4,5,6], [7,8,9]])
+    >>> ctf.einsum("ii->i", a)
+    array([1, 5, 9])
+    """
+    if order != 'K' or casting != 'safe':
+        raise ValueError('CTF PYTHON ERROR: CTF einsum currently does not support order and casting')
     numop = len(operands)
     inds = []
     j=0
@@ -3747,7 +3940,7 @@ def _match_tensor_types(first, other):
         otsr = tensor(copy=otsr, dtype = out_dtype)
     return [tsr, otsr]
 
-def div(first, other):
+def _div(first, other):
     if isinstance(first, tensor):
         tsr = first
     else:
@@ -3775,11 +3968,11 @@ def div(first, other):
 
 def _tensor_pow_helper(tensor tsr, tensor otsr, tensor out_tsr, idx_A, idx_B, idx_C):
     if _ord_comp(tsr.order, 'F'):
-        idx_A = rev_array(idx_A)
+        idx_A = _rev_array(idx_A)
     if _ord_comp(otsr.order, 'F'):
-        idx_B = rev_array(idx_B)
+        idx_B = _rev_array(idx_B)
     if _ord_comp(out_tsr.order, 'F'):
-        idx_C = rev_array(idx_C)
+        idx_C = _rev_array(idx_C)
     if out_tsr.dtype == np.float64:
         pow_helper[double](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
     elif out_tsr.dtype == np.float32:
@@ -3943,4 +4136,3 @@ def _setgetitem_helper(obj, key_init):
         corr_shape.append(obj.shape[i])
         one_shape.append(obj.shape[i])
     return [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape]
-
