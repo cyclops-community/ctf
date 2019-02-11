@@ -19,6 +19,12 @@ int checkpoint(int     n,
   Matrix<> A4(n, n, qtf, dw);
   Matrix<> A5(n, n, qtf, dw);
 
+  int lens_u[] = {5,5, 5, 5};
+
+  Tensor<> u(4, lens_u);
+  u.print();
+  u.read_sparse_from_file("tensor.txt");
+  u.print();
   srand48(13*dw.rank);
   A.fill_random(0.0,1.0);
   A.print();
