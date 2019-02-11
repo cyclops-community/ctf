@@ -87,7 +87,7 @@ namespace CTF {
                         char const *              name,
                         bool                      profile,
                         CTF_int::algstrct const & sr_)
-    : CTF_int::tensor(&sr_, order, 0, len, sym, &world, idx, prl, blk, name, profile) { 
+    : CTF_int::tensor(&sr_, order, 0, len, sym, &world, idx, prl, blk, name, profile) {
     IASSERT(sizeof(dtype)==this->sr->el_size);
   }
 
@@ -103,7 +103,7 @@ namespace CTF {
                         char const *              name,
                         bool                      profile,
                         CTF_int::algstrct const & sr_)
-    : CTF_int::tensor(&sr_, order, is_sparse_, len, sym, &world, idx, prl, blk, name, profile) { 
+    : CTF_int::tensor(&sr_, order, is_sparse_, len, sym, &world, idx, prl, blk, name, profile) {
     IASSERT(sizeof(dtype)==this->sr->el_size);
   }
 
@@ -203,7 +203,7 @@ namespace CTF {
                                       Pair<dtype> ** pairs,
                                       bool           nonzeros_only,
                                       bool           unpack_sym) const {
-    char * cpairs; 
+    char * cpairs;
     int ret;
     if (nonzeros_only)
       ret = CTF_int::tensor::read_local_nnz(npair,&cpairs,unpack_sym);
@@ -217,7 +217,7 @@ namespace CTF {
   void Tensor<dtype>::read_local(int64_t *      npair,
                                  Pair<dtype> ** pairs,
                                  bool           unpack_sym) const {
-    char * cpairs; 
+    char * cpairs;
     int ret = CTF_int::tensor::read_local(npair, &cpairs, unpack_sym);
     *pairs = (Pair<dtype>*)cpairs; //Pair<dtype>::cast_char_arr(cpairs, *npair, sr);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
@@ -457,7 +457,7 @@ namespace CTF {
     int ret = CTF_int::tensor::sparsify((char*)&threshold, take_abs);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function sparsify\n"); IASSERT(0); return; }
   }
-  
+
   template<typename dtype>
   void Tensor<dtype>::sparsify(std::function<bool(dtype)> filter){
     int ret = CTF_int::tensor::sparsify([&](char const * c){ return filter(((dtype*)c)[0]); });
@@ -465,49 +465,42 @@ namespace CTF {
   }
 
   template <typename dtype>
-    void read_sparse_from_file_base(const char * fpath, Tensor<dtype> * T){
-        uint64_t *my_edges = NULL;
-        uint64_t my_nedges = 0;
+  void read_sparse_from_file_base(const char * fpath, Tensor<dtype> * T){
+    uint64_t *my_vals = NULL;
+    uint64_t my_nvals = 0;
 
-        if (T->order == 3){
-            char **leno;
-            my_nedges = read_data_mpiio(T->wrld->rank, T->wrld->np, fpath, &my_edges, &leno);
-            process_order3_tensor(leno, my_nedges, &my_edges);
-            free(leno[0]);
-            free(leno);
-            int64_t * inds = (int64_t*)malloc(sizeof(int64_t)*my_nedges);
-            dtype * vals = (dtype*)malloc(sizeof(dtype)*my_nedges);
+    if (T->order == 3){
+      char **leno;
+      my_nvals = read_data_mpiio(T->wrld->rank, T->wrld->np, fpath, &my_vals, &leno);
+      process_tensor(leno, my_nvals, &my_vals);
+      free(leno[0]);
+      free(leno);
 
-            for (int64_t i=0; i<my_nedges; i++){
-                inds[i] = my_edges[4*i] + my_edges[4*i+1]*T->lens[1] + my_edges[4*i+2]*T->lens[1]*T->lens[2];
-                vals[i] = my_edges[4*i + 3];
-            }
-            if (T->wrld->rank == 0) printf("filling CTF graph\n");
-            T->write(my_nedges,inds,vals);
-            free(inds);
-            free(vals);
-        }
+      T->write(my_nvals,inds,vals);
+      free(inds);
+      free(vals);
     }
+  }
 
-    template<>
-    inline void Tensor<int>::read_sparse_from_file(const char * fpath){
-        read_sparse_from_file_base<int>(fpath, this);
-    }
+  template<>
+  inline void Tensor<int>::read_sparse_from_file(const char * fpath){
+    read_sparse_from_file_base<int>(fpath, this);
+  }
 
-    template<>
-    inline void Tensor<double>::read_sparse_from_file(const char * fpath){
-        read_sparse_from_file_base<double>(fpath, this);
-    }
+  template<>
+  inline void Tensor<double>::read_sparse_from_file(const char * fpath){
+    read_sparse_from_file_base<double>(fpath, this);
+  }
 
-    template<>
-    inline void Tensor<float>::read_sparse_from_file(const char * fpath){
-        read_sparse_from_file_base<float>(fpath, this);
-    }
+  template<>
+  inline void Tensor<float>::read_sparse_from_file(const char * fpath){
+    read_sparse_from_file_base<float>(fpath, this);
+  }
 
-    template<>
-    inline void Tensor<int64_t>::read_sparse_from_file(const char * fpath){
-        read_sparse_from_file_base<int64_t>(fpath, this);
-    }
+  template<>
+  inline void Tensor<int64_t>::read_sparse_from_file(const char * fpath){
+    read_sparse_from_file_base<int64_t>(fpath, this);
+  }
 
 
   template<typename dtype>
@@ -523,7 +516,7 @@ namespace CTF {
     } else
       CTF_int::tensor::add_to_subworld(tsr, (char*)&alpha, (char*)&beta);
   }
- 
+
   template<typename dtype>
   void Tensor<dtype>::add_to_subworld(
                            Tensor<dtype> * tsr){
@@ -593,7 +586,7 @@ namespace CTF {
                             int64_t                 corner_end_A,
                             dtype                   alpha){
     int * offsets, * ends, * offsets_A, * ends_A;
-   
+
     CTF_int::cvrt_idx(this->order, this->lens, corner_off, &offsets);
     CTF_int::cvrt_idx(this->order, this->lens, corner_end, &ends);
     for (int i=0; i<order; i++){
@@ -604,7 +597,7 @@ namespace CTF {
     for (int i=0; i<A.order; i++){
       ends_A[i]++;
     }
-    
+
     CTF_int::tensor::slice(offsets, ends, (char*)&beta, (Tensor *)&A, offsets_A, ends_A, (char*)&alpha);
 
     CTF_int::cdealloc(offsets);
@@ -626,7 +619,7 @@ namespace CTF {
 
     return slice(corner_off, corner_end, wrld);
   }
-  
+
   template<typename dtype>
   Tensor<dtype> Tensor<dtype>::slice(int const *  offsets,
                                      int const *  ends,
@@ -635,8 +628,8 @@ namespace CTF {
     int * new_lens = (int*)CTF_int::alloc(sizeof(int)*order);
     int * new_sym = (int*)CTF_int::alloc(sizeof(int)*order);
     for (i=0; i<order; i++){
-      if (!(ends[i] - offsets[i] > 0 && 
-                  offsets[i] >= 0 && 
+      if (!(ends[i] - offsets[i] > 0 &&
+                  offsets[i] >= 0 &&
                   ends[i] <= lens[i])){
         printf("CTF ERROR: invalid slice dimensions\n");
         IASSERT(0);
@@ -675,13 +668,13 @@ namespace CTF {
                                      World *  owrld) const {
 
     int * offsets, * ends;
-   
+
     CTF_int::cvrt_idx(this->order, this->lens, corner_off, &offsets);
     CTF_int::cvrt_idx(this->order, this->lens, corner_end, &ends);
     for (int i=0; i<order; i++){
       ends[i]++;
     }
-    
+
     Tensor<dtype> tsr = slice(offsets, ends, owrld);
 
     CTF_int::cdealloc(offsets);
@@ -708,29 +701,29 @@ namespace CTF {
     switch (op) {
       case OP_SUM:
         if (sr->is_ordered()){
-          Semiring<dtype,1> r = Semiring<dtype,1>(); 
+          Semiring<dtype,1> r = Semiring<dtype,1>();
           ret = reduce_sum((char*)&ans, &r);
         } else {
-          Semiring<dtype,0> r = Semiring<dtype,0>(); 
+          Semiring<dtype,0> r = Semiring<dtype,0>();
           ret = reduce_sum((char*)&ans, &r);
         }
 //        ret = reduce_sum((char*)&ans);
         break;
       case OP_SUMABS:
         if (sr->is_ordered()){
-          Ring<dtype,1> r = Ring<dtype,1>(); 
+          Ring<dtype,1> r = Ring<dtype,1>();
           ret = reduce_sumabs((char*)&ans, &r);
         } else {
-          Ring<dtype,0> r = Ring<dtype,0>(); 
+          Ring<dtype,0> r = Ring<dtype,0>();
           ret = reduce_sumabs((char*)&ans, &r);
         }
         break;
       case OP_SUMSQ:
 /*        if (sr->is_ordered()){
-          Ring<dtype,1> r = Ring<dtype,1>(); 
+          Ring<dtype,1> r = Ring<dtype,1>();
           ret = reduce_sumsq((char*)&ans, &r);
         } else {
-          Ring<dtype,0> r = Ring<dtype,0>(); 
+          Ring<dtype,0> r = Ring<dtype,0>();
           ret = reduce_sumsq((char*)&ans, &r);
         }*/
         ret = reduce_sumsq((char*)&ans);
@@ -795,7 +788,7 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::norm1(double & nrm){
-    if (wrld->rank == 0) 
+    if (wrld->rank == 0)
       printf("CTF ERROR: norm not available for the type of tensor %s\n",name);
     IASSERT(0);
   }
@@ -836,7 +829,7 @@ NORM1_INST(double)
 
   template<typename dtype>
   void Tensor<dtype>::norm2(double & nrm){
-    if (wrld->rank == 0) 
+    if (wrld->rank == 0)
       printf("CTF ERROR: norm not available for the type of tensor %s\n",name);
     IASSERT(0);
   }
@@ -866,7 +859,7 @@ NORM2_COMPLEX_INST(double)
 
   template<typename dtype>
   void Tensor<dtype>::norm_infty(double & nrm){
-    if (wrld->rank == 0) 
+    if (wrld->rank == 0)
       printf("CTF ERROR: norm not available for the type of tensor %s\n",name);
     IASSERT(0);
   }
@@ -900,7 +893,7 @@ NORM_INFTY_INST(double)
 
   template<typename dtype>
   void Tensor<dtype>::fill_random(dtype rmin, dtype rmax){
-    if (wrld->rank == 0) 
+    if (wrld->rank == 0)
       printf("CTF ERROR: fill_random(rmin, rmax) not available for the type of tensor %s\n",name);
     IASSERT(0);
   }
@@ -941,7 +934,7 @@ NORM_INFTY_INST(double)
 
   template<typename dtype>
   void Tensor<dtype>::fill_sp_random(dtype rmin, dtype rmax, double frac_sp){
-    if (wrld->rank == 0) 
+    if (wrld->rank == 0)
       printf("CTF ERROR: fill_sp_random(rmin, rmax, frac_sp) not available for the type of tensor %s\n",name);
     IASSERT(0);
   }
@@ -994,7 +987,7 @@ NORM_INFTY_INST(double)
   inline void Tensor<double>::fill_sp_random(double rmin, double rmax, double frac_sp){
     fill_sp_random_base<double>(rmin, rmax, frac_sp, this);
   }
- 
+
   template<>
   inline void Tensor<float>::fill_sp_random(float rmin, float rmax, double frac_sp){
     fill_sp_random_base<float>(rmin, rmax, frac_sp, this);
@@ -1023,7 +1016,7 @@ NORM_INFTY_INST(double)
       IASSERT(0);
       return;
     }
-    CTF_int::contraction ctr 
+    CTF_int::contraction ctr
       = CTF_int::contraction(&A, idx_A, &B, idx_B, (char*)&alpha, this, idx_C, (char*)&beta);
     ctr.execute();
   }
@@ -1042,7 +1035,7 @@ NORM_INFTY_INST(double)
       IASSERT(0);
       return;
     }
-    CTF_int::contraction ctr 
+    CTF_int::contraction ctr
       = CTF_int::contraction(&A, idx_A, &B, idx_B, (char const *)&alpha, this, idx_C, (char const *)&beta, &fseq);
     ctr.execute();
   }
@@ -1060,7 +1053,7 @@ NORM_INFTY_INST(double)
       return;
     }
 
-    CTF_int::summation sum 
+    CTF_int::summation sum
       = CTF_int::summation(&A, idx_A, (char*)&alpha, this, idx_B, (char*)&beta);
 
     sum.execute();
@@ -1079,7 +1072,7 @@ NORM_INFTY_INST(double)
       IASSERT(0);
       return;
     }
-    
+
     CTF_int::summation sum = CTF_int::summation(&A, idx_A, (char const *)&alpha, this, idx_B, (char const *)&beta, &fseq);
 
     sum.execute();
@@ -1121,7 +1114,7 @@ NORM_INFTY_INST(double)
     std::fill(raw, raw+size, val);*/
     return *this;
   }
- 
+
   template<typename dtype>
   double Tensor<dtype>::estimate_time(
                                     CTF_int::tensor& A,
@@ -1133,7 +1126,7 @@ NORM_INFTY_INST(double)
       = CTF_int::contraction(&A, idx_A, &B, idx_B, sr->mulid(), this, idx_C, sr->addid());
     return ctr.estimate_time();
   }
-    
+
   template<typename dtype>
   double Tensor<dtype>::estimate_time(
                                     CTF_int::tensor& A,
@@ -1142,7 +1135,7 @@ NORM_INFTY_INST(double)
     CTF_int::summation sum = CTF_int::summation(&A, idx_A, sr->mulid(), this, idx_B, sr->addid());
 
     return sum.estimate_time();
-    
+
   }
 
   template<typename dtype>
@@ -1182,4 +1175,5 @@ NORM_INFTY_INST(double)
   }
 
 }
+
 
