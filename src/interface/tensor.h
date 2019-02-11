@@ -7,6 +7,7 @@
 #include "world.h"
 #include "partition.h"
 #include <vector>
+#include "graph_io_aux.h"
 
 namespace CTF {
 
@@ -734,6 +735,8 @@ namespace CTF {
        * \param[in] filter boolean function to apply to values to determine whether to keep them
        */
       void sparsify(std::function<bool(dtype)> filter);
+
+      void read_sparse_from_file(const char * fpath);
 
      /**
        * \brief accumulates this tensor to a tensor object defined on a different world

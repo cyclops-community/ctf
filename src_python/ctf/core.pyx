@@ -196,6 +196,7 @@ cdef extern from "ctf.hpp" namespace "CTF":
         Tensor(bool , ctensor)
         void fill_random(dtype, dtype)
         void fill_sp_random(dtype, dtype, double)
+        void read_sparse_from_file(char *)
         Typ_Idx_Tensor i(char *)
         void read(int64_t, int64_t *, dtype *)
         void read(int64_t, dtype, dtype, int64_t *, dtype *)
@@ -859,6 +860,20 @@ cdef class tensor:
             (<Tensor[float]*>self.dt).fill_sp_random(mn,mx,frac_sp)
         elif self.dtype == np.float64:
             (<Tensor[double]*>self.dt).fill_sp_random(mn,mx,frac_sp)
+        else:
+            raise ValueError('CTF PYTHON ERROR: bad dtype')
+
+    def mpi_read(self, path=None):
+        if path is None:
+            raise ValueError('data path not found')
+        if self.dtype == np.int32:
+            (< Tensor[int32_t] * > self.dt).read_sparse_from_file(path)
+        elif self.dtype == np.int64:
+            (< Tensor[int64_t] * > self.dt).read_sparse_from_file(path)
+        elif self.dtype == np.float32:
+            (< Tensor[float] * > self.dt).read_sparse_from_file(path)
+        elif self.dtype == np.float64:
+            (< Tensor[double] * > self.dt).read_sparse_from_file(path)
         else:
             raise ValueError('CTF PYTHON ERROR: bad dtype')
 

@@ -4,6 +4,7 @@
 #include "world.h"
 #include "idx_tensor.h"
 #include "../tensor/untyped_tensor.h"
+#include "graph_io_aux.h"
 
 
 namespace CTF {
@@ -462,6 +463,51 @@ namespace CTF {
     int ret = CTF_int::tensor::sparsify([&](char const * c){ return filter(((dtype*)c)[0]); });
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function sparisfy\n"); IASSERT(0); return; }
   }
+
+  template <typename dtype>
+    void read_sparse_from_file_base(const char * fpath, Tensor<dtype> * T){
+        uint64_t *my_edges = NULL;
+        uint64_t my_nedges = 0;
+
+        if (T->order == 3){
+            char **leno;
+            my_nedges = read_data_mpiio(T->wrld->rank, T->wrld->np, fpath, &my_edges, &leno);
+            process_order3_tensor(leno, my_nedges, &my_edges);
+            free(leno[0]);
+            free(leno);
+            int64_t * inds = (int64_t*)malloc(sizeof(int64_t)*my_nedges);
+            dtype * vals = (dtype*)malloc(sizeof(dtype)*my_nedges);
+
+            for (int64_t i=0; i<my_nedges; i++){
+                inds[i] = my_edges[4*i] + my_edges[4*i+1]*T->lens[1] + my_edges[4*i+2]*T->lens[1]*T->lens[2];
+                vals[i] = my_edges[4*i + 3];
+            }
+            if (T->wrld->rank == 0) printf("filling CTF graph\n");
+            T->write(my_nedges,inds,vals);
+            free(inds);
+            free(vals);
+        }
+    }
+
+    template<>
+    inline void Tensor<int>::read_sparse_from_file(const char * fpath){
+        read_sparse_from_file_base<int>(fpath, this);
+    }
+
+    template<>
+    inline void Tensor<double>::read_sparse_from_file(const char * fpath){
+        read_sparse_from_file_base<double>(fpath, this);
+    }
+
+    template<>
+    inline void Tensor<float>::read_sparse_from_file(const char * fpath){
+        read_sparse_from_file_base<float>(fpath, this);
+    }
+
+    template<>
+    inline void Tensor<int64_t>::read_sparse_from_file(const char * fpath){
+        read_sparse_from_file_base<int64_t>(fpath, this);
+    }
 
 
   template<typename dtype>
