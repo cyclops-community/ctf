@@ -466,20 +466,19 @@ namespace CTF {
 
   template <typename dtype>
   void read_sparse_from_file_base(const char * fpath, Tensor<dtype> * T){
-    uint64_t *my_vals = NULL;
+    int64_t *inds = NULL;
+    dtype *vals = NULL;
     uint64_t my_nvals = 0;
 
-    if (T->order == 3){
-      char **leno;
-      my_nvals = read_data_mpiio(T->wrld->rank, T->wrld->np, fpath, &my_vals, &leno);
-      process_tensor(leno, my_nvals, &my_vals);
-      free(leno[0]);
-      free(leno);
+    char **leno;
+    my_nvals = read_data_mpiio(T->wrld->rank, T->wrld->np, fpath, &leno);
+    process_tensor(leno, T->order, T->lens, my_nvals, &inds, &vals);
+    free(leno[0]);
+    free(leno);
 
-      T->write(my_nvals,inds,vals);
-      free(inds);
-      free(vals);
-    }
+    T->write(my_nvals,inds,vals);
+    free(inds);
+    free(vals);
   }
 
   template<>

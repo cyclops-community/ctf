@@ -54,37 +54,37 @@ const char * get_fmt<dtype>(){
 
 template <>
 const char * get_fmt<float>(){
-  return "%f"
+  return " %f";
 }
 
 template <>
 const char * get_fmt<double>(){
-  return "%lf"
+  return " %lf";
 }
 
 template <>
 const char * get_fmt<int>(){
-  return "%d"
+  return " %d";
 }
 
 template <>
 const char * get_fmt<int64_t>(){
-  return "%ld"
+  return " %ld";
 }
 
 template <typename dtype>
-void process_tensor(char **lvals, int order, int64_t lens, uint64_t nvals, int64_t **inds, dtype **vals) {
+void process_tensor(char **lvals, int order, int *lens, uint64_t nvals, int64_t **inds, dtype **vals) {
   int64_t i = 0;
-  int64_t *inds=(int64_t *)malloc(nvals*sizeof(int64_t));
-  dtype *vals=(int64_t *)malloc(nvals*sizeof(dtype));
+  *inds=(int64_t *)malloc(nvals*sizeof(int64_t));
+  *vals=(int64_t *)malloc(nvals*sizeof(dtype));
 
   int64_t * ind = (int64_t *)malloc(order*sizeof(int64_t));
   char * str = (char *)malloc(sizeof(char)*(order*4+4));
   strcpy(str, "%ld");
-  for (i=0; i<order; i++){
-    strcat(str, " %ld")
+  for (i=0; i<order-1; i++){
+    strcat(str, " %ld");
   }
-  strcat(str, get_fmt<dtype>())
+  strcat(str, get_fmt<dtype>());
   for (i=0; i<nvals; i++) {
     double v;
     // TODO: build string of the form %lu ... order times .... %lu <symb>
@@ -96,29 +96,29 @@ void process_tensor(char **lvals, int order, int64_t lens, uint64_t nvals, int64
       case 2:
         sscanf(lvals[i], str, ind+0, ind+1, &v);
         break;
-      case 1:
-        sscanf(lvals[i], str, ind+0, &v);
+      case 3:
+        sscanf(lvals[i], str, ind+0, ind+1, ind+2, &v);
         break;
-      case 1:
-        sscanf(lvals[i], str, ind+0, &v);
+      case 4:
+        sscanf(lvals[i], str, ind+0, ind+1, ind+2, ind+3, &v);
         break;
-      case 1:
-        sscanf(lvals[i], str, ind+0, &v);
+      case 5:
+        sscanf(lvals[i], str, ind+0, ind+1, ind+2, ind+3, ind+4, &v);
         break;
-      case 1:
-        sscanf(lvals[i], str, ind+0, &v);
+      case 6:
+        sscanf(lvals[i], str, ind+0, ind+1, ind+2, ind+3, ind+4, ind+5, &v);
         break;
-      case 1:
-        sscanf(lvals[i], str, ind+0, &v);
+      case 7:
+        sscanf(lvals[i], str, ind+0, ind+1, ind+2, ind+3, ind+4, ind+5, ind+6, &v);
         break;
-      case 1:
-        sscanf(lvals[i], str, ind+0, &v);
+      case 8:
+        sscanf(lvals[i], str, ind+0, ind+1, ind+2, ind+3, ind+4, ind+5, ind+6, ind+7, &v);
         break;
-      case 1:
-        sscanf(lvals[i], str, ind+0, &v);
+      case 9:
+        sscanf(lvals[i], str, ind+0, ind+1, ind+2, ind+3, ind+4, ind+5, ind+6, ind+7, ind+8, &v);
         break;
-      case 1:
-        sscanf(lvals[i], str, ind+0, &v);
+      case 10:
+        sscanf(lvals[i], str, ind+0, ind+1, ind+2, ind+3, ind+4, ind+5, ind+6, ind+7, ind+8, ind+9, &v);
         break;
 
       default:
@@ -137,7 +137,7 @@ void process_tensor(char **lvals, int order, int64_t lens, uint64_t nvals, int64
 }
 
 template <typename dtype>
-uint64_t read_data_mpiio(int myid, int ntask, const char *fpath, int64_t **inds, dtype ** vals, char ***led){
+uint64_t read_data_mpiio(int myid, int ntask, const char *fpath, char ***led){
   MPI_File fh;
   MPI_Offset filesize;
   MPI_Offset localsize;
