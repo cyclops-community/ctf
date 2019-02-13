@@ -471,8 +471,8 @@ namespace CTF {
     uint64_t my_nvals = 0;
 
     char **leno;
-    my_nvals = read_data_mpiio(T->wrld->rank, T->wrld->np, fpath, &leno);
-    process_tensor(leno, T->order, T->lens, my_nvals, &inds, &vals);
+    my_nvals = CTF_int::read_data_mpiio<dtype>(T->wrld->rank, T->wrld->np, fpath, &leno);
+    CTF_int::process_tensor<dtype>(leno, T->order, T->lens, my_nvals, &inds, &vals);
     free(leno[0]);
     free(leno);
 

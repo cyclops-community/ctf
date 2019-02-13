@@ -7,7 +7,6 @@
 #include "world.h"
 #include "partition.h"
 #include <vector>
-#include "graph_io_aux.h"
 
 namespace CTF {
 
@@ -920,6 +919,7 @@ namespace CTF {
    */
 }
 
+#include "graph_io_aux.cxx"
 #include "tensor.cxx"
 #include "vector.h"
 #include "scalar.h"
