@@ -1506,7 +1506,10 @@ cdef class tensor:
         alpha = <char*>self.dt.sr.mulid()
         beta = <char*>self.dt.sr.addid()
 #        A = tensor(np.asarray(ends)-np.asarray(offsets), sp=self.dt.is_sparse, dtype=self.dtype)
-        A = tensor(np.asarray(ends)-np.asarray(offsets), dtype=self.dtype)
+        if self.sp == 0:
+            A = tensor(np.asarray(ends)-np.asarray(offsets), dtype=self.dtype)
+        else:
+            A = tensor(np.asarray(ends)-np.asarray(offsets), dtype=self.dtype, sp=1)
         cdef int * clens
         cdef int * coffs
         cdef int * cends
@@ -1610,7 +1613,10 @@ cdef class tensor:
             pB = []
             for i in range(self.ndim):
                 pB.append(np.arange(inds[i][0],inds[i][1],inds[i][2],dtype=int))
-            tsr = tensor(one_shape, dtype=self.dtype, order=self.order) 
+            if self.sp == 0:
+                tsr = tensor(one_shape, dtype=self.dtype, order=self.order)
+            else:
+                tsr = tensor(one_shape, dtype=self.dtype, order=self.order, sp=1)
             tsr.permute(self, p_B=pB)
             return tsr.reshape(corr_shape)
 
