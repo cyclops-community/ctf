@@ -4917,6 +4917,7 @@ namespace CTF_int {
           szB1 *= B->lens[idx_arr[3*i+1]];
         }
       }
+      cdealloc(idx_arr);
 
       if (has_weigh){
         int64_t A_sz = A->is_sparse ? A->nnz_tot : A->size;

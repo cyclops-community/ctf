@@ -1883,7 +1883,7 @@ namespace CTF_int {
       displs = NULL;
     }
 
-    if (my_sz == 0) pmy_data = NULL;
+    //if (my_sz == 0) pmy_data = NULL;
     if (wrld->cdt.np == 1)
       pall_data = pmy_data;
     else {
@@ -1922,8 +1922,8 @@ namespace CTF_int {
       cdealloc(displs);
       cdealloc(idx_arr);
       if (pall_data != pmy_data) sr->pair_dealloc(pall_data);
-      if (pmy_data != NULL) sr->pair_dealloc(pmy_data);
     }
+    if (pmy_data != NULL) sr->pair_dealloc(pmy_data);
 
   }
 
