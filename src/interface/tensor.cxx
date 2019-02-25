@@ -4,7 +4,6 @@
 #include "world.h"
 #include "idx_tensor.h"
 #include "../tensor/untyped_tensor.h"
-#include "graph_io_aux.h"
 
 
 namespace CTF {
@@ -465,40 +464,75 @@ namespace CTF {
   }
 
   template <typename dtype>
-  void read_sparse_from_file_base(const char * fpath, Tensor<dtype> * T){
-    int64_t *inds = NULL;
-    dtype *vals = NULL;
-    uint64_t my_nvals = 0;
+  void read_sparse_from_file_base(const char * fpath, bool with_vals, Tensor<dtype> * T){
+    char ** datastr;
+    int64_t my_nvals = CTF_int::read_data_mpiio<dtype>(T->wrld, fpath, &datastr);
 
-    char **leno;
-    my_nvals = CTF_int::read_data_mpiio<dtype>(T->wrld->rank, T->wrld->np, fpath, &leno);
-    CTF_int::process_tensor<dtype>(leno, T->order, T->lens, my_nvals, &inds, &vals);
-    free(leno[0]);
-    free(leno);
+    Pair<dtype> * pairs = (Pair<dtype>*)T->sr->pair_alloc(my_nvals);
 
-    T->write(my_nvals,inds,vals);
-    free(inds);
-    free(vals);
+    CTF_int::parse_sparse_tensor_data<dtype>(datastr, T->order, (dtype*)T->sr->mulid(), T->lens, my_nvals, pairs, with_vals);
+
+    //strtok contains pointers to char array generated from file
+    if (datastr[0] != NULL) CTF_int::cdealloc(datastr[0]);
+    CTF_int::cdealloc(datastr);
+
+    T->write(my_nvals,pairs);
+
+    T->sr->pair_dealloc((char*)pairs);
   }
 
   template<>
-  inline void Tensor<int>::read_sparse_from_file(const char * fpath){
-    read_sparse_from_file_base<int>(fpath, this);
+  inline void Tensor<int>::read_sparse_from_file(const char * fpath, bool with_vals){
+    read_sparse_from_file_base<int>(fpath, with_vals, this);
   }
 
   template<>
-  inline void Tensor<double>::read_sparse_from_file(const char * fpath){
-    read_sparse_from_file_base<double>(fpath, this);
+  inline void Tensor<double>::read_sparse_from_file(const char * fpath, bool with_vals){
+    read_sparse_from_file_base<double>(fpath, with_vals, this);
   }
 
   template<>
-  inline void Tensor<float>::read_sparse_from_file(const char * fpath){
-    read_sparse_from_file_base<float>(fpath, this);
+  inline void Tensor<float>::read_sparse_from_file(const char * fpath, bool with_vals){
+    read_sparse_from_file_base<float>(fpath, with_vals, this);
   }
 
   template<>
-  inline void Tensor<int64_t>::read_sparse_from_file(const char * fpath){
-    read_sparse_from_file_base<int64_t>(fpath, this);
+  inline void Tensor<int64_t>::read_sparse_from_file(const char * fpath, bool with_vals){
+    read_sparse_from_file_base<int64_t>(fpath, with_vals, this);
+  }
+
+
+  template <typename dtype>
+  void write_sparse_to_file_base(const char * fpath, bool with_vals, Tensor<dtype> * T){
+    int64_t my_nvals;
+
+    Pair<dtype> * pairs;
+    T->get_local_pairs(&my_nvals, &pairs, true);
+    int64_t str_len;
+    char * datastr = CTF_int::serialize_sparse_tensor_data<dtype>(T->order, T->lens, my_nvals, pairs, with_vals, str_len);
+    CTF_int::write_data_mpiio<dtype>(T->wrld, fpath, datastr, str_len);
+    CTF_int::cdealloc(datastr);
+    T->sr->pair_dealloc((char*)pairs);
+  }
+
+  template<>
+  inline void Tensor<int>::write_sparse_to_file(const char * fpath, bool with_vals){
+    write_sparse_to_file_base<int>(fpath, with_vals, this);
+  }
+
+  template<>
+  inline void Tensor<double>::write_sparse_to_file(const char * fpath, bool with_vals){
+    write_sparse_to_file_base<double>(fpath, with_vals, this);
+  }
+
+  template<>
+  inline void Tensor<float>::write_sparse_to_file(const char * fpath, bool with_vals){
+    write_sparse_to_file_base<float>(fpath, with_vals, this);
+  }
+
+  template<>
+  inline void Tensor<int64_t>::write_sparse_to_file(const char * fpath, bool with_vals){
+    write_sparse_to_file_base<int64_t>(fpath, with_vals, this);
   }
 
 
@@ -1174,5 +1208,6 @@ NORM_INFTY_INST(double)
   }
 
 }
+
 
 

@@ -1,6 +1,7 @@
-#include "graph_io_aux.h"
-
 namespace CTF_int {
+  /**
+   * \brief return format string for templated type
+   */
   template <typename dtype>
   const char * get_fmt(){
     printf("CTF ERROR: Format of tensor unsupported for sparse I/O\n");
@@ -27,78 +28,124 @@ namespace CTF_int {
     return " %ld";
   }
 
+  /**
+   * \brief parse string containing sparse tensor into data
+   * \param[in] lvals array of string, one per line/entry,
+   *   formatted as i1, ..., i_order v  or
+   *                i1, ..., i_order    if with_vals=false
+   * \param[in] order num modes in tensor
+   * \param[in] pmulid pointer to multiplicative identity, used only if with_vals=false
+   * \param[in] lens dimensions of tensor
+   * \param[in] nvals number of entries in lvals
+   * \param[in] pairs array of tensor index/value pairs to  fill
+   * \param[in] with_vals whether values are included in file
+   */
   template <typename dtype>
-  void process_tensor(char **lvals, int order, int *lens, uint64_t nvals, int64_t **inds, dtype **vals) {
-    int64_t i = 0;
-    *inds=(int64_t *)malloc(nvals*sizeof(int64_t));
-    *vals=(dtype *)malloc(nvals*sizeof(dtype));
+  void parse_sparse_tensor_data(char **lvals, int order, dtype const * pmulid, int * lens, int64_t nvals, CTF::Pair<dtype> * pairs, bool with_vals){
+    int64_t i;
+    dtype mulid;
+    if (!with_vals) mulid = *pmulid;
 
     int64_t * ind = (int64_t *)malloc(order*sizeof(int64_t));
-    char * str = (char *)malloc(sizeof(char)*(order*4+4));
-    strcpy(str, "%ld");
-    for (i=0; i<order-1; i++){
-      strcat(str, " %ld");
-    }
-    strcat(str, get_fmt<dtype>());
     for (i=0; i<nvals; i++) {
       double v;
-      switch (order){
-        case 1:
-          sscanf(lvals[i], str, ind+0, &v);
-          break;
-        case 2:
-          sscanf(lvals[i], str, ind+0, ind+1, &v);
-          break;
-        case 3:
-          sscanf(lvals[i], str, ind+0, ind+1, ind+2, &v);
-          break;
-        case 4:
-          sscanf(lvals[i], str, ind+0, ind+1, ind+2, ind+3, &v);
-          break;
-        case 5:
-          sscanf(lvals[i], str, ind+0, ind+1, ind+2, ind+3, ind+4, &v);
-          break;
-        case 6:
-          sscanf(lvals[i], str, ind+0, ind+1, ind+2, ind+3, ind+4, ind+5, &v);
-          break;
-        case 7:
-          sscanf(lvals[i], str, ind+0, ind+1, ind+2, ind+3, ind+4, ind+5, ind+6, &v);
-          break;
-        case 8:
-          sscanf(lvals[i], str, ind+0, ind+1, ind+2, ind+3, ind+4, ind+5, ind+6, ind+7, &v);
-          break;
-        case 9:
-          sscanf(lvals[i], str, ind+0, ind+1, ind+2, ind+3, ind+4, ind+5, ind+6, ind+7, ind+8, &v);
-          break;
-        case 10:
-          sscanf(lvals[i], str, ind+0, ind+1, ind+2, ind+3, ind+4, ind+5, ind+6, ind+7, ind+8, ind+9, &v);
-          break;
-
-        default:
-          printf("CTF ERROR: this tensor order not supported for sparse I/O\n");
-          break;
+      int ptr = 0;
+      int aptr;
+      sscanf(lvals[i]+ptr, "%ld%n", ind+0, &aptr);
+      ptr += aptr;
+      for (int j=1; j<order; j++){
+        sscanf(lvals[i]+ptr, " %ld%n", ind+j, &aptr);
+        ptr += aptr;
       }
+      if (with_vals)
+        sscanf(lvals[i]+ptr, get_fmt<dtype>(), &v);
       int64_t lda = 1;
-      (*inds)[i] = 0;
+      pairs[i].k = 0;
       for (int j=0; j<order; j++){
-        (*inds)[i] += ind[j]*lda;
+        pairs[i].k += ind[j]*lda;
         lda *= lens[j];
       }
-      (*vals)[i] = v;
+      if (with_vals)
+        pairs[i].d = v;
+      else
+        pairs[i].d = mulid;
     }
     free(ind);
-    free(str);
   }
 
+  /**
+   * \brief serialize sparse tensor data to create string
+   * \return lvals array of string, one per line/entry,
+   *   formatted as i1, ..., i_order v  or
+   *                i1, ..., i_order    if with_vals=false
+   * \param[in] order num modes in tensor
+   * \param[in] pmulid pointer to multiplicative identity, used only if with_vals=false
+   * \param[in] lens dimensions of tensor
+   * \param[in] nvals number of entries in lvals
+   * \param[in] pairs array of tensor index/value pairs to  fill
+   * \param[in] with_vals whether values are included in file
+   * \param[out] length of string output
+   */
   template <typename dtype>
-  uint64_t read_data_mpiio(int myid, int ntask, char const *fpath, char ***led){
+  char * serialize_sparse_tensor_data(int order, int * lens, int64_t nvals, CTF::Pair<dtype> * pairs, bool with_vals, int64_t & str_len){
+    int64_t i;
+
+    int64_t * ind = (int64_t *)malloc(order*sizeof(int64_t));
+    str_len = 0;
+    for (i=0; i<nvals; i++){
+      int64_t key = pairs[i].k;
+      for (int j=0; j<order; j++){
+        ind[j] = key % lens[j];
+        key = key / lens[j];
+      }
+
+      int astr_len = 0;
+      astr_len += snprintf(NULL, 0, "%ld", ind[0]);
+      for (int j=1; j<order; j++){
+        astr_len += snprintf(NULL, 0, " %ld", ind[j]);
+      }
+      if (with_vals)
+        astr_len += snprintf(NULL, 0, get_fmt<dtype>(), pairs[i].d);
+      astr_len += snprintf(NULL, 0, "\n");
+
+      str_len += astr_len;
+    }
+    char * datastr = (char*)CTF_int::alloc(sizeof(char)*str_len);
+    int64_t str_ptr = 0;
+    for (i=0; i<nvals; i++){
+      int64_t key = pairs[i].k;
+      for (int j=0; j<order; j++){
+        ind[j] = key % lens[j];
+        key = key / lens[j];
+      }
+
+      str_ptr += sprintf(datastr+str_ptr, "%ld", ind[0]);
+      for (int j=1; j<order; j++){
+        str_ptr += sprintf(datastr+str_ptr, " %ld", ind[j]);
+      }
+      if (with_vals)
+        str_ptr += sprintf(datastr+str_ptr, get_fmt<dtype>(), pairs[i].d);
+      str_ptr += snprintf(NULL, 0, "\n");
+    }
+    free(ind);
+    return datastr;
+  }
+
+  /**
+   * \brief read sparse tensor data from file using MPI-I/O, creating string with one entry per line (different entries on each process)
+   * \param[in] dw MPI world/comm
+   * \param[in] fpath file name
+   * \param[in] datastr array of strings to create and read from file
+   */
+  template <typename dtype>
+  int64_t read_data_mpiio(CTF::World const * dw, char const *fpath, char ***datastr){
     MPI_File fh;
     MPI_Offset filesize;
     MPI_Offset localsize;
     MPI_Offset start,end;
     MPI_Status status;
     char *chunk = NULL;
-    int overlap = 100; // define
+    int overlap = 300; // define
     int64_t ned = 0;
     int64_t i = 0;
 
@@ -106,14 +153,13 @@ namespace CTF_int {
 
     /* Get the size of file */
     MPI_File_get_size(fh, &filesize); //return in bytes
-    // FIXME: skewed to give lower processor counts more vals, since
-    //    smaller node counts contain fewer characters
-    localsize = filesize/ntask;
-    start = myid * localsize;
-    end = start + localsize;
-    end +=overlap;
 
-    if (myid  == ntask-1) end = filesize;
+    localsize = filesize/dw->np;
+    start = dw->rank * localsize;
+    end = start + localsize;
+    end += overlap;
+
+    if (dw->rank  == dw->np-1) end = filesize;
     localsize = end - start; //OK
 
     chunk = (char*)malloc( (localsize + 1)*sizeof(char));
@@ -121,18 +167,18 @@ namespace CTF_int {
     chunk[localsize] = '\0';
 
     int64_t locstart=0, locend=localsize;
-    if (myid != 0) {
+    if (dw->rank != 0) {
       while(chunk[locstart] != '\n') locstart++;
       locstart++;
     }
-    if (myid != ntask-1) {
+    if (dw->rank != dw->np-1) {
       locend-=overlap;
       while(chunk[locend] != '\n') locend++;
       locend++;
     }
     localsize = locend-locstart; //OK
 
-    char *data = (char *)malloc((localsize+1)*sizeof(char));
+    char *data = (char *)CTF_int::alloc((localsize+1)*sizeof(char));
     memcpy(data, &(chunk[locstart]), localsize);
     data[localsize] = '\0';
     free(chunk);
@@ -143,14 +189,42 @@ namespace CTF_int {
     }
     //printf("[%d] ned= %ld\n",myid, ned);
 
-    (*led) = (char **)malloc(ned*sizeof(char *));
-    (*led)[0] = strtok(data,"\n");
+    (*datastr) = (char **)CTF_int::alloc(std::max(ned,(int64_t)1)*sizeof(char *));
+    (*datastr)[0] = strtok(data,"\n");
 
     for ( i=1; i < ned; i++)
-      (*led)[i] = strtok(NULL, "\n");
-
+      (*datastr)[i] = strtok(NULL, "\n");
+    if ((*datastr)[0] == NULL)
+      CTF_int::cdealloc(data); 
     MPI_File_close(&fh);
 
     return ned;
   }
+
+
+  /**
+   * \brief write sparse tensor data to file using MPI-I/O, from string with one entry per line (different entries on each process)
+   * \param[in] dw world (comm)
+   * \param[in] fpath file name
+   * \param[in] datastr array of strings to write to file
+   * \param[in] str_len num chars in string
+   */
+  template <typename dtype>
+  void write_data_mpiio(CTF::World const * dw, char const *fpath, char * datastr, int64_t str_len){
+    MPI_File fh;
+    MPI_Offset offset;
+    MPI_Status status;
+
+    MPI_File_open(MPI_COMM_WORLD, fpath, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fh);
+
+    int64_t ioffset;
+    MPI_Scan(&str_len, &ioffset, 1, MPI_INT64_T, MPI_SUM, dw->comm);
+
+    offset = ioffset - str_len;
+
+    MPI_File_write_at_all(fh, offset, datastr, str_len, MPI_CHAR, &status);
+    MPI_File_close(&fh);
+  }
+
 }
+
