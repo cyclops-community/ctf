@@ -10,24 +10,23 @@
 using namespace CTF;
 
 int sparse_checkpoint(int     n,
-               World & dw,
-               int     qtf=NS){
+                      World & dw,
+                      int     qtf=NS){
+  int lens_u[] = {n,n,n};
 
-  Matrix<> A(n, n, qtf, dw);
-  Matrix<> A2(n, n, qtf, dw);
-  Matrix<> A3(n, n, qtf, dw);
-  Matrix<> A4(n, n, qtf, dw);
-  Matrix<> A5(n, n, qtf, dw);
-
-  int lens_u[] = {5,5,5};
-
-  Tensor<> u(3, lens_u);
-  u.print();
-  u.read_sparse_from_file("tensor.txt");
-  u.print();
+  Tensor<> u(3, true, lens_u);
+  u.fill_sp_random(0., 1., .1);
+  u.write_sparse_to_file("checkpoint_sparse_tensor.txt");
+  Tensor<> v(3, true, lens_u);
+  
+  v.read_sparse_from_file("checkpoint_sparse_tensor.txt");
   srand48(13*dw.rank);
+  v["ijk"] -= u["ijk"];
 
-  bool pass =true;
+  bool pass = v.norm2() < 1.e-7*n*n*.1*n;
+
+  MPI_Info info;
+  MPI_File_delete("checkpoint_sparse_tensor.txt", info);
    
   if (dw.rank == 0){
     if (!pass){

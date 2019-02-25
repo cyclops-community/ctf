@@ -110,7 +110,7 @@ namespace CTF_int {
 
       str_len += astr_len;
     }
-    char * datastr = (char*)CTF_int::alloc(sizeof(char)*str_len);
+    char * datastr = (char*)CTF_int::alloc(sizeof(char)*(str_len+1));
     int64_t str_ptr = 0;
     for (i=0; i<nvals; i++){
       int64_t key = pairs[i].k;
@@ -125,7 +125,7 @@ namespace CTF_int {
       }
       if (with_vals)
         str_ptr += sprintf(datastr+str_ptr, get_fmt<dtype>(), pairs[i].d);
-      str_ptr += snprintf(NULL, 0, "\n");
+      str_ptr += sprintf(datastr+str_ptr, "\n");
     }
     free(ind);
     return datastr;
@@ -215,6 +215,9 @@ namespace CTF_int {
     MPI_Offset offset;
     MPI_Status status;
 
+    // clear contents of file if exists, then reopen
+    MPI_File_open(MPI_COMM_WORLD, fpath, MPI_MODE_WRONLY | MPI_MODE_CREATE | MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, &fh);
+    MPI_File_close(&fh);
     MPI_File_open(MPI_COMM_WORLD, fpath, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fh);
 
     int64_t ioffset;
