@@ -1883,7 +1883,7 @@ namespace CTF_int {
       displs = NULL;
     }
 
-    if (my_sz == 0) pmy_data = NULL;
+    //if (my_sz == 0) pmy_data = NULL;
     if (wrld->cdt.np == 1)
       pall_data = pmy_data;
     else {
@@ -1922,8 +1922,8 @@ namespace CTF_int {
       cdealloc(displs);
       cdealloc(idx_arr);
       if (pall_data != pmy_data) sr->pair_dealloc(pall_data);
-      if (pmy_data != NULL) sr->pair_dealloc(pmy_data);
     }
+    if (pmy_data != NULL) sr->pair_dealloc(pmy_data);
 
   }
 
@@ -2930,6 +2930,14 @@ namespace CTF_int {
     }
   }
 
+  void tensor::write_dense_to_file(char const * filename){
+
+    MPI_File file;
+    MPI_File_open(this->wrld->comm, filename,  MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &file);
+    this->write_dense_to_file(file, 0);
+    MPI_File_close(&file);
+  }
+
   void tensor::read_dense_from_file(MPI_File & file, int64_t offset){
     bool need_unpack = is_sparse;
     for (int i=0; i<order; i++){
@@ -2971,6 +2979,13 @@ namespace CTF_int {
     }
   }
 
+  void tensor::read_dense_from_file(char const * filename){
+    MPI_File file;
+    MPI_File_open(this->wrld->comm, filename,  MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &file);
+    this->read_dense_from_file(file, 0);
+    MPI_File_close(&file);
+
+  }
   
   tensor * tensor::self_reduce(int const * idx_A,
                                int **      new_idx_A,

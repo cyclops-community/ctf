@@ -778,6 +778,11 @@ namespace CTF_int {
        */
       void write_dense_to_file(MPI_File & file, int64_t offset=0);
 
+      /**
+       * \brief write all tensor data to binary file in element order, unpacking from sparse or symmetric formats
+       * \param[in] filename stream to write to
+       */
+      void write_dense_to_file(char const * filename);
 
       /**
        * \brief read all tensor data from binary file in element order, which should be stored as nonsymmetric and dense as done in write_dense_to_file()
@@ -785,6 +790,13 @@ namespace CTF_int {
        * \param[in] offset displacement in bytes at which to start in the file (ought ot be the same on all processors)
        */
       void read_dense_from_file(MPI_File & file, int64_t offset=0);
+
+
+      /**
+       * \brief read all tensor data from binary file in element order, which should be stored as nonsymmetric and dense as done in write_dense_to_file()
+       * \param[in] filename stream to read from
+       */
+      void read_dense_from_file(char const * filename);
 
       /**
        * \brief convert this tensor from dtype_A to dtype_B and store the result in B (primarily needed for python interface)

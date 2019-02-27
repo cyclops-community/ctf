@@ -98,10 +98,9 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
                        int64_t ** inds,
                        char **   data)
         int read_local_nnz(int64_t * num_pair,
-                           char **   data)
-        int read_local_nnz(int64_t * num_pair,
                            int64_t ** inds,
                            char **   data)
+
         void allread(int64_t * num_pair, char * data, bool unpack)
         void slice(int *, int *, char *, ctensor *, int *, int *, char *)
         int64_t get_tot_size(bool packed)
@@ -115,6 +114,10 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
         void larger_than[dtype](ctensor * A, ctensor * B)
         void larger_equal_than[dtype](ctensor * A, ctensor * B)
         void exp_helper[dtype_A,dtype_B](ctensor * A)
+        void read_sparse_from_file[dtype](char * fpath, bool with_vals)
+        void write_sparse_to_file[dtype](char * fpath, bool with_vals)
+        void read_dense_from_file(char *)
+        void write_dense_to_file(char *)
         void true_divide[dtype](ctensor * A)
         void pow_helper_int[dtype](ctensor * A, int p)
         int sparsify(char * threshold, int take_abs)
@@ -199,6 +202,8 @@ cdef extern from "ctf.hpp" namespace "CTF":
         Tensor(bool , ctensor)
         void fill_random(dtype, dtype)
         void fill_sp_random(dtype, dtype, double)
+        void read_sparse_from_file(char *, bool)
+        void write_sparse_to_file(char *, bool)
         Typ_Idx_Tensor i(char *)
         void read(int64_t, int64_t *, dtype *)
         void read(int64_t, dtype, dtype, int64_t *, dtype *)
@@ -340,7 +345,6 @@ cdef class term:
             other = tensor(copy=other,dtype=self.dtype)
         other.scale(-1)
         return sum_term(self,other)
-
 
     def __mul__(first, second):
         if (isinstance(first,term)):
@@ -870,7 +874,7 @@ cdef class tensor:
 
     def T(self):
         """
-        tensor.T()
+        tensor.T(axes=None)
         Permute the dimensions of the input tensor.
 
         Returns
@@ -892,6 +896,43 @@ cdef class tensor:
         (5, 4, 3)
         """
         return transpose(self)
+
+    def T(self, axes=None):
+        dim = self.shape
+        if axes is None:
+            B = tensor(dim, dtype=self.dtype)
+            index = _get_num_str(self.ndim)
+            rev_index = str(index[::-1])
+            B.i(rev_index) << self.i(index)
+            return B
+   
+        # length of axes should match with the length of tensor dimension 
+        if len(axes) != len(dim):
+            raise ValueError("axes don't match tensor")
+
+        axes_list = list(axes)
+        for i in range(len(axes)):
+            # when any elements of axes is not an integer
+            if type(axes_list[i]) != int:
+                raise ValueError("an integer is required")
+            # change the negative axes to positive, which will be easier hangling
+            if axes_list[i] < 0:
+                axes_list[i] += len(dim)
+        for i in range(len(axes)):
+            # if axes out of bound
+            if axes_list[i] >= len(dim) or axes_list[i] < 0:
+                raise ValueError("invalid axis for this tensor")
+            # if axes are repeated
+            if axes_list.count(axes_list[i]) > 1:
+                raise ValueError("repeated axis in transpose")
+
+        index = _get_num_str(self.ndim)
+        rev_index = ""
+        for i in range(len(dim)):
+            rev_index += index[axes_list[i]]
+        B = tensor(dim, dtype=self.dtype)
+        B.i(rev_index) << self.i(index)
+        return B
 
     def transpose(self, *axes):
         """
@@ -1062,7 +1103,6 @@ cdef class tensor:
         [tsr, otsr] = _match_tensor_types(self,other)
 
         [idx_A, idx_B, idx_C, out_tsr] = tsr._ufunc_interpret(otsr)
-
         out_tsr.i(idx_C) << tsr.i(idx_A)
         out_tsr.i(idx_C) << -1*otsr.i(idx_B)
         return out_tsr
@@ -1260,6 +1300,45 @@ cdef class tensor:
             (<Tensor[double]*>self.dt).fill_sp_random(mn,mx,frac_sp)
         else:
             raise ValueError('CTF PYTHON ERROR: bad dtype')
+
+    # read data from file, assumes different data storage format for sparse vs dense tensor
+    # for dense tensor, file assumed to be binary, with entries stored in global order (no indices)
+    # for sparse tensor, file assumed to be text, with entries stored as i_1 ... i_order val if with_vals=True
+    #   or i_1 ... i_order if with_vals=False
+    def read_from_file(self, path, with_vals=True):
+        if self.sp == True:
+            if self.dtype == np.int32:
+                (< Tensor[int32_t] * > self.dt).read_sparse_from_file(path, with_vals)
+            elif self.dtype == np.int64:
+                (< Tensor[int64_t] * > self.dt).read_sparse_from_file(path, with_vals)
+            elif self.dtype == np.float32:
+                (< Tensor[float] * > self.dt).read_sparse_from_file(path, with_vals)
+            elif self.dtype == np.float64:
+                (< Tensor[double] * > self.dt).read_sparse_from_file(path, with_vals)
+            else:
+                raise ValueError('CTF PYTHON ERROR: bad dtype')
+        else:
+            self.dt.read_dense_from_file(path)
+
+    # write data to file, assumes different data storage format for sparse vs dense tensor
+    # for dense tensor, file created is binary, with entries stored in global order (no indices)
+    # for sparse tensor, file created is text, with entries stored as i_1 ... i_order val if with_vals=True
+    #   or i_1 ... i_order if with_vals=False
+    def write_to_file(self, path, with_vals=True):
+        if self.sp == True:
+            if self.dtype == np.int32:
+                (< Tensor[int32_t] * > self.dt).write_sparse_to_file(path, with_vals)
+            elif self.dtype == np.int64:
+                (< Tensor[int64_t] * > self.dt).write_sparse_to_file(path, with_vals)
+            elif self.dtype == np.float32:
+                (< Tensor[float] * > self.dt).write_sparse_to_file(path, with_vals)
+            elif self.dtype == np.float64:
+                (< Tensor[double] * > self.dt).write_sparse_to_file(path, with_vals)
+            else:
+                raise ValueError('CTF PYTHON ERROR: bad dtype')
+        else:
+            self.dt.write_dense_to_file(path)
+
 
     # the function that call the exp_helper in the C++ level
     def _exp_python(self, tensor A, cast = None, dtype = None):
@@ -2219,8 +2298,11 @@ cdef class tensor:
         cdef char * beta
         alpha = <char*>self.dt.sr.mulid()
         beta = <char*>self.dt.sr.addid()
-#        A = tensor(np.asarray(ends)-np.asarray(offsets), sp=self.dt.is_sparse, dtype=self.dtype)
-        A = tensor(np.asarray(ends)-np.asarray(offsets), dtype=self.dtype)
+#        A = tensor(np.asarray(ends)-np.asarray(offsets), sp=self.dt.is_sparse, dtype=self.dtype
+        if self.sp == 0:
+            A = tensor(np.asarray(ends)-np.asarray(offsets), dtype=self.dtype)
+        else:
+            A = tensor(np.asarray(ends)-np.asarray(offsets), dtype=self.dtype, sp=1)
         cdef int * clens
         cdef int * coffs
         cdef int * cends
@@ -2323,7 +2405,10 @@ cdef class tensor:
             pB = []
             for i in range(self.ndim):
                 pB.append(np.arange(inds[i][0],inds[i][1],inds[i][2],dtype=int))
-            tsr = tensor(one_shape, dtype=self.dtype, order=self.order) 
+            if self.sp == 0:
+                tsr = tensor(one_shape, dtype=self.dtype, order=self.order)
+            else:
+                tsr = tensor(one_shape, dtype=self.dtype, order=self.order, sp=1)
             tsr.permute(self, p_B=pB)
             return tsr.reshape(corr_shape)
 
@@ -2743,10 +2828,10 @@ cdef class tensor:
         # <
         if op == 0:
             if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool)
+                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
                 c.dt.smaller_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool)
+                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
                 c.dt.smaller_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
@@ -2755,10 +2840,10 @@ cdef class tensor:
         # <=
         if op == 1:
             if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool)
+                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
                 c.dt.smaller_equal_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool)
+                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
                 c.dt.smaller_equal_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
@@ -2776,8 +2861,8 @@ cdef class tensor:
                     new_shape.append(self.shape[i])
                 else:
                     new_shape.append(b.shape[i])
-                    
-            c = tensor(new_shape, dtype=np.bool)
+
+            c = tensor(new_shape, dtype=np.bool, sp=self.sp)
             if self.dtype == np.float64:
                 c.dt.compare_elementwise[double](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.float32:
@@ -2803,10 +2888,10 @@ cdef class tensor:
         # !=
         if op == 3:
             if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool)
+                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
                 c.dt.not_equals[double](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool)
+                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
                 c.dt.not_equals[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
@@ -2815,10 +2900,12 @@ cdef class tensor:
         # >
         if op == 4:
             if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool)
+                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
+                print("shape is", c.shape)
                 c.dt.larger_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool)
+                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
+                print("shape is", c.shape)
                 c.dt.larger_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
@@ -2827,10 +2914,10 @@ cdef class tensor:
         # >=
         if op == 5:
             if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool)
+                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
                 c.dt.larger_equal_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool)
+                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
                 c.dt.larger_equal_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
@@ -3990,11 +4077,11 @@ def exp(init_x, out=None, where=True, casting='same_kind', order='F', dtype=None
         elif x_dtype == np.complex64 or x_dtype == np.complex128 or x_dtype == np.complex256:
             ret_dtype = x_dtype
     if casting == "unsafe":
-        ret = tensor(x.shape, dtype = ret_dtype)
+        ret = tensor(x.shape, dtype = ret_dtype, sp=x.sp)
         ret._exp_python(x, cast = 'unsafe', dtype = ret_dtype)
         return ret
     else:
-        ret = tensor(x.shape, dtype = ret_dtype)
+        ret = tensor(x.shape, dtype = ret_dtype, sp=x.sp)
         ret._exp_python(x)
         return ret
 
@@ -4382,7 +4469,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
         temp = B.copy()
         del decrease_dim[index_removal]
     return B
-    
+
 def ravel(init_A, order="F"):
     """
     ravel(A, order="F")
