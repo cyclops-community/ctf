@@ -19,34 +19,34 @@ install: $(INSTALL_DIR)/lib/libctf.so
 $(INSTALL_DIR)/lib/libctf.so: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
 	if [ -d hptt ]; then  \
 		echo "WARNING: detected HPTT installation in hptt/, you might need to also install it manually separately."; \
-	fi 
+	fi
 	if [ -d scalapack ]; then \
 		echo "WARNING: detected ScaLAPACK installation in scalapack/, you might need to also install it manually separately."; \
-	fi 
-	cp $(BDIR)/lib/libctf.a $(INSTALL_DIR)/lib 
-	cp $(BDIR)/lib_shared/libctf.so $(INSTALL_DIR)/lib 
+	fi
+	cp $(BDIR)/lib/libctf.a $(INSTALL_DIR)/lib
+	cp $(BDIR)/lib_shared/libctf.so $(INSTALL_DIR)/lib
 	cd src/scripts && bash ./expand_includes.sh && cd ..
 	mv include/ctf_all.hpp $(INSTALL_DIR)/include/ctf.hpp
 
 .PHONY: uninstall
-uninstall: 
-	rm $(INSTALL_DIR)/lib/libctf.a 
-	rm $(INSTALL_DIR)/lib/libctf.so 
-	rm $(INSTALL_DIR)/include/ctf.hpp 
+uninstall:
+	rm $(INSTALL_DIR)/lib/libctf.a
+	rm $(INSTALL_DIR)/lib/libctf.so
+	rm $(INSTALL_DIR)/include/ctf.hpp
 
 
 EXAMPLES = algebraic_multigrid apsp bitonic_sort btwn_central ccsd checkpoint dft_3D fft force_integration force_integration_sparse jacobi matmul neural_network particle_interaction qinformatics recursive_matmul scan sparse_mp3 sparse_permuted_slice spectral_element spmv sssp strassen trace mis mis2 ao_mo_transf block_sparse checkpoint_sparse
 TESTS = bivar_function bivar_transform ccsdt_map_test ccsdt_t3_to_t2 dft diag_ctr diag_sym endomorphism_cust endomorphism_cust_sp endomorphism gemm_4D multi_tsr_sym permute_multiworld readall_test readwrite_test repack scalar speye sptensor_sum subworld_gemm sy_times_ns test_suite univar_function weigh_4D  reduce_bcast
 
 
-BENCHMARKS = bench_contraction bench_nosym_transp bench_redistribution model_trainer 
+BENCHMARKS = bench_contraction bench_nosym_transp bench_redistribution model_trainer
 
 SCALAPACK_TESTS = hosvd qr svd
 
 STUDIES = fast_diagram fast_3mm fast_sym fast_sym_4D \
           fast_tensor_ctr fast_sy_as_as_tensor_ctr fast_as_as_sy_tensor_ctr
 
-EXECUTABLES = $(EXAMPLES) $(TESTS) $(BENCHMARKS) $(SCALAPACK_TESTS) $(STUDIES) 
+EXECUTABLES = $(EXAMPLES) $(TESTS) $(BENCHMARKS) $(SCALAPACK_TESTS) $(STUDIES)
 
 
 export EXAMPLES
@@ -89,14 +89,14 @@ $(STUDIES):
 
 .PHONY: ctf_objs
 ctf_objs:
-	$(MAKE) ctf -C src; 
+	$(MAKE) ctf -C src;
 
 .PHONY: ctflib
-ctflib: ctf_objs 
-	$(AR) -crs $(BDIR)/lib/libctf.a $(ODIR)/*.o; 
+ctflib: ctf_objs
+	$(AR) -crs $(BDIR)/lib/libctf.a $(ODIR)/*.o;
 
 ctf_ext_objs:
-	$(MAKE) ctf_ext_objs -C src_python; 
+	$(MAKE) ctf_ext_objs -C src_python;
 
 .PHONY: shared
 shared: ctflibso
@@ -125,7 +125,7 @@ $(BDIR)/lib_python/ctf/core.o: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(P
 .PHONY: python_install
 python_install: $(INSTALL_DIR)/lib/libctf.so pip
 .PHONY: pip
-pip: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES) 
+pip: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES)
 	cd src_python; \
 	ln -sf $(BDIR)/setup.py setup.py; \
 	mkdir -p $(BDIR)/lib_python/ctf && cp ctf/__init__.py $(BDIR)/lib_python/ctf/; \
@@ -140,10 +140,10 @@ python_uninstall:
 .PHONY: python_test
 .NOTPARALLEL: python_test
 ifneq (,$(findstring USE_SCALAPACK,$(DEFS)))
-python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test python_sparse_test python_la_test 
-	echo "Cyclops Python tests completed."                                                                                 
-else                                                                                                                     
-python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test python_sparse_test 
+python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test python_sparse_test python_la_test
+	echo "Cyclops Python tests completed."
+else
+python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test python_sparse_test
 	echo "Cyclops Python tests completed."
 endif
 
@@ -151,8 +151,8 @@ endif
 .NOTPARALLEL: python_test%
 ifneq (,$(findstring USE_SCALAPACK,$(DEFS)))
 python_test%: python_base_test% python_fancyindex_test% python_einsum_test% python_ufunc_test% python_dot_test% python_sparse_test% python_la_test%
-	echo "Cyclops Python tests completed."                                                                                        
-else                                                                                                                            
+	echo "Cyclops Python tests completed."
+else
 python_test%: python_base_test% python_fancyindex_test% python_einsum_test% python_ufunc_test% python_dot_test% python_sparse_test%
 	echo "Cyclops Python tests completed."
 endif
@@ -191,7 +191,7 @@ python_base_test%: $(BDIR)/lib_python/ctf/core.o
 
 .PHONY: python_la_test
 python_la_test: $(BDIR)/lib_python/ctf/core.o
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_la.py; 
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_la.py;
 
 .PHONY: python_la_test%
 python_la_test%: $(BDIR)/lib_python/ctf/core.o
@@ -199,7 +199,7 @@ python_la_test%: $(BDIR)/lib_python/ctf/core.o
 
 .PHONY: python_dot_test
 python_dot_test: $(BDIR)/lib_python/ctf/core.o
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_dot.py; 
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_dot.py;
 
 .PHONY: python_dot_test%
 python_dot_test%: $(BDIR)/lib_python/ctf/core.o
@@ -207,7 +207,7 @@ python_dot_test%: $(BDIR)/lib_python/ctf/core.o
 
 .PHONY: python_sparse_test
 python_sparse_test: $(BDIR)/lib_python/ctf/core.o
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_sparse.py; 
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_sparse.py;
 
 .PHONY: python_sparse_test%
 python_sparse_test%: $(BDIR)/lib_python/ctf/core.o
@@ -259,7 +259,7 @@ clean_py:
 clean_bin:
 	for comp in $(EXECUTABLES) ; do \
 		rm -f $(BDIR)/bin/$$comp ; \
-	done 
+	done
 
 clean_lib:
 	rm -f $(BDIR)/lib/libctf.a
@@ -267,8 +267,8 @@ clean_lib:
 	rm -f $(BDIR)/lib_shared/libctf_ext.so
 
 clean_obj:
-	rm -f $(BDIR)/obj/*.o 
-	rm -f $(BDIR)/obj_ext/*.o 
-	rm -f $(BDIR)/obj_shared/*.o 
-	rm -rf $(BDIR)/obj_shared/ctf/ 
+	rm -f $(BDIR)/obj/*.o
+	rm -f $(BDIR)/obj_ext/*.o
+	rm -f $(BDIR)/obj_shared/*.o
+	rm -rf $(BDIR)/obj_shared/ctf/
 	rm -f $(BDIR)/build/*/*/*.o
