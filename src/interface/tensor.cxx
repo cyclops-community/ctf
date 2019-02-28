@@ -1002,8 +1002,6 @@ NORM_INFTY_INST(double)
     Transform<dtype>([=](dtype & d){ d=CTF_int::get_rand48()*(rmax-rmin)+rmin; })(T->operator[](str));
 
     /*std::vector<Pair<dtype>> pairs;
-
-
     pairs.reserve(size*frac_sp);
     int64_t npairs=0;
     for (int64_t i=wrld->rank; i<tot_sz; i+=wrld->np){
@@ -1182,7 +1180,6 @@ NORM_INFTY_INST(double)
     sr = A.sr;
     world = A.wrld;
     name = A.name;
-
     if (sym != NULL)
       CTF_int::cdealloc(sym);
     if (len != NULL)
@@ -1190,12 +1187,9 @@ NORM_INFTY_INST(double)
       //CTF_int::cdealloc(len);
     ret = CTF_int::tensor::info(&A, &order, &len, &sym);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function\n"); IASSERT(0); return; }
-
     ret = CTF_int::tensor::define(sr, order, len, sym, &tid, 1, name, name != NULL);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function\n"); IASSERT(0); return; }
-
     //printf("Set tensor %d to be the same as %d\n", tid, A.tid);
-
     ret = CTF_int::tensor::copy(A.tid, tid);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function\n"); IASSERT(0); return; }*/
   }

@@ -6,6 +6,7 @@ namespace CTF_int {
   const char * get_fmt(){
     printf("CTF ERROR: Format of tensor unsupported for sparse I/O\n");
     IASSERT(0);
+    return NULL;
   }
 
   template <>
