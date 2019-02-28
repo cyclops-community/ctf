@@ -897,43 +897,6 @@ cdef class tensor:
         """
         return transpose(self)
 
-    def T(self, axes=None):
-        dim = self.shape
-        if axes is None:
-            B = tensor(dim, dtype=self.dtype)
-            index = _get_num_str(self.ndim)
-            rev_index = str(index[::-1])
-            B.i(rev_index) << self.i(index)
-            return B
-
-        # length of axes should match with the length of tensor dimension
-        if len(axes) != len(dim):
-            raise ValueError("axes don't match tensor")
-
-        axes_list = list(axes)
-        for i in range(len(axes)):
-            # when any elements of axes is not an integer
-            if type(axes_list[i]) != int:
-                raise ValueError("an integer is required")
-            # change the negative axes to positive, which will be easier hangling
-            if axes_list[i] < 0:
-                axes_list[i] += len(dim)
-        for i in range(len(axes)):
-            # if axes out of bound
-            if axes_list[i] >= len(dim) or axes_list[i] < 0:
-                raise ValueError("invalid axis for this tensor")
-            # if axes are repeated
-            if axes_list.count(axes_list[i]) > 1:
-                raise ValueError("repeated axis in transpose")
-
-        index = _get_num_str(self.ndim)
-        rev_index = ""
-        for i in range(len(dim)):
-            rev_index += index[axes_list[i]]
-        B = tensor(dim, dtype=self.dtype)
-        B.i(rev_index) << self.i(index)
-        return B
-
     def transpose(self, *axes):
         """
         tensor.transpose(*axes)
