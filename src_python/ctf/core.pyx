@@ -346,6 +346,13 @@ cdef class term:
         other.scale(-1)
         return sum_term(self,other)
 
+    def __sub__(self, other):
+        if other.dtype != self.dtype:
+            other = tensor(copy=other,dtype=self.dtype)
+        other.scale(-1)
+        return sum_term(self,other)
+
+
     def __mul__(first, second):
         if (isinstance(first,term)):
             if (isinstance(second,term)):
@@ -733,7 +740,6 @@ cdef class tensor:
         -------
         output: tuple
             Dims or shape of the tensor.
-
         """
         return self.shape
     
@@ -746,7 +752,6 @@ cdef class tensor:
         -------
         output: data-type
             Dtype of the tensor.
-
         """
         return self.dtype
 
@@ -2901,11 +2906,11 @@ cdef class tensor:
         if op == 4:
             if self.dtype == np.float64:
                 c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                print("shape is", c.shape)
+                # print("shape is", c.shape)
                 c.dt.larger_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.bool:
                 c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                print("shape is", c.shape)
+                # print("shape is", c.shape)
                 c.dt.larger_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')

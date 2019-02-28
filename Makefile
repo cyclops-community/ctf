@@ -271,4 +271,4 @@ clean_obj:
 	rm -f $(BDIR)/obj_ext/*.o 
 	rm -f $(BDIR)/obj_shared/*.o 
 	rm -rf $(BDIR)/obj_shared/ctf/ 
-	rm -f $(BDIR)/build/*/*/*.o 
+	rm -f $(BDIR)/build/*/*/*.o
