@@ -113,8 +113,6 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
         void larger_than[dtype](ctensor * A, ctensor * B)
         void larger_equal_than[dtype](ctensor * A, ctensor * B)
         void exp_helper[dtype_A,dtype_B](ctensor * A)
-        void read_sparse_from_file[dtype](char * fpath, bool with_vals)
-        void write_sparse_to_file[dtype](char * fpath, bool with_vals)
         void read_dense_from_file(char *)
         void write_dense_to_file(char *)
         void true_divide[dtype](ctensor * A)
@@ -1627,7 +1625,7 @@ cdef class tensor:
             else:
                 return self.copy()
         else:
-            if value.dtype != np.float64 and value.dtype != np.complex128:
+            if value.dtype != np.float32 and value.dtype != np.float64:
                 raise ValueError("CTF PYTHON ERROR: current CTF Python only support value in real function has the dtype np.float64 or np.complex128")
             if self.dtype == np.complex64:
                 set_real[float](<ctensor*>value.dt, <ctensor*>self.dt)
@@ -1676,7 +1674,7 @@ cdef class tensor:
             else:
                 raise ValueError("CTF ERROR: cannot call imag on non-complex/real single/double precision tensor")
         else:
-            if value.dtype != np.float64 and value.dtype != np.complex128:
+            if value.dtype != np.float32 and value.dtype != np.float64:
                 raise ValueError("CTF PYTHON ERROR: current CTF Python only support value in imaginary function has the dtype np.float64 or np.complex128")
             if self.dtype == np.complex64:
                 set_imag[float](<ctensor*>value.dt, <ctensor*>self.dt)
