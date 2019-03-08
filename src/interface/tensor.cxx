@@ -988,6 +988,7 @@ NORM_INFTY_INST(double)
     if (gen_size % T->wrld->np > T->wrld->rank){
       my_gen_size++;
     }
+    T->set_zero();
     Pair<dtype> * pairs = (Pair<dtype>*)T->sr->pair_alloc(my_gen_size);
     for (int64_t i=0; i<my_gen_size; i++){
       pairs[i] = Pair<dtype>((int64_t)(CTF_int::get_rand48()*tot_size), 1.0);
@@ -999,7 +1000,7 @@ NORM_INFTY_INST(double)
       str[i] = 'a'+i;
     }
 
-    Transform<dtype>([=](dtype & d){ d=CTF_int::get_rand48()*(rmax-rmin)+rmin; })(T->operator[](str));
+    Transform<dtype>([=](dtype & d){ d=(d>0.)*(CTF_int::get_rand48()*(rmax-rmin)+rmin); })(T->operator[](str));
 
     /*std::vector<Pair<dtype>> pairs;
     pairs.reserve(size*frac_sp);
