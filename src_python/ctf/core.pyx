@@ -1616,11 +1616,11 @@ cdef class tensor:
         """
         if value is None:
             if self.dtype == np.complex64:
-                ret = tensor(self.shape, dtype=np.float32)
+                ret = tensor(self.shape, sp=self.sp, dtype=np.float32)
                 get_real[float](<ctensor*>self.dt, <ctensor*>ret.dt)
                 return self
             elif self.dtype == np.complex128:
-                ret = tensor(self.shape, dtype=np.float64)
+                ret = tensor(self.shape, sp=self.sp, dtype=np.float64)
                 get_real[double](<ctensor*>self.dt, <ctensor*>ret.dt)
                 return ret
             else:
@@ -1661,11 +1661,11 @@ cdef class tensor:
         """
         if value is None:
             if self.dtype == np.complex64:
-                ret = tensor(self.shape, dtype=np.float32)
+                ret = tensor(self.shape, sp=self.sp, dtype=np.float32)
                 get_imag[float](<ctensor*>self.dt, <ctensor*>ret.dt)
                 return self
             elif self.dtype == np.complex128:
-                ret = tensor(self.shape, dtype=np.float64)
+                ret = tensor(self.shape, sp=self.sp, dtype=np.float64)
                 get_imag[double](<ctensor*>self.dt, <ctensor*>ret.dt)
                 return ret
             elif self.dtype == np.float32:
@@ -1705,7 +1705,7 @@ cdef class tensor:
         array([[ True,  True,  True],
                [ True,  True,  True]])
         """
-        B = tensor(self.shape, dtype=self.dtype, copy=self)
+        B = tensor(copy=self)
         return B
 
     def reshape(self, *integer):
@@ -1907,7 +1907,7 @@ cdef class tensor:
                 dtype = np.bool
             if str(dtype) == "<class 'complex'>":
                 dtype = np.complex128
-            B = tensor(self.shape, dtype = dtype)
+            B = tensor(self.shape, sp=self.sp, dtype = dtype)
             self._convert_type(B)
             return B
         elif casting == 'safe':
@@ -1926,7 +1926,7 @@ cdef class tensor:
                 raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'safe'".format(self.dtype,dtype))
             elif "complex" in str_self and ("int" in str_dtype or "float" in str_dtype):
                 raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'safe'".format(self.dtype,dtype))
-            B = tensor(self.shape, dtype = dtype)
+            B = tensor(self.shape, sp=self.sp, dtype = dtype)
             self._convert_type(B)
             return B
         elif casting == 'equiv':
@@ -1944,7 +1944,7 @@ cdef class tensor:
                 dtype = np.float64
             if self.dtype != dtype:
                 raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'no'".format(self.dtype,dtype))
-            B = tensor(self.shape, dtype = self.dtype, copy = self)
+            B = tensor(copy = self)
             return B
         elif casting == 'same_kind':
             if dtype == int:
@@ -2257,10 +2257,7 @@ cdef class tensor:
         cdef char * beta
         alpha = <char*>self.dt.sr.mulid()
         beta = <char*>self.dt.sr.addid()
-        if self.sp == 0:
-            A = tensor(np.asarray(ends)-np.asarray(offsets), dtype=self.dtype)
-        else:
-            A = tensor(np.asarray(ends)-np.asarray(offsets), dtype=self.dtype, sp=1)
+        A = tensor(np.asarray(ends)-np.asarray(offsets), dtype=self.dtype, sp=self.sp)
         cdef int * clens
         cdef int * coffs
         cdef int * cends
@@ -2340,7 +2337,7 @@ cdef class tensor:
         free(caoffs)
 
     def __deepcopy__(self, memo):
-        return tensor(self.shape, copy=self)
+        return tensor(copy=self)
 
     # implements basic indexing and slicing as per numpy.ndarray
     # indexing can be done to different values with each process, as it produces a local scalar, but slicing must be the same globally, as it produces a global CTF ctensor
@@ -2363,10 +2360,7 @@ cdef class tensor:
             pB = []
             for i in range(self.ndim):
                 pB.append(np.arange(inds[i][0],inds[i][1],inds[i][2],dtype=int))
-            if self.sp == 0:
-                tsr = tensor(one_shape, dtype=self.dtype, order=self.order)
-            else:
-                tsr = tensor(one_shape, dtype=self.dtype, order=self.order, sp=1)
+            tsr = tensor(one_shape, dtype=self.dtype, order=self.order, sp=self.sp)
             tsr.permute(self, p_B=pB)
             return tsr.reshape(corr_shape)
 
@@ -3028,7 +3022,7 @@ def real(tensor A):
     if A.get_type() != np.complex64 and A.get_type() != np.complex128 and A.get_type() != np.complex256:
         return A
     else:
-        ret = tensor(A.shape, dtype = np.float64)
+        ret = tensor(A.shape, sp=A.sp, dtype = np.float64)
         get_real[double](<ctensor*>A.dt, <ctensor*>ret.dt)
         return ret
 
@@ -3069,7 +3063,7 @@ def imag(tensor A):
     if A.get_type() != np.complex64 and A.get_type() != np.complex128 and A.get_type() != np.complex256:
         return zeros(A.shape, dtype=A.get_type())
     else:
-        ret = tensor(A.shape, dtype = np.float64)
+        ret = tensor(A.shape, sp=A.sp, dtype = np.float64)
         get_imag[double](<ctensor*>A.dt, <ctensor*>ret.dt)
         return ret
 
@@ -3959,22 +3953,22 @@ def exp(init_x, out=None, where=True, casting='same_kind', order='F', dtype=None
         Input tensor or tensor like array.
 
     out: tensor, optional
-        Crrently not support by CTF Python.
+        Crrently not supported by CTF Python.
 
     where: array_like, optional
-        Crrently not support by CTF Python.
+        Crrently not supported by CTF Python.
 
     casting: same_kind or unsafe
         Default same_kind.
 
     order: optional
-        Crrently not support by CTF Python.
+        Crrently not supported by CTF Python.
 
     dtype: data-type, optional
         Output data-type for the exp result.
 
     subok: bool
-        Crrently not support by CTF Python.
+        Crrently not supported by CTF Python.
 
     Returns
     -------
@@ -4127,7 +4121,7 @@ def zeros_like(init_A, dtype=None, order='F'):
         Output data-type for the empty tensor.
 
     order: {‘C’, ‘F’}, optional, default: ‘F’
-        Currently not support by CTF Python.
+        Currently not supported by CTF Python.
 
     Returns
     -------
@@ -4151,7 +4145,7 @@ def zeros_like(init_A, dtype=None, order='F'):
         dtype = A.get_type()
     return zeros(shape, dtype, order)
 
-def zeros(shape, dtype=np.float64, order='F'):
+def zeros(shape, dtype=np.float64, order='F', sp=False):
     """
     zeros(shape, dtype=np.float64, order='F')
     Return the tensor with specified shape and dtype with all elements filled as zeros.
@@ -4165,7 +4159,10 @@ def zeros(shape, dtype=np.float64, order='F'):
         Output data-type for the empty tensor.
 
     order: {‘C’, ‘F’}, optional, default: ‘F’
-        Currently not support by CTF Python.
+        Currently not supported by CTF Python.
+
+    sp: {True, False}, optional, default: ‘False’
+        Whether to represent tensor in a sparse format.
 
     Returns
     -------
@@ -4182,10 +4179,10 @@ def zeros(shape, dtype=np.float64, order='F'):
            [0, 0, 0, 0],
            [0, 0, 0, 0]])
     """
-    A = tensor(shape, dtype=dtype)
+    A = tensor(shape, dtype=dtype, sp=sp)
     return A
 
-def empty(shape, dtype=np.float64, order='F'):
+def empty(shape, dtype=np.float64, order='F', sp=False):
     """
     empty(shape, dtype=np.float64, order='F')
     Return the tensor with specified shape and dtype without initialization. Currently not supported by CTF Python, this function same with the ctf.zeros().
@@ -4199,7 +4196,10 @@ def empty(shape, dtype=np.float64, order='F'):
         Output data-type for the empty tensor.
 
     order: {‘C’, ‘F’}, optional, default: ‘F’
-        Currently not support by CTF Python.
+        Currently not supported by CTF Python.
+
+    sp: {True, False}, optional, default: ‘False’
+        Whether to represent tensor in a sparse format.
 
     Returns
     -------
@@ -4216,7 +4216,7 @@ def empty(shape, dtype=np.float64, order='F'):
            [0, 0, 0, 0],
            [0, 0, 0, 0]])
     """
-    return zeros(shape, dtype, order)
+    return zeros(shape, dtype, order, sp=sp)
 
 def empty_like(A, dtype=None):
     """
@@ -4252,7 +4252,7 @@ def empty_like(A, dtype=None):
     """
     if dtype is None:
         dtype = A.dtype
-    return empty(A.shape, dtype=dtype)
+    return empty(A.shape, dtype=dtype, sp=A.sp)
 
 # Maybe there are issues that when keepdims, dtype and out are all specified.  
 def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
@@ -4439,7 +4439,7 @@ def ravel(init_A, order="F"):
         Input tensor.
 
     order: {‘C’,’F’, ‘A’, ‘K’}, optional
-        Currently not support by current CTF Python.
+        Currently not supported by current CTF Python.
 
     Returns
     -------
@@ -4779,11 +4779,11 @@ def conj(init_A):
     """
     cdef tensor A = astensor(init_A)
     if A.get_type() == np.complex64:
-        B = tensor(A.shape, dtype=A.get_type())
+        B = tensor(A.shape, dtype=A.get_type(), sp=A.sp)
         conj_helper[float](<ctensor*> A.dt, <ctensor*> B.dt);
         return B
     elif A.get_type() == np.complex128:
-        B = tensor(A.shape, dtype=A.get_type())
+        B = tensor(A.shape, dtype=A.get_type(), sp=A.sp)
         conj_helper[double](<ctensor*> A.dt, <ctensor*> B.dt);
         return B
     else:
@@ -4881,7 +4881,7 @@ def transpose(init_A, axes=None):
         for i in range(len(dim)-1, -1, -1):
             new_dim.append(dim[i])
         new_dim = tuple(new_dim)
-        B = tensor(new_dim, dtype=A.get_type())
+        B = tensor(new_dim, sp=A.sp, dtype=A.get_type())
         index = _get_num_str(len(dim))
         rev_index = str(index[::-1])
         B.i(rev_index) << A.i(index)
@@ -4920,7 +4920,7 @@ def transpose(init_A, axes=None):
     for i in range(len(dim)):
         rev_index += index[axes_list[i]]
         rev_dims[i] = dim[axes_list[i]]
-    B = tensor(rev_dims, dtype=A.get_type())
+    B = tensor(rev_dims, sp=A.sp, dtype=A.get_type())
     B.i(rev_index) << A.i(index)
     return B
 
@@ -5202,31 +5202,18 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
                 uniq_subs.remove(ind)
     if out is None:
         out_dtype = _get_np_dtype([x.dtype for x in operands])
-        output = tensor(out_lens, dtype=out_dtype)
+        out_sp = True
+        for i in range(numop):
+            if operands[i].sp == False:
+                if operands[i].ndim > 0:
+                    out_sp = False
+        output = tensor(out_lens, sp=out_sp, dtype=out_dtype)
     else:
         output = out
-    if numop == 1:
-        output.i(out_inds) << operands[0].i(inds[0])
-    elif numop == 2:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])
-    elif numop == 3:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])
-    elif numop == 4:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])
-    elif numop == 5:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])
-    elif numop == 6:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])
-    elif numop == 7:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])
-    elif numop == 8:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])*operands[7].i(inds[7])
-    elif numop == 9:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])*operands[7].i(inds[7])*operands[8].i(inds[8])
-    elif numop == 10:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])*operands[7].i(inds[7])*operands[8].i(inds[8])*operands[9].i(inds[9])
-    else:
-        raise ValueError('CTF PYTHON ERROR: CTF einsum currently allows no more than 10 operands')
+    operand = operands[0].i(inds[0])
+    for i in range(1,numop):
+        operand = operand * operands[i].i(inds[i])
+    output.i(out_inds) << operand
     return output
 
 def svd(tensor A, rank=None):
