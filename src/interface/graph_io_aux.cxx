@@ -40,9 +40,10 @@ namespace CTF_int {
    * \param[in] nvals number of entries in lvals
    * \param[in] pairs array of tensor index/value pairs to  fill
    * \param[in] with_vals whether values are included in file
+   * \param[in] rev_order whether index order should be reversed
    */
   template <typename dtype>
-  void parse_sparse_tensor_data(char **lvals, int order, dtype const * pmulid, int * lens, int64_t nvals, CTF::Pair<dtype> * pairs, bool with_vals){
+  void parse_sparse_tensor_data(char **lvals, int order, dtype const * pmulid, int * lens, int64_t nvals, CTF::Pair<dtype> * pairs, bool with_vals, bool rev_order){
     int64_t i;
     dtype mulid;
     if (!with_vals) mulid = *pmulid;
@@ -62,9 +63,16 @@ namespace CTF_int {
         sscanf(lvals[i]+ptr, get_fmt<dtype>(), &v);
       int64_t lda = 1;
       pairs[i].k = 0;
-      for (int j=0; j<order; j++){
-        pairs[i].k += ind[j]*lda;
-        lda *= lens[j];
+      if (rev_order){
+        for (int j=0; j<order; j++){
+          pairs[i].k += ind[order-j-1]*lda;
+          lda *= lens[j];
+        }
+      } else {
+        for (int j=0; j<order; j++){
+          pairs[i].k += ind[j]*lda;
+          lda *= lens[j];
+        }
       }
       if (with_vals)
         pairs[i].d = v;
@@ -78,17 +86,19 @@ namespace CTF_int {
    * \brief serialize sparse tensor data to create string
    * \return lvals array of string, one per line/entry,
    *   formatted as i1, ..., i_order v  or
-   *                i1, ..., i_order    if with_vals=false
+   *                i1, ..., i_order    if with_vals=false or
+   *                i_order, ..., i1 v  if rev_order=true
    * \param[in] order num modes in tensor
    * \param[in] pmulid pointer to multiplicative identity, used only if with_vals=false
    * \param[in] lens dimensions of tensor
    * \param[in] nvals number of entries in lvals
    * \param[in] pairs array of tensor index/value pairs to  fill
    * \param[in] with_vals whether values are included in file
+   * \param[in] rev_order whether index order should be reversed
    * \param[out] length of string output
    */
   template <typename dtype>
-  char * serialize_sparse_tensor_data(int order, int * lens, int64_t nvals, CTF::Pair<dtype> * pairs, bool with_vals, int64_t & str_len){
+  char * serialize_sparse_tensor_data(int order, int * lens, int64_t nvals, CTF::Pair<dtype> * pairs, bool with_vals, bool rev_order, int64_t & str_len){
     int64_t i;
 
     int64_t * ind = (int64_t *)malloc(order*sizeof(int64_t));
@@ -115,9 +125,16 @@ namespace CTF_int {
     int64_t str_ptr = 0;
     for (i=0; i<nvals; i++){
       int64_t key = pairs[i].k;
-      for (int j=0; j<order; j++){
-        ind[j] = key % lens[j];
-        key = key / lens[j];
+      if (rev_order){
+        for (int j=0; j<order; j++){
+          ind[order-j-1] = key % lens[j];
+          key = key / lens[j];
+        }
+      } else {
+        for (int j=0; j<order; j++){
+          ind[j] = key % lens[j];
+          key = key / lens[j];
+        }
       }
 
       str_ptr += sprintf(datastr+str_ptr, "%ld", ind[0]);

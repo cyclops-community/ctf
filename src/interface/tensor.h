@@ -740,16 +740,18 @@ namespace CTF {
        * or as  i_1 ... i_order, to create entry T[i_1, ..., i_order] = mulid
        * \param[in] fpath string of file name to read from
        * \param[in] with_vals whether vs are provided in file
+       * \param[in] rev_order whether index order should be reversed
        */
-      void read_sparse_from_file(const char * fpath, bool with_vals=true);
+      void read_sparse_from_file(const char * fpath, bool with_vals=true, bool rev_order=false);
 
       /**
        * \brief write sparse tensor to file, entries of tensor will be stored one per line, as i_1 ... i_order v, corresponding to entry T[i_1, ..., i_order] = v
        * or as  i_1 ... i_order if with_vals =false
        * \param[in] fpath string of file name to read from
        * \param[in] with_vals whether vs should be written to file
+       * \param[in] rev_order whether index order should be reversed
        */
-      void write_sparse_to_file(const char * fpath, bool with_vals=true);
+      void write_sparse_to_file(const char * fpath, bool with_vals=true, bool rev_order=false);
 
      /**
        * \brief accumulates this tensor to a tensor object defined on a different world

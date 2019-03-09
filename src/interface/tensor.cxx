@@ -464,13 +464,13 @@ namespace CTF {
   }
 
   template <typename dtype>
-  void read_sparse_from_file_base(const char * fpath, bool with_vals, Tensor<dtype> * T){
+  void read_sparse_from_file_base(const char * fpath, bool with_vals, bool rev_order, Tensor<dtype> * T){
     char ** datastr;
     int64_t my_nvals = CTF_int::read_data_mpiio<dtype>(T->wrld, fpath, &datastr);
 
     Pair<dtype> * pairs = (Pair<dtype>*)T->sr->pair_alloc(my_nvals);
 
-    CTF_int::parse_sparse_tensor_data<dtype>(datastr, T->order, (dtype*)T->sr->mulid(), T->lens, my_nvals, pairs, with_vals);
+    CTF_int::parse_sparse_tensor_data<dtype>(datastr, T->order, (dtype*)T->sr->mulid(), T->lens, my_nvals, pairs, with_vals, rev_order);
 
     //strtok contains pointers to char array generated from file
     if (datastr[0] != NULL) CTF_int::cdealloc(datastr[0]);
@@ -482,57 +482,57 @@ namespace CTF {
   }
 
   template<>
-  inline void Tensor<int>::read_sparse_from_file(const char * fpath, bool with_vals){
-    read_sparse_from_file_base<int>(fpath, with_vals, this);
+  inline void Tensor<int>::read_sparse_from_file(const char * fpath, bool with_vals, bool rev_order){
+    read_sparse_from_file_base<int>(fpath, with_vals, rev_order, this);
   }
 
   template<>
-  inline void Tensor<double>::read_sparse_from_file(const char * fpath, bool with_vals){
-    read_sparse_from_file_base<double>(fpath, with_vals, this);
+  inline void Tensor<double>::read_sparse_from_file(const char * fpath, bool with_vals, bool rev_order){
+    read_sparse_from_file_base<double>(fpath, with_vals, rev_order, this);
   }
 
   template<>
-  inline void Tensor<float>::read_sparse_from_file(const char * fpath, bool with_vals){
-    read_sparse_from_file_base<float>(fpath, with_vals, this);
+  inline void Tensor<float>::read_sparse_from_file(const char * fpath, bool with_vals, bool rev_order){
+    read_sparse_from_file_base<float>(fpath, with_vals, rev_order, this);
   }
 
   template<>
-  inline void Tensor<int64_t>::read_sparse_from_file(const char * fpath, bool with_vals){
-    read_sparse_from_file_base<int64_t>(fpath, with_vals, this);
+  inline void Tensor<int64_t>::read_sparse_from_file(const char * fpath, bool with_vals, bool rev_order){
+    read_sparse_from_file_base<int64_t>(fpath, with_vals, rev_order, this);
   }
 
 
   template <typename dtype>
-  void write_sparse_to_file_base(const char * fpath, bool with_vals, Tensor<dtype> * T){
+  void write_sparse_to_file_base(const char * fpath, bool with_vals, bool rev_order, Tensor<dtype> * T){
     int64_t my_nvals;
 
     Pair<dtype> * pairs;
     T->get_local_pairs(&my_nvals, &pairs, true);
     int64_t str_len;
-    char * datastr = CTF_int::serialize_sparse_tensor_data<dtype>(T->order, T->lens, my_nvals, pairs, with_vals, str_len);
+    char * datastr = CTF_int::serialize_sparse_tensor_data<dtype>(T->order, T->lens, my_nvals, pairs, with_vals, rev_order, str_len);
     CTF_int::write_data_mpiio<dtype>(T->wrld, fpath, datastr, str_len);
     CTF_int::cdealloc(datastr);
     T->sr->pair_dealloc((char*)pairs);
   }
 
   template<>
-  inline void Tensor<int>::write_sparse_to_file(const char * fpath, bool with_vals){
-    write_sparse_to_file_base<int>(fpath, with_vals, this);
+  inline void Tensor<int>::write_sparse_to_file(const char * fpath, bool with_vals, bool rev_order){
+    write_sparse_to_file_base<int>(fpath, with_vals, rev_order, this);
   }
 
   template<>
-  inline void Tensor<double>::write_sparse_to_file(const char * fpath, bool with_vals){
-    write_sparse_to_file_base<double>(fpath, with_vals, this);
+  inline void Tensor<double>::write_sparse_to_file(const char * fpath, bool with_vals, bool rev_order){
+    write_sparse_to_file_base<double>(fpath, with_vals, rev_order, this);
   }
 
   template<>
-  inline void Tensor<float>::write_sparse_to_file(const char * fpath, bool with_vals){
-    write_sparse_to_file_base<float>(fpath, with_vals, this);
+  inline void Tensor<float>::write_sparse_to_file(const char * fpath, bool with_vals, bool rev_order){
+    write_sparse_to_file_base<float>(fpath, with_vals, rev_order, this);
   }
 
   template<>
-  inline void Tensor<int64_t>::write_sparse_to_file(const char * fpath, bool with_vals){
-    write_sparse_to_file_base<int64_t>(fpath, with_vals, this);
+  inline void Tensor<int64_t>::write_sparse_to_file(const char * fpath, bool with_vals, bool rev_order){
+    write_sparse_to_file_base<int64_t>(fpath, with_vals, rev_order, this);
   }
 
 

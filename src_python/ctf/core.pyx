@@ -199,8 +199,8 @@ cdef extern from "ctf.hpp" namespace "CTF":
         Tensor(bool , ctensor)
         void fill_random(dtype, dtype)
         void fill_sp_random(dtype, dtype, double)
-        void read_sparse_from_file(char *, bool)
-        void write_sparse_to_file(char *, bool)
+        void read_sparse_from_file(char *, bool, bool)
+        void write_sparse_to_file(char *, bool, bool)
         Typ_Idx_Tensor i(char *)
         void read(int64_t, int64_t *, dtype *)
         void read(int64_t, dtype, dtype, int64_t *, dtype *)
@@ -1270,17 +1270,18 @@ cdef class tensor:
     def read_from_file(self, path, with_vals=True):
         if self.sp == True:
             if self.dtype == np.int32:
-                (< Tensor[int32_t] * > self.dt).read_sparse_from_file(path, with_vals)
+                (< Tensor[int32_t] * > self.dt).read_sparse_from_file(path.encode(), with_vals, True)
             elif self.dtype == np.int64:
-                (< Tensor[int64_t] * > self.dt).read_sparse_from_file(path, with_vals)
+                (< Tensor[int64_t] * > self.dt).read_sparse_from_file(path.encode(), with_vals, True)
             elif self.dtype == np.float32:
-                (< Tensor[float] * > self.dt).read_sparse_from_file(path, with_vals)
+                (< Tensor[float] * > self.dt).read_sparse_from_file(path.encode(), with_vals, True)
             elif self.dtype == np.float64:
-                (< Tensor[double] * > self.dt).read_sparse_from_file(path, with_vals)
+                (< Tensor[double] * > self.dt).read_sparse_from_file(path.encode(), with_vals, True)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
         else:
-            self.dt.read_dense_from_file(path)
+            #FIXME: to be compatible with C++ maybe should reorder
+            self.dt.read_dense_from_file(path.encode())
 
     # write data to file, assumes different data storage format for sparse vs dense tensor
     # for dense tensor, file created is binary, with entries stored in global order (no indices)
@@ -1289,17 +1290,17 @@ cdef class tensor:
     def write_to_file(self, path, with_vals=True):
         if self.sp == True:
             if self.dtype == np.int32:
-                (< Tensor[int32_t] * > self.dt).write_sparse_to_file(path, with_vals)
+                (< Tensor[int32_t] * > self.dt).write_sparse_to_file(path.encode(), with_vals, True)
             elif self.dtype == np.int64:
-                (< Tensor[int64_t] * > self.dt).write_sparse_to_file(path, with_vals)
+                (< Tensor[int64_t] * > self.dt).write_sparse_to_file(path.encode(), with_vals, True)
             elif self.dtype == np.float32:
-                (< Tensor[float] * > self.dt).write_sparse_to_file(path, with_vals)
+                (< Tensor[float] * > self.dt).write_sparse_to_file(path.encode(), with_vals, True)
             elif self.dtype == np.float64:
-                (< Tensor[double] * > self.dt).write_sparse_to_file(path, with_vals)
+                (< Tensor[double] * > self.dt).write_sparse_to_file(path.encode(), with_vals, True)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
         else:
-            self.dt.write_dense_to_file(path)
+            self.dt.write_dense_to_file(path.encode())
 
 
     # the function that call the exp_helper in the C++ level
@@ -2861,11 +2862,9 @@ cdef class tensor:
         if op == 4:
             if self.dtype == np.float64:
                 c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                print("shape is", c.shape)
                 c.dt.larger_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.bool:
                 c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                print("shape is", c.shape)
                 c.dt.larger_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
