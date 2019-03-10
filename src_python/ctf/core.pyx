@@ -100,6 +100,9 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
         int read_local_nnz(int64_t * num_pair,
                            int64_t ** inds,
                            char **   data)
+        int read_local_nnz(int64_t * num_pair,
+                           char **   data)
+
         void allread(int64_t * num_pair, char * data, bool unpack)
         void slice(int *, int *, char *, ctensor *, int *, int *, char *)
         int64_t get_tot_size(bool packed)
@@ -264,6 +267,8 @@ cdef char* char_arr_py_to_c(a):
         ca[i] = a[i]
     return ca
 
+def _use_align_for_pair(typ):
+    return np.dtype(typ).itemsize % 8 != 0
 
 cdef int64_t* int64_t_arr_py_to_c(a):
     cdef int64_t * ca
@@ -1824,12 +1829,10 @@ cdef class tensor:
         gvals = vals
         if vals is None:
             gvals = np.zeros(len(inds),dtype=self.dtype)
-        #cdef cnp.ndarray buf = np.empty(len(inds), dtype=[('a','i8'),('b',self.dtype)],alignment=8)
-        #buf['a'] = inds
-        #buf['b'] = gvals
+        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=_use_align_for_pair(self.dtype)))
+        buf['a'][:] = inds[:]
+        buf['b'][:] = gvals[:]
 
-        cdef int64_t * cinds = int64_t_arr_py_to_c(inds)
-        cdef char * cvals = char_arr_py_to_c(gvals.view(dtype=np.int8))
         cdef char * alpha
         cdef char * beta
         st = np.ndarray([],dtype=self.dtype).itemsize
@@ -1847,9 +1850,8 @@ cdef class tensor:
             nb = np.array([b])
             for j in range(0,st):
                 beta[j] = nb.view(dtype=np.int8)[j]
-        (<ctensor*>self.dt).read(len(inds),<char*>alpha,<char*>beta,cinds,cvals)
-        for i in range(len(gvals.view(dtype=np.int8))):
-            gvals.view(dtype=np.int8)[i]=cvals[i]
+        (<ctensor*>self.dt).read(len(inds),<char*>alpha,<char*>beta,buf.data)
+        gvals[:] = buf['b'][:]
         if a is not None:
             free(alpha)
         if b is not None:
@@ -1970,19 +1972,17 @@ cdef class tensor:
         cdef int64_t * cinds
         cdef char * cdata
         cdef int64_t n
-        self.dt.read_local(&n,&cinds,&cdata)
+        self.dt.read_local(&n,&cdata)
         inds = np.empty(n, dtype=np.int64)
         vals = np.empty(n, dtype=self.dtype)
-        for i in range(len(inds)):
-            inds[i] = cinds[i]
-        for i in range(len(vals.view(dtype=np.int8))):
-            vals.view(dtype=np.int8)[i]=cdata[i]
-        free(cinds)
+
+        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=_use_align_for_pair(self.dtype)))
+        d = buf.data
+        buf.data = cdata
+        vals[:] = buf['b'][:]
+        inds[:] = buf['a'][:]
+        buf.data = d
         free(cdata)
-#        cdef cnp.ndarray buf = np.empty(len(inds), dtype=[('a','i8'),('b',self.dtype)])
-#        buf.data = data
-#        vals = buf['b']
-#        inds = buf['a']
         return inds, vals
 
     def dot(self, other, out=None):
@@ -2066,19 +2066,16 @@ cdef class tensor:
         cdef int64_t * cinds
         cdef char * cdata
         cdef int64_t n
-        self.dt.read_local_nnz(&n,&cinds,&cdata)
+        self.dt.read_local_nnz(&n,&cdata)
         inds = np.empty(n, dtype=np.int64)
         vals = np.empty(n, dtype=self.dtype)
-        for i in range(len(inds)):
-            inds[i] = cinds[i]
-        for i in range(len(vals.view(dtype=np.int8))):
-            vals.view(dtype=np.int8)[i]=cdata[i]
-        free(cinds)
+        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=_use_align_for_pair(self.dtype)))
+        d = buf.data
+        buf.data = cdata
+        vals[:] = buf['b'][:]
+        inds[:] = buf['a'][:]
+        buf.data = d
         free(cdata)
-#        cdef cnp.ndarray buf = np.empty(len(inds), dtype=[('a','i8'),('b',self.dtype)])
-#        buf.data = data
-#        vals = buf['b']
-#        inds = buf['a']
         return inds, vals
 
     def _tot_size(self, unpack=True):
@@ -2243,9 +2240,10 @@ cdef class tensor:
             nb = np.array([b])
             for j in range(0,st):
                 beta[j] = nb.view(dtype=np.int8)[j]
-        cdef int64_t * cinds = int64_t_arr_py_to_c(inds)
-        cdef char * cvals = char_arr_py_to_c(vals.view(dtype=np.int8))
-        self.dt.write(len(inds),alpha,beta,cinds,cvals)
+        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=_use_align_for_pair(self.dtype)))
+        buf['a'][:] = inds[:]
+        buf['b'][:] = vals[:]
+        self.dt.write(len(inds),alpha,beta,buf.data)
 
         if a is not None:
             free(alpha)
