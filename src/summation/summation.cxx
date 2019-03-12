@@ -130,8 +130,18 @@ namespace CTF_int {
   }
   
   double summation::estimate_time(){
-    assert(0); //FIXME
-    return 0.0;
+    int np = std::max(A->wrld->np,B->wrld->np);
+    double flop_rate = 1.E9*np;
+    double flops = 0.;
+    if (A->is_sparse)
+      flops += A->nnz_tot;
+    else
+      flops += A->size*np;
+    if (B->is_sparse)
+      flops += B->nnz_tot;
+    else
+      flops += B->size*np;
+    return flops/flop_rate;
   }
 
   void summation::get_fold_indices(int *  num_fold,

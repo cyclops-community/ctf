@@ -121,7 +121,8 @@ namespace CTF_int {
   Idx_Tensor * get_full_intm(Idx_Tensor& A, 
                              Idx_Tensor& B,
                              std::vector<char> out_inds,
-                             bool create_dummy=false){
+                             bool create_dummy=false,
+                             bool contract=true){
 
     int * len_C, * sym_C;
     char * idx_C;
@@ -167,6 +168,19 @@ namespace CTF_int {
     }
     bool is_sparse_C = A.parent->is_sparse && B.parent->is_sparse;
     tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, true, NULL, !create_dummy, is_sparse_C);
+
+    //estimate number of nonzeros
+    if (create_dummy && is_sparse_C){
+      if (contract){
+        contraction ctr(A.parent, A.idx_map, B.parent, B.idx_map, tsr_C->sr->mulid(), tsr_C, idx_C, tsr_C->sr->addid());
+        //double dense_flops = ctr->estimate_num_dense_flops();
+        double flops = ctr.estimate_num_flops();
+        double est_nnz = std::min(flops,((double)tsr_C->size)*tsr_C->wrld->np);
+        tsr_C->nnz_tot = (int64_t)est_nnz;
+      } else {
+        tsr_C->nnz_tot = std::min(A.parent->nnz_tot+B.parent->nnz_tot,tsr_C->size*tsr_C->wrld->np);
+      }
+    }
     Idx_Tensor * out = new Idx_Tensor(tsr_C, idx_C);
     out->is_intm = 1;
     cdealloc(sym_C);
@@ -560,11 +574,54 @@ namespace CTF_int {
     return ct;
   }
 
+  int64_t factorial(int n){
+    int64_t nn = n;
+    for (int i=2; i<n; i++){
+      nn*=i;
+    }
+    return nn;
+  }
+
   std::vector< Term* > contract_down_terms(algstrct * sr, char * tscale, std::vector< Term* > operands, std::vector<char> out_inds, int terms_to_leave, bool est_time=false, double * cost=NULL){
     std::vector< Term* > tmp_ops;
     for (int i=0; i<(int)operands.size(); i++){
       tmp_ops.push_back(operands[i]->clone());
     }
+    #ifndef MAX_NUM_OPERANDS_TO_REORDER
+    #define _MAX_NUM_OPERANDS_TO_REORDER 8
+    #else
+    #define _MAX_NUM_OPERANDS_TO_REORDER MAX_NUM_OPERANDS_TO_REORDER
+    #endif
+    if (!est_time && (int)operands.size() <= _MAX_NUM_OPERANDS_TO_REORDER){
+      double best_time = std::numeric_limits<double>::max();
+      // need to use pairs this way to ensure reorderings are not dependent on pointer location, which can differ amongst processes
+      std::vector< std::pair<int,Term*> > tmp_ops2;
+      for (int i=0; i<(int)operands.size(); i++){
+        tmp_ops2.push_back(std::pair<int,Term*>(i,operands[i]->clone()));
+      }
+      //int64_t nn = factorial((int)operands.size());
+      //for (int64_t ii=0; ii<nn; ii++){
+      do {
+        /*for (int j=0; j<(int)tmp_ops2.size(); j++){
+          printf("%p ", tmp_ops2[j]);
+        }
+        printf("\n");*/
+        std::vector<Term*> tmp_ops3;
+        for (int i=0; i<(int)operands.size(); i++){
+          tmp_ops3.push_back(tmp_ops2[i].second->clone());
+        }
+        double est_time = 0.;
+        contract_down_terms(sr,tscale,tmp_ops3,out_inds,terms_to_leave,true,&est_time);
+        if (est_time < best_time){
+          best_time = est_time;
+          tmp_ops.clear();
+          for (int i=0; i<(int)operands.size(); i++){
+            tmp_ops.push_back(tmp_ops2[i].second->clone());
+          }
+        }
+      } while (std::next_permutation(tmp_ops2.begin(),tmp_ops2.end(), [](std::pair<int,Term*> a, std::pair<int,Term*> b){ return a.first < b.first; }));
+    }
+    #undef _MAX_NUM_OPERANDS_TO_REORDER
     while (tmp_ops.size() > terms_to_leave){
       Term * pop_A = tmp_ops.back();
       tmp_ops.pop_back();
@@ -585,15 +642,19 @@ namespace CTF_int {
         op_B = new Idx_Tensor(pop_B->execute(out_inds_B));
       }
       if (op_A->parent == NULL) {
-        sr->safemul(op_A->scale, op_B->scale, op_B->scale);
+        if (!est_time)
+          sr->safemul(op_A->scale, op_B->scale, op_B->scale);
         tmp_ops.push_back(op_B->clone());
       } else if (op_B->parent == NULL) {
-        sr->safemul(op_A->scale, op_B->scale, op_A->scale);
+        if (!est_time)
+          sr->safemul(op_A->scale, op_B->scale, op_A->scale);
         tmp_ops.push_back(op_A->clone());
       } else {
         Idx_Tensor * intm = get_full_intm(*op_A, *op_B, det_uniq_inds(tmp_ops, out_inds), !est_time);
-        sr->safemul(tscale, op_A->scale, tscale);
-        sr->safemul(tscale, op_B->scale, tscale);
+        if (!est_time){
+          sr->safemul(tscale, op_A->scale, tscale);
+          sr->safemul(tscale, op_B->scale, tscale);
+        }
         contraction c(op_A->parent, op_A->idx_map,
                       op_B->parent, op_B->idx_map, tscale,
                       intm->parent, intm->idx_map, intm->scale);
@@ -601,8 +662,8 @@ namespace CTF_int {
           *cost += c.estimate_time();
         } else {
           c.execute(); 
+          sr->safecopy(tscale, sr->mulid());
         }
-        sr->safecopy(tscale, sr->mulid());
         tmp_ops.push_back(intm);
       }
       delete op_A;
