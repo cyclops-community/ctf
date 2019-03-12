@@ -183,6 +183,7 @@ namespace CTF_int {
         }
       }
     }
+    CTF_int::cdealloc(idx_arr);
 
     return dense_flops;
   }

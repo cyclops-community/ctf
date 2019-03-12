@@ -611,15 +611,24 @@ namespace CTF_int {
           tmp_ops3.push_back(tmp_ops2[i].second->clone());
         }
         double est_time = 0.;
-        contract_down_terms(sr,tscale,tmp_ops3,out_inds,terms_to_leave,output,true,&est_time);
+        std::vector<Term*> disc_terms = contract_down_terms(sr,tscale,tmp_ops3,out_inds,terms_to_leave,output,true,&est_time);
+        for (int i=0; i<(int)operands.size(); i++){
+          delete tmp_ops3[i];
+        }
+        for (int i=0; i<(int)disc_terms.size(); i++){
+          delete disc_terms[i];
+        }
         if (est_time < best_time){
           best_time = est_time;
-          tmp_ops.clear();
           for (int i=0; i<(int)operands.size(); i++){
-            tmp_ops.push_back(tmp_ops2[i].second->clone());
+            delete tmp_ops[i];
+            tmp_ops[i] = tmp_ops2[i].second->clone();
           }
         }
       } while (std::next_permutation(tmp_ops2.begin(),tmp_ops2.end(), [](std::pair<int,Term*> a, std::pair<int,Term*> b){ return a.first < b.first; }));
+      for (int i=0; i<(int)operands.size(); i++){
+        delete tmp_ops2[i].second;
+      }
     }
     #undef _MAX_NUM_OPERANDS_TO_REORDER
     while ((int)tmp_ops.size() > terms_to_leave){
