@@ -582,7 +582,7 @@ namespace CTF_int {
     return nn;
   }
 
-  std::vector< Term* > contract_down_terms(algstrct * sr, char * tscale, std::vector< Term* > operands, std::vector<char> out_inds, int terms_to_leave, bool est_time=false, double * cost=NULL){
+  std::vector< Term* > contract_down_terms(algstrct * sr, char * tscale, std::vector< Term* > operands, std::vector<char> out_inds, int terms_to_leave, Idx_Tensor * output=NULL, bool est_time=false, double * cost=NULL){
     std::vector< Term* > tmp_ops;
     for (int i=0; i<(int)operands.size(); i++){
       tmp_ops.push_back(operands[i]->clone());
@@ -611,7 +611,7 @@ namespace CTF_int {
           tmp_ops3.push_back(tmp_ops2[i].second->clone());
         }
         double est_time = 0.;
-        contract_down_terms(sr,tscale,tmp_ops3,out_inds,terms_to_leave,true,&est_time);
+        contract_down_terms(sr,tscale,tmp_ops3,out_inds,terms_to_leave,output,true,&est_time);
         if (est_time < best_time){
           best_time = est_time;
           tmp_ops.clear();
@@ -622,7 +622,7 @@ namespace CTF_int {
       } while (std::next_permutation(tmp_ops2.begin(),tmp_ops2.end(), [](std::pair<int,Term*> a, std::pair<int,Term*> b){ return a.first < b.first; }));
     }
     #undef _MAX_NUM_OPERANDS_TO_REORDER
-    while (tmp_ops.size() > terms_to_leave){
+    while ((int)tmp_ops.size() > terms_to_leave){
       Term * pop_A = tmp_ops.back();
       tmp_ops.pop_back();
       //include all terms except the one to execute to determine out_inds for executing that term
@@ -670,7 +670,30 @@ namespace CTF_int {
       delete op_B;
       delete pop_A;
       delete pop_B;
-    } 
+    }
+    if (est_time && terms_to_leave == 2){
+      std::vector<Term*> to;
+      Term * pop_A = tmp_ops[0];
+      Term * pop_B = tmp_ops[1];
+      to.push_back(pop_A);
+      std::vector<char> out_inds_B = det_uniq_inds(to, out_inds);
+      to.clear();
+      to.push_back(pop_B);
+      std::vector<char> out_inds_A = det_uniq_inds(to, out_inds);
+      to.clear();
+      Idx_Tensor * op_A;
+      Idx_Tensor * op_B;
+      op_A = new Idx_Tensor(pop_A->estimate_time(*cost,out_inds_A));
+      op_B = new Idx_Tensor(pop_B->estimate_time(*cost,out_inds_B));
+      if (op_A->parent != NULL && op_B->parent != NULL){
+        contraction c(op_A->parent, op_A->idx_map,
+                      op_B->parent, op_B->idx_map, tscale,
+                      output->parent, output->idx_map, output->scale);
+        *cost += c.estimate_time();
+      }
+      delete op_A;
+      delete op_B;
+    }
     return tmp_ops;
   }
 
@@ -678,7 +701,7 @@ namespace CTF_int {
     std::vector<char> out_inds = output.get_uniq_inds();
     char * tscale = NULL;
     sr->safecopy(tscale, scale);
-    std::vector< Term* > tmp_ops = contract_down_terms(sr, tscale, operands, out_inds, 2);
+    std::vector< Term* > tmp_ops = contract_down_terms(sr, tscale, operands, out_inds, 2, &output);
     {
       assert(tmp_ops.size() == 2);
       Term * pop_B = tmp_ops.back();
@@ -738,7 +761,7 @@ namespace CTF_int {
   double Contract_Term::estimate_time(Idx_Tensor output)const {
     double cost = 0.0;
     std::vector<char> out_inds = output.get_uniq_inds();
-    std::vector< Term* > tmp_ops = contract_down_terms(sr, scale, operands, out_inds, 2, true, &cost);
+    std::vector< Term* > tmp_ops = contract_down_terms(sr, scale, operands, out_inds, 2, &output, true, &cost);
     {
       assert(tmp_ops.size() == 2);
       Term * pop_B = tmp_ops.back();
@@ -777,7 +800,7 @@ namespace CTF_int {
 
 
   Idx_Tensor Contract_Term::estimate_time(double & cost, std::vector<char> out_inds) const {
-    std::vector< Term* > tmp_ops = contract_down_terms(sr, scale, operands, out_inds, 1, true, &cost);
+    std::vector< Term* > tmp_ops = contract_down_terms(sr, scale, operands, out_inds, 1, NULL, true, &cost);
     return tmp_ops[0]->estimate_time(cost, out_inds);
   }
  
