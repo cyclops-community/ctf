@@ -167,7 +167,7 @@ namespace CTF_int {
       }
     }
     bool is_sparse_C = A.parent->is_sparse && B.parent->is_sparse;
-    tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, true, NULL, !create_dummy, is_sparse_C);
+    tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, !create_dummy, NULL, false, is_sparse_C);
 
     //estimate number of nonzeros
     if (create_dummy && is_sparse_C){
@@ -602,10 +602,6 @@ namespace CTF_int {
       //int64_t nn = factorial((int)operands.size());
       //for (int64_t ii=0; ii<nn; ii++){
       do {
-        /*for (int j=0; j<(int)tmp_ops2.size(); j++){
-          printf("%p ", tmp_ops2[j]);
-        }
-        printf("\n");*/
         std::vector<Term*> tmp_ops3;
         for (int i=0; i<(int)operands.size(); i++){
           tmp_ops3.push_back(tmp_ops2[i].second->clone());
@@ -650,6 +646,7 @@ namespace CTF_int {
         op_A = new Idx_Tensor(pop_A->execute(out_inds_A));
         op_B = new Idx_Tensor(pop_B->execute(out_inds_B));
       }
+
       if (op_A->parent == NULL) {
         if (!est_time)
           sr->safemul(op_A->scale, op_B->scale, op_B->scale);
@@ -659,7 +656,7 @@ namespace CTF_int {
           sr->safemul(op_A->scale, op_B->scale, op_A->scale);
         tmp_ops.push_back(op_A->clone());
       } else {
-        Idx_Tensor * intm = get_full_intm(*op_A, *op_B, det_uniq_inds(tmp_ops, out_inds), !est_time);
+        Idx_Tensor * intm = get_full_intm(*op_A, *op_B, det_uniq_inds(tmp_ops, out_inds), est_time);
         if (!est_time){
           sr->safemul(tscale, op_A->scale, tscale);
           sr->safemul(tscale, op_B->scale, tscale);
