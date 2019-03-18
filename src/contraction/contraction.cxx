@@ -159,10 +159,56 @@ namespace CTF_int {
     }
   }
 
+  double contraction::estimate_num_dense_flops(){
+    double dense_flops = 1.;
+    int num_tot;
+    int * idx_arr;
+
+    inv_idx(A->order, idx_A,
+            B->order, idx_B,
+            C->order, idx_C,
+            &num_tot, &idx_arr);
+    for (int i=0; i<num_tot; i++){
+      int j =   (idx_arr[3*i+0] != -1) 
+              + (idx_arr[3*i+1] != -1) 
+              + (idx_arr[3*i+2] != -1);
+      // if not sum/bcast index
+      if (j > 1){
+        if (idx_arr[3*i+0] != -1){
+          dense_flops *= A->lens[idx_arr[3*i+0]];
+        } else if (idx_arr[3*i+1] != -1){
+          dense_flops *= B->lens[idx_arr[3*i+1]];
+        } else {
+          dense_flops *= C->lens[idx_arr[3*i+1]];
+        }
+      }
+    }
+    CTF_int::cdealloc(idx_arr);
+
+    return dense_flops;
+  }
+
+
+  double contraction::estimate_num_flops(){
+    double flops = this->estimate_num_dense_flops();
+
+    //scale by probability of nonzero flop
+    if (A->is_sparse)
+      flops *= A->nnz_tot/A->size/A->wrld->np;
+    if (B->is_sparse)
+      flops *= B->nnz_tot/B->size/B->wrld->np;
+    if (C->is_sparse)
+      flops += C->nnz_tot;
+    else
+      flops += C->size*C->wrld->np;
+
+    return flops;
+  }
 
   double contraction::estimate_time(){
-    assert(0); //FIXME
-    return 0.0;
+    int np = std::max(A->wrld->np,B->wrld->np);
+    double flop_rate = 1.E9*np;
+    return this->estimate_num_flops()/flop_rate;
   }
 
   int contraction::is_equal(contraction const & os){
@@ -5349,7 +5395,16 @@ namespace CTF_int {
       }
       sprintf(cname+strlen(cname),"]");
       printf("CTF: Contraction %s\n",cname);
-
+      if (alpha != NULL){
+        printf("CTF: input scale ");
+        C->sr->print(alpha);
+        printf("\n");
+      }
+      if (beta != NULL){
+        printf("CTF: output scale ");
+        C->sr->print(beta);
+        printf("\n");
+      }
 /*
       if (alpha != NULL){
         printf("alpha is "); 

@@ -129,7 +129,7 @@ namespace CTF {
       }
 
       if (copy || other.is_intm){
-        parent = new CTF_int::tensor(other.parent,1);
+        parent = new CTF_int::tensor(other.parent,other.parent->is_mapped,other.parent->is_mapped);
         is_intm = 1;
       } else {
         // leave parent as is - already correct

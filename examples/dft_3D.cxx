@@ -101,17 +101,14 @@ int test_dft_3D(int     n,
  * \brief Forms N-by-N DFT matrix A and inverse-dft iA and checks A*iA=I
  */
 int main(int argc, char ** argv){
-  int logn;
   int64_t n;
   MPI_Init(&argc, &argv);
 
   if (argc > 1){
-    logn = atoi(argv[1]);
-    if (logn<0) logn = 3;
+    n = atoi(argv[1]);
   } else {
-    logn = 3;
+    n = 6;
   }
-  n = 1<<logn;
 
   {
     World dw(argc, argv);
