@@ -986,10 +986,10 @@ cdef class tensor:
             out_tsr = None
         return [idx_A, idx_B, idx_C, out_tsr]
 
-    # def __len__(self):
-    #     if self.shape == ():
-    #         raise TypeError("CTF PYTHON ERROR: len() of unsized object")
-    #     return self.shape[0]
+    #def __len__(self):
+    #    if self.shape == ():
+    #        raise TypeError("CTF PYTHON ERROR: len() of unsized object")
+    #    return self.shape[0]
 
     def __abs__(self):
         return abs(self)
@@ -2343,7 +2343,7 @@ cdef class tensor:
         [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape] = _setgetitem_helper(self, key_init)
 
         if is_everything:
-            return self
+            return self.reshape(corr_shape)
 
         if is_single_val:
             vals = self.read([key])
@@ -3862,6 +3862,8 @@ def tensordot(tA, tB, axes=2):
             return C
     else:
         axes_arr = np.asarray(axes)
+        if len(axes_arr.shape) == 1 and axes_arr.shape[0] == 2:
+            axes_arr = axes_arr.reshape((2,1))
         if len(axes_arr.shape) != 2 or axes_arr.shape[0] != 2:
             raise ValueError("axes should be int or (2,) array like")
         if len(axes_arr[0]) != len(axes_arr[1]):
@@ -3877,9 +3879,9 @@ def tensordot(tA, tB, axes=2):
                     raise ValueError("index out of range")
         # check whether there are same index
         for i in range(len(axes_arr[0])):
-            if axes[0].count(axes_arr[0][i]) > 1:
+            if np.sum(axes_arr[0] == axes_arr[0][i]) > 1:
                 raise ValueError("repeated index")
-            if axes[1].count(axes_arr[1][i]) > 1:
+            if np.sum(axes_arr[1] == axes_arr[1][i]) > 1:
                 raise ValueError("repeated index")
         for i in range(len(axes_arr[0])):
             if A.shape[axes_arr[0][i]] != B.shape[axes_arr[1][i]]:
@@ -3935,6 +3937,50 @@ def tensordot(tA, tB, axes=2):
             else:
                 C.i(C_str) << A.i(A_str) * B_new.i(B_str)
             return C
+
+
+def kron(A,B):
+    """
+    kron(A,B)
+    Kronecker product of A and B, generalized to arbitrary order by taking Kronecker product along all modes Tensor of lesser order is padded with lengths of dimension 1.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor or tensor like array.
+
+    B: tensor_like
+        Input tensor or tensor like array.
+
+    Returns
+    -------
+    output: tensor_like
+        Output tensor with size being the product of sizes of A and B
+
+    See Also
+    --------
+    numpy: numpy.kron()
+    """
+
+    A = astensor(A)
+    B = astensor(B)
+    if A.ndim < B.ndim:
+        Alens = np.zeros((B.ndim))
+        Alens[:B.ndim-A.ndim] = 1
+        Alens[B.ndim-A.ndim:] = A.lens[:]
+        A = A.reshape(Alens)
+    if B.ndim < A.ndim:
+        Blens = np.zeros((A.ndim))
+        Blens[:A.ndim-B.ndim] = 1
+        Blens[A.ndim-B.ndim:] = B.lens[:]
+        B = B.reshape(Blens)
+    Astr = _get_num_str(A.ndim)
+    Bstr = _get_num_str(2*A.ndim)[A.ndim:]
+    Cstr = list(_get_num_str(2*A.ndim))
+    Cstr[::2] = list(Astr)[:]
+    Cstr[1::2] = list(Bstr)[:]
+    return einsum(Astr+","+Bstr+"->"+''.join(Cstr),A,B).reshape(np.asarray(A.shape)*np.asarray(B.shape))
+
 
 # the default order of exp in CTF is Fortran order
 # the exp not working when the type of x is complex, there are some problems when implementing the template in function _exp_python() function
