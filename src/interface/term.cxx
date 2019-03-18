@@ -132,7 +132,6 @@ namespace CTF_int {
     sym_C = (int*)alloc(sizeof(int)*num_out_inds);
     len_C = (int*)alloc(sizeof(int)*num_out_inds);
     order_C = 0;
-    //FIXME: symmetry logic is incorrect here, setting all intermediates to fully nonsymmetric for now
     for (j=0; j<num_out_inds; j++){
       bool found = false;
       int len = -1;
@@ -146,22 +145,21 @@ namespace CTF_int {
           else sym_prev = NS;
         }
       }
-      if (!found){
-        for (i=0; i<B.parent->order; i++){
-          if (B.idx_map[i] == out_inds[j]){
-            found = true;
-            len = B.parent->lens[i];
-            if (sym_prev != NS && i>0 && order_C>0 && B.idx_map[i-1] == idx_C[order_C-1]) sym_prev = B.parent->sym[i-1];
-            else sym_prev = NS;
+      // do block even if found above in order to adjust symmetry
+      for (i=0; i<B.parent->order; i++){
+        if (B.idx_map[i] == out_inds[j]){
+          found = true;
+          len = B.parent->lens[i];
+          if (sym_prev != NS && i>0 && order_C>0 && B.idx_map[i-1] == idx_C[order_C-1]) sym_prev = B.parent->sym[i-1];
+          else sym_prev = NS;
 
-          }
         }
       }
       if (found){
         idx_C[order_C] = out_inds[j];
         len_C[order_C] = len;
-        //if (sym_prev > 0)
-        //  sym_C[order_C-1] = sym_prev;
+        if (sym_prev > 0)
+          sym_C[order_C-1] = sym_prev;
         sym_C[order_C] = NS;
         order_C++;
       }
