@@ -3631,6 +3631,7 @@ def reshape(A, newshape, order='F'):
     array([[1, 2],
            [3, 4]])
     """
+    A = astensor(A)
     if A.order != order:
       raise ValueError('CTF PYTHON ERROR: CTF does not support reshape with a new element order (Fortran vs C)')
     return A.reshape(newshape)

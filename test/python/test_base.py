@@ -62,8 +62,7 @@ class KnowValues(unittest.TestCase):
         a1[:] = 0
         self.assertTrue(ctf.all(a0==0))
         self.assertTrue(ctf.all(a1==0))
-        a0 = numpy.asarray(a1)
-        # self.assertTrue(ctf.asarray(a0).__class__ == ctf.astensor(a0).__class__)
+        a0 = numpy.array(a1) #FIXME: this breaks __len__
 
         a0 = ctf.astensor([1,2.,3], dtype='D')
         self.assertTrue(a0.dtype == numpy.complex128)
