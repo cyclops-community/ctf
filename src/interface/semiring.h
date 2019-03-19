@@ -628,7 +628,7 @@ namespace CTF {
       }
 
 
-      void default_csrmm
+      void gen_csrmm
                      (int           m,
                       int           n,
                       int           k,
@@ -663,6 +663,20 @@ namespace CTF {
         }
       }
 
+      void default_csrmm
+                     (int           m,
+                      int           n,
+                      int           k,
+                      dtype         alpha,
+                      dtype const * A,
+                      int const *   JA,
+                      int const *   IA,
+                      int           nnz_A,
+                      dtype const * B,
+                      dtype         beta,
+                      dtype *       C) const {
+        gen_csrmm(m,n,k,alpha,A,JA,IA,nnz_A,B,beta,C);
+      }
 //      void (*fcsrmultd)(int,int,int,dtype const*,int const*,int const*,dtype const*,int const*, int const*,dtype*,int);
 
       /** \brief sparse version of gemm using CSR format for A */
@@ -680,10 +694,13 @@ namespace CTF {
                  CTF_int::bivar_function const * func) const {
         assert(!this->has_coo_ker);
         assert(func == NULL);
-        this->default_csrmm(m,n,k,((dtype*)alpha)[0],(dtype*)A,JA,IA,nnz_A,(dtype*)B,((dtype*)beta)[0],(dtype*)C);
+        if (is_def)
+          this->default_csrmm(m,n,k,((dtype*)alpha)[0],(dtype*)A,JA,IA,nnz_A,(dtype*)B,((dtype*)beta)[0],(dtype*)C);
+        else
+          this->gen_csrmm(m,n,k,((dtype*)alpha)[0],(dtype*)A,JA,IA,nnz_A,(dtype*)B,((dtype*)beta)[0],(dtype*)C);
       }
 
-      void default_csrmultd
+      void gen_csrmultd
                      (int           m,
                       int           n,
                       int           k,
@@ -717,8 +734,26 @@ namespace CTF {
             }
           }
         }
-      
       }
+
+      void default_csrmultd
+                     (int           m,
+                      int           n,
+                      int           k,
+                      dtype         alpha,
+                      dtype const * A,
+                      int const *   JA,
+                      int const *   IA,
+                      int           nnz_A,
+                      dtype const * B,
+                      int const *   JB,
+                      int const *   IB,
+                      int           nnz_B,
+                      dtype         beta,
+                      dtype *       C) const {
+        gen_csrmultd(m,n,k,alpha,A,JA,IA,nnz_A,B,JB,IB,nnz_B,beta,C);
+      } 
+
       void gen_csrmultcsr
                       (int          m, 
                       int           n,
@@ -942,7 +977,10 @@ namespace CTF {
                  int64_t      nnz_B,
                  char const * beta,
                  char *       C) const {
-        this->default_csrmultd(m,n,k,((dtype const*)alpha)[0],(dtype const*)A,JA,IA,nnz_A,(dtype const*)B,JB,IB,nnz_B,((dtype const*)beta)[0],(dtype*)C);
+        if (is_def)
+          this->default_csrmultd(m,n,k,((dtype const*)alpha)[0],(dtype const*)A,JA,IA,nnz_A,(dtype const*)B,JB,IB,nnz_B,((dtype const*)beta)[0],(dtype*)C);
+        else
+          this->gen_csrmultd(m,n,k,((dtype const*)alpha)[0],(dtype const*)A,JA,IA,nnz_A,(dtype const*)B,JB,IB,nnz_B,((dtype const*)beta)[0],(dtype*)C);
       }
 
 
