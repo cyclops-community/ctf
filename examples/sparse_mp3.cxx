@@ -2,7 +2,7 @@
   * @{ 
   * \defgroup sparse_mp3 sparse_mp3
   * @{ 
-  * \brief Third-order Moller-Plesset petrubation theory (MP3) with sparse integrals. Equations adapted from those in Aquarius (credit to Devin Matthews)
+  * \brief Third-order Moller-Plesset perturbation theory (MP3) with sparse integrals. Equations adapted from those in Aquarius (credit to Devin Matthews)
   */
 
 #include <ctf.hpp>
@@ -198,14 +198,14 @@ int sparse_mp3(int nv, int no, World & dw, double sp=.8, bool test=1, int niter=
     if (Ea.wrld->rank == 0){
       if (!sparse_T){
         if (pass) 
-          printf("{ third-order Moller-Plesset petrubation theory (MP3) using sparse*dense } passed \n");
+          printf("{ third-order Moller-Plesset perturbation theory (MP3) using sparse*dense } passed \n");
         else
-          printf("{ third-order Moller-Plesset petrubation theory (MP3) using sparse*dense } failed \n");
+          printf("{ third-order Moller-Plesset perturbation theory (MP3) using sparse*dense } failed \n");
       } else {
         if (pass) 
-          printf("{ third-order Moller-Plesset petrubation theory (MP3) using sparse*sparse } passed \n");
+          printf("{ third-order Moller-Plesset perturbation theory (MP3) using sparse*sparse } passed \n");
         else
-          printf("{ third-order Moller-Plesset petrubation theory (MP3) using sparse*sparse } failed \n");
+          printf("{ third-order Moller-Plesset perturbation theory (MP3) using sparse*sparse } failed \n");
       }
     }
 #ifndef TEST_SUITE
@@ -317,7 +317,7 @@ int main(int argc, char ** argv){
   } else test = 1;
 
   if (rank == 0){
-    printf("Running sparse (%lf zeros) third-order Moller-Plesset petrubation theory (MP3) method on %d virtual and %d occupied orbitals and T sparsity turned ot %d\n",sp,nv,no,sparse_T);
+    printf("Running sparse (%lf zeros) third-order Moller-Plesset perturbation theory (MP3) method on %d virtual and %d occupied orbitals and T sparsity turned ot %d\n",sp,nv,no,sparse_T);
   }
 
   {
