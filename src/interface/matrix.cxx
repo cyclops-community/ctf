@@ -418,8 +418,47 @@ namespace CTF {
     return (int)r.real();
   }
 
-
-
+  template<typename dtype>
+  void Matrix<dtype>::get_tri(Matrix<dtype> & T, bool lower, bool keep_diag){
+    int min_mn = std::min(this->nrow,this->ncol);
+    int sym_type = SH;
+    if (keep_diag) sym_type = SY;
+    int syns[] = {sym_type, NS};
+    Tensor<dtype> U;
+    if (this->nrow != this->ncol){
+      U = this->slice(0,((int64_t)nrow)*(min_mn-1) + min_mn-1);
+      U = Tensor<dtype>(U,syns);
+    } else {
+      U = Tensor<dtype>(*this,syns);
+    }
+    int nsns[] = {NS, NS};
+    U = Tensor<dtype>(U,nsns);
+    if (T.nrow == -1){
+      if (lower && this->nrow <= this->ncol)
+        T = Tensor<dtype>(false, U);
+      else if (lower && this->nrow > this->ncol)
+        T = Tensor<dtype>(false, *this);
+      else if (!lower && this->nrow >= this->ncol)
+        T = Tensor<dtype>(true, U);
+      else
+        T = Tensor<dtype>(false, *this);
+    }
+    if (lower){
+      if (T.nrow == min_mn && T.ncol == min_mn)
+        T["ij"] = U["ji"];
+      else
+        U["ij"] = U["ji"];
+    }
+    if (T.nrow != T.ncol){
+      assert(T.nrow == this->nrow && T.ncol == this->ncol);
+      if ((lower && T.nrow > T.ncol) ||
+         (!lower && T.nrow < T.ncol))
+        T["ij"] = this->operator[]("ij");
+      else
+        T.set_zero();
+      T.slice(0,((int64_t)nrow)*(min_mn-1) + min_mn-1,*(dtype*)this->sr->addid(),U,0,((int64_t)min_mn)*(min_mn-1) + min_mn-1,*(dtype*)this->sr->mulid());
+    }
+  }
 
   template<typename dtype>
   void Matrix<dtype>::qr(Matrix<dtype> & Q, Matrix<dtype> & R){
@@ -444,35 +483,23 @@ namespace CTF {
     dtype * work = (dtype*)malloc(((int64_t)lwork)*sizeof(dtype));
     CTF_SCALAPACK::pgeqrf<dtype>(m,n,A,1,1,desca,tau,work,lwork,&info);
  
-
     dtype * dQ = (dtype*)malloc(this->size*sizeof(dtype));
     memcpy(dQ,A,this->size*sizeof(dtype));
 
     Q = Matrix<dtype>(desca, dQ, (*(this->wrld)));
-    if (m==n)
-      R = Matrix<dtype>(Q);
-    else {
-      R = Matrix<dtype>(desca,dQ,*this->wrld,*this->sr);
-      R = R.slice(0,((int64_t)m)*(n-1)+n-1);
-    }
-
+    Q.get_tri(R);
 
     free(work);
-    CTF_SCALAPACK::porgqr<dtype>(m,n,n,dQ,1,1,desca,tau,(dtype*)&dlwork,-1,&info);
+    CTF_SCALAPACK::porgqr<dtype>(m,std::min(m,n),std::min(m,n),dQ,1,1,desca,tau,(dtype*)&dlwork,-1,&info);
     lwork = get_int_fromreal<dtype>(dlwork);
     work = (dtype*)malloc(((int64_t)lwork)*sizeof(dtype));
-    CTF_SCALAPACK::porgqr<dtype>(m,n,n,dQ,1,1,desca,tau,work,lwork,&info);
+    CTF_SCALAPACK::porgqr<dtype>(m,std::min(m,n),std::min(m,n),dQ,1,1,desca,tau,work,lwork,&info);
     Q = Matrix<dtype>(desca, dQ, (*(this->wrld)));
+    if (m<n)
+      Q = Q.slice(0,m*(m-1)+m-1);
     free(work);
     free(tau);
     free(desca);
-    //make upper-tri
-    int syns[] = {SY, NS};
-    Tensor<dtype> tR(R,syns);
-    int nsns[] = {NS, NS};
-    tR = Tensor<dtype>(tR,nsns);
-    R = CTF::Matrix<dtype>(tR);
-    //R["ij"] = R["ji"];
     free(A);
     free(dQ);
   }

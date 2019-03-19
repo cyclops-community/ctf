@@ -5322,8 +5322,8 @@ def qr(tensor A):
     if not isinstance(A,tensor) or A.ndim != 2:
         raise ValueError('CTF PYTHON ERROR: QR called on invalid tensor, must be CTF double matrix')
     B = tensor(copy=A.T())
-    Q = tensor(B.shape,dtype=B.dtype)
-    R = tensor([B.shape[0],B.shape[0]],dtype=B.dtype)
+    Q = tensor([min(B.shape[0],B.shape[1]),B.shape[1]],dtype=B.dtype)
+    R = tensor([B.shape[0],min(B.shape[0],B.shape[1])],dtype=B.dtype)
     if A.dtype == np.float64 or A.dtype == np.float32:
         matrix_qr(B.dt, Q.dt, R.dt)
     elif A.dtype == np.complex128 or A.dtype == np.complex64:

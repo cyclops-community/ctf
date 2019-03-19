@@ -260,6 +260,14 @@ namespace CTF {
       void print_matrix();
 
       /*
+       * \brief extracts upper or lower triangular (trapezoidal) portion of matrix
+       * \param[in,out] T lower or upper triangular or trapezoidal matrix, can be of dimensions m-by-n where m=nrow and n=ncol if m>=n and lower=true or m<=n and lower=false or m=n=min(nrow,ncol)
+       * \param[in] lower if true take lower triangular part
+       * \param[in] keep_diag if true keep diagonal
+       */
+      void get_tri(Matrix<dtype> & T, bool lower=false, bool keep_diag=true);
+
+      /*
        * \calculates the reduced QR decomposition, A = Q x R for A of dimensions m by n with m>=n
        * \param[out] Q m-by-n matrix with orthonormal columns
        * \param[out] R n-by-n upper-triangular matrix
