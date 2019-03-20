@@ -387,7 +387,8 @@ namespace CTF_int {
     if (alloc_data){
       int ret = set_zero();
       ASSERT(ret == SUCCESS);
-    }
+    } else
+      this->size = (sy_packed_size(this->order, edge_len, this->sym)+wrld->np-1)/wrld->np;
     TAU_FSTOP(init_tensor);
   }
 
