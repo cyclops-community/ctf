@@ -69,6 +69,7 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
         World * wrld
         algstrct * sr
         bool is_sparse
+        int64_t nnz_tot
         ctensor()
         ctensor(ctensor * other, bool copy, bool alloc_data)
         ctensor(ctensor * other, int * new_sym)
@@ -719,6 +720,13 @@ cdef class tensor:
         """
         def __get__(self):
             return self.sym
+
+    property nnz_tot:
+        """
+        Total number of nonzeros in tensor
+        """
+        def __get__(self):
+            return self.dt.nnz_tot
 
     def _bool_sum(tensor self):
         return sum_bool_tsr(self.dt)
@@ -2639,6 +2647,26 @@ cdef class tensor:
 #            return (<Tensor[double complex]*>self.dt).norm_infty()
         else:
             raise ValueError('CTF PYTHON ERROR: norm not present for this dtype')
+
+    def sparsify(self, threshold, take_abs=True):
+        """
+        sparsify()
+        Make tensor sparse and remove all values with value or absolute value if take_abs=True below threshold.
+
+        Returns
+        -------
+        output: tensor
+            Sparsified version of the tensor
+        """
+        cdef char * thresh
+        st = np.ndarray([],dtype=self.dtype).itemsize
+        thresh = <char*>malloc(st)
+        na = np.array([threshold])
+        for j in range(0,st):
+            thresh[j] = na.view(dtype=np.int8)[j]
+        A = tensor(copy=self,sp=True)
+        A.dt.sparsify(thresh, take_abs)
+        return A
 
     def to_nparray(self):
         """

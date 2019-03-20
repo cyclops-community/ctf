@@ -4018,6 +4018,7 @@ namespace CTF_int {
 
       krnl_type = 0;
     }
+    assert(krnl_type != -1);
 
 
     iparam inp_cpy;
@@ -4918,7 +4919,15 @@ namespace CTF_int {
       delete pre_new_ctr.B;
       return SUCCESS;
     }
- 
+
+    // if multiplying A and B with one sparse, make first sparse 
+    if (!A->is_sparse && B->is_sparse){
+      assert(this->func==NULL); // currently if contracting two tensors with special function and one is sparse, first operand of the two must be the sparse one
+      contraction new_ctr = contraction(this->B,this->idx_B,this->A,this->idx_A,this->alpha,this->C,this->idx_C,this->beta,this->func);
+      new_ctr.execute();
+      return SUCCESS;
+    }
+
     /*if (!C->is_sparse && (A->is_sparse && B->is_sparse)){
       pre_new_ctr.C = new tensor(C, 0, 1);
       pre_new_ctr.C->sparsify();
