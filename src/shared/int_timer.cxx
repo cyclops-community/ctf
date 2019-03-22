@@ -319,7 +319,8 @@ namespace CTF{
 
   Timer_epoch::Timer_epoch(char const * name_){
   #ifdef PROFILE
-    name = name_;
+    assert(strlen(name_) < MAX_NAME_LENGTH-1);
+    strcpy(name, name_);
   #endif
   }
 

@@ -73,7 +73,7 @@ namespace CTF {
       double save_excl_time;
       std::vector<Function_timer> saved_function_timers;
     public:
-      char const * name;
+      char name[MAX_NAME_LENGTH];
       //create epoch called name
       Timer_epoch(char const * name_);
 
