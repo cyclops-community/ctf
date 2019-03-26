@@ -389,6 +389,7 @@ namespace CTF_int {
         for (int i_B=IB[row_B]-1; i_B<IB[row_B+1]-1; i_B++){
           int col_B = JB[i_B]-1;
           C[col_B*m+row_A] += A[i_A]*B[i_B];
+          printf("Here coor=%d, %d/%d %d/%d row_A = %d row_B = %d val = %lf after adding %lf*%lf\n",col_B*m+row_A,i_A,IA[row_A+1]-1,i_B,IB[row_B+1]-1,row_A,row_B,C[col_B*m+row_A],A[i_A],B[i_B]);
         }
       }
     }

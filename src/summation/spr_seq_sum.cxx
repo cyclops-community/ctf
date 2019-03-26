@@ -18,7 +18,7 @@ namespace CTF_int{
                             int const *             sym_B,
                             univar_function const * func){
     int imax = edge_len_B[idim];
-    if (sym_B[idim] != NS) imax = (idx_B/lda_B[idim+1])%edge_len_B[idim+1];
+    if (sym_B[idim] != NS) imax = ((idx_B/lda_B[idim+1])%edge_len_B[idim+1])+1;
 
     for (int i=0; i<imax; i++){
       //int nidx_B[order_B];
@@ -45,7 +45,7 @@ namespace CTF_int{
                                univar_function const * func){
     
     int imax = edge_len_B[0];
-    if (sym_B[0] != NS) imax = (idx_B/lda_B[0+1])%edge_len_B[0+1];
+    if (sym_B[0] != NS) imax = ((idx_B/lda_B[0+1])%edge_len_B[0+1])+1;
 
     for (int i=0; i<imax; i++){
       while (size_A > 0 && idx_B == A.k()){

@@ -269,6 +269,12 @@ namespace CTF_int {
        * \param[in] sym_mask identifies which tensor indices are part of the symmetric group which diagonals we want to scale (i.e. sym_mask [1,1] does A["ii"]= (1./2.)*A["ii"])
        */
       void scale_diagonals(int const * sym_mask);
+ 
+      /**
+       * \brief sets to zero elements which are diagonal with respect to index diag and diag+1
+       * \param[in] diag smaller index of the symmetry to zero out
+       */
+      int zero_out_sparse_diagonal(int diag);
 
       // apply an additive inverse to all elements of the tensor
       void addinv();
@@ -744,10 +750,12 @@ namespace CTF_int {
        * \brief transposes local data in preparation for summation or contraction, transforms to COO or CSR format for sparse
        * \param[in] m number of rows in matrix
        * \param[in] n number of columns in matrix
+       * \param[in] all_fdim number of dimensions of folded
+       * \param[in] all_flen lengths of dimensions of folded
        * \param[in] nrow_idx number of indices to fold into column
        * \param[in] csr whether to do csr (1) or coo (0) layout
        */
-      void spmatricize(int m, int n, int nrow_idx, bool csr);
+      void spmatricize(int m, int n, int nrow_idx, int all_fdim, int const * all_flen, bool csr);
 
       /**
        * \brief transposes back local data from sparse matrix format to key-value pair format

@@ -856,17 +856,20 @@ namespace CTF_int {
     permute_target(tfC->order, fnew_ord_C, tC->inner_ordering);
  
     if (do_transp){
+      //printf("A is sparse %d B is sparse %d\n",A->is_sparse,B->is_sparse);
       bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
       if (!A->is_sparse){
         nosym_transpose(A, all_fdim_A, all_flen_A, A->inner_ordering, 1);
       } else {
         int nrow_idx = 0;
         for (int i=0; i<A->order; i++){
-          for (int j=0; j<C->order; j++){
-            if (idx_A[i] == idx_C[j]) nrow_idx++;
+          if (A->sym[i] == NS){
+            for (int j=0; j<C->order; j++){
+              if (idx_A[i] == idx_C[j]) nrow_idx++;
+            }
           }
         }
-        A->spmatricize(iprm.m, iprm.k, nrow_idx, csr_or_coo);
+        A->spmatricize(iprm.m, iprm.k, nrow_idx, all_fdim_A, all_flen_A, csr_or_coo);
       }
       if (!B->is_sparse){
         nosym_transpose(B, all_fdim_B, all_flen_B, B->inner_ordering, 1);
@@ -877,11 +880,13 @@ namespace CTF_int {
       } else {
         int nrow_idx = 0;
         for (int i=0; i<B->order; i++){
-          for (int j=0; j<A->order; j++){
-            if (idx_B[i] == idx_A[j]) nrow_idx++;
+          if (B->sym[i] == NS){
+            for (int j=0; j<A->order; j++){
+              if (idx_B[i] == idx_A[j]) nrow_idx++;
+            }
           }
         }
-        B->spmatricize(iprm.k, iprm.n, nrow_idx, csr_or_coo);
+        B->spmatricize(iprm.k, iprm.n, nrow_idx, all_fdim_B, all_flen_B, csr_or_coo);
       }
 
       if (!C->is_sparse){
@@ -889,11 +894,13 @@ namespace CTF_int {
       } else {
         int nrow_idx = 0;
         for (int i=0; i<C->order; i++){
-          for (int j=0; j<A->order; j++){
-            if (idx_C[i] == idx_A[j]) nrow_idx++;
+          if (C->sym[i] == NS){
+            for (int j=0; j<A->order; j++){
+              if (idx_C[i] == idx_A[j]) nrow_idx++;
+            }
           }
         }
-        C->spmatricize(iprm.m, iprm.n, nrow_idx, csr_or_coo);
+        C->spmatricize(iprm.m, iprm.n, nrow_idx, all_fdim_C, all_flen_C, csr_or_coo);
         C->sr->dealloc(C->data);
       }
     
@@ -4223,9 +4230,11 @@ namespace CTF_int {
 
     TAU_FSTART(contract);
 
-    TAU_FSTART(prescale_operands);
-    prescale_operands();
-    TAU_FSTOP(prescale_operands);
+    if (need_prescale_operands()){
+      TAU_FSTART(prescale_operands);
+      prescale_operands();
+      TAU_FSTOP(prescale_operands);
+    }
   #if 0 //VERIFY
     int64_t nsA, nsB;
     int64_t nA, nB, nC, up_nC;
@@ -5324,8 +5333,15 @@ namespace CTF_int {
         if (T->is_home){
           if (T->wrld->cdt.rank == 0)
             DPRINTF(2,"Tensor %s leaving home\n", T->name);
-          T->data = T->sr->alloc(T->size);
-          memcpy(T->data, T->home_buffer, T->size*T->sr->el_size);
+          if (T->is_sparse){
+            if (T->has_home){
+              T->home_buffer = T->sr->pair_alloc(T->nnz_loc);
+              T->sr->copy_pairs(T->home_buffer, T->data, T->nnz_loc);
+            }
+          } else {
+            T->data = T->sr->alloc(T->size);
+            memcpy(T->data, T->home_buffer, T->size*T->sr->el_size);
+          }
           T->is_home = 0;
         }
         T->scale_diagonals(sym_mask);
@@ -5352,8 +5368,15 @@ namespace CTF_int {
         if (V->is_home){
           if (V->wrld->cdt.rank == 0)
             DPRINTF(2,"Tensor %s leaving home\n", V->name);
-          V->data = (char*)CTF_int::mst_alloc(V->size*V->sr->el_size);
-          memcpy(V->data, V->home_buffer, V->size*V->sr->el_size);
+          if (V->is_sparse){
+            if (V->has_home){
+              V->home_buffer = V->sr->pair_alloc(V->nnz_loc);
+              V->sr->copy_pairs(V->home_buffer, V->data, V->nnz_loc);
+            }
+          } else {
+            V->data = V->sr->alloc(V->size);
+            memcpy(V->data, V->home_buffer, V->size*V->sr->el_size);
+          }
           V->is_home = 0;
         }
 

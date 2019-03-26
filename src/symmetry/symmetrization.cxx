@@ -106,9 +106,14 @@ namespace CTF_int {
         tensor * ctsr = sym_tsr;
         if (scal_diag && num_sy+num_sy_neg==1){
           ctsr = new tensor(sym_tsr);
-          ctsr->sym[is] = SH;
-          ctsr->zero_out_padding();
-          ctsr->sym[is] = SY;
+          if (ctsr->is_sparse){
+            printf("HARA\n");
+            ctsr->zero_out_sparse_diagonal(is);
+          } else {
+            ctsr->sym[is] = SH;
+            ctsr->zero_out_padding();
+            ctsr->sym[is] = SY;
+          }
         } 
         for (i=-num_sy_neg-1; i<num_sy; i++){
           if (i==-1) continue;

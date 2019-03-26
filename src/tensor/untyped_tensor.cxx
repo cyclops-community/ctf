@@ -1456,6 +1456,7 @@ namespace CTF_int {
         char const * data_ptr = this->data;
         int64_t new_nnz_tot = 0;
         for (int v=0; v<nvirt; v++){
+          printf("nnz_blk[%d] = %ld\n",v,nnz_blk[v]);
           if (nnz_blk[v] > 0){
             int64_t old_nnz = nnz_blk[v];
             new_pairs[v] = (char*)sr->pair_alloc(nnz_blk[v]);
@@ -1476,6 +1477,7 @@ namespace CTF_int {
             sr->copy_pairs(new_data_ptr, new_pairs[v], nnz_blk[v]);
             sr->pair_dealloc(new_pairs[v]);
           }
+          new_data_ptr += nnz_blk[v]*sr->pair_size();
         }
         //}
       } else {
@@ -2666,9 +2668,13 @@ namespace CTF_int {
                                   *virt_phys_rank[i];
       }
       if (idx_lyr == 0){
-        scal_diag(this->order, np, num_virt,
-                  this->pad_edge_len, this->sym, this->padding,
-                  phase, phys_phase, virt_phase, virt_phys_rank, this->data, sr, sym_mask);
+        if (this->is_sparse){
+          sp_scal_diag(this->order, this->lens, this->sym, this->nnz_loc, this->data, sr, sym_mask);
+        } else {
+          scal_diag(this->order, np, num_virt,
+                    this->pad_edge_len, this->sym, this->padding,
+                    phase, phys_phase, virt_phase, virt_phys_rank, this->data, sr, sym_mask);
+        }
       } /*else {
         std::fill(this->data, this->data+np, 0.0);
       }*/
@@ -2679,6 +2685,37 @@ namespace CTF_int {
     }
     TAU_FSTOP(scale_diagonals);
   }
+
+  int tensor::zero_out_sparse_diagonal(int diag){
+    TAU_FSTART(zero_out_sparse_diagonal);
+    PairIterator pi(sr,data);
+    int64_t lda_sm, lda_lrg;
+    lda_sm = 1;
+    for (int i=0; i<diag; i++){
+      lda_sm *= this->lens[i];
+    }
+    lda_lrg = lda_sm * this->lens[diag];
+#ifdef USE_OMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<nnz_loc; i++){
+      int64_t k = pi[i].k();
+      int kpart1 = (k/lda_sm)%this->lens[diag];
+      int kpart2 = (k/lda_lrg)%this->lens[diag+1];
+      if (kpart1 == kpart2)
+        sr->copy(pi[i].d(),sr->addid());
+    }
+    ASSERT(is_sparse);
+    assert(is_sparse);
+
+    
+
+    TAU_FSTOP(zero_out_padding);
+
+    return SUCCESS;
+
+  }
+
 
   void tensor::addinv(){
     if (is_sparse){
@@ -2726,7 +2763,7 @@ namespace CTF_int {
     }
   }
 
-  void tensor::spmatricize(int m, int n, int nrow_idx, bool csr){
+  void tensor::spmatricize(int m, int n, int nrow_idx, int all_fdim, int const * all_flen, bool csr){
     ASSERT(is_sparse);
 
 #ifdef PROFILE
@@ -2756,12 +2793,13 @@ namespace CTF_int {
     for (int i=0; i<nvirt_A; i++){
       if (csr){
         COO_Matrix cm(this->nnz_blk[i], this->sr);
-        cm.set_data(this->nnz_blk[i], this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
+        cm.set_data(this->nnz_blk[i], this->order, this->lens, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
+        //printf("m=%d, n=%d, nnz=%ld\n",m,n,this->nnz_blk[i]);
         CSR_Matrix cs(cm, m, n, this->sr, data_ptr_out);
         cdealloc(cm.all_data);
       } else {
         COO_Matrix cm(data_ptr_out);
-        cm.set_data(this->nnz_blk[i], this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
+        cm.set_data(this->nnz_blk[i], this->order, this->lens, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
       }
       data_ptr_in += this->nnz_blk[i]*this->sr->pair_size();
       data_ptr_out += this->rec_tsr->nnz_blk[i];

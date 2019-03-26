@@ -1261,7 +1261,7 @@ namespace CTF_int {
         int sidx2 = unfold_sum->unfold_broken_sym(NULL);
         if (sidx%2 == 0 && (A->sym[sidx/2] == SY || unfold_sum->A->sym[sidx/2] == SY)) sy = 1;
         if (sidx%2 == 1 && (B->sym[sidx/2] == SY || unfold_sum->B->sym[sidx/2] == SY)) sy = 1;
-        if (!A->is_sparse && !B->is_sparse && (sidx2 != -1 || 
+        if ((sidx2 != -1 || 
             (sy && (sidx%2 == 0  || !tnsr_B->sr->isequal(new_sum.beta, tnsr_B->sr->addid()))))){
           if (sidx%2 == 0){
             if (unfold_sum->A->sym[sidx/2] == NS){
