@@ -65,6 +65,8 @@ namespace CTF_int {
        * \param[in] nz number of nonzers
        * \param[in] order number of tensor modes
        * \param[in] lens ranges of tensor modes
+       * \param[in] pad_edge_len padded ranges of tensor modes
+       * \param[in] sym symmetries of tensor modes
        * \param[in] all_fdim number of dimensions of folded
        * \param[in] all_flen lengths of dimensions of folded
        * \param[in] ordering reordering of tensor modes
@@ -73,7 +75,7 @@ namespace CTF_int {
        * \param[in] sr algebraic structure
        * \param[in] phase dimensions of the blocking grid
        */
-      void set_data(int64_t nz, int order, int const * lens, int all_fdim, int const * all_flen, int const * ordering, int nrow_idx, char const * tsr_data, algstrct const * sr, int const * phase);
+      void set_data(int64_t nz, int order, int const * sym, int const * lens, int const * pad_edge_len, int all_fdim, int const * all_flen, int const * ordering, int nrow_idx, char const * tsr_data, algstrct const * sr, int const * phase);
 
       /**
        * \brief unfolds tensor data from COO format based on prespecification of row and column modes

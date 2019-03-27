@@ -38,14 +38,14 @@ namespace CTF_int {
 #endif
     for (int i=0; i<nrow; i++){
       csr_ia[i+1] += csr_ia[i];
-      printf("csr_ia[%d/%d] = %d\n",i,nrow,csr_ia[i]);
+      //printf("csr_ia[%d/%d] = %d\n",i,nrow,csr_ia[i]);
     }
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
     for (int64_t i=0; i<nz; i++){
       csr_ja[i] = i;
-      printf("csr_ja[%d/%d] = %d\n",i,nz,csr_ja[i]);
+      //printf("csr_ja[%d/%d] = %d\n",i,nz,csr_ja[i]);
     }
 
     class comp_ref {

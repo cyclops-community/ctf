@@ -492,6 +492,7 @@ namespace CTF_int {
   }
 
   int tensor::set(char const * val) {
+    assert(!this->is_sparse);
     sr->set(this->data, val, this->size);
     return zero_out_padding();
   }
@@ -1456,7 +1457,7 @@ namespace CTF_int {
         char const * data_ptr = this->data;
         int64_t new_nnz_tot = 0;
         for (int v=0; v<nvirt; v++){
-          printf("nnz_blk[%d] = %ld\n",v,nnz_blk[v]);
+          //printf("nnz_blk[%d] = %ld\n",v,nnz_blk[v]);
           if (nnz_blk[v] > 0){
             int64_t old_nnz = nnz_blk[v];
             new_pairs[v] = (char*)sr->pair_alloc(nnz_blk[v]);
@@ -2793,13 +2794,13 @@ namespace CTF_int {
     for (int i=0; i<nvirt_A; i++){
       if (csr){
         COO_Matrix cm(this->nnz_blk[i], this->sr);
-        cm.set_data(this->nnz_blk[i], this->order, this->lens, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
+        cm.set_data(this->nnz_blk[i], this->order, this->sym, this->lens, this->pad_edge_len, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
         //printf("m=%d, n=%d, nnz=%ld\n",m,n,this->nnz_blk[i]);
         CSR_Matrix cs(cm, m, n, this->sr, data_ptr_out);
         cdealloc(cm.all_data);
       } else {
         COO_Matrix cm(data_ptr_out);
-        cm.set_data(this->nnz_blk[i], this->order, this->lens, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
+        cm.set_data(this->nnz_blk[i], this->order, this->sym, this->lens, this->pad_edge_len, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
       }
       data_ptr_in += this->nnz_blk[i]*this->sr->pair_size();
       data_ptr_out += this->rec_tsr->nnz_blk[i];

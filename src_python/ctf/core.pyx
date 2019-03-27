@@ -829,7 +829,6 @@ cdef class tensor:
             self.sym = np.asarray([0]*self.ndim)
         else:
             self.sym = np.asarray(sym)
-        print("inside sym is", sym,"self.sym is",self.sym)
         if self.dtype == np.bool:
             self.itemsize = 1
         else:
@@ -2449,7 +2448,10 @@ cdef class tensor:
         value = deepcopy(value_init)
         [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape] = _setgetitem_helper(self, key_init)
         if is_single_val:
-            self.write(np.asarray([key]).reshape((1,self.ndim)),np.asarray(value,dtype=self.dtype).reshape(1))
+            if (comm().rank() == 0):
+                self.write(np.asarray([key]).reshape((1,self.ndim)),np.asarray(value,dtype=self.dtype).reshape(1))
+            else:
+                self.write([],[])
             return
         if isinstance(value, (np.int, np.float, np.complex, np.number)):
             tval = np.asarray([value],dtype=self.dtype)[0]

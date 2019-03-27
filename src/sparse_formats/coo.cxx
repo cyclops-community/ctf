@@ -72,7 +72,7 @@ namespace CTF_int {
     return (int*)(all_data + n*(v_sz+sizeof(int))+2*sizeof(int64_t));
   } 
 
-  void COO_Matrix::set_data(int64_t nz, int order, int const * lens, int all_fdim, int const * all_flen, int const * rev_ordering, int nrow_idx, char const * tsr_data, algstrct const * sr, int const * phase){
+  void COO_Matrix::set_data(int64_t nz, int order, int const * sym, int const * lens, int const * pad_edge_len, int all_fdim, int const * all_flen, int const * rev_ordering, int nrow_idx, char const * tsr_data, algstrct const * sr, int const * phase){
     TAU_FSTART(convert_to_COO);
     ((int64_t*)all_data)[0] = nz;
     ((int64_t*)all_data)[1] = sr->el_size;
@@ -87,10 +87,12 @@ namespace CTF_int {
       ordering[rev_ordering[i]]=i;
     }
     for (int i=0; i<all_fdim; i++){
-    //  printf("[%d] %d -> %d\n", lens[i], i, ordering[i]);
+      //printf("[%d] %d -> %d\n", all_flen[i], i, ordering[i]);
       rev_ord_lens[ordering[i]] = all_flen[i];//lens[i]/phase[i];
+      //assert(lens[i]%phase[i] == 0);
       //int ii = lens[i]/phase[i];
       //if (lens[i]%phase[i] > 0) ii++;
+      //assert(ii==all_flen[i]);
       //if (lens[i]%phase[i] > 0) rev_ord_lens[ordering[i]]++;
     }
     for (int i=0; i<all_fdim; i++){
@@ -113,16 +115,8 @@ namespace CTF_int {
     int * rs = rows();
     int * cs = cols();
     char * vs = vals();
-    /*int64_t * old_sub_edge_len_lda;
-    if (all_fdim != order){
-      old_sub_edge_len_lda = (int64_t*)alloc(sizeof(int64_t)*order);
-      int64_t lda = 1;
-      for (int i=0; i<order; i++){
-        old_sub_edge_len_lda[i] = lda;
-        lda *= lens[i]/phase[i];
-        assert(lens[i]%phase[i] == 0);
-      }
-    }*/
+
+    //printf("nz=%ld\n",nz);
 
 #ifdef USE_OMP
     #pragma omp parallel for
@@ -136,32 +130,45 @@ namespace CTF_int {
         // above if means we have symmetry and are folding multiple dimensions into one longer one
         // when this is the case, first need to transform global index to a local index
         int64_t k_new = 0;
-        int64_t sub_lda = 1;
         int64_t sup_lda = 1;
         int64_t sub_tot_lda = 1;
         int last_index = -1;
         int findex = 0;
         for (int j=0; j<order; j++){
           int64_t kpart = (k%lens[j])/phase[j];
-          k_new += kpart*sup_lda*sub_lda;
           k = k/lens[j];
-          printf("j=%d last_index = %d\n",j,last_index);
-          sub_tot_lda *= (lens[j]/phase[j] +(j-last_index-1))/(j-last_index);
-          if (!(last_index == j-1 && lens[j]/phase[j] == all_flen[findex]) || sub_tot_lda < all_flen[findex]){
-            sub_lda = 1;
+          if (j == 0){
+            k_new += kpart;
+            if (sym[0] == NS){
+              last_index = 0;
+              sup_lda = pad_edge_len[0]/phase[0];
+              findex = 1;
+            } else {
+              sub_tot_lda = pad_edge_len[0]/phase[0];
+            }
+          } else {
+            int64_t sub_lda = 1;
             for (int l=0; l<j-last_index; l++){
               sub_lda *= kpart+l;
               sub_lda /= (l+1);
             }
-          } else {
-            sub_tot_lda = 1;
-            sup_lda *= all_flen[findex];
-            sub_lda = 1;
-            findex++;
-            last_index = j;
+            k_new += sub_lda*sup_lda;
+            sub_tot_lda *= (pad_edge_len[j]/phase[j] +(j-last_index-1));
+            sub_tot_lda /= (j-last_index);
+
+            //printf("j=%d last_index = %d, mul %d\n",j,last_index,(pad_edge_len[j]/phase[j] +(j-last_index-1))/(j-last_index));
+            //printf("hlll %d %d %d %d %ld %d\n", last_index,j-1, pad_edge_len[j]/phase[j], all_flen[findex], sub_tot_lda , all_flen[findex]);
+            //if symmetric group of indices is of same size as next folded length, increment
+            if (sym[j] == NS){
+              sub_tot_lda = 1;
+              sup_lda *= all_flen[findex];
+              findex++;
+              last_index = j;
+            }
+            //printf("k_orig=%ld k=%ld lens[%d] = %d phase =%d, k_new =%ld, kpart =%ld, sub_lda = %ld, sup_lda=%ld\n",pi[i].k(),k,j,lens[j],phase[j],k_new,kpart,sub_lda,sup_lda);
           }
-          printf("k_orig=%ld k=%ld lens[%d] = %d phase =%d, k_new =%ld, kpart =%ld, sub_lda = %ld, sup_lda=%ld\n",pi[i].k(),k,j,lens[j],phase[j],k_new,kpart,sub_lda,sup_lda);
         }
+        //printf("all_fdim = %d, nrow_idx = %d\n",all_fdim,nrow_idx);
         for (int j=0; j<all_fdim; j++){
           int64_t kpart = k_new%all_flen[j];
           if (ordering[j] < nrow_idx){
@@ -185,15 +192,13 @@ namespace CTF_int {
           k=k/lens[j];
         }
       }
-      printf("k=%ld col = %d row = %d\n", pi[i].k(), cs[i], rs[i]);
       pi[i].read_val(vs+v_sz*i);
-      printf("wrote value ");
-      sr->print(pi[i].d());
-      printf(" at %p v_Sz = %d\n",vs+v_sz*i, v_sz);
+
+      //printf("k=%ld col = %d row = %d\n", pi[i].k(), cs[i], rs[i]);
+      //printf("wrote value ");
+      //sr->print(pi[i].d());
+      //printf(" at %p v_Sz = %d\n",vs+v_sz*i, v_sz);
     }
-    /*if (all_fdim != order){
-      cdealloc(old_sub_edge_len_lda);
-    }*/
     cdealloc(ordering);
     cdealloc(rev_ord_lens);
     cdealloc(lda_col);
@@ -211,8 +216,8 @@ namespace CTF_int {
     int * ordering = (int*)alloc(sizeof(int)*order);
     int64_t * lda_col = (int64_t*)alloc(sizeof(int64_t)*(order-nrow_idx));
     int64_t * lda_row = (int64_t*)alloc(sizeof(int64_t)*nrow_idx);
-    printf("ASDAHERE\n");
 
+    //FIXME: handle symmetric folded indices as in set_data
     for (int i=0; i<order; i++){
       ordering[rev_ordering[i]]=i;
     }
