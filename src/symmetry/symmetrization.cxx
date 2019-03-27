@@ -107,7 +107,6 @@ namespace CTF_int {
         if (scal_diag && num_sy+num_sy_neg==1){
           ctsr = new tensor(sym_tsr);
           if (ctsr->is_sparse){
-            printf("HARA\n");
             ctsr->zero_out_sparse_diagonal(is);
           } else {
             ctsr->sym[is] = SH;
