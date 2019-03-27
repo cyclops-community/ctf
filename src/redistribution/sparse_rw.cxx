@@ -309,15 +309,15 @@ namespace CTF_int {
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_rank);
     
     memset(virt_rank, 0, sizeof(int)*order);
-    bool * keep_vals; 
-    CTF_int::alloc_ptr(size*sizeof(bool), (void**)&keep_vals);
+    bool * vkeep_vals; 
+    CTF_int::alloc_ptr(size*sizeof(bool), (void**)&vkeep_vals);
     
     int virt_blk = 0;
     for (p=0;;p++){
       char const * data = vdata + sr->el_size*p*(size/nvirt);
-
-      buf_offset = 0;
+      bool * keep_vals = vkeep_vals + p*(size/nvirt);
     
+      buf_offset = 0;
       memset(idx, 0, order*sizeof(int));
       imax = edge_len[0]/phase[0];
       for (;;){
@@ -327,6 +327,10 @@ namespace CTF_int {
         for (i=0; i<imax; i++){
           ASSERT(buf_offset+i<size);
           keep_vals[buf_offset+i] = f(data+(buf_offset+i)*sr->el_size);
+          /*if (!keep_vals[buf_offset+i]){
+            sr->print(data+(buf_offset+i)*sr->el_size);
+            printf(" was found as invalid value\n");
+          }*/
           nnz_blk[virt_blk] += keep_vals[buf_offset+i];
         }
         buf_offset += imax;
@@ -357,6 +361,7 @@ namespace CTF_int {
     }
     int64_t * nnz_blk_lda = (int64_t*)alloc(sizeof(int64_t)*nvirt);
     nnz_blk_lda[0]=0;
+    //printf("in here nnz_blk[0]=%ld\n",nnz_blk[0]);
     for (int i=1; i<nvirt; i++){
       nnz_blk_lda[i] = nnz_blk_lda[i-1]+nnz_blk[i-1];
     } 
@@ -367,9 +372,12 @@ namespace CTF_int {
     virt_blk = 0;
     for (p=0;;p++){
       char const * data = vdata + sr->el_size*p*(size/nvirt);
+      bool const * keep_vals = vkeep_vals + p*(size/nvirt);
+    
+      buf_offset = 0;
       PairIterator pairs = PairIterator(sr, vpairs + sr->pair_size()*nnz_blk_lda[virt_blk]);
 
-      idx_offset = 0, buf_offset = 0;
+      idx_offset = 0;
       for (act_lda=1; act_lda<order; act_lda++){
         idx_offset += phase_rank[act_lda]*edge_lda[act_lda];
       } 
@@ -388,7 +396,12 @@ namespace CTF_int {
             pairs[nnz_blk[virt_blk]].write_key(idx_offset+i*phase[0]+phase_rank[0]);
             pairs[nnz_blk[virt_blk]].write_val(data+(buf_offset+i)*sr->el_size);
             nnz_blk[virt_blk]++;
-          }
+          } /*else {
+            if (!keep_vals[buf_offset+i]){
+              sr->print(data+(buf_offset+i)*sr->el_size);
+              printf(" was not written in\n");
+            }
+          }*/
         }
         buf_offset += imax;
         /* Increment indices and set up offsets */
@@ -420,8 +433,9 @@ namespace CTF_int {
       virt_blk++;
       if (act_lda >= order) break;
     }
+    //printf("buf_offset = %ld, size = %ld\n",buf_offset, size);
 
-    CTF_int::cdealloc(keep_vals);
+    CTF_int::cdealloc(vkeep_vals);
     CTF_int::cdealloc(nnz_blk_lda);
     CTF_int::cdealloc(idx);
     CTF_int::cdealloc(virt_rank);

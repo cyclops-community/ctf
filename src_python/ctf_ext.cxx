@@ -368,6 +368,13 @@ CONV_FCOMPLEX_INST(double,double)
     }
   }
 
+  void delete_arr(tensor const * dt, char * arr){
+    dt->sr->dealloc(arr);
+  }
+
+  void delete_pairs(tensor const * dt, char * pairs){
+    dt->sr->pair_dealloc(pairs);
+  }
 
 	// conjugate complex tensor
 	template void conj_helper<float>(tensor * A, tensor * B);

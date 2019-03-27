@@ -99,4 +99,6 @@ namespace CTF_int{
    */
   void conv_type(int type_idx1, int type_idx2, tensor * A, tensor * B);
 
+  void delete_arr(tensor const * dt, char * arr);
+  void delete_pairs(tensor const * dt, char * pairs);
 }

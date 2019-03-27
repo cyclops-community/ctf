@@ -761,4 +761,57 @@ namespace CTF_int {
     TAU_FSTOP(scal_diag);
   }
 
+  void sp_scal_diag(int              order,
+                    int const *      lens,
+                    int const *      sym,
+                    int64_t          nnz_loc,
+                    char *           vdata,
+                    algstrct const * sr,
+                    int const *      sym_mask){
+    TAU_FSTART(sp_scal_diag);
+    PairIterator pairs(sr, vdata);
+#ifdef USE_OMP
+    #pragma omp parallel
+#endif
+    {
+      int * kparts = (int*)CTF_int::alloc(sizeof(int)*order);
+      char * scal_fact = (char*)CTF_int::alloc(sizeof(char)*sr->el_size);
+
+#ifdef USE_OMP
+      #pragma omp for
+#endif
+      for (int64_t ik=0; ik<nnz_loc; ik++){
+        int perm_factor;
+        int64_t k = pairs[ik].k();
+        for (int j=0; j<order; j++){
+          kparts[j] = k % lens[j];
+          k = k / lens[j];
+        }
+        perm_factor = 1;
+        for (int i=0; i<order; i++){
+          if (sym_mask[i] == 1){
+            int iperm = 1;
+            // FIXME: not robust to multiple symmetric groups
+            for (int j=i+1; j<order; j++){
+              if (sym_mask[j] == 1){
+                if (kparts[i] == kparts[j]) iperm++;
+              }
+            }
+            perm_factor *= iperm;
+          }
+        }
+        if (perm_factor > 1){
+          sr->cast_double(1./perm_factor, scal_fact);
+          //printf("k = %ld multiplying by %lf\n",pairs[ik].k(),1./perm_factor);
+          sr->mul(pairs[ik].d(),scal_fact,pairs[ik].d());
+          //sr->print(pairs[ik].d());
+        }
+      }
+      CTF_int::cdealloc(kparts);
+      CTF_int::cdealloc(scal_fact);
+    }
+    TAU_FSTOP(sp_scal_diag);
+  }
+
+
 }

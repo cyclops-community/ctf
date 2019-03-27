@@ -94,15 +94,19 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
                   char *  beta,
                   char *  data);
         int read_local(int64_t * num_pair,
-                       char **   data)
+                       char **   data,
+                       bool      unpack_sym)
         int read_local(int64_t * num_pair,
                        int64_t ** inds,
-                       char **   data)
+                       char **   data,
+                       bool      unpack_sym)
         int read_local_nnz(int64_t * num_pair,
                            int64_t ** inds,
-                           char **   data)
+                           char **   data,
+                           bool      unpack_sym)
         int read_local_nnz(int64_t * num_pair,
-                           char **   data)
+                           char **   data,
+                           bool      unpack_sym)
 
         void allread(int64_t * num_pair, char * data, bool unpack)
         void slice(int *, int *, char *, ctensor *, int *, int *, char *)
@@ -179,6 +183,8 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void matrix_qr(ctensor * A, ctensor * Q, ctensor * R)
     cdef void matrix_qr_cmplx(ctensor * A, ctensor * Q, ctensor * R)
     cdef void conv_type(int type_idx1, int type_idx2, ctensor * A, ctensor * B)
+    cdef void delete_arr(ctensor * A, char * arr)
+    cdef void delete_pairs(ctensor * A, char * pairs)
 
 cdef extern from "ctf.hpp" namespace "CTF":
 
@@ -208,8 +214,8 @@ cdef extern from "ctf.hpp" namespace "CTF":
         Typ_Idx_Tensor i(char *)
         void read(int64_t, int64_t *, dtype *)
         void read(int64_t, dtype, dtype, int64_t *, dtype *)
-        void read_local(int64_t *, int64_t **, dtype **)
-        void read_local_nnz(int64_t *, int64_t **, dtype **)
+        void read_local(int64_t *, int64_t **, dtype **, bool unpack_sym)
+        void read_local_nnz(int64_t *, int64_t **, dtype **, bool unpack_sym)
         void write(int64_t, int64_t *, dtype *)
         void write(int64_t, dtype, dtype, int64_t *, dtype *)
         dtype norm1()
@@ -476,6 +482,7 @@ cdef class itensor(term):
 
     def scl(self, s):
         self.it.multeq(<double>s)
+        return self
 
 def _rev_array(arr):
     if len(arr) == 1:
@@ -523,7 +530,11 @@ cdef class tensor:
         Bytes memory order for the tensor.
 
     sym: ndarray
-        ?
+        Symmetry description of the tensor,
+        sym[i] describes symmetry relation SY/AS/SH of mode i to mode i+1
+        NS (0) is nonsymmetric, SY (1) is symmetric, AS (2) is antisymmetric,
+        SH (3) is symmetric with zero diagonal
+        
 
     Methods
     -------
@@ -834,11 +845,11 @@ cdef class tensor:
                 strides[i] = self.shape[i+1] * strides[i+1]
         self.strides = tuple(strides)
         rlens = lens[:]
-        rsym = self.sym[:]
+        rsym = self.sym.copy()
         if _ord_comp(self.order, 'F'):
             rlens = _rev_array(lens)
             if self.ndim > 1:
-                rsym = _rev_array(self.sym)
+                rsym = _rev_array(rsym)
                 rsym[0:-1] = rsym[1:]
                 rsym[-1] = SYM.NS
         cdef int * clens
@@ -1771,6 +1782,7 @@ cdef class tensor:
         for i in range(len(newshape)):
             if newshape[i] < 0:
                 nega += 1
+        B = None
         if nega == 0:
             for i in range(len(newshape)):
                 new_size *= newshape[i]
@@ -1779,7 +1791,6 @@ cdef class tensor:
             B = tensor(newshape,sp=self.sp,dtype=self.dtype)
             inds, vals = self.read_local_nnz()
             B.write(inds, vals)
-            return B
         elif nega == 1:
             pos = 0
             for i in range(len(newshape)):
@@ -1794,10 +1805,9 @@ cdef class tensor:
             B = tensor(newshape,sp=self.sp,dtype=self.dtype)
             inds, vals = self.read_local_nnz()
             B.write(inds, vals)
-            return B
         else:
             raise ValueError('CTF PYTHON ERROR: can only specify one unknown dimension')
-        return None
+        return B
 
     def ravel(self, order="F"):
         """
@@ -1972,15 +1982,23 @@ cdef class tensor:
         else:
             raise ValueError("casting must be one of 'no', 'equiv', 'safe', 'same_kind', or 'unsafe'")
 
-    def read_local(self):
+    def read_local(self, unpack_sym=True):
         """
         read_local()
-        Helper function on reading a tensor.
+        Obtains tensor values stored on this MPI process
+
+        Parameters
+        ----------
+        unpack_sym: if true retrieves symmetrically equivalent entries, if alse only the ones unique up to symmetry
+        Returns
+        inds: array of global indices of nonzeros
+        vals: array of values of nonzeros
+        -------
         """
         cdef int64_t * cinds
         cdef char * cdata
         cdef int64_t n
-        self.dt.read_local(&n,&cdata)
+        self.dt.read_local(&n,&cdata,unpack_sym)
         inds = np.empty(n, dtype=np.int64)
         vals = np.empty(n, dtype=self.dtype)
 
@@ -1990,7 +2008,7 @@ cdef class tensor:
         vals[:] = buf['b'][:]
         inds[:] = buf['a'][:]
         buf.data = d
-        free(cdata)
+        delete_pairs(self.dt, cdata)
         return inds, vals
 
     def dot(self, other, out=None):
@@ -2066,15 +2084,23 @@ cdef class tensor:
         return tensordot(self,other,axes)
 
 
-    def read_local_nnz(self):
+    def read_local_nnz(self,unpack_sym=True):
         """
         read_local_nnz()
-        Helper function on reading a tensor.
+        Obtains nonzeros of tensor stored on this MPI process
+
+        Parameters
+        ----------
+        unpack_sym: if true retrieves symmetrically equivalent entries, if alse only the ones unique up to symmetry
+        Returns
+        inds: array of global indices of nonzeros
+        vals: array of values of nonzeros
+        -------
         """
         cdef int64_t * cinds
         cdef char * cdata
         cdef int64_t n
-        self.dt.read_local_nnz(&n,&cdata)
+        self.dt.read_local_nnz(&n,&cdata,unpack_sym)
         inds = np.empty(n, dtype=np.int64)
         vals = np.empty(n, dtype=self.dtype)
         cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=_use_align_for_pair(self.dtype)))
@@ -2083,7 +2109,7 @@ cdef class tensor:
         vals[:] = buf['b'][:]
         inds[:] = buf['a'][:]
         buf.data = d
-        free(cdata)
+        delete_arr(self.dt, cdata)
         return inds, vals
 
     def _tot_size(self, unpack=True):
@@ -2354,7 +2380,7 @@ cdef class tensor:
             return self.reshape(corr_shape)
 
         if is_single_val:
-            vals = self.read([key])
+            vals = self.read(np.asarray([key]).reshape(1,self.ndim))
             return vals[0]
 
         if is_contig:
@@ -2422,7 +2448,10 @@ cdef class tensor:
         value = deepcopy(value_init)
         [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape] = _setgetitem_helper(self, key_init)
         if is_single_val:
-            self.write([key],np.asarray(value,dtype=self.dtype))
+            if (comm().rank() == 0):
+                self.write(np.asarray([key]).reshape((1,self.ndim)),np.asarray(value,dtype=self.dtype).reshape(1))
+            else:
+                self.write([],[])
             return
         if isinstance(value, (np.int, np.float, np.complex, np.number)):
             tval = np.asarray([value],dtype=self.dtype)[0]

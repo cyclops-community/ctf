@@ -76,6 +76,25 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(nrm2<=nrm)
         self.assertTrue(nrm3<=nrm2)
 
+    def test_sparse_SY(self):
+        A = ctf.tensor((4,4),sym=[ctf.SYM.SY,ctf.SYM.NS])
+        AA = ctf.tensor((3,3,3),sym=[ctf.SYM.NS,ctf.SYM.SY,ctf.SYM.NS])
+        B = ctf.tensor((4,4,4,4),sym=[ctf.SYM.NS,ctf.SYM.NS,ctf.SYM.SY,ctf.SYM.NS])
+        C = ctf.tensor((4,4,4,4),sym=[ctf.SYM.SY,ctf.SYM.NS,ctf.SYM.NS,ctf.SYM.NS])
+        D = ctf.tensor((4,4,4,4),sym=[ctf.SYM.SY,ctf.SYM.NS,ctf.SYM.SY,ctf.SYM.NS])
+        E = ctf.tensor((4,4,4,4),sym=[ctf.SYM.SY,ctf.SYM.SY,ctf.SYM.SY,ctf.SYM.NS])
+
+        for X in [A,AA,B,C,D,E]:
+            X.fill_random(1.,1.)
+            Y = X.sparsify(0.)
+            #print("TEST")
+            #print(X.shape,X.sym)
+            #print(X)
+            #print("norms are",ctf.vecnorm(X),ctf.vecnorm(Y))
+            self.assertTrue(allclose(X,Y))
+            self.assertTrue(allclose(X-Y,0.))
+            self.assertTrue(allclose(ctf.vecnorm(X),ctf.vecnorm(Y)))
+
 if __name__ == "__main__":
     numpy.random.seed(5330);
     if ctf.comm().rank() != 0:
