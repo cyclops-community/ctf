@@ -136,6 +136,24 @@ namespace CTF_int {
                  algstrct const * sr,
                  int const *      sym_mask);
 
+  /**
+   * \brief scales each element by 1/(number of entries equivalent to it after permutation of indices for which sym_mask is 1)
+   * \param[in] order tensor dimension
+   * \param[in] lens tensor edge lengths
+   * \param[in] sym symmetries of tensor
+   * \param[in] nnz_loc number of local nonzeros
+   * \param[in,out] vdata array of all local data pairs
+   * \param[in] sr algstrct defines sizeo of each pair
+   * \param[in] sym_mask identifies which tensor indices are part of the symmetric group which diagonals we want to scale (i.e. sym_mask [1,1] does A["ii"]= (1./2.)*A["ii"])
+*/
+
+  void sp_scal_diag(int              order,
+                    int const *      lens,
+                    int const *      sym,
+                    int64_t          nnz_loc,
+                    char *           vdata,
+                    algstrct const * sr,
+                    int const *      sym_mask);
 }
 
 #endif

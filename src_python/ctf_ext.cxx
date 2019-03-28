@@ -100,6 +100,11 @@ namespace CTF_int{
   }
 
 
+  void subsample(tensor * A, double probability){
+    int ret = A->sparsify([=](char const * c){ return CTF_int::get_rand48() < probability; });
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function sparisfy\n"); IASSERT(0); return; }
+  }
+
 
   void matrix_qr(tensor * A, tensor * Q, tensor * R){
     switch (A->sr->el_size){
@@ -363,6 +368,13 @@ CONV_FCOMPLEX_INST(double,double)
     }
   }
 
+  void delete_arr(tensor const * dt, char * arr){
+    dt->sr->dealloc(arr);
+  }
+
+  void delete_pairs(tensor const * dt, char * pairs){
+    dt->sr->pair_dealloc(pairs);
+  }
 
 	// conjugate complex tensor
 	template void conj_helper<float>(tensor * A, tensor * B);

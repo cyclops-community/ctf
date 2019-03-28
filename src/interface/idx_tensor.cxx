@@ -129,7 +129,7 @@ namespace CTF {
       }
 
       if (copy || other.is_intm){
-        parent = new CTF_int::tensor(other.parent,1);
+        parent = new CTF_int::tensor(other.parent,other.parent->is_mapped,other.parent->is_mapped);
         is_intm = 1;
       } else {
         // leave parent as is - already correct
@@ -214,35 +214,22 @@ namespace CTF {
       sr->safecopy(scale,sr->mulid());
     }
   }
-
-  void Idx_Tensor::operator<<(Term const & B){
-    if (global_schedule != NULL) {
-      global_schedule->add_operation(
-          new TensorOperation(TENSOR_OP_SUM, new Idx_Tensor(*this), B.clone()));
-    } else {
-      //sr->copy(scale,sr->mulid());
-      B.execute(*this);
-      sr->safecopy(scale,sr->mulid());
-    }
-  }
-  void Idx_Tensor::operator<<(double scl){ execute() += Idx_Tensor(sr,scl); }
-
   
-  void Idx_Tensor::operator=(double scl){ execute() = Idx_Tensor(sr,scl); }
-  void Idx_Tensor::operator+=(double scl){ execute() += Idx_Tensor(sr,scl); }
-  void Idx_Tensor::operator-=(double scl){ execute() -= Idx_Tensor(sr,scl); }
-  void Idx_Tensor::operator*=(double scl){ execute() *= Idx_Tensor(sr,scl); }
-  void Idx_Tensor::multeq(double scl){ execute() *= Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator=(double scl){ this->execute(this->get_uniq_inds()) = Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator+=(double scl){ this->execute(this->get_uniq_inds()) += Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator-=(double scl){ this->execute(this->get_uniq_inds()) -= Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator*=(double scl){ this->execute(this->get_uniq_inds()) *= Idx_Tensor(sr,scl); }
+  void Idx_Tensor::multeq(double scl){ this->execute(this->get_uniq_inds()) *= Idx_Tensor(sr,scl); }
 
-  void Idx_Tensor::operator=(int64_t scl){ execute() = Idx_Tensor(sr,scl); }
-  void Idx_Tensor::operator+=(int64_t scl){ execute() += Idx_Tensor(sr,scl); }
-  void Idx_Tensor::operator-=(int64_t scl){ execute() -= Idx_Tensor(sr,scl); }
-  void Idx_Tensor::operator*=(int64_t scl){ execute() *= Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator=(int64_t scl){ this->execute(this->get_uniq_inds()) = Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator+=(int64_t scl){ this->execute(this->get_uniq_inds()) += Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator-=(int64_t scl){ this->execute(this->get_uniq_inds()) -= Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator*=(int64_t scl){ this->execute(this->get_uniq_inds()) *= Idx_Tensor(sr,scl); }
 
-  void Idx_Tensor::operator=(int scl){ execute() = Idx_Tensor(sr,(int64_t)scl); }
-  void Idx_Tensor::operator+=(int scl){ execute() += Idx_Tensor(sr,(int64_t)scl); }
-  void Idx_Tensor::operator-=(int scl){ execute() -= Idx_Tensor(sr,(int64_t)scl); }
-  void Idx_Tensor::operator*=(int scl){ execute() *= Idx_Tensor(sr,(int64_t)scl); }
+  void Idx_Tensor::operator=(int scl){ this->execute(this->get_uniq_inds()) = Idx_Tensor(sr,(int64_t)scl); }
+  void Idx_Tensor::operator+=(int scl){ this->execute(this->get_uniq_inds()) += Idx_Tensor(sr,(int64_t)scl); }
+  void Idx_Tensor::operator-=(int scl){ this->execute(this->get_uniq_inds()) -= Idx_Tensor(sr,(int64_t)scl); }
+  void Idx_Tensor::operator*=(int scl){ this->execute(this->get_uniq_inds()) *= Idx_Tensor(sr,(int64_t)scl); }
 
   /*Idx_Tensor Idx_Tensor::operator-() const {
 
@@ -300,7 +287,7 @@ namespace CTF {
     } 
   }
 
-  Idx_Tensor Idx_Tensor::execute() const {
+  Idx_Tensor Idx_Tensor::execute(std::vector<char> out_inds) const {
     return *this;
   }
 
@@ -317,8 +304,17 @@ namespace CTF {
     } 
   }
 
-  Idx_Tensor Idx_Tensor::estimate_time(double & cost) const {
+  Idx_Tensor Idx_Tensor::estimate_time(double & cost, std::vector<char> out_inds) const {
     return *this;
+  }
+
+  std::vector<char> Idx_Tensor::get_uniq_inds() const {
+    if (parent == NULL) return std::vector<char>();
+    std::set<char> uniq_inds;
+    for (int k=0; k<this->parent->order; k++){
+      uniq_inds.insert(idx_map[k]);
+    }
+    return std::vector<char>(uniq_inds.begin(), uniq_inds.end());
   }
 
   void Idx_Tensor::get_inputs(std::set<Idx_Tensor*, tensor_name_less >* inputs_set) const {

@@ -34,7 +34,7 @@ int univar_function(int     n,
   //CTF::Function<> ufun(&fquad);
   CTF::Function<> ufun([](double a){ return a*a*a*a; });
   // below is equivalent to A.scale(1.0, "ijkl", ufun);
-  .5*A["ijkl"]+=ufun(.5*A["ijkl"]);
+  .25*A["ijkl"]+=ufun(.75*A["ijkl"]);
 
   double * all_end_data;
   int64_t nall2;
@@ -43,7 +43,7 @@ int univar_function(int     n,
   int pass = (nall == nall2);
   if (pass){
     for (int64_t i=0; i<nall; i++){
-      if (fabs(.5*all_start_data[i]+fquad(.5*all_start_data[i])-all_end_data[i])>=1.E-6) pass =0;
+      if (fabs(.25*all_start_data[i]+fquad(.75*all_start_data[i])-all_end_data[i])>=1.E-6) pass =0;
     }
   } 
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);

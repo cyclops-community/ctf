@@ -77,6 +77,13 @@ namespace CTF_int{
    */
   int64_t sum_bool_tsr(tensor * A);
 
+  /**
+   * \brief extract a sample of the entries (if sparse of the current nonzeros)
+  * \param[in] A tensor to sample
+  * \param[in] probability keep each entry with probability
+  */
+  void subsample(tensor * A, double probability);
+
   void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank);
   void matrix_svd_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank);
   
@@ -92,4 +99,6 @@ namespace CTF_int{
    */
   void conv_type(int type_idx1, int type_idx2, tensor * A, tensor * B);
 
+  void delete_arr(tensor const * dt, char * arr);
+  void delete_pairs(tensor const * dt, char * pairs);
 }

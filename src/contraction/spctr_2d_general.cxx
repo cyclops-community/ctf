@@ -257,13 +257,11 @@ namespace CTF_int {
         new_nblk_C = nblk_C;
         op_C = C;
       } else {
-new_nblk_C = nblk_C/edge_len;
-        if (is_sparse_C){
-          CTF_int::alloc_ptr(sizeof(int64_t)*new_nblk_C, (void**)&new_size_blk_C);
-          memcpy(new_size_blk_C, size_blk_C+ib*ctr_sub_lda_C, sizeof(int64_t)*new_nblk_C);
-        }
+        new_nblk_C = nblk_C/edge_len;
         if (ctr_lda_C == 1){
           if (is_sparse_C){
+            CTF_int::alloc_ptr(sizeof(int64_t)*new_nblk_C, (void**)&new_size_blk_C);
+            memcpy(new_size_blk_C, size_blk_C+ib*ctr_sub_lda_C, sizeof(int64_t)*new_nblk_C);
             op_C = C+offsets_C[ib*ctr_sub_lda_C];
           } else {
             op_C = C+sr_C->el_size*ib*ctr_sub_lda_C;
@@ -271,6 +269,8 @@ new_nblk_C = nblk_C/edge_len;
         } else {
           op_C = buf_C;
           rec_beta = sr_C->addid();
+          CTF_int::alloc_ptr(sizeof(int64_t)*new_nblk_C, (void**)&new_size_blk_C);
+          memset(new_size_blk_C, 0, sizeof(int64_t)*new_nblk_C);
         }
       }
     } 
@@ -425,6 +425,7 @@ new_nblk_C = nblk_C/edge_len;
       host_pinned_alloc((void**)&buf_A, s_A*sr_A->el_size);
       host_pinned_alloc((void**)&buf_B, s_B*sr_B->el_size);
       host_pinned_alloc((void**)&buf_C, s_C*sr_C->el_size);
+    }
 #endif
     if (0){
     } else {
@@ -478,6 +479,7 @@ new_nblk_C = nblk_C/edge_len;
     int new_nblk_C = nblk_C;
 
     new_C = C;
+    up_C = NULL;
 
     for (ib=iidx_lyr; ib<edge_len; ib+=inum_lyr){
       op_A = bcast_step(edge_len, A, is_sparse_A, move_A, sr_A, b_A, s_A, buf_A, cdt_A, ctr_sub_lda_A, ctr_lda_A, nblk_A, size_blk_A, new_nblk_A, new_size_blk_A, offsets_A, ib);
@@ -523,13 +525,17 @@ new_nblk_C = nblk_C/edge_len;
       host_pinned_free(buf_A);
       host_pinned_free(buf_B);
       host_pinned_free(buf_C);
+    }
 #endif
     if (n_new_C_grps > 1){
       ASSERT(i_new_C_grp == n_new_C_grps);
       int64_t new_sz_C = 0;
-      int64_t new_offsets_C[nblk_C];
-      int64_t grp_offsets_C[nblk_C/n_new_C_grps];
-      int64_t grp_sizes_C[nblk_C/n_new_C_grps];
+      int64_t * new_offsets_C;
+      int64_t * grp_offsets_C;
+      int64_t * grp_sizes_C;
+      CTF_int::alloc_ptr(sizeof(int64_t)*nblk_C, (void**)&new_offsets_C);
+      CTF_int::alloc_ptr(sizeof(int64_t)*nblk_C/n_new_C_grps, (void**)&grp_offsets_C);
+      CTF_int::alloc_ptr(sizeof(int64_t)*nblk_C/n_new_C_grps, (void**)&grp_sizes_C);
       for (int i=0; i<nblk_C; i++){
         new_offsets_C[i] = new_sz_C;
         new_sz_C += size_blk_C[i];
@@ -539,9 +545,9 @@ new_nblk_C = nblk_C/edge_len;
         int64_t last_grp_offset = 0;
         for (int j=0; j<ctr_sub_lda_C; j++){ 
           for (int k=0; k<ctr_lda_C; k++){ 
-            grp_offsets_C[ctr_sub_lda_B*k+j] = last_grp_offset;
-            grp_sizes_C[ctr_sub_lda_B*k+j] = size_blk_C[ctr_sub_lda_C*(i+n_new_C_grps*k)+j];
-            last_grp_offset += grp_sizes_C[ctr_sub_lda_B*k+j];
+            grp_offsets_C[ctr_sub_lda_C*k+j] = last_grp_offset;
+            grp_sizes_C[ctr_sub_lda_C*k+j] = size_blk_C[ctr_sub_lda_C*(i+n_new_C_grps*k)+j];
+            last_grp_offset += grp_sizes_C[ctr_sub_lda_C*k+j];
           }
         }
 //        printf("copying %ld %ld elements from matrix of size %ld from offset %ld to offset %ld\n", size_blk_C[0], grp_sizes_C[0], ((CSR_Matrix)new_C_grps[i]).size(), grp_offsets_C[0], new_offsets_C[0]);
@@ -550,6 +556,9 @@ new_nblk_C = nblk_C/edge_len;
                size_blk_C+i*ctr_sub_lda_C, new_offsets_C+i*ctr_sub_lda_C, new_C);
         cdealloc(new_C_grps[i]);
       }
+      cdealloc(new_offsets_C);
+      cdealloc(grp_offsets_C);
+      cdealloc(grp_sizes_C);
     }
     if (move_C && is_sparse_C && C != NULL){
       char * new_Cs[nblk_C];

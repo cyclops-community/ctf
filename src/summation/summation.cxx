@@ -130,8 +130,18 @@ namespace CTF_int {
   }
   
   double summation::estimate_time(){
-    assert(0); //FIXME
-    return 0.0;
+    int np = std::max(A->wrld->np,B->wrld->np);
+    double flop_rate = 1.E9*np;
+    double flops = 0.;
+    if (A->is_sparse)
+      flops += A->nnz_tot;
+    else
+      flops += A->size*np;
+    if (B->is_sparse)
+      flops += B->nnz_tot;
+    else
+      flops += B->size*np;
+    return flops/flop_rate;
   }
 
   void summation::get_fold_indices(int *  num_fold,
@@ -1251,7 +1261,7 @@ namespace CTF_int {
         int sidx2 = unfold_sum->unfold_broken_sym(NULL);
         if (sidx%2 == 0 && (A->sym[sidx/2] == SY || unfold_sum->A->sym[sidx/2] == SY)) sy = 1;
         if (sidx%2 == 1 && (B->sym[sidx/2] == SY || unfold_sum->B->sym[sidx/2] == SY)) sy = 1;
-        if (!A->is_sparse && !B->is_sparse && (sidx2 != -1 || 
+        if ((sidx2 != -1 || 
             (sy && (sidx%2 == 0  || !tnsr_B->sr->isequal(new_sum.beta, tnsr_B->sr->addid()))))){
           if (sidx%2 == 0){
             if (unfold_sum->A->sym[sidx/2] == NS){

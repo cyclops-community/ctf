@@ -26,11 +26,13 @@ namespace CTF_int {
 
       void execute(CTF::Idx_Tensor output) const;
 
-      CTF::Idx_Tensor execute() const;
+      CTF::Idx_Tensor execute(std::vector<char> out_inds) const;
 
-      CTF::Idx_Tensor estimate_time(double  & cost) const;
+      CTF::Idx_Tensor estimate_time(double  & cost, std::vector<char> out_inds) const;
 
-      double  estimate_time(CTF::Idx_Tensor output) const;
+      double estimate_time(CTF::Idx_Tensor output) const;
+
+      std::vector<char> get_uniq_inds() const;
 
       void get_inputs(std::set<CTF::Idx_Tensor*, tensor_name_less >* inputs_set) const;
 
@@ -56,11 +58,13 @@ namespace CTF_int {
 
       void execute(CTF::Idx_Tensor output) const;
 
-      CTF::Idx_Tensor execute() const;
+      CTF::Idx_Tensor execute(std::vector<char> out_inds) const;
 
-      CTF::Idx_Tensor estimate_time(double  & cost) const;
+      CTF::Idx_Tensor estimate_time(double  & cost, std::vector<char> out_inds) const;
 
-      double  estimate_time(CTF::Idx_Tensor output) const;
+      double estimate_time(CTF::Idx_Tensor output) const;
+
+      std::vector<char> get_uniq_inds() const;
 
       void get_inputs(std::set<CTF::Idx_Tensor*, tensor_name_less >* inputs_set) const;
 

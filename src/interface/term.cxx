@@ -17,7 +17,7 @@ namespace CTF_int {
 }
 
 namespace CTF_int {
-
+/*
   Idx_Tensor * get_full_intm(Idx_Tensor& A, 
                              Idx_Tensor& B){
     int * len_C, * sym_C;
@@ -116,17 +116,18 @@ namespace CTF_int {
     cdealloc(idx_C);
     return out;
 
-  }
+  }*/
 
   Idx_Tensor * get_full_intm(Idx_Tensor& A, 
                              Idx_Tensor& B,
-                             int num_out_inds,
-                             char const * out_inds){
+                             std::vector<char> out_inds,
+                             bool create_dummy=false,
+                             bool contract=true){
 
     int * len_C, * sym_C;
     char * idx_C;
     int order_C, i, j;
-    
+    int num_out_inds = (int)out_inds.size(); 
     idx_C = (char*)alloc(sizeof(char)*num_out_inds);
     sym_C = (int*)alloc(sizeof(int)*num_out_inds);
     len_C = (int*)alloc(sizeof(int)*num_out_inds);
@@ -144,15 +145,14 @@ namespace CTF_int {
           else sym_prev = NS;
         }
       }
-      if (!found){
-        for (i=0; i<B.parent->order; i++){
-          if (B.idx_map[i] == out_inds[j]){
-            found = true;
-            len = B.parent->lens[i];
-            if (sym_prev != NS && i>0 && order_C>0 && B.idx_map[i-1] == idx_C[order_C-1]) sym_prev = B.parent->sym[i-1];
-            else sym_prev = NS;
+      // do block even if found above in order to adjust symmetry
+      for (i=0; i<B.parent->order; i++){
+        if (B.idx_map[i] == out_inds[j]){
+          found = true;
+          len = B.parent->lens[i];
+          if (sym_prev != NS && i>0 && order_C>0 && B.idx_map[i-1] == idx_C[order_C-1]) sym_prev = B.parent->sym[i-1];
+          else sym_prev = NS;
 
-          }
         }
       }
       if (found){
@@ -164,7 +164,21 @@ namespace CTF_int {
         order_C++;
       }
     }
-    tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, 1);
+    bool is_sparse_C = A.parent->is_sparse && B.parent->is_sparse;
+    tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, !create_dummy, NULL, false, is_sparse_C);
+
+    //estimate number of nonzeros
+    if (create_dummy && is_sparse_C){
+      if (contract){
+        contraction ctr(A.parent, A.idx_map, B.parent, B.idx_map, tsr_C->sr->mulid(), tsr_C, idx_C, tsr_C->sr->addid());
+        //double dense_flops = ctr->estimate_num_dense_flops();
+        double flops = ctr.estimate_num_flops();
+        double est_nnz = std::min(flops,((double)tsr_C->size)*tsr_C->wrld->np);
+        tsr_C->nnz_tot = (int64_t)est_nnz;
+      } else {
+        tsr_C->nnz_tot = std::min(A.parent->nnz_tot+B.parent->nnz_tot,tsr_C->size*tsr_C->wrld->np);
+      }
+    }
     Idx_Tensor * out = new Idx_Tensor(tsr_C, idx_C);
     out->is_intm = 1;
     cdealloc(sym_C);
@@ -172,7 +186,6 @@ namespace CTF_int {
     cdealloc(idx_C);
     return out;
   }
-
 
   //general Term functions, see ../../include/ctf.hpp for doxygen comments
 
@@ -212,6 +225,10 @@ namespace CTF_int {
     }
   }
 
+  void Term::mult_scl(char const * mulscl){
+    sr->safemul(scale,mulscl,scale);
+  }
+
   Contract_Term Term::operator*(Term const & A) const {
     Contract_Term trm(this->clone(),A.clone());
     return trm;
@@ -233,25 +250,25 @@ namespace CTF_int {
     return trm;
   }
 
-  void Term::operator=(CTF::Idx_Tensor const & B){ execute() = B; }
-  void Term::operator=(Term const & B){ execute() = B; }
-  void Term::operator+=(Term const & B){ execute() += B; }
-  void Term::operator-=(Term const & B){ execute() -= B; }
-  void Term::operator*=(Term const & B){ execute() *= B; }
+  void Term::operator=(CTF::Idx_Tensor const & B){ this->execute(this->get_uniq_inds()) = B; }
+  void Term::operator=(Term const & B){ this->execute(this->get_uniq_inds()) = B; }
+  void Term::operator+=(Term const & B){ this->execute(this->get_uniq_inds()) += B; }
+  void Term::operator-=(Term const & B){ this->execute(this->get_uniq_inds()) -= B; }
+  void Term::operator*=(Term const & B){ this->execute(this->get_uniq_inds()) *= B; }
 
-  void Term::operator=(double scl){ execute() = Idx_Tensor(sr,scl); }
-  void Term::operator+=(double scl){ execute() += Idx_Tensor(sr,scl); }
-  void Term::operator-=(double scl){ execute() -= Idx_Tensor(sr,scl); }
-  void Term::operator*=(double scl){ execute() *= Idx_Tensor(sr,scl); }
+  void Term::operator=(double scl){ this->execute(this->get_uniq_inds()) = Idx_Tensor(sr,scl); }
+  void Term::operator+=(double scl){ this->execute(this->get_uniq_inds()) += Idx_Tensor(sr,scl); }
+  void Term::operator-=(double scl){ this->execute(this->get_uniq_inds()) -= Idx_Tensor(sr,scl); }
+  void Term::operator*=(double scl){ this->execute(this->get_uniq_inds()) *= Idx_Tensor(sr,scl); }
 
-  void Term::operator=(int64_t scl){ execute() = Idx_Tensor(sr,scl); }
-  void Term::operator+=(int64_t scl){ execute() += Idx_Tensor(sr,scl); }
-  void Term::operator-=(int64_t scl){ execute() -= Idx_Tensor(sr,scl); }
-  void Term::operator*=(int64_t scl){ execute() *= Idx_Tensor(sr,scl); }
-  void Term::operator=(int scl){ execute() = Idx_Tensor(sr,(int64_t)scl); }
-  void Term::operator+=(int scl){ execute() += Idx_Tensor(sr,(int64_t)scl); }
-  void Term::operator-=(int scl){ execute() -= Idx_Tensor(sr,(int64_t)scl); }
-  void Term::operator*=(int scl){ execute() *= Idx_Tensor(sr,(int64_t)scl); }
+  void Term::operator=(int64_t scl){ this->execute(this->get_uniq_inds()) = Idx_Tensor(sr,scl); }
+  void Term::operator+=(int64_t scl){ this->execute(this->get_uniq_inds()) += Idx_Tensor(sr,scl); }
+  void Term::operator-=(int64_t scl){ this->execute(this->get_uniq_inds()) -= Idx_Tensor(sr,scl); }
+  void Term::operator*=(int64_t scl){ this->execute(this->get_uniq_inds()) *= Idx_Tensor(sr,scl); }
+  void Term::operator=(int scl){ this->execute(this->get_uniq_inds()) = Idx_Tensor(sr,(int64_t)scl); }
+  void Term::operator+=(int scl){ this->execute(this->get_uniq_inds()) += Idx_Tensor(sr,(int64_t)scl); }
+  void Term::operator-=(int scl){ this->execute(this->get_uniq_inds()) -= Idx_Tensor(sr,(int64_t)scl); }
+  void Term::operator*=(int scl){ this->execute(this->get_uniq_inds()) *= Idx_Tensor(sr,(int64_t)scl); }
 
 
 
@@ -385,7 +402,7 @@ namespace CTF_int {
     return st;
   }
 
-  Idx_Tensor Sum_Term::estimate_time(double & cost) const {
+  Idx_Tensor Sum_Term::estimate_time(double & cost, std::vector<char> out_inds) const {
     std::vector< Term* > tmp_ops;
     for (int i=0; i<(int)operands.size(); i++){
       tmp_ops.push_back(operands[i]->clone());
@@ -395,9 +412,9 @@ namespace CTF_int {
       tmp_ops.pop_back();
       Term * pop_B = tmp_ops.back();
       tmp_ops.pop_back();
-      Idx_Tensor op_A = pop_A->estimate_time(cost);
-      Idx_Tensor op_B = pop_B->estimate_time(cost);
-      Idx_Tensor * intm = get_full_intm(op_A, op_B);
+      Idx_Tensor op_A = pop_A->estimate_time(cost, out_inds);
+      Idx_Tensor op_B = pop_B->estimate_time(cost, out_inds);
+      Idx_Tensor * intm = get_full_intm(op_A, op_B, out_inds, true);
       summation s1(op_A.parent, op_A.idx_map, op_A.scale, 
                    intm->parent, intm->idx_map, intm->scale);
       cost += s1.estimate_time();
@@ -408,30 +425,39 @@ namespace CTF_int {
       delete pop_A;
       delete pop_B;
     }
-    Idx_Tensor ans = tmp_ops[0]->estimate_time(cost);
+    Idx_Tensor ans = tmp_ops[0]->estimate_time(cost, out_inds);
     delete tmp_ops[0];
     tmp_ops.clear();
     return ans;
   }
+ 
+  std::vector<char> det_uniq_inds(std::vector< Term* > const operands, std::vector<char> const out_inds){
+    std::set<char> uniq_inds;
+    std::set<Idx_Tensor*, tensor_name_less > inputs;
+    for (int j=0; j<(int)operands.size(); j++){
+      operands[j]->get_inputs(&inputs);
+    }
+    for (std::set<Idx_Tensor*>::iterator j=inputs.begin(); j!=inputs.end(); j++){
+      if ((*j)->parent != NULL){
+        for (int k=0; k<(*j)->parent->order; k++){
+          uniq_inds.insert((*j)->idx_map[k]);
+        }
+      }
+    }
+    for (int j=0; j<(int)out_inds.size(); j++){
+      uniq_inds.insert(out_inds[j]);
+    }
+    return std::vector<char>(uniq_inds.begin(), uniq_inds.end());
+  }
 
 
   double Sum_Term::estimate_time(Idx_Tensor output) const{
-    std::vector< Term* > tmp_ops;
-    for (int i=0; i<(int)operands.size(); i++){
-      tmp_ops.push_back(operands[i]->clone());
-    }
     double cost = 0.0;
-    for (int i=0; i<((int)tmp_ops.size())-1; i++){
-      cost += tmp_ops[i]->estimate_time(output);
-    }
-    Idx_Tensor itsr = tmp_ops.back()->estimate_time(cost);
-    summation s(itsr.parent, itsr.idx_map, itsr.scale, output.parent, output.idx_map, output.scale);
-    cost += s.estimate_time();
-    tmp_ops.clear();
+    this->estimate_time(cost, output.get_uniq_inds());
     return cost;
   }
 
-  Idx_Tensor Sum_Term::execute() const {
+  Idx_Tensor Sum_Term::execute(std::vector<char> out_inds) const {
     std::vector< Term* > tmp_ops;
     for (int i=0; i<(int)operands.size(); i++){
       tmp_ops.push_back(operands[i]->clone());
@@ -441,9 +467,9 @@ namespace CTF_int {
       tmp_ops.pop_back();
       Term * pop_B = tmp_ops.back();
       tmp_ops.pop_back();
-      Idx_Tensor op_A = pop_A->execute();
-      Idx_Tensor op_B = pop_B->execute();
-      Idx_Tensor * intm = get_full_intm(op_A, op_B);
+      Idx_Tensor op_A = pop_A->execute(out_inds);
+      Idx_Tensor op_B = pop_B->execute(out_inds);
+      Idx_Tensor * intm = get_full_intm(op_A, op_B, out_inds);
       summation s1(op_A.parent, op_A.idx_map, op_A.scale, 
                    intm->parent, intm->idx_map, intm->scale);
       s1.execute();
@@ -456,7 +482,7 @@ namespace CTF_int {
       delete pop_B;
     }
     sr->safemul(tmp_ops[0]->scale, this->scale, tmp_ops[0]->scale); 
-    Idx_Tensor ans = tmp_ops[0]->execute();
+    Idx_Tensor ans = tmp_ops[0]->execute(out_inds);
     delete tmp_ops[0];
     tmp_ops.clear();
     return ans;
@@ -464,16 +490,20 @@ namespace CTF_int {
 
 
   void Sum_Term::execute(Idx_Tensor output) const{
-    std::vector< Term* > tmp_ops = operands;
+    //below commented method can be faster but is unsatisfactory, because output may be an operand in a later term
+    /*std::vector< Term* > tmp_ops = operands;
     for (int i=0; i<((int)tmp_ops.size())-1; i++){
       tmp_ops[i]->execute(output);
       sr->safecopy(output.scale, sr->mulid());
-    }
-    Idx_Tensor itsr = tmp_ops.back()->execute();
+    }*/
+    Idx_Tensor itsr = this->execute(output.get_uniq_inds());
     summation s(itsr.parent, itsr.idx_map, itsr.scale, output.parent, output.idx_map, output.scale);
     s.execute();
   }
 
+  std::vector<char> Sum_Term::get_uniq_inds() const{
+    return det_uniq_inds(operands, std::vector<char>());
+  }
 
   void Sum_Term::get_inputs(std::set<Idx_Tensor*, tensor_name_less >* inputs_set) const {
     for (int i=0; i<(int)operands.size(); i++){
@@ -542,66 +572,153 @@ namespace CTF_int {
     return ct;
   }
 
+  int64_t factorial(int n){
+    int64_t nn = n;
+    for (int i=2; i<n; i++){
+      nn*=i;
+    }
+    return nn;
+  }
 
-  void Contract_Term::execute(Idx_Tensor output)const {
+  std::vector< Term* > contract_down_terms(algstrct * sr, char * tscale, std::vector< Term* > operands, std::vector<char> out_inds, int terms_to_leave, Idx_Tensor * output=NULL, bool est_time=false, double * cost=NULL){
     std::vector< Term* > tmp_ops;
     for (int i=0; i<(int)operands.size(); i++){
       tmp_ops.push_back(operands[i]->clone());
     }
-    char * tscale = NULL;
-    sr->safecopy(tscale, this->scale);
-    while (tmp_ops.size() > 2){
-      Term * pop_A = tmp_ops.back();
-      tmp_ops.pop_back();
-      Term * pop_B = tmp_ops.back();
-      tmp_ops.pop_back();
-      Idx_Tensor op_A = pop_A->execute();
-      Idx_Tensor op_B = pop_B->execute();
-      if (op_A.parent == NULL) {
-        sr->safemul(op_A.scale, op_B.scale, op_B.scale);
-        tmp_ops.push_back(op_B.clone());
-      } else if (op_B.parent == NULL) {
-        sr->safemul(op_A.scale, op_B.scale, op_A.scale);
-        tmp_ops.push_back(op_A.clone());
-      } else {
-        std::set<char> uniq_inds;
-        for (int k=0; k<output.parent->order; k++){
-          uniq_inds.insert(output.idx_map[k]);
+    #ifndef MAX_NUM_OPERANDS_TO_REORDER
+    #define _MAX_NUM_OPERANDS_TO_REORDER 8
+    #else
+    #define _MAX_NUM_OPERANDS_TO_REORDER MAX_NUM_OPERANDS_TO_REORDER
+    #endif
+    if (!est_time && (int)operands.size() <= _MAX_NUM_OPERANDS_TO_REORDER){
+      double best_time = std::numeric_limits<double>::max();
+      // need to use pairs this way to ensure reorderings are not dependent on pointer location, which can differ amongst processes
+      std::vector< std::pair<int,Term*> > tmp_ops2;
+      for (int i=0; i<(int)operands.size(); i++){
+        tmp_ops2.push_back(std::pair<int,Term*>(i,operands[i]->clone()));
+      }
+      //int64_t nn = factorial((int)operands.size());
+      //for (int64_t ii=0; ii<nn; ii++){
+      do {
+        std::vector<Term*> tmp_ops3;
+        for (int i=0; i<(int)operands.size(); i++){
+          tmp_ops3.push_back(tmp_ops2[i].second->clone());
         }
-        std::set<Idx_Tensor*, tensor_name_less > inputs;
-        for (int j=0; j<(int)tmp_ops.size(); j++){
-          tmp_ops[j]->get_inputs(&inputs);
+        double est_time = 0.;
+        std::vector<Term*> disc_terms = contract_down_terms(sr,tscale,tmp_ops3,out_inds,terms_to_leave,output,true,&est_time);
+        for (int i=0; i<(int)operands.size(); i++){
+          delete tmp_ops3[i];
         }
-        for (std::set<Idx_Tensor*>::iterator j=inputs.begin(); j!=inputs.end(); j++){
-          if ((*j)->parent != NULL){
-            for (int k=0; k<(*j)->parent->order; k++){
-              uniq_inds.insert((*j)->idx_map[k]);
-            }
+        for (int i=0; i<(int)disc_terms.size(); i++){
+          delete disc_terms[i];
+        }
+        if (est_time < best_time){
+          best_time = est_time;
+          for (int i=0; i<(int)operands.size(); i++){
+            delete tmp_ops[i];
+            tmp_ops[i] = tmp_ops2[i].second->clone();
           }
         }
-        std::vector<char> arr(uniq_inds.begin(), uniq_inds.end());
+      } while (std::next_permutation(tmp_ops2.begin(),tmp_ops2.end(), [](std::pair<int,Term*> a, std::pair<int,Term*> b){ return a.first < b.first; }));
+      for (int i=0; i<(int)operands.size(); i++){
+        delete tmp_ops2[i].second;
+      }
+    }
+    #undef _MAX_NUM_OPERANDS_TO_REORDER
+    while ((int)tmp_ops.size() > terms_to_leave){
+      Term * pop_A = tmp_ops.back();
+      tmp_ops.pop_back();
+      //include all terms except the one to execute to determine out_inds for executing that term
+      std::vector<char> out_inds_A = det_uniq_inds(tmp_ops, out_inds);
+      Term * pop_B = tmp_ops.back();
+      tmp_ops.pop_back();
+      tmp_ops.push_back(pop_A);
+      std::vector<char> out_inds_B = det_uniq_inds(tmp_ops, out_inds);
+      tmp_ops.pop_back();
+      Idx_Tensor * op_A;
+      Idx_Tensor * op_B;
+      if (est_time){
+        op_A = new Idx_Tensor(pop_A->estimate_time(*cost,out_inds_A));
+        op_B = new Idx_Tensor(pop_B->estimate_time(*cost,out_inds_B));
+      } else {
+        op_A = new Idx_Tensor(pop_A->execute(out_inds_A));
+        op_B = new Idx_Tensor(pop_B->execute(out_inds_B));
+      }
 
-        Idx_Tensor * intm = get_full_intm(op_A, op_B, uniq_inds.size(), &(arr[0]));
-        sr->safemul(tscale, op_A.scale, tscale);
-        sr->safemul(tscale, op_B.scale, tscale);
-        contraction c(op_A.parent, op_A.idx_map,
-                      op_B.parent, op_B.idx_map, tscale,
+      if (op_A->parent == NULL) {
+        if (!est_time)
+          sr->safemul(op_A->scale, op_B->scale, op_B->scale);
+        tmp_ops.push_back(op_B->clone());
+      } else if (op_B->parent == NULL) {
+        if (!est_time)
+          sr->safemul(op_A->scale, op_B->scale, op_A->scale);
+        tmp_ops.push_back(op_A->clone());
+      } else {
+        Idx_Tensor * intm = get_full_intm(*op_A, *op_B, det_uniq_inds(tmp_ops, out_inds), est_time);
+        if (!est_time){
+          sr->safemul(tscale, op_A->scale, tscale);
+          sr->safemul(tscale, op_B->scale, tscale);
+        }
+        contraction c(op_A->parent, op_A->idx_map,
+                      op_B->parent, op_B->idx_map, tscale,
                       intm->parent, intm->idx_map, intm->scale);
-        c.execute(); 
-        sr->safecopy(tscale, sr->mulid());
+        if (est_time){
+          *cost += c.estimate_time();
+        } else {
+          c.execute(); 
+          sr->safecopy(tscale, sr->mulid());
+        }
         tmp_ops.push_back(intm);
       }
+      delete op_A;
+      delete op_B;
       delete pop_A;
       delete pop_B;
-    } 
+    }
+    if (est_time && terms_to_leave == 2){
+      std::vector<Term*> to;
+      Term * pop_A = tmp_ops[0];
+      Term * pop_B = tmp_ops[1];
+      to.push_back(pop_A);
+      std::vector<char> out_inds_B = det_uniq_inds(to, out_inds);
+      to.clear();
+      to.push_back(pop_B);
+      std::vector<char> out_inds_A = det_uniq_inds(to, out_inds);
+      to.clear();
+      Idx_Tensor * op_A;
+      Idx_Tensor * op_B;
+      op_A = new Idx_Tensor(pop_A->estimate_time(*cost,out_inds_A));
+      op_B = new Idx_Tensor(pop_B->estimate_time(*cost,out_inds_B));
+      if (op_A->parent != NULL && op_B->parent != NULL){
+        contraction c(op_A->parent, op_A->idx_map,
+                      op_B->parent, op_B->idx_map, tscale,
+                      output->parent, output->idx_map, output->scale);
+        *cost += c.estimate_time();
+      }
+      delete op_A;
+      delete op_B;
+    }
+    return tmp_ops;
+  }
+
+  void Contract_Term::execute(Idx_Tensor output) const {
+    std::vector<char> out_inds = output.get_uniq_inds();
+    char * tscale = NULL;
+    sr->safecopy(tscale, scale);
+    std::vector< Term* > tmp_ops = contract_down_terms(sr, tscale, operands, out_inds, 2, &output);
     {
       assert(tmp_ops.size() == 2);
       Term * pop_B = tmp_ops.back();
       tmp_ops.pop_back();
+      //include all terms except the one to execute to determine out_inds for executing that term
+      std::vector<char> out_inds_B = det_uniq_inds(tmp_ops, out_inds);
       Term * pop_A = tmp_ops.back();
       tmp_ops.pop_back();
-      Idx_Tensor op_A = pop_A->execute();
-      Idx_Tensor op_B = pop_B->execute();
+      tmp_ops.push_back(pop_B);
+      std::vector<char> out_inds_A = det_uniq_inds(tmp_ops, out_inds);
+      tmp_ops.pop_back();
+      Idx_Tensor op_A = pop_A->execute(out_inds_A);
+      Idx_Tensor op_B = pop_B->execute(out_inds_B);
       /*if (tscale != NULL) cdealloc(tscale);
       tscale = NULL;
       sr->safecopy(tscale, this->scale);*/
@@ -632,87 +749,36 @@ namespace CTF_int {
   }
 
 
-  Idx_Tensor Contract_Term::execute() const {
-    std::vector< Term* > tmp_ops;
-    for (int i=0; i<(int)operands.size(); i++){
-      tmp_ops.push_back(operands[i]->clone());
-    }
+  Idx_Tensor Contract_Term::execute(std::vector<char> out_inds) const {
     char * tscale = NULL;
-    sr->safecopy(tscale, this->scale);
-    while (tmp_ops.size() > 1){
-      Term * pop_A = tmp_ops.back();
-      tmp_ops.pop_back();
-      Term * pop_B = tmp_ops.back();
-      tmp_ops.pop_back();
-      Idx_Tensor op_A = pop_A->execute();
-      Idx_Tensor op_B = pop_B->execute();
-      if (op_A.parent == NULL) {
-        sr->safemul(op_B.scale, op_A.scale, op_B.scale);
-        tmp_ops.push_back(op_B.clone());
-      } else if (op_B.parent == NULL) {
-        sr->safemul(op_B.scale, op_A.scale, op_A.scale);
-        tmp_ops.push_back(op_A.clone());
-      } else {
-        Idx_Tensor * intm = get_full_intm(op_A, op_B);
-        sr->safemul(tscale, op_A.scale, tscale);
-        sr->safemul(tscale, op_B.scale, tscale);
-        contraction c(op_A.parent, op_A.idx_map,
-                      op_B.parent, op_B.idx_map, tscale,
-                      intm->parent, intm->idx_map, intm->scale);
-        c.execute(); 
-        sr->safecopy(tscale, sr->mulid());
-        tmp_ops.push_back(intm);
-      }
-      delete pop_A;
-      delete pop_B;
-      if (tscale != NULL){
-        cdealloc(tscale);
-        tscale = NULL;
-      }
-    } 
-    Idx_Tensor rtsr = tmp_ops[0]->execute();
+    sr->safecopy(tscale, scale);
+    std::vector< Term* > tmp_ops = contract_down_terms(sr, scale, operands, out_inds, 1);
+    Idx_Tensor rtsr = tmp_ops[0]->execute(out_inds);
     delete tmp_ops[0];
     tmp_ops.clear();
+    if (tscale != NULL) cdealloc(tscale);
+    tscale = NULL;
     return rtsr;
   }
 
 
   double Contract_Term::estimate_time(Idx_Tensor output)const {
     double cost = 0.0;
-    std::vector< Term* > tmp_ops;
-    for (int i=0; i<(int)operands.size(); i++){
-      tmp_ops.push_back(operands[i]->clone());
-    }
-    while (tmp_ops.size() > 2){
-      Term * pop_A = tmp_ops.back();
-      tmp_ops.pop_back();
-      Term * pop_B = tmp_ops.back();
-      tmp_ops.pop_back();
-      Idx_Tensor op_A = pop_A->estimate_time(cost);
-      Idx_Tensor op_B = pop_B->estimate_time(cost);
-      if (op_A.parent == NULL) {
-        tmp_ops.push_back(op_B.clone());
-      } else if (op_B.parent == NULL) {
-        tmp_ops.push_back(op_A.clone());
-      } else {
-        Idx_Tensor * intm = get_full_intm(op_A, op_B);
-        contraction c(op_A.parent, op_A.idx_map,
-                      op_B.parent, op_B.idx_map, this->scale, 
-                      intm->parent, intm->idx_map, intm->scale);
-        cost += c.estimate_time();
-        tmp_ops.push_back(intm);
-      }
-      delete pop_A;
-      delete pop_B;
-    } 
+    std::vector<char> out_inds = output.get_uniq_inds();
+    std::vector< Term* > tmp_ops = contract_down_terms(sr, scale, operands, out_inds, 2, &output, true, &cost);
     {
       assert(tmp_ops.size() == 2);
-      Term * pop_A = tmp_ops.back();
-      tmp_ops.pop_back();
       Term * pop_B = tmp_ops.back();
       tmp_ops.pop_back();
-      Idx_Tensor op_A = pop_A->estimate_time(cost);
-      Idx_Tensor op_B = pop_B->estimate_time(cost);
+      //include all terms except the one to execute to determine out_inds for executing that term
+      std::vector<char> out_inds_B = det_uniq_inds(tmp_ops, out_inds);
+      Term * pop_A = tmp_ops.back();
+      tmp_ops.pop_back();
+      tmp_ops.push_back(pop_B);
+      std::vector<char> out_inds_A = det_uniq_inds(tmp_ops, out_inds);
+      tmp_ops.pop_back();
+      Idx_Tensor op_A = pop_A->estimate_time(cost,out_inds);
+      Idx_Tensor op_B = pop_B->estimate_time(cost,out_inds);
       
       if (op_A.parent == NULL && op_B.parent == NULL){
         assert(0); //FIXME write scalar to whole tensor
@@ -737,38 +803,14 @@ namespace CTF_int {
   }
 
 
-  Idx_Tensor Contract_Term::estimate_time(double & cost) const {
-    std::vector< Term* > tmp_ops;
-    for (int i=0; i<(int)operands.size(); i++){
-      tmp_ops.push_back(operands[i]->clone());
-    }
-    while (tmp_ops.size() > 1){
-      Term * pop_A = tmp_ops.back();
-      tmp_ops.pop_back();
-      Term * pop_B = tmp_ops.back();
-      tmp_ops.pop_back();
-      Idx_Tensor op_A = pop_A->estimate_time(cost);
-      Idx_Tensor op_B = pop_B->estimate_time(cost);
-      if (op_A.parent == NULL) {
-        tmp_ops.push_back(op_B.clone());
-      } else if (op_B.parent == NULL) {
-        tmp_ops.push_back(op_A.clone());
-      } else {
-        Idx_Tensor * intm = get_full_intm(op_A, op_B);
-        contraction c(op_A.parent, op_A.idx_map,
-                      op_B.parent, op_B.idx_map, this->scale, 
-                      intm->parent, intm->idx_map, intm->scale);
-        cost += c.estimate_time();
-
-        tmp_ops.push_back(intm);
-      }
-      delete pop_A;
-      delete pop_B;
-    } 
-    return tmp_ops[0]->estimate_time(cost);
+  Idx_Tensor Contract_Term::estimate_time(double & cost, std::vector<char> out_inds) const {
+    std::vector< Term* > tmp_ops = contract_down_terms(sr, scale, operands, out_inds, 1, NULL, true, &cost);
+    return tmp_ops[0]->estimate_time(cost, out_inds);
   }
-
-
+ 
+  std::vector<char> Contract_Term::get_uniq_inds() const{
+    return det_uniq_inds(operands, std::vector<char>());
+  }
 
   void Contract_Term::get_inputs(std::set<Idx_Tensor*, tensor_name_less >* inputs_set) const {
     for (int i=0; i<(int)operands.size(); i++){
@@ -779,6 +821,13 @@ namespace CTF_int {
   void operator-=(double & d, CTF_int::Term const & tsr){
     d -= (double)tsr;
   }
+
+  void Term::operator<<(Term const & B){
+    B.execute(this->execute(this->get_uniq_inds()));
+    sr->safecopy(scale,sr->mulid());
+  }
+  void Term::operator<<(double scl){ this->execute(this->get_uniq_inds()) += Idx_Tensor(sr,scl); }
+
 
   void operator+=(double & d, CTF_int::Term const & tsr){
     d += (double)tsr;

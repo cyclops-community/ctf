@@ -13,7 +13,7 @@ namespace CTF_int {
 
   void univar_function::operator()(Term const & A, Term const & B) const {
     Unifun_Term ft(A.clone(), this);
-    ft.execute(B.execute());
+    ft.execute(B.execute(B.get_uniq_inds()));
   }
 
   tsum::tsum(tsum * other){

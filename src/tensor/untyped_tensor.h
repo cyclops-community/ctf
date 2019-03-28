@@ -269,6 +269,12 @@ namespace CTF_int {
        * \param[in] sym_mask identifies which tensor indices are part of the symmetric group which diagonals we want to scale (i.e. sym_mask [1,1] does A["ii"]= (1./2.)*A["ii"])
        */
       void scale_diagonals(int const * sym_mask);
+ 
+      /**
+       * \brief sets to zero elements which are diagonal with respect to index diag and diag+1
+       * \param[in] diag smaller index of the symmetry to zero out
+       */
+      int zero_out_sparse_diagonal(int diag);
 
       // apply an additive inverse to all elements of the tensor
       void addinv();
@@ -744,10 +750,12 @@ namespace CTF_int {
        * \brief transposes local data in preparation for summation or contraction, transforms to COO or CSR format for sparse
        * \param[in] m number of rows in matrix
        * \param[in] n number of columns in matrix
+       * \param[in] all_fdim number of dimensions of folded
+       * \param[in] all_flen lengths of dimensions of folded
        * \param[in] nrow_idx number of indices to fold into column
        * \param[in] csr whether to do csr (1) or coo (0) layout
        */
-      void spmatricize(int m, int n, int nrow_idx, bool csr);
+      void spmatricize(int m, int n, int nrow_idx, int all_fdim, int const * all_flen, bool csr);
 
       /**
        * \brief transposes back local data from sparse matrix format to key-value pair format
@@ -778,6 +786,11 @@ namespace CTF_int {
        */
       void write_dense_to_file(MPI_File & file, int64_t offset=0);
 
+      /**
+       * \brief write all tensor data to binary file in element order, unpacking from sparse or symmetric formats
+       * \param[in] filename stream to write to
+       */
+      void write_dense_to_file(char const * filename);
 
       /**
        * \brief read all tensor data from binary file in element order, which should be stored as nonsymmetric and dense as done in write_dense_to_file()
@@ -785,6 +798,13 @@ namespace CTF_int {
        * \param[in] offset displacement in bytes at which to start in the file (ought ot be the same on all processors)
        */
       void read_dense_from_file(MPI_File & file, int64_t offset=0);
+
+
+      /**
+       * \brief read all tensor data from binary file in element order, which should be stored as nonsymmetric and dense as done in write_dense_to_file()
+       * \param[in] filename stream to read from
+       */
+      void read_dense_from_file(char const * filename);
 
       /**
        * \brief convert this tensor from dtype_A to dtype_B and store the result in B (primarily needed for python interface)

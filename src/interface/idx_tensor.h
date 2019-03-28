@@ -55,9 +55,10 @@ namespace CTF {
       /**
        * \brief evalues the expression to produce an intermediate with 
        *        all expression indices remaining
+       * \param[in] out_inds unique indices to not contract/sum away
        * \return output tensor to write results into and its indices
        */
-      Idx_Tensor execute() const;
+      Idx_Tensor execute(std::vector<char> out_inds) const;
       
       /**
        * \brief evalues the expression, which just scales by default
@@ -75,9 +76,16 @@ namespace CTF {
        * \brief estimates the cost the expression to produce an intermediate with 
        *        all expression indices remaining
        * \param[out] cost estimate of time in sec
+       * \param[in] out_inds unique indices to not contract/sum away
        */
-      Idx_Tensor estimate_time(double  & cost) const;
+      Idx_Tensor estimate_time(double  & cost, std::vector<char> out_inds) const;
       
+      /**
+       * \brief find list of unique indices that are involved in this term
+       * \return out_inds unique indices to not contract/sum away
+       */
+      std::vector<char> get_uniq_inds() const;
+ 
       /**
       * \brief appends the tensors this depends on to the input set
       */
@@ -110,9 +118,7 @@ namespace CTF {
        * \param[in] B tensor on the right hand side
        */
       void operator+=(CTF_int::Term const & B);
-      void operator<<(CTF_int::Term const & B);
-      void operator<<(double scl);
-      
+
       /**
        * \brief A += B, compute any operations on operand B and add
        * \param[in] B tensor on the right hand side
@@ -179,11 +185,11 @@ namespace CTF {
       }
 
       void operator()(std::function<dtype_B(dtype_A)> f){
-        ((Function<dtype_A,dtype_B>(f))(*operands[0])).execute(operands[1]->execute());
+        ((Function<dtype_A,dtype_B>(f))(*operands[0])).execute(operands[1]->execute(this->get_uniq_inds()));
       }
 
       void operator,(std::function<dtype_B(dtype_A)> f){
-        ((Function<dtype_A,dtype_B>(f))(*operands[0])).execute(operands[1]->execute());
+        ((Function<dtype_A,dtype_B>(f))(*operands[0])).execute(operands[1]->execute(this->get_uniq_inds()));
       }
  
       

@@ -59,22 +59,35 @@ namespace CTF_int {
       /**
        * \brief estimates the cost the expression to produce an intermediate with 
        *        all expression indices remaining
-       * \param\[in,out] cost the cost of the operatiob
+       * \param[in,out] cost the cost of the operation
+       * \param[in] out_inds unique indices to not contract/sum away
        * \return output tensor to write results into and its indices
        */
-      virtual CTF::Idx_Tensor estimate_time(double  & cost) const = 0;
+      virtual CTF::Idx_Tensor estimate_time(double  & cost, std::vector<char> out_inds) const = 0;
       
       
       /**
        * \brief evalues the expression to produce an intermediate with 
        *        all expression indices remaining
+       * \param[in] out_inds unique indices to not contract/sum away
        */
-      virtual CTF::Idx_Tensor execute() const = 0;
-      
+      virtual CTF::Idx_Tensor execute(std::vector<char> out_inds) const = 0;
+
+      /**
+       * \brief find list of unique indices that are involved in this term
+       * \return out_inds unique indices to not contract/sum away
+       */
+      virtual std::vector<char> get_uniq_inds() const = 0;
+ 
       /**
       * \brief appends the tensors this depends on to the input set
       */
       virtual void get_inputs(std::set<CTF::Idx_Tensor*, tensor_name_less >* inputs_set) const = 0;
+
+      /**
+      * \brief multiply scaling factor by mulscl
+      */
+      void mult_scl(char const * mulscl);
 
       /**
        * \brief constructs a new term which multiplies by tensor A
@@ -119,6 +132,10 @@ namespace CTF_int {
 
       void operator=(double scl);
       void operator+=(double scl);
+      void operator<<(CTF_int::Term const & B);
+      void operator<<(double scl);
+ 
+
       void operator-=(double scl);
       void operator*=(double scl);
 
@@ -197,9 +214,10 @@ namespace CTF_int {
       /**
        * \brief evalues the expression to produce an intermediate with 
        *        all expression indices remaining
+       * \param[in] out_inds unique indices to not contract/sum away
        * \return output tensor to write results into and its indices
        */
-      CTF::Idx_Tensor execute() const;
+      CTF::Idx_Tensor execute(std::vector<char> out_inds) const;
       
       /**
        * \brief estimates the cost of a sum term
@@ -210,11 +228,18 @@ namespace CTF_int {
       /**
        * \brief estimates the cost the expression to produce an intermediate with 
        *        all expression indices remaining
-       * \param[in] cost time estimate
+       * \param[in,out] cost the cost of the operation
+       * \param[in] out_inds unique indices to not contract/sum away
        * \return output tensor to write results into and its indices
        */
-      CTF::Idx_Tensor estimate_time(double  & cost) const;
+      CTF::Idx_Tensor estimate_time(double  & cost, std::vector<char> out_inds) const;
       
+      /**
+       * \brief find list of unique indices that are involved in this term
+       * \return out_inds unique indices to not contract/sum away
+       */
+      std::vector<char> get_uniq_inds() const;
+ 
       /**
       * \brief appends the tensors this depends on to the input set
       */
@@ -275,7 +300,13 @@ namespace CTF_int {
        * \param[in,out] output tensor to write results into and its indices
        */
       void execute(CTF::Idx_Tensor output) const;
-      
+
+      /**
+       * \brief find list of unique indices that are involved in this term
+       * \return out_inds unique indices to not contract/sum away
+       */
+      std::vector<char> get_uniq_inds() const;
+ 
       /**
       * \brief appends the tensors this depends on to the input set
       */
@@ -284,9 +315,10 @@ namespace CTF_int {
       /**
        * \brief evalues the expression to produce an intermediate with 
        *        all expression indices remaining
+       * \param[in] out_inds unique indices to not contract/sum away
        * \return output tensor to write results into and its indices
        */
-      CTF::Idx_Tensor execute() const;
+      CTF::Idx_Tensor execute(std::vector<char> out_inds) const;
       
       /**
        * \brief estimates the cost of a contract term
@@ -297,10 +329,11 @@ namespace CTF_int {
       /**
        * \brief estimates the cost the expression to produce an intermediate with 
        *        all expression indices remaining
-       * \param[out] cost time estimate
+       * \param[in,out] cost the cost of the operation
+       * \param[in] out_inds unique indices to not contract/sum away
        * \return output tensor to write results into and its indices
        */
-      CTF::Idx_Tensor estimate_time(double  & cost) const;
+      CTF::Idx_Tensor estimate_time(double  & cost, std::vector<char> out_inds) const;
       
       
       /**

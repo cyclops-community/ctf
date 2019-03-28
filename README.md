@@ -3,6 +3,8 @@
 
 Cyclops is a parallel (distributed-memory) numerical library for multidimensional arrays (tensors) in C++ and Python.
 
+Quick documentation links: [C++](http://solomon2.web.engr.illinois.edu/ctf/index.html) and [Python](http://solomon2.web.engr.illinois.edu/ctf_python/ctf.html#module-ctf.core).
+
 Broadly, Cyclops provides tensor objects that are stored and operated on by all processes executing the program, coordinating via MPI communication.
 
 Cyclops supports a multitude of tensor attributes, including sparsity, various symmetries, and user-defined element types.
@@ -29,7 +31,7 @@ then execute ./configure with the appropriate options. Successful execution of t
 
 The strict library dependencies of Cyclops are MPI and BLAS libraries.
 
-Some functionality in Cyclops requires LAPACK and ScaLAPACK. A standard build of the latter can be constructed automatically by running configure with `--build-scalapack`.
+Some functionality in Cyclops requires LAPACK and ScaLAPACK. A standard build of the latter can be constructed automatically by running configure with `--build-scalapack` (requires cmake to build ScaLAPACK, manual build can also be provided along by providing the library path).
 
 Faster transposition in Cyclops is made possible by the HPTT library. To obtain a build of HPTT automatically run configure with `--build-hptt`.
 
@@ -139,7 +141,7 @@ An example of basic CTF functionality as a `numpy.ndarray` back-end is shown in 
 
 ## Documentation
 
-Detailed documentation of all functionality and the organization of the source code can be found in the [Doxygen page](http://solomon2.web.engr.illinois.edu/ctf/index.html). Much of the C++ functionality is expressed through the [Tensor object](http://solomon2.web.engr.illinois.edu/ctf/classCTF_1_1Tensor.html). A list of key available Python functions can be found in the [core Cython module Doxygen page](http://solomon2.web.engr.illinois.edu/ctf/core_8pyx.html).
+Detailed documentation of all functionality and the organization of the source code can be found in the [Doxygen page](http://solomon2.web.engr.illinois.edu/ctf/index.html). Much of the C++ functionality is expressed through the [Tensor object](http://solomon2.web.engr.illinois.edu/ctf/classCTF_1_1Tensor.html). Documentation for hte Python functionality is also [available](http://solomon2.web.engr.illinois.edu/ctf_python/ctf.html#module-ctf.core).
 
 The examples and aforementioned papers can be used to gain further insight. If you have any questions regarding usage, do not hesitate to contact us! Please do so by creating an issue on this github webpage. You can also email questions to solomon2@illinois.edu.
 

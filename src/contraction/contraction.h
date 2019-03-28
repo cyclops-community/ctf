@@ -107,6 +107,12 @@ namespace CTF_int {
       /** \brief run contraction */
       void execute();
       
+      /** \brief predicts number of flops, treatign all tensors as dense even if they are sparse */
+      double estimate_num_dense_flops();
+
+      /** \brief predicts number of flops assuming random distribution of nonzeros in sparse tensors */
+      double estimate_num_flops();
+
       /** \brief predicts execution time in seconds using performance models */
       double estimate_time();
 

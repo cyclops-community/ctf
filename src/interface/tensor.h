@@ -336,7 +336,7 @@ namespace CTF {
        * this version exists for backwards compatibility.
  gives the global indices and values associated with the local data
        *          WARNING-1: for sparse tensors this includes the zeros to maintain consistency with
-       *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
+       *                   the behavior for dense tensors, use get_local_pairs to get only nonzeros
        * \param[out] npair number of local values
        * \param[out] global_idx index within global tensor of each data value
        * \param[out] data pointer to local values in the order of the indices, should be released with free
@@ -362,7 +362,7 @@ namespace CTF {
       /**
        * \brief gives the global indices and values associated with the local data
        *          WARNING: for sparse tensors this includes the zeros to maintain consistency with
-       *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
+       *                   the behavior for dense tensors, use get_lcoal_pairs to get only nonzeros
        * \param[out] npair number of local values
        * \param[out] pairs pointer to local key-value pairs, should be released with free
        * \param[in] unpack_sym if true, outputs all tensor elements, if false only those unique with respect to symmetry
@@ -735,6 +735,24 @@ namespace CTF {
        */
       void sparsify(std::function<bool(dtype)> filter);
 
+      /**
+       * \brief read sparse tensor from file, entries of tensor must be stored one per line, as i_1 ... i_order v, to create entry T[i_1, ..., i_order] = v
+       * or as  i_1 ... i_order, to create entry T[i_1, ..., i_order] = mulid
+       * \param[in] fpath string of file name to read from
+       * \param[in] with_vals whether vs are provided in file
+       * \param[in] rev_order whether index order should be reversed
+       */
+      void read_sparse_from_file(const char * fpath, bool with_vals=true, bool rev_order=false);
+
+      /**
+       * \brief write sparse tensor to file, entries of tensor will be stored one per line, as i_1 ... i_order v, corresponding to entry T[i_1, ..., i_order] = v
+       * or as  i_1 ... i_order if with_vals =false
+       * \param[in] fpath string of file name to read from
+       * \param[in] with_vals whether vs should be written to file
+       * \param[in] rev_order whether index order should be reversed
+       */
+      void write_sparse_to_file(const char * fpath, bool with_vals=true, bool rev_order=false);
+
      /**
        * \brief accumulates this tensor to a tensor object defined on a different world
        * \param[in] tsr a tensor object of the same characteristic as this tensor,
@@ -917,6 +935,7 @@ namespace CTF {
    */
 }
 
+#include "graph_io_aux.cxx"
 #include "tensor.cxx"
 #include "vector.h"
 #include "scalar.h"

@@ -47,7 +47,7 @@ namespace CTF_int {
                         int &                      load_phase_C){
     mapping * map;
     int j;
-    int nstep = 1;
+    int64_t nstep = 1;
     if (comp_dim_map(&C->edge_map[i_C], &B->edge_map[i_B])){
       map = &B->edge_map[i_B];
       while (map->has_child) map = map->child;
@@ -111,16 +111,24 @@ namespace CTF_int {
                 /virt_blk_len_C[j];
         }
         if (B->edge_map[i_B].type != PHYSICAL_MAP){
+          if (blk_sz_B / nstep == 0) 
+            printf("blk_len_B[%d] = %d, nstep = %ld blk_sz_B = %ld\n",i_B,blk_len_B[i_B],nstep,blk_sz_B);
           blk_sz_B  = blk_sz_B / nstep;
           blk_len_B[i_B] = blk_len_B[i_B] / nstep;
         } else {
+          if (blk_sz_B  * B->edge_map[i_B].np/ nstep == 0) 
+            printf("blk_len_B[%d] = %d  B->edge_map[%d].np = %d, nstep = %ld blk_sz_B = %ld\n",i_B,blk_len_B[i_B],i_B,B->edge_map[i_B].np,nstep,blk_sz_B);
           blk_sz_B  = blk_sz_B * B->edge_map[i_B].np / nstep;
           blk_len_B[i_B] = blk_len_B[i_B] * B->edge_map[i_B].np / nstep;
         }
         if (C->edge_map[i_C].type != PHYSICAL_MAP){
+          if (blk_sz_C / nstep == 0) 
+            printf("blk_len_C[%d] = %d, nstep = %ld blk_sz_C = %ld\n",i_C,blk_len_C[i_C],nstep,blk_sz_C);
           blk_sz_C  = blk_sz_C / nstep;
           blk_len_C[i_C] = blk_len_C[i_C] / nstep;
         } else {
+          if (blk_sz_C  * C->edge_map[i_C].np/ nstep == 0) 
+            printf("blk_len_C[%d] = %d  C->edge_map[%d].np = %d, nstep = %ld blk_sz_C = %ld\n",i_C,blk_len_C[i_C],i_C,C->edge_map[i_C].np,nstep,blk_sz_C);
           blk_sz_C  = blk_sz_C * C->edge_map[i_C].np / nstep;
           blk_len_C[i_C] = blk_len_C[i_C] * C->edge_map[i_C].np / nstep;
         }
