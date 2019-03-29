@@ -984,6 +984,57 @@ namespace CTF_int {
       delete cpy_tsr_A;
       return SUCCESS;
     }
+    if (A->order == 0 && B->order == 0){
+      if (B->wrld->rank != 0){
+        if (B->nnz_tot == 0 && A->nnz_tot == 0){
+          int64_t nnz_blk = 0;
+          B->set_new_nnz_glb(&nnz_blk);
+        }
+      } else {
+        char tmp_A[A->sr->el_size];
+        char * op_A;
+        char * op_B;
+        bool has_op = true;
+        if (A->is_sparse){
+          if (A->nnz_tot == 0){
+            has_op=false;
+          } else {
+            PairIterator prs(A->sr,A->data);
+            op_A = prs[0].d();
+          }
+        } else {
+          op_A = A->data;
+        }
+        if (alpha != NULL){
+          A->sr->mul(op_A, alpha, tmp_A);
+          op_A = tmp_A;
+        }
+        if (B->is_sparse){
+          if (B->nnz_tot == 0){
+            if (!has_op) return SUCCESS;
+            B->data = B->sr->pair_alloc(1);
+            B->sr->set_pair(B->data, 0, B->sr->addid());
+            int64_t nnz_blk = 1;
+            B->set_new_nnz_glb(&nnz_blk);
+          }
+          PairIterator prs(B->sr,B->data);
+          op_B = prs[0].d();
+        } else {
+          op_B = B->data;
+        }
+
+        if (beta != NULL)
+          B->sr->mul(op_B, beta, op_B);
+        if (has_op){
+          if (is_custom){
+            func->acc_f(op_A,op_B,B->sr); 
+          } else {
+            B->sr->add(op_A,op_B,B->data); 
+          }
+        }
+      }
+      return SUCCESS;
+    }
     was_home_A = A->is_home;
     was_home_B = B->is_home;
     if (was_home_A){
@@ -2259,7 +2310,7 @@ namespace CTF_int {
     TAU_FSTOP(map_tensor_pair);
     if (gtopo == -1){
       printf("CTF ERROR: Failed to map pair!\n");
-      //ABORT;
+      ABORT;
       return ERROR;
     }
     
