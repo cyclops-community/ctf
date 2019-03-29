@@ -188,6 +188,17 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
 
 cdef extern from "ctf.hpp" namespace "CTF":
 
+    cdef cppclass Timer:
+        Timer(char * name)
+        void start()
+        void stop()
+        void exit()
+
+    cdef cppclass Timer_epoch:
+        Timer_epoch(char * name)
+        void begin()
+        void end()
+
     cdef cppclass World:
         int rank, np;
         World()
@@ -494,6 +505,39 @@ def _rev_array(arr):
 def _get_num_str(n):
     allstr = "abcdefghijklmonpqrstuvwzyx0123456789,./;'][=-`"
     return allstr[0:n]
+
+
+cdef class CTF_Timer_epoch:
+    cdef Timer_epoch * te
+
+    def __cinit__(self, name=None):
+        self.te = new Timer_epoch(name.encode())
+
+    def begin(self):
+        self.te.begin()
+
+    def end(self):
+        self.te.end()
+
+    def exit(self):
+        free(self.te)
+
+
+cdef class CTF_Timer:
+    cdef Timer * t
+
+    def __cinit__(self, name=None):
+        self.t = new Timer(name.encode())
+
+    def start(self):
+        self.t.start()
+
+    def stop(self):
+        self.t.stop()
+
+    def exit(self):
+        self.t.exit()
+        free(self.t)
 
 
 cdef class tensor:
@@ -1758,6 +1802,8 @@ cdef class tensor:
                [5],
                [6]])
         """
+        py_reshape = CTF_Timer_epoch("py_reshape")
+        py_reshape.begin()
         dim = self.shape
         total_size = 1
         newshape = []
@@ -1806,7 +1852,9 @@ cdef class tensor:
             inds, vals = self.read_local_nnz()
             B.write(inds, vals)
         else:
+            py_reshape.end()
             raise ValueError('CTF PYTHON ERROR: can only specify one unknown dimension')
+        py_reshape.end()
         return B
 
     def ravel(self, order="F"):
@@ -4975,6 +5023,8 @@ def transpose(init_A, axes=None):
     >>> ctf.transpose(a).shape
     (5, 4, 3)
     """
+    py_transpose = CTF_Timer_epoch("py_transpose")
+    py_transpose.begin()
     A = astensor(init_A)
 
     dim = A.shape
@@ -5024,6 +5074,7 @@ def transpose(init_A, axes=None):
         rev_dims[i] = dim[axes_list[i]]
     B = tensor(rev_dims, sp=A.sp, dtype=A.get_type())
     B.i(rev_index) << A.i(index)
+    py_transpose.end()
     return B
 
 def ones(shape, dtype = None, order='F'):
