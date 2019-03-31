@@ -548,7 +548,9 @@ namespace CTF_int {
 
   template <int nparam>
   void LinModel<nparam>::print_uo(){
-    printf("%s is_tuned = %d (%ld) avg_tot_time = %lf avg_over_time = %lf avg_under_time = %lf\n",name,(int)is_tuned,nobs,avg_tot_time,avg_over_time,avg_under_time);
+    if (nobs > 0){
+      printf("%s is_tuned = %d is_active = %d (%ld) avg_tot_time = %lf avg_over_time = %lf avg_under_time = %lf\n",name,(int)is_tuned,(int)is_active,nobs,avg_tot_time,avg_over_time,avg_under_time);
+    }
   }
 
 

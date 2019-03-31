@@ -188,6 +188,17 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
 
 cdef extern from "ctf.hpp" namespace "CTF":
 
+    cdef cppclass Timer:
+        Timer(char * name)
+        void start()
+        void stop()
+        void exit()
+
+    cdef cppclass Timer_epoch:
+        Timer_epoch(char * name)
+        void begin()
+        void end()
+
     cdef cppclass World:
         int rank, np;
         World()
@@ -494,6 +505,39 @@ def _rev_array(arr):
 def _get_num_str(n):
     allstr = "abcdefghijklmonpqrstuvwzyx0123456789,./;'][=-`"
     return allstr[0:n]
+
+
+cdef class CTF_Timer_epoch:
+    cdef Timer_epoch * te
+
+    def __cinit__(self, name=None):
+        self.te = new Timer_epoch(name.encode())
+
+    def begin(self):
+        self.te.begin()
+
+    def end(self):
+        self.te.end()
+
+    def exit(self):
+        free(self.te)
+
+
+cdef class CTF_Timer:
+    cdef Timer * t
+
+    def __cinit__(self, name=None):
+        self.t = new Timer(name.encode())
+
+    def start(self):
+        self.t.start()
+
+    def stop(self):
+        self.t.stop()
+
+    def exit(self):
+        self.t.exit()
+        free(self.t)
 
 
 cdef class tensor:
