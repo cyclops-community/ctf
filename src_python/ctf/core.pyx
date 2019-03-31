@@ -5241,6 +5241,9 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
 
     casting: {‘no’, ‘equiv’, ‘safe’, ‘same_kind’, ‘unsafe’}, optional
         Currently not supported by CTF Python.
+    
+    out_scale: scalar, optional
+        Scales output prior to accumulation of contraction, by default is zero (as in numpy)
 
     Returns
     -------
