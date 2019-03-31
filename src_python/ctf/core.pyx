@@ -5217,7 +5217,7 @@ def speye(n, m=None, k=0, dtype=np.float64):
     """
     return eye(n, m, k, dtype, sp=True)
 
-def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe'):
+def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe', out_scale=0):
     """
     einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe')
     Einstein summation on operands.
@@ -5315,7 +5315,7 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     operand = operands[0].i(inds[0])
     for i in range(1,numop):
         operand = operand * operands[i].i(inds[i])
-    output.i(out_inds) << operand
+    out_scale*output.i(out_inds) << operand
     return output
 
 def svd(tensor A, rank=None):
