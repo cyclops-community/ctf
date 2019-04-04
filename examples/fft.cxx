@@ -56,9 +56,6 @@ Matrix< std::complex<double> > twiddle_matrix(int n, World & wrld){
 }
 
 void fft(Vector< std::complex<double> > & v, int n){
-  int64_t np;
-  int64_t * idx;
-  std::complex<double> * data;
   // assert that n is a power of two
   int logn=0;
   while (1<<logn < n){
@@ -72,11 +69,7 @@ void fft(Vector< std::complex<double> > & v, int n){
   assert(nfact == logn);
   
   // Fold v into log_2(n) tensor V
-  Tensor< std::complex<double> > V(nfact, factors, *v.wrld, *v.sr, "V");
-  v.get_local_data(&np, &idx, &data);
-  V.write(np, idx, data);
-  free(idx);
-  delete [] data;
+  Tensor< std::complex<double> > V = v.reshape(nfact, factors);
 
   // define range of indices [a, b, c, ...]
   char inds[nfact+1];
@@ -136,12 +129,7 @@ void fft(Vector< std::complex<double> > & v, int n){
   }
 
   // we now unfold the tensor back into vector form
-  V.get_local_data(&np, &idx, &data);
-  v.write(np, idx, data);
-  
-  free(idx);
-  delete [] data;
-  
+  v.reshape(V);
 }
 
 

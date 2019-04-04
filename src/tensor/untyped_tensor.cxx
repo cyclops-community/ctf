@@ -1506,10 +1506,10 @@ namespace CTF_int {
     return SUCCESS;
   }
 
-  void tensor::read_local(int64_t * num_pair,
-                          int64_t ** inds,
-                          char **   data,
-                          bool      unpack_sym) const {
+  int tensor::read_local(int64_t * num_pair,
+                         int64_t ** inds,
+                         char **   data,
+                         bool      unpack_sym) const {
     char * pairs;
     read_local(num_pair, &pairs, unpack_sym);
     *inds = (int64_t*)CTF_int::alloc(sizeof(int64_t)*(*num_pair));
@@ -1520,13 +1520,14 @@ namespace CTF_int {
       pr[i].read_val(*data+i*sr->el_size);
     }
     sr->pair_dealloc(pairs);
+    return SUCCESS;
   }
 
 
-  void tensor::read_local_nnz(int64_t * num_pair,
-                              int64_t ** inds,
-                              char **   data,
-                              bool      unpack_sym) const {
+  int tensor::read_local_nnz(int64_t * num_pair,
+                             int64_t ** inds,
+                             char **   data,
+                             bool      unpack_sym) const {
     char * pairs;
     read_local_nnz(num_pair, &pairs, unpack_sym);
     *inds = (int64_t*)CTF_int::alloc(sizeof(int64_t)*(*num_pair));
@@ -1537,6 +1538,7 @@ namespace CTF_int {
       pr[i].read_val(*data+i*sr->el_size);
     }
     sr->pair_dealloc(pairs);
+    return SUCCESS;
   }
 
   int tensor::read_local_nnz(int64_t * num_pair,
@@ -1553,6 +1555,17 @@ namespace CTF_int {
     return SUCCESS;
   }
 
+  int tensor::reshape(tensor * new_tsr, char const * alpha, char const * beta){
+    char * pairs;
+    int64_t n;
+    if (beta == NULL || this->sr->isequal(beta,this->sr->addid()))
+      this->set_zero();
+    int stat = new_tsr->read_local_nnz(&n, &pairs, true);
+    if (stat != SUCCESS) return stat;
+    stat = this->write(n, alpha, beta, pairs, 'w');
+    this->sr->pair_dealloc(pairs);
+    return stat;
+  }
 
   int tensor::read_local(int64_t * num_pair,
                          char **   mapped_data,

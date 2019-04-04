@@ -108,6 +108,7 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
                            char **   data,
                            bool      unpack_sym)
 
+        void reshape(ctensor * tsr, char * alpha, char * beta)
         void allread(int64_t * num_pair, char * data, bool unpack)
         void slice(int *, int *, char *, ctensor *, int *, int *, char *)
         int64_t get_tot_size(bool packed)
@@ -1805,6 +1806,8 @@ cdef class tensor:
         dim = self.shape
         total_size = 1
         newshape = []
+        cdef char * alpha
+        cdef char * beta
         if not isinstance(integer[0], (int, np.integer)):
             if len(integer)!=1:
                 raise ValueError("CTF PYTHON ERROR: invalid shape argument to reshape")
@@ -1833,8 +1836,11 @@ cdef class tensor:
             if new_size != total_size:
                 raise ValueError("CTF PYTHON ERROR: total size of new array must be unchanged")
             B = tensor(newshape,sp=self.sp,dtype=self.dtype)
-            inds, vals = self.read_local_nnz()
-            B.write(inds, vals)
+            alpha = <char*>self.dt.sr.mulid()
+            beta = <char*>self.dt.sr.addid()
+            B.dt.reshape(self.dt,alpha,beta)
+            #inds, vals = self.read_local_nnz()
+            #B.write(inds, vals)
         elif nega == 1:
             pos = 0
             for i in range(len(newshape)):
@@ -1847,8 +1853,12 @@ cdef class tensor:
                 raise ValueError("can not reshape into this size")
             newshape[pos] = nega_size
             B = tensor(newshape,sp=self.sp,dtype=self.dtype)
-            inds, vals = self.read_local_nnz()
-            B.write(inds, vals)
+            alpha = <char*>self.dt.sr.mulid()
+            beta = <char*>self.dt.sr.addid()
+            B.dt.reshape(self.dt,alpha,beta)
+            #inds, vals = self.read_local_nnz()
+            #B.write(inds, vals)
+
         else:
             raise ValueError('CTF PYTHON ERROR: can only specify one unknown dimension')
         return B

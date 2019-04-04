@@ -516,10 +516,10 @@ namespace CTF_int {
        * \param[out] indices 64-bit global indices
        * \param[out] data values (num_pair of them to read)
        */
-      void read_local(int64_t *  num_pair,
-                      int64_t ** inds,
-                      char **    data,
-                      bool       unpack_sym=false) const;
+      int read_local(int64_t *  num_pair,
+                     int64_t ** inds,
+                     char **    data,
+                     bool       unpack_sym=false) const;
 
       /**
        * \brief read tensor data pairs local to processor that have nonzero values
@@ -527,11 +527,18 @@ namespace CTF_int {
        * \param[out] indices 64-bit global indices
        * \param[out] data values (num_pair of them to read)
        */
-      void read_local_nnz(int64_t * num_pair,
-                          int64_t ** inds,
-                          char **    data,
-                          bool      unpack_sym=false) const;
+      int read_local_nnz(int64_t * num_pair,
+                         int64_t ** inds,
+                         char **    data,
+                         bool      unpack_sym=false) const;
 
+      /**
+       * \brief reshape tensors into dimensions given by lens, keeps sparsity if this tensor has it, sheds any symmetries
+       * \param[in,out] new_tsr pre-allocated tensor with new shape
+       * \param[in] alpha scalar with which to scale data of this tensor
+       * \param[in] beta parameter with which to scale data already in new_tsr
+       */
+      int reshape(tensor * new_tsr, char const * alpha, char const * beta);
 
       /**
        * brief copy A into this (B). Realloc if necessary

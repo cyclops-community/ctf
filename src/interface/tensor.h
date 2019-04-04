@@ -736,6 +736,28 @@ namespace CTF {
       void sparsify(std::function<bool(dtype)> filter);
 
       /**
+       * \brief reshape tensors into dimensions given by lens, keeps sparsity if this tensor has it, sheds any symmetries
+       * \param[in] order number of modes in new tensor
+       * \param[in] lens new mode lengths
+       * \return tensor with data in same order but new mode lengths
+       */
+      Tensor<dtype> reshape(int order, int const * lens);
+
+      /**
+       * \brief reshape tensors into dimensions given by lens, keeps sparsity if this tensor has it, sheds any symmetries
+       * \param[in] old_tsr pre-allocated tensor with old shape
+       */
+      void reshape(Tensor<dtype> old_tsr);
+
+      /**
+       * \brief reshape tensors into dimensions given by lens, keeps sparsity if this tensor has it, sheds any symmetries
+       * \param[in] old_tsr pre-allocated tensor with old shape
+       * \param[in] alpha scalar with which to scale data of old_tsr
+       * \param[in] beta parameter with which to scale data already in this tensor
+       */
+      void reshape(Tensor<dtype> old_tsr, dtype alpha, dtype beta);
+
+      /**
        * \brief read sparse tensor from file, entries of tensor must be stored one per line, as i_1 ... i_order v, to create entry T[i_1, ..., i_order] = v
        * or as  i_1 ... i_order, to create entry T[i_1, ..., i_order] = mulid
        * \param[in] fpath string of file name to read from

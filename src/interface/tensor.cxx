@@ -463,6 +463,25 @@ namespace CTF {
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function sparisfy\n"); IASSERT(0); return; }
   }
 
+  template<typename dtype>
+  Tensor<dtype> Tensor<dtype>::reshape(int order, int const * lens){
+    Tensor<dtype> tsr(order, this->is_sparse, lens, *this->wrld, *this->sr);
+    tsr.reshape(*this);
+    return tsr;
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::reshape(Tensor<dtype> old_tsr){
+    int ret = CTF_int::tensor::reshape(&old_tsr, sr->mulid(), sr->addid());
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function reshape\n"); IASSERT(0); return; }
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::reshape(Tensor<dtype> old_tsr, dtype alpha, dtype beta){
+    int ret = CTF_int::tensor::reshape(&old_tsr, (char*)&alpha, (char*)&beta);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function reshape\n"); IASSERT(0); return; }
+  }
+
   template <typename dtype>
   void read_sparse_from_file_base(const char * fpath, bool with_vals, bool rev_order, Tensor<dtype> * T){
     char ** datastr;
