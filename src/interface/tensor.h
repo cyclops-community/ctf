@@ -635,6 +635,7 @@ namespace CTF {
                           World * oworld) const;
 
 
+
       /**
        * \brief adds to a slice (block) of this tensor = B
        *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
@@ -711,6 +712,19 @@ namespace CTF {
                    CTF_int::tensor & A,
                    dtype             alpha);
 
+      /*
+       * \calculates the singular value decomposition, M = U x S x VT, of matrix (unfolding of this tensor) using pdgesvd from ScaLAPACK
+       * \param[in] idx_A char array of length order specifying tensor indices
+       * \param[in] num_U_modes number of modes (up to order) to map to the left singular vectors
+       * \param[in] idx_U char array of length num_U_modes specifying which of the tensor indices enumerate rows of unfolded tensor
+       * \param[in] idx_V char array of length order-num_U_modes specifying which of the tensor indices enumerate columns of unfolded tensor
+       * \param[out] U left singular vectors of matrix
+       * \param[out] S singular values of matrix
+       * \param[out] VT right singular vectors of matrix
+       * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns)
+       */
+      //void svd(char const * idx_A, int num_U_modes, Tensor<dtype> & U, char const * idx_U, Tensor<dtype> & S, char const * idx_S, Tensor<dtype> & VT, char const * idx_V, int rank=0, dtype threshold=0.0);
+
       /**
        * \brief reduce tensor to sparse format, storing only nonzero data, or data above a specified threshold.
        *        makes dense tensors sparse.
@@ -756,6 +770,7 @@ namespace CTF {
        * \param[in] beta parameter with which to scale data already in this tensor
        */
       void reshape(Tensor<dtype> old_tsr, dtype alpha, dtype beta);
+
 
       /**
        * \brief read sparse tensor from file, entries of tensor must be stored one per line, as i_1 ... i_order v, to create entry T[i_1, ..., i_order] = v

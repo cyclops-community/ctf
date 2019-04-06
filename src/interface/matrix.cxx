@@ -165,30 +165,38 @@ namespace CTF {
                       int            nb,
                       int            pr,
                       int            pc,
+                      char           layout_order,
                       int            rsrc,
                       int            csrc,
                       int64_t &      nmyr,
                       int64_t &      nmyc,
                       Pair<dtype> *& pairs){
+    int ipr = (rank+pr-rsrc)%pr;
+    if (layout_order == 'R')
+      ipr = (rank/pc+pr-rsrc)%pr;
+    int ipc = (rank/pr+pc-csrc)%pc;
+    if (layout_order == 'R')
+      ipc = (rank+pc-csrc)%pc;
+
     nmyr = mb*(nrow/mb/pr);
-    if ((nrow/mb)%pr > (rank+pr-rsrc)%pr){
+    if ((nrow/mb)%pr > ipr){
       nmyr+=mb;
     }
-    if (((nrow/mb)%pr) == (rank+pr-rsrc)%pr){
+    if (((nrow/mb)%pr) == ipr){
       nmyr+=nrow%mb;
     }
     nmyc = nb*(ncol/nb/pc);
-    if ((ncol/nb)%pc > (rank/pr+pc-csrc)%pc){
+    if ((ncol/nb)%pc > ipc){
       nmyc+=nb;
     }
-    if (((ncol/nb)%pc) == (rank/pr+pc-csrc)%pc){
+    if (((ncol/nb)%pc) == ipc){
       nmyc+=ncol%nb;
     }
     //printf("nrow = %d ncol = %d nmyr = %ld, nmyc = %ld mb = %d nb = %d pr = %d pc = %d\n",nrow,ncol,nmyr,nmyc,mb,nb,pr,pc);
     pairs = new Pair<dtype>[nmyr*nmyc];
-    int cblk = (rank/pr+pc-csrc)%pc;
+    int cblk = ipc;
     for (int64_t i=0; i<nmyc;  i++){
-      int rblk = (rank+pr-rsrc)%pr;
+      int rblk = ipr;
       for (int64_t j=0; j<nmyr;  j++){
         pairs[i*nmyr+j].k = (cblk*nb+(i%nb))*nrow+rblk*mb+(j%mb);
     //    pairs[i*nmyr+j].d = *(dtype*)this->sr->addid();
@@ -204,27 +212,38 @@ namespace CTF {
                                 int           nb,
                                 int           pr,
                                 int           pc,
+                                char          layout_order,
                                 int           rsrc,
                                 int           csrc,
                                 int           lda,
                                 dtype const * data_){
-    if (mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0){
+    bool is_order_same = true;
+    if (layout_order == 'C'){
+      if (this->edge_map[0].cdt != 0 && pc > 1)
+        is_order_same = false;
+    } else {
+      if (this->edge_map[1].cdt != 0 && pr > 1)
+        is_order_same = false;
+    }
+    IASSERT(is_order_same);
+
+    if (is_order_same && mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0){
       if (this->edge_map[0].np == pr && this->edge_map[1].np == pc){
-        if (lda == nrow/pc){
+        if (lda == nrow/pr){
           memcpy(this->data, (char*)data_, sizeof(dtype)*this->size);
         } else {
           for (int64_t i=0; i<ncol/pc; i++){
-            memcpy(this->data+i*lda*sizeof(dtype),(char*)(data_+i*lda), ((int64_t)nrow)*sizeof(dtype)/pr);
+            memcpy(this->data+i*lda*sizeof(dtype),(char*)(data_+i*lda), ((int64_t)nrow/pr)*sizeof(dtype));
           }
         }
       } else {
-        Matrix<dtype> M(nrow, ncol, mb, nb, pr, pc, rsrc, csrc, lda, data_);
+        Matrix<dtype> M(nrow, ncol, mb, nb, pr, pc, layout_order, rsrc, csrc, lda, data_);
         (*this)["ab"] = M["ab"];
       }
     } else {
       Pair<dtype> * pairs;
       int64_t nmyr, nmyc;
-      get_my_kv_pair(this->wrld->rank, nrow, ncol, mb, nb, pr, pc, rsrc, csrc, nmyr, nmyc, pairs);
+      get_my_kv_pair(this->wrld->rank, nrow, ncol, mb, nb, pr, pc, layout_order, rsrc, csrc, nmyr, nmyc, pairs);
 
         //printf("lda = %d, nmyr =%ld, nmyc=%ld\n",lda,nmyr,nmyc);
       if (lda == nmyr){
@@ -248,14 +267,24 @@ namespace CTF {
                                int     nb,
                                int     pr,
                                int     pc,
+                               char    layout_order,
                                int     rsrc,
                                int     csrc,
                                int     lda,
                                dtype * data_){
     //FIXME: (1) can optimize sparse for this case (mapping cyclic), (2) can use permute to avoid sparse redistribution always
-    if (!this->is_sparse && (mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0)){
+    bool is_order_same = true;
+    if (layout_order == 'C'){
+      if (this->edge_map[0].cdt != 0 && pc > 1)
+        is_order_same = false;
+    } else {
+      if (this->edge_map[1].cdt != 0 && pr > 1)
+        is_order_same = false;
+    }
+    IASSERT(is_order_same);
+    if (is_order_same && !this->is_sparse && (mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0)){
       if (this->edge_map[0].np == pr && this->edge_map[1].np == pc){
-        if (lda == nrow/pc){
+        if (lda == nrow/pr){
           memcpy((char*)data_, this->data, sizeof(dtype)*this->size);
         } else {
           for (int64_t i=0; i<ncol/pc; i++){
@@ -263,16 +292,17 @@ namespace CTF {
           }
         }
       } else {
+        IASSERT(layout_order == 'C');
         int plens[] = {pr, pc};
         Partition ip(2, plens);
         Matrix M(nrow, ncol, "ij", ip["ij"], Idx_Partition(), 0, *this->wrld, *this->sr);
         M["ab"] = (*this)["ab"];
-        M.read_mat(mb, nb, pr, pc, rsrc, csrc, lda, data_);
+        M.read_mat(mb, nb, pr, pc, layout_order, rsrc, csrc, lda, data_);
       }
     } else {
       Pair<dtype> * pairs;
       int64_t nmyr, nmyc;
-      get_my_kv_pair(this->wrld->rank, nrow, ncol, mb, nb, pr, pc, rsrc, csrc, nmyr, nmyc, pairs);
+      get_my_kv_pair(this->wrld->rank, nrow, ncol, mb, nb, pr, pc, layout_order, rsrc, csrc, nmyr, nmyc, pairs);
 
       this->read(nmyr*nmyc, pairs);
       if (lda == nmyr){
@@ -293,24 +323,29 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Matrix<dtype>::get_desc(int & ictxt, int *& desc){
+  void Matrix<dtype>::get_desc(int & ictxt, int *& desc, char & layout_order){
     int pr, pc;
     pr = this->edge_map[0].calc_phase();       
     pc = this->edge_map[1].calc_phase();       
     IASSERT(this->wrld->np == pr*pc);
 
-    char C = 'C';
+    layout_order = 'C';
+    if (this->edge_map[1].type == CTF_int::PHYSICAL_MAP &&
+        this->edge_map[1].np   >  1 &&
+        this->edge_map[1].cdt  == 0)
+      layout_order = 'R';
     int ctxt;
     IASSERT(this->wrld->comm == MPI_COMM_WORLD);
     CTF_SCALAPACK::cblacs_get(-1, 0, &ctxt);
     CTF_int::grid_wrapper gw;
     gw.pr = pr;
     gw.pc = pc;
+    gw.layout = layout_order;
     std::set<CTF_int::grid_wrapper>::iterator s = CTF_int::scalapack_grids.find(gw);
     if (s != CTF_int::scalapack_grids.end()){
       ctxt = s->ctxt;
     } else {
-      CTF_SCALAPACK::cblacs_gridinit(&ctxt, &C, pr, pc);
+      CTF_SCALAPACK::cblacs_gridinit(&ctxt, &layout_order, pr, pc);
       gw.ctxt = ctxt;
       CTF_int::scalapack_grids.insert(gw);
     }
@@ -330,14 +365,13 @@ namespace CTF {
 
   template<typename dtype>
   void Matrix<dtype>::read_mat(int const * desc,
-                               dtype *     data_){
+                               dtype *     data_,
+                               char        layout_order){
     int ictxt = desc[1];
     int pr, pc, ipr, ipc;
     CTF_SCALAPACK::cblacs_gridinfo(ictxt, &pr, &pc, &ipr, &ipc);
-    IASSERT(ipr == this->wrld->rank%pr);
-    IASSERT(ipc == this->wrld->rank/pr);
 
-    read_mat(desc[4],desc[5],pr,pc,desc[6],desc[7],desc[8],data_);
+    read_mat(desc[4],desc[5],pr,pc,layout_order,desc[6],desc[7],desc[8],data_);
   }
 
   template<typename dtype>
@@ -347,6 +381,7 @@ namespace CTF {
                         int                       nb,
                         int                       pr,
                         int                       pc,
+                        char                      layout_order,
                         int                       rsrc,
                         int                       csrc,
                         int                       lda,
@@ -360,39 +395,43 @@ namespace CTF {
     nrow = nrow_;
     ncol = ncol_;
     symm = NS;
-    write_mat(mb,nb,pr,pc,rsrc,csrc,lda,data);
+    write_mat(mb,nb,pr,pc,layout_order,rsrc,csrc,lda,data);
   }
 
   
 
-  static inline Idx_Partition get_map_from_desc(int const * desc){
+  static inline Idx_Partition get_map_from_desc(int const * desc, char layout_order='C'){
 
     int ictxt = desc[1];
     int pr, pc, ipr, ipc;
     CTF_SCALAPACK::cblacs_gridinfo(ictxt, &pr, &pc, &ipr, &ipc);
-    return Partition(2,CTF_int::int2(pr, pc))["ij"];
+    if (layout_order == 'C')
+      return Partition(2,CTF_int::int2(pr, pc))["ij"];
+    else
+      return Partition(2,CTF_int::int2(pc, pr))["ji"];
   }
 
   template<typename dtype>
   Matrix<dtype>::Matrix(int const *               desc,
                         dtype const *             data_,
+                        char                      layout_order,
                         World &                   wrld_,
                         CTF_int::algstrct const & sr_,
                         char const *              name_,
                         int                       profile_)
     : Tensor<dtype>(2, false, CTF_int::int2(desc[2], desc[3]),  CTF_int::int2(NS, NS),
-                           wrld_, "ij", get_map_from_desc(desc), Idx_Partition(), name_, profile_, sr_) {
+                           wrld_, "ij", get_map_from_desc(desc,layout_order), Idx_Partition(), name_, profile_, sr_) {
     nrow = desc[2];
     ncol = desc[3];
     symm = NS;
     int ictxt = desc[1];
     int pr, pc, ipr, ipc;
     CTF_SCALAPACK::cblacs_gridinfo(ictxt, &pr, &pc, &ipr, &ipc);
-    IASSERT(ipr == wrld_.rank%pr);
-    IASSERT(ipc == wrld_.rank/pr);
+    //IASSERT(ipr == wrld_.rank%pr);
+    //IASSERT(ipc == wrld_.rank/pr);
     IASSERT(pr*pc == wrld_.np);
     //this->set_distribution("ij", Partition(2,CTF_int::int2(pr, pc))["ij"], Idx_Partition());
-    write_mat(desc[4],desc[5],pr,pc,desc[6],desc[7],desc[8],data_);
+    write_mat(desc[4],desc[5],pr,pc,layout_order,desc[6],desc[7],desc[8],data_);
   }
 
   template <typename dtype>
@@ -471,10 +510,11 @@ namespace CTF {
     int * desca;// = (int*)malloc(9*sizeof(int));
 
     int ictxt;
-    this->get_desc(ictxt, desca);
+    char layout_order;
+    this->get_desc(ictxt, desca, layout_order);
     dtype * A = (dtype*)malloc(this->size*sizeof(dtype));
 
-    this->read_mat(desca, A);
+    this->read_mat(desca, A, layout_order);
 
     dtype * tau = (dtype*)malloc(((int64_t)n)*sizeof(dtype));
     dtype dlwork;
@@ -486,7 +526,7 @@ namespace CTF {
     dtype * dQ = (dtype*)malloc(this->size*sizeof(dtype));
     memcpy(dQ,A,this->size*sizeof(dtype));
 
-    Q = Matrix<dtype>(desca, dQ, (*(this->wrld)));
+    Q = Matrix<dtype>(desca, dQ, layout_order, (*(this->wrld)));
     Q.get_tri(R);
 
     free(work);
@@ -494,7 +534,7 @@ namespace CTF {
     lwork = get_int_fromreal<dtype>(dlwork);
     work = (dtype*)malloc(((int64_t)lwork)*sizeof(dtype));
     CTF_SCALAPACK::porgqr<dtype>(m,std::min(m,n),std::min(m,n),dQ,1,1,desca,tau,work,lwork,&info);
-    Q = Matrix<dtype>(desca, dQ, (*(this->wrld)));
+    Q = Matrix<dtype>(desca, dQ, layout_order, (*(this->wrld)));
     if (m<n)
       Q = Q.slice(0,m*(m-1)+m-1);
     free(work);
@@ -519,7 +559,8 @@ namespace CTF {
     int * descvt = (int*)malloc(9*sizeof(int));
 
     int ictxt;
-    this->get_desc(ictxt, desca);
+    char layout_order;
+    this->get_desc(ictxt, desca, layout_order);
 
     int pr, pc;
     pr = this->edge_map[0].calc_phase();
@@ -539,7 +580,7 @@ namespace CTF {
     dtype * u = (dtype*)CTF_int::alloc(sizeof(dtype)*mpr*kpc);
     dtype * s = (dtype*)CTF_int::alloc(sizeof(dtype)*k);
     dtype * vt = (dtype*)CTF_int::alloc(sizeof(dtype)*kpr*npc);
-    this->read_mat(desca, A);
+    this->read_mat(desca, A, layout_order);
 
     int lwork;
     dtype dlwork;
@@ -551,8 +592,8 @@ namespace CTF {
     CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
 
  
-    U = Matrix<dtype>(descu, u, (*(this->wrld)));
-    VT = Matrix<dtype>(descvt, vt, (*(this->wrld)));
+    U = Matrix<dtype>(descu, u, layout_order, (*(this->wrld)));
+    VT = Matrix<dtype>(descvt, vt, layout_order, (*(this->wrld)));
 
     S = Vector<dtype>(k, (*(this->wrld)));
     int64_t sc;

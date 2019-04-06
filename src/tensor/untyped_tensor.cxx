@@ -1558,6 +1558,17 @@ namespace CTF_int {
   int tensor::reshape(tensor * new_tsr, char const * alpha, char const * beta){
     char * pairs;
     int64_t n;
+    //FIXME: finish
+    /*
+    bool did_lens_change = this->order != new_tsr->order;
+    if (!did_lens_change){
+      for (int i=0; i<new_tsr->order; i++){
+        if (new_tsr->lens[i] != this->lens[i])
+          did_lens_change = true;
+      }
+    }
+    if (!did_lens_change){
+    }*/
     if (beta == NULL || this->sr->isequal(beta,this->sr->addid()))
       this->set_zero();
     int stat = new_tsr->read_local_nnz(&n, &pairs, true);

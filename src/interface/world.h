@@ -153,11 +153,11 @@ namespace CTF_int {
     public:
       int pr;
       int pc;
+      int layout;
       int ctxt;
 
       bool operator<(grid_wrapper const & other) const;
   }; 
   extern std::set<grid_wrapper> scalapack_grids;
-
 }
 #endif

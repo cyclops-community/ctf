@@ -17,10 +17,13 @@ using namespace CTF_int;
 
 namespace CTF_int {
   bool grid_wrapper::operator<(grid_wrapper const & other) const {
-    if (this->pr == other.pr)
-      return this->pc < other.pc;
-    else
-      return this->pr < other.pr;
+    if (this->layout == other.layout){
+      if (this->pr == other.pr)
+        return this->pc < other.pc;
+      else
+        return this->pr < other.pr;
+    } else
+      return this->layout == 'C';
   }
 
   /** \brief index for ScaLAPACK processor grids */

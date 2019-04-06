@@ -85,7 +85,9 @@ namespace CTF {
        * \return out_inds unique indices to not contract/sum away
        */
       std::vector<char> get_uniq_inds() const;
- 
+
+
+
       /**
       * \brief appends the tensors this depends on to the input set
       */

@@ -140,6 +140,7 @@ namespace CTF {
        * \param[in] mb row block dimension
        * \param[in] nb col block dimension
        * \param[in] pr number of rows in processor grid
+       * \param[in] layout_order 'R' if processor grid is row major 'C' if processor grid is column major
        * \param[in] pc number of cols in processor grid
        * \param[in] rsrc processor row holding first block row (0-based unlike ScaLAPACK)
        * \param[in] csrc processor col holding first block row (0-based unlike ScaLAPACK)
@@ -150,6 +151,7 @@ namespace CTF {
                      int           nb,
                      int           pr,
                      int           pc,
+                     char          layout_order,
                      int           rsrc,
                      int           csrc,
                      int           lda,
@@ -167,6 +169,7 @@ namespace CTF {
        * \param[in] nb col block dimension
        * \param[in] pr number of rows in processor grid
        * \param[in] pc number of cols in processor grid
+       * \param[in] layout_order 'R' if processor grid is row major 'C' if processor grid is column major
        * \param[in] rsrc processor row holding first block row (0-based unlike ScaLAPACK)
        * \param[in] csrc processor col holding first block row (0-based unlike ScaLAPACK)
        * \param[in] lda leading dimension (length of buffer corresponding to row)
@@ -182,6 +185,7 @@ namespace CTF {
              int                       nb,
              int                       pr,
              int                       pc,
+             char                      layout_order,
              int                       rsrc,
              int                       csrc,
              int                       lda,
@@ -199,6 +203,7 @@ namespace CTF {
        * \param[in] desc ScaLAPACK descriptor array:
        *                 see ScaLAPACK docs for "Array Descriptor for In-core Dense Matrices"
        * \param[in] data locally stored values
+       * \param[in] layout_order 'R' if processor grid is row major 'C' if processor grid is column major
        * \param[in] wrld CTF world where the tensor will live, must contain pr*pc processors
        * \param[in] sr defines the tensor arithmetic for this tensor
        * \param[in] name an optionary name for the tensor
@@ -206,6 +211,7 @@ namespace CTF {
        */
       Matrix(int const *               desc,
              dtype const *             data,
+             char                      layout_order='C',
              World &                   wrld=get_universe(),
              CTF_int::algstrct const & sr=Ring<dtype>(),
              char const *              name=NULL,
@@ -219,6 +225,7 @@ namespace CTF {
        * \param[in] nb col block dimension
        * \param[in] pr number of rows in processor grid
        * \param[in] pc number of cols in processor grid
+       * \param[in] layout_order 'R' if processor grid is row major 'C' if processor grid is column major
        * \param[in] rsrc processor row holding first block row (0-based unlike ScaLAPACK)
        * \param[in] csrc processor col holding first block row (0-based unlike ScaLAPACK)
        * \param[in] lda leading dimension (length of buffer corresponding to row)
@@ -228,6 +235,7 @@ namespace CTF {
                     int     nb,
                     int     pr,
                     int     pc,
+                    char    layout_order,
                     int     rsrc,
                     int     csrc,
                     int     lda,
@@ -238,9 +246,10 @@ namespace CTF {
        * \brief get a ScaLAPACK descriptor for this Matrix, will always be in pure cyclic layout
        * \param[out] ictxt index of newly created context
        * \param[out] desc array of integers of size 9, which will be filled with attributes
+       * \param[out] layout_order 'R' if processor grid is row major 'C' if processor grid is column major
        *                 see ScaLAPACK docs for "Array Descriptor for In-core Dense Matrices"
        */
-      void get_desc(int & ictxt, int *& desc);
+      void get_desc(int & ictxt, int *& desc, char & layout_order);
 
 
       /**
@@ -250,9 +259,11 @@ namespace CTF {
        * \param[in] desc ScaLAPACK descriptor array:
        *                 see ScaLAPACK docs for "Array Descriptor for In-core Dense Matrices"
        * \param[in] data locally stored values
+       * \param[out] layout_order 'R' if processor grid is row major 'C' if processor grid is column major
        */
       void read_mat(int const * desc,
-                    dtype *     data);
+                    dtype *     data,
+                    char        layout_order='C');
 
       /*
        * \brief prints matrix by row and column (modify print(...) overload in set.h if you would like a different print format)
