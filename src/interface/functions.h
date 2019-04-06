@@ -325,7 +325,7 @@ namespace CTF {
         CTF_int::cdealloc(rev_col);
       }
 
-      void ccsrmm(int              m,
+      void fcsrmm(int              m,
                   int              n,
                   int              k,
                   char const *     A,
@@ -355,7 +355,7 @@ namespace CTF {
         csrmultd(m,n,k,(dtype_A const *)A,JA,IA,nnz_A,(dtype_B const *)B,JB,IB,nnz_B,(dtype_C *)C,sr_C);
       }
 
-      void ccsrmultcsr
+      void fcsrmultcsr
                 (int              m,
                  int              n,
                  int              k,

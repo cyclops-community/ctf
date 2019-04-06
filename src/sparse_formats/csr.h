@@ -17,7 +17,7 @@ namespace CTF_int {
   int64_t get_csr_size(int64_t nnz, int nrow, int val_size);
 
   /**
-   * \brief abstraction for a serialized sparse matrix stored in column-sparse-row (CSR) layout
+   * \brief abstraction for a serialized sparse matrix stored in compressed-sparse-row (CSR) layout
    */
   class CSR_Matrix{
     public:
