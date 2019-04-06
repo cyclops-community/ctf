@@ -878,7 +878,11 @@ NORM1_INST(double)
       inds[i] = 'a'+i;
     }
     //CTF::Scalar<double> dnrm(A.dw);
-    nrm = std::sqrt((double)Function<dtype,double>([](dtype a){ return (double)(a*a); })(A[inds]));
+    Tensor<dtype> cA(A.order, A.is_sparse, A.lens, *A.wrld, *A.sr);
+    cA[inds] += A[inds];
+    Transform<dtype>([](dtype & a){ a = a*a; })(cA[inds]);
+    nrm = cA[inds];
+    nrm = std::sqrt(nrm);
   }
 
   template<typename dtype>
@@ -920,6 +924,26 @@ NORM2_REAL_INST(float)
 NORM2_REAL_INST(double)
 NORM2_COMPLEX_INST(float)
 NORM2_COMPLEX_INST(double)
+
+#define NORM2_INST(dtype) \
+  template<> \
+  inline dtype Tensor<dtype>::norm2(){ \
+    double nrm = 0; \
+    this->norm2(nrm); \
+    return (dtype)nrm; \
+  }
+
+
+NORM2_INST(int8_t)
+NORM2_INST(int16_t)
+NORM2_INST(int)
+NORM2_INST(int64_t)
+NORM2_INST(float)
+NORM2_INST(double)
+NORM2_INST(std::complex<float>)
+NORM2_INST(std::complex<double>)
+
+
 
   template<typename dtype>
   void Tensor<dtype>::norm_infty(double & nrm){

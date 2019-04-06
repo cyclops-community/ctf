@@ -1777,7 +1777,7 @@ cdef class tensor:
         B = tensor(copy=self)
         return B
 
-    def reshape(self, *integer):
+    def reshape(tensor self, *integer):
         """
         reshape(*integer)
         Return a new tensor with reshaped shape.
@@ -1829,7 +1829,6 @@ cdef class tensor:
         for i in range(len(newshape)):
             if newshape[i] < 0:
                 nega += 1
-        B = None
         if nega == 0:
             for i in range(len(newshape)):
                 new_size *= newshape[i]
@@ -1838,9 +1837,10 @@ cdef class tensor:
             B = tensor(newshape,sp=self.sp,dtype=self.dtype)
             alpha = <char*>self.dt.sr.mulid()
             beta = <char*>self.dt.sr.addid()
-            B.dt.reshape(self.dt,alpha,beta)
+            (<ctensor*>B.dt).reshape(<ctensor*>self.dt, alpha, beta)
             #inds, vals = self.read_local_nnz()
             #B.write(inds, vals)
+            return B
         elif nega == 1:
             pos = 0
             for i in range(len(newshape)):
@@ -1855,13 +1855,13 @@ cdef class tensor:
             B = tensor(newshape,sp=self.sp,dtype=self.dtype)
             alpha = <char*>self.dt.sr.mulid()
             beta = <char*>self.dt.sr.addid()
-            B.dt.reshape(self.dt,alpha,beta)
+            (<ctensor*>B.dt).reshape(<ctensor*>self.dt,alpha,beta)
             #inds, vals = self.read_local_nnz()
             #B.write(inds, vals)
-
+            return B
         else:
             raise ValueError('CTF PYTHON ERROR: can only specify one unknown dimension')
-        return B
+            return None
 
     def ravel(self, order="F"):
         """
