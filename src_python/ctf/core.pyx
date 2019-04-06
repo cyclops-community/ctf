@@ -5375,6 +5375,53 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     out_scale*output.i(out_inds) << operand
     return output
 
+def TTTP(tensor A, mat_list):
+    """
+    TTTP(A, mat_list)
+    Compute updates to entries in tensor A based on matrices in mat_list (tensor times tensor products)
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor of arbitrary ndim
+
+    mat_list: list of size A.ndim, containing either None or matrix of dimensions m-by-k or vector,
+              where m matches the corresponding mode length of A and k is the same for all 
+              given matrices (or all are vectors)
+
+    Returns
+    -------
+    B: tensor
+        A tensor of the same ndim as A, updating by taking products of entries of A with multilinear dot products of columns of given matrices.
+        For ndim=3 and mat_list=[X,Y,Z], this operation is equivalent to einsum("ijk,ia,ja,ka->ijk",A,X,Y,Z)
+    """
+    B = tensor(A.shape, A.sp, A.sym, A.dtype, A.order)
+    s = _get_num_str(B.ndim+1)
+    exp = A.i(s[:-1])
+    if len(mat_list) != A.ndim:
+        raise ValueError('CTF PYTHON ERROR: mat_list argument to TTTP must be of same length as ndim')
+    
+    k = -1
+    for i in range(len(mat_list)):
+        if mat_list[i] is not None:
+            if mat_list[i].ndim == 1:
+                if k != -1:
+                    raise ValueError('CTF PYTHON ERROR: mat_list must contain only vectors or only matrices')
+                if mat_list[i].shape[0] != A.shape[i]:
+                    raise ValueError('CTF PYTHON ERROR: input vector to TTTP does not match the corresponding tensor dimension')
+                exp = exp*mat_list[i].i(s[i])
+            else:
+                if mat_list[i].ndim != 2:
+                    raise ValueError('CTF PYTHON ERROR: mat_list operands has invalid dimension')
+                if k == -1:
+                    k = mat_list[i].shape[1]
+                else:
+                    if k != mat_list[i].shape[1]:
+                        raise ValueError('CTF PYTHON ERROR: mat_list second mode lengths of tensor must match')
+                exp = exp*mat_list[i].i(s[i]+s[-1])
+    B.i(s[:-1]) << exp
+    return B
+
 def svd(tensor A, rank=None):
     """
     svd(A, rank=None)

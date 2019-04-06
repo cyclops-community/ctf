@@ -124,6 +124,34 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(c1.dtype == numpy.complex)
         self.assertTrue(allclose(c0, c1))
 
+    def test_TTTP_vec(self):
+        A = numpy.random.random((4, 3, 5))
+        u = numpy.random.random((4,))
+        v = numpy.random.random((5,))
+        ans = numpy.einsum("ijk,i,k->ijk",A,u,v)
+        cA = ctf.astensor(A)
+        cu = ctf.astensor(u)
+        cv = ctf.astensor(v)
+        cans = ctf.TTTP(cA,[cu,None,cv])
+        self.assertTrue(allclose(ans, cans))
+
+    def test_TTTP_mat(self):
+        A = numpy.random.random((5, 1, 4, 2, 3))
+        u = numpy.random.random((5, 3))
+        v = numpy.random.random((1, 3))
+        w = numpy.random.random((4, 3))
+        x = numpy.random.random((2, 3))
+        y = numpy.random.random((3, 3))
+        ans = numpy.einsum("ijklm,ia,ja,ka,la,ma->ijklm",A,u,v,w,x,y)
+        cA = ctf.astensor(A)
+        cu = ctf.astensor(u)
+        cv = ctf.astensor(v)
+        cw = ctf.astensor(w)
+        cx = ctf.astensor(x)
+        cy = ctf.astensor(y)
+        cans = ctf.TTTP(cA,[cu,cv,cw,cx,cy])
+        self.assertTrue(allclose(ans, cans))
+
 
 if __name__ == "__main__":
     numpy.random.seed(5330);
