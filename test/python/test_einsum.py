@@ -152,6 +152,19 @@ class KnowValues(unittest.TestCase):
         cans = ctf.TTTP(cA,[cu,cv,cw,cx,cy])
         self.assertTrue(allclose(ans, cans))
 
+    def test_sp_TTTP_mat(self):
+        A = ctf.tensor((5, 1, 4, 2, 3),sp=True)
+        A.fill_sp_random(0.,1.,.2)
+        u = ctf.random.random((5, 3))
+        v = ctf.random.random((1, 3))
+        w = ctf.random.random((4, 3))
+        x = ctf.random.random((2, 3))
+        y = ctf.random.random((3, 3))
+        ans = ctf.einsum("ijklm,ia,ja,ka,la,ma->ijklm",A,u,v,w,x,y)
+        cans = ctf.TTTP(A,[u,v,w,x,y])
+        self.assertTrue(allclose(ans, cans))
+
+
 
 if __name__ == "__main__":
     numpy.random.seed(5330);

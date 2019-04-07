@@ -233,6 +233,7 @@ cdef extern from "ctf.hpp" namespace "CTF":
         dtype norm1()
         dtype norm2() # Frobenius norm
         dtype norm_infty()
+        void TTTP(int num_ops, int * modes, Tensor[dtype] ** mat_list, bool aux_mode_first)
 
     cdef cppclass Vector[dtype](ctensor):
         Vector()
@@ -5383,9 +5384,10 @@ def TTTP(tensor A, mat_list):
     Parameters
     ----------
     A: tensor_like
-        Input tensor of arbitrary ndim
+       Input tensor of arbitrary ndim
 
-    mat_list: list of size A.ndim, containing either None or matrix of dimensions m-by-k or vector,
+    mat_list: list of size A.ndim
+              Contains either None or matrix of dimensions m-by-k or vector,
               where m matches the corresponding mode length of A and k is the same for all 
               given matrices (or all are vectors)
 
@@ -5395,21 +5397,31 @@ def TTTP(tensor A, mat_list):
         A tensor of the same ndim as A, updating by taking products of entries of A with multilinear dot products of columns of given matrices.
         For ndim=3 and mat_list=[X,Y,Z], this operation is equivalent to einsum("ijk,ia,ja,ka->ijk",A,X,Y,Z)
     """
-    B = tensor(A.shape, A.sp, A.sym, A.dtype, A.order)
-    s = _get_num_str(B.ndim+1)
-    exp = A.i(s[:-1])
+    #B = tensor(A.shape, A.sp, A.sym, A.dtype, A.order)
+    #s = _get_num_str(B.ndim+1)
+    #exp = A.i(s[:-1])
     if len(mat_list) != A.ndim:
         raise ValueError('CTF PYTHON ERROR: mat_list argument to TTTP must be of same length as ndim')
     
     k = -1
-    for i in range(len(mat_list)):
+    cdef int * modes
+    modes = <int*>malloc(len(mat_list)*sizeof(int))
+    tsrs = <Tensor[double]**>malloc(len(mat_list)*sizeof(ctensor*))
+    imode = 0
+    tsr_list = []
+    for i in range(len(mat_list))[::-1]:
         if mat_list[i] is not None:
+            modes[imode] = len(mat_list)-i-1
+            t = tensor(copy=mat_list[i])
+            tsr_list.append(t)
+            tsrs[imode] = <Tensor[double]*>t.dt
+            imode += 1
             if mat_list[i].ndim == 1:
                 if k != -1:
                     raise ValueError('CTF PYTHON ERROR: mat_list must contain only vectors or only matrices')
                 if mat_list[i].shape[0] != A.shape[i]:
                     raise ValueError('CTF PYTHON ERROR: input vector to TTTP does not match the corresponding tensor dimension')
-                exp = exp*mat_list[i].i(s[i])
+                #exp = exp*mat_list[i].i(s[i])
             else:
                 if mat_list[i].ndim != 2:
                     raise ValueError('CTF PYTHON ERROR: mat_list operands has invalid dimension')
@@ -5418,8 +5430,13 @@ def TTTP(tensor A, mat_list):
                 else:
                     if k != mat_list[i].shape[1]:
                         raise ValueError('CTF PYTHON ERROR: mat_list second mode lengths of tensor must match')
-                exp = exp*mat_list[i].i(s[i]+s[-1])
-    B.i(s[:-1]) << exp
+                #exp = exp*mat_list[i].i(s[i]+s[-1])
+    #B.i(s[:-1]) << exp
+    B = tensor(copy=A)
+    if A.dtype == np.float64:
+        (<Tensor[double]*>B.dt).TTTP(len(tsr_list),modes,tsrs,1)
+    else:
+        raise ValueError('CTF PYTHON ERROR: TTTP does not support this dtype')
     return B
 
 def svd(tensor A, rank=None):

@@ -5248,8 +5248,10 @@ namespace CTF_int {
           npres++;
       }
       
-      if (npres > 1)
+      if (npres > 1){
+        free(idx_arr);
         return true;
+      }
     }
 
     for (int iV=0; iV<V->order; iV++){
@@ -5267,9 +5269,12 @@ namespace CTF_int {
       if (V->sym[iV+npres] == NS && iiC == -1 && iiT == -1){
         npres++;
       }
-      if (npres > 1)
+      if (npres > 1){
+        free(idx_arr);
         return true;
+      }
     }
+    free(idx_arr);
     return false;
   }
 

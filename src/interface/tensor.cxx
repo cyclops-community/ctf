@@ -1090,6 +1090,117 @@ NORM_INFTY_INST(double)
     fill_sp_random_base<int64_t>(rmin, rmax, frac_sp, this);
   }
 
+
+  template<typename dtype>
+  void Tensor<dtype>::TTTP(int num_ops, int const * modes, Tensor<dtype> ** mat_list, bool aux_mode_first){
+    int k = -1;
+    bool is_vec = mat_list[0]->order == 1;
+    if (!is_vec)
+      k = mat_list[0]->lens[1-aux_mode_first];
+    dtype ** arrs = (dtype**)malloc(sizeof(dtype*)*num_ops);
+    int64_t * ldas = (int64_t*)malloc(num_ops*sizeof(int64_t));
+    int * op_lens = (int*)malloc(num_ops*sizeof(int));
+    for (int i=0; i<num_ops; i++){
+      //printf("i=%d/%d %d %d %d\n",i,num_ops,modes[i],mat_list[i]->lens[aux_mode_first], this->lens[modes[i]]);
+      if (i>0) IASSERT(modes[i] > modes[i-1] && modes[i]<this->order);
+      int64_t size;
+      if (is_vec){
+        IASSERT(mat_list[i]->order == 1);
+        size = mat_list[i]->lens[0];
+      } else {
+        IASSERT(mat_list[i]->order == 2);
+        IASSERT(mat_list[i]->lens[1-aux_mode_first] == k);
+        IASSERT(mat_list[i]->lens[aux_mode_first] == this->lens[modes[i]]);
+        size = mat_list[i]->lens[0]*mat_list[i]->lens[1];
+      }
+      arrs[i] = (dtype*)this->sr->alloc(size);
+      mat_list[i]->read_all(arrs[i], true);
+      int last_mode = 0;
+      if (i>0) last_mode = modes[i-1];
+      op_lens[i] = this->lens[modes[i]];
+      ldas[i] = 1;
+      for (int j=last_mode; j<modes[i]; j++){
+        ldas[i] *= this->lens[j];
+      }
+    }
+
+
+    int64_t npair;
+    Pair<dtype> * pairs;
+    this->get_local_pairs(&npair, &pairs, true, false);
+#ifdef _OPENMP
+    #pragma omp parallel
+#endif
+    {
+      if (is_vec){
+#ifdef _OPENMP
+        #pragma omp for
+#endif
+        for (int64_t i=0; i<npair; i++){
+          int64_t key = pairs[i].k;
+          for (int j=0; j<num_ops; j++){
+            //printf("i=%ld, j=%d\n",i,j);
+            key = key/ldas[j];
+            //FIXME: handle general semiring
+            pairs[i].d *= arrs[j][key%op_lens[j]];
+          }
+        }
+      } else if (aux_mode_first){
+        int * inds = (int*)malloc(num_ops*sizeof(int));
+#ifdef _OPENMP
+        #pragma omp for
+#endif
+        for (int64_t i=0; i<npair; i++){
+          int64_t key = pairs[i].k;
+          for (int j=0; j<num_ops; j++){
+            key = key/ldas[j];
+            inds[j] = key%op_lens[j];
+          }
+          dtype acc = 0;
+          for (int kk=0; kk<k; kk++){
+            dtype a = arrs[0][inds[0]*k+kk];
+            for (int j=1; j<num_ops; j++){
+              a *= arrs[j][inds[j]*k+kk];
+            }
+            acc += a;
+          }
+          pairs[i].d *= acc;
+        }
+        free(inds);
+      } else {
+        int * inds = (int*)malloc(sizeof(num_ops)*sizeof(int));
+#ifdef _OPENMP
+        #pragma omp for
+#endif
+        for (int64_t i=0; i<npair; i++){
+          int64_t key = pairs[i].k;
+          for (int j=0; j<num_ops; j++){
+            key = key/ldas[j];
+            inds[j] = key%op_lens[j];
+          }
+          dtype acc = 0;
+          for (int kk=0; kk<k; kk++){
+            dtype a = arrs[0][inds[0]+kk*op_lens[0]];
+            for (int j=1; j<num_ops; j++){
+              a *= arrs[j][inds[j]+kk*op_lens[j]];
+            }
+            acc += a;
+          }
+          pairs[i].d *= acc;
+        }
+        free(inds);
+      }
+    }
+    this->write(npair, pairs);
+    this->sr->pair_dealloc((char*)pairs);
+    for (int j=0; j<num_ops; j++){
+      this->sr->dealloc((char*)arrs[j]);
+    }
+    free(ldas);
+    free(op_lens);
+    free(arrs);
+  }
+
   template<typename dtype>
   void Tensor<dtype>::contract(dtype            alpha,
                                CTF_int::tensor& A,

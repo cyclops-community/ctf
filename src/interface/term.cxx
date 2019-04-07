@@ -805,7 +805,11 @@ namespace CTF_int {
 
   Idx_Tensor Contract_Term::estimate_time(double & cost, std::vector<char> out_inds) const {
     std::vector< Term* > tmp_ops = contract_down_terms(sr, scale, operands, out_inds, 1, NULL, true, &cost);
-    return tmp_ops[0]->estimate_time(cost, out_inds);
+    Idx_Tensor tsr = tmp_ops[0]->estimate_time(cost, out_inds);
+    for (int i=0; i<tmp_ops.size(); i++){
+      delete tmp_ops[i];
+    }
+    return tsr;
   }
  
   std::vector<char> Contract_Term::get_uniq_inds() const{

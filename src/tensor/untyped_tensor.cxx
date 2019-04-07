@@ -1770,6 +1770,8 @@ namespace CTF_int {
     for (int64_t i=0; i<*num_pair; i++){
       ipr[i].read_val(all_data+i*sr->el_size);
     }
+    if (ipr.ptr != NULL)
+      sr->pair_dealloc(ipr.ptr);
     return SUCCESS;
   }
 
