@@ -919,7 +919,7 @@ namespace CTF_int {
     }
    // bool tsr_A_has_sym = false; 
 
-    if (tsr_B->wrld->np <= tsr_A->wrld->np || tsr_A->is_sparse){
+    if (tsr_B->wrld->np <= tsr_A->wrld->np && !tsr_A->is_sparse){
       //usually 'read' elements of B from A, since B may be smalelr than A
       if (tsr_B->order == 0 || tsr_B->has_zero_edge_len){
         blk_sz_B = 0;

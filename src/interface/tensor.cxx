@@ -714,7 +714,7 @@ namespace CTF {
       new_lens[i] = ends[i] - offsets[i];
     }
     //FIXME: could discard sr qualifiers
-    Tensor<dtype> new_tsr(order, new_lens, new_sym, *owrld, *sr);
+    Tensor<dtype> new_tsr(order, is_sparse, new_lens, new_sym, *owrld, *sr);
 //   Tensor<dtype> new_tsr = tensor(sr, order, new_lens, new_sym, owrld, 1);
     std::fill(new_sym, new_sym+order, 0);
     new_tsr.slice(new_sym, new_lens, *(dtype*)sr->addid(), *this, offsets, ends, *(dtype*)sr->mulid());
