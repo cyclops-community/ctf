@@ -904,7 +904,7 @@ namespace CTF_int {
     }
    // bool tsr_A_has_sym = false; 
 
-    if (tsr_B->wrld->np <= tsr_A->wrld->np){
+    if (tsr_B->wrld->np <= tsr_A->wrld->np || tsr_A->is_sparse){
       //usually 'read' elements of B from A, since B may be smalelr than A
       if (tsr_B->order == 0 || tsr_B->has_zero_edge_len){
         blk_sz_B = 0;
@@ -940,7 +940,7 @@ namespace CTF_int {
       all_data_A = blk_data_B;
       sz_A = blk_sz_B;
     } else {
-      tsr_A->read_local(&sz_A, &all_data_A, true);
+      tsr_A->read_local_nnz(&sz_A, &all_data_A, true);
       //printf("sz_A=%ld\n",sz_A);
     }
 
@@ -975,7 +975,7 @@ namespace CTF_int {
       pad_key(tsr_B->order, blk_sz_A, toffset_B,
               padding_B, pblk_data_A, sr, offsets_B);
     }
-/*    printf("alpha is "); tsr_B->sr->print(alpha); printf("\n");
+    /*printf("alpha is "); tsr_B->sr->print(alpha); printf("\n");
     printf("beta is "); tsr_B->sr->print(beta); printf("\n");
     printf("writing B blk_sz_A = %ld key =%ld\n",blk_sz_A,*(int64_t*)blk_data_A);
     tsr_B->sr->print(blk_data_A+sizeof(int64_t));*/
