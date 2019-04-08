@@ -696,6 +696,21 @@ namespace CTF_int {
     }
   }
 
+
+  void tensor::print_lens(FILE * stream, bool allcall) const {
+    if (!allcall || wrld->rank == 0){
+      if (is_sparse)
+        printf("printing lens of sparse tensor %s:",name);
+      else
+        printf("printing lens of dense tensor %s:",name);
+      for (int dim=0; dim<this->order; dim++){
+        printf(" %d",this->lens[dim]);
+      }
+      printf("\n");
+    }
+  }
+
+
   void tensor::set_name(char const * name_){
     cdealloc(name);
     this->name = (char*)alloc(strlen(name_)+1);
@@ -2285,7 +2300,7 @@ namespace CTF_int {
       }
     }
   #endif
-  #if VERBOSE >=1
+  #if VERBOSE >=2
     if (wrld->cdt.rank == 0){
       if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle to mapping\n",this->name);
       else if (is_sparse) VPRINTF(1,"Remapping tensor %s via sparse reshuffle to mapping\n",this->name);

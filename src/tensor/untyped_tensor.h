@@ -287,6 +287,14 @@ namespace CTF_int {
       void print_map(FILE * stream=stdout, bool allcall=1) const;
 
       /**
+       * \brief displays edge length information
+       * \param[in] stream output log (e.g. stdout)
+       * \param[in] allcall (if 1 print only with proc 0)
+       */
+      void print_lens(FILE * stream=stdout, bool allcall=1) const;
+
+
+      /**
        * \brief set the tensor name
        * \param[in] name to set
        */
