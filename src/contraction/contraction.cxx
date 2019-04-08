@@ -5431,6 +5431,9 @@ namespace CTF_int {
           sprintf(cname+strlen(cname),"%d",idx_B[i]);
       }
       sprintf(cname+strlen(cname),"]");
+      A->print_lens();
+      B->print_lens();
+      C->print_lens();
       printf("CTF: Contraction %s\n",cname);
       if (alpha != NULL){
         printf("CTF: input scale ");
