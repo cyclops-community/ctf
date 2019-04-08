@@ -179,7 +179,7 @@ namespace CTF_int {
         } else if (idx_arr[3*i+1] != -1){
           dense_flops *= B->lens[idx_arr[3*i+1]];
         } else {
-          dense_flops *= C->lens[idx_arr[3*i+1]];
+          dense_flops *= C->lens[idx_arr[3*i+2]];
         }
       }
     }
@@ -194,13 +194,13 @@ namespace CTF_int {
 
     //scale by probability of nonzero flop
     if (A->is_sparse)
-      flops *= A->nnz_tot/A->size/A->wrld->np;
+      flops *= ((double)A->nnz_tot)/A->size/A->wrld->np;
     if (B->is_sparse)
-      flops *= B->nnz_tot/B->size/B->wrld->np;
+      flops *= ((double)B->nnz_tot)/B->size/B->wrld->np;
     if (C->is_sparse)
       flops += C->nnz_tot;
     else
-      flops += C->size*C->wrld->np;
+      flops += ((double)C->size)*C->wrld->np;
 
     return flops;
   }
