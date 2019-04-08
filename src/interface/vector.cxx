@@ -14,6 +14,20 @@ namespace CTF_int {
       return i;
     }
   };
+
+  struct char1
+  {
+    char i[1];
+    char1(char a)
+    {
+      i[0] = a;
+    }
+    operator const char*() const
+    {
+      return i;
+    }
+  };
+
 }
 namespace CTF {
   template<typename dtype>
@@ -69,6 +83,23 @@ namespace CTF {
    : Tensor<dtype>(1, atr_>0, CTF_int::int1(len_), CTF_int::int1(NS), world_, sr_) {
     len = len_;
   }
+
+  template<typename dtype>
+  Vector<dtype>::Vector(int                       len_,
+                        char                      idx,
+                        Idx_Partition const &     prl,
+                        Idx_Partition const &     blk,
+                        int                       atr,
+                        World &                   wrld,
+                        CTF_int::algstrct const & sr,
+                        char const *              name,
+                        int                       profile) 
+    : Tensor<dtype>(1, (atr_&4)>0, CTF_int::int1(len_), CTF_int::int1(NS), 
+                           world_, CTF_int::char1(idx), prl, blk, name_, profile_, sr_) {
+    len = len_;
+  }
+
+
 
   //template<typename dtype>
   //Vector<dtype> & Vector<dtype>::operator=(const Vector<dtype> & A){
