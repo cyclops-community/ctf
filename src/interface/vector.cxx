@@ -89,11 +89,11 @@ namespace CTF {
                         char                      idx,
                         Idx_Partition const &     prl,
                         Idx_Partition const &     blk,
-                        int                       atr,
-                        World &                   wrld,
-                        CTF_int::algstrct const & sr,
-                        char const *              name,
-                        int                       profile) 
+                        int                       atr_,
+                        World &                   world_,
+                        CTF_int::algstrct const & sr_,
+                        char const *              name_,
+                        int                       profile_) 
     : Tensor<dtype>(1, (atr_&4)>0, CTF_int::int1(len_), CTF_int::int1(NS), 
                            world_, CTF_int::char1(idx), prl, blk, name_, profile_, sr_) {
     len = len_;
