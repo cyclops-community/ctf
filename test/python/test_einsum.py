@@ -132,7 +132,10 @@ class KnowValues(unittest.TestCase):
         cA = ctf.astensor(A)
         cu = ctf.astensor(u)
         cv = ctf.astensor(v)
+        print(cA)
         cans = ctf.TTTP(cA,[cu,None,cv])
+        print(ans)
+        print(cans)
         self.assertTrue(allclose(ans, cans))
 
     def test_TTTP_mat(self):

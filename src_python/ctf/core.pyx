@@ -188,7 +188,6 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void delete_pairs(ctensor * A, char * pairs)
 
 cdef extern from "ctf.hpp" namespace "CTF":
-
     cdef cppclass Timer:
         Timer(char * name)
         void start()
@@ -233,8 +232,7 @@ cdef extern from "ctf.hpp" namespace "CTF":
         dtype norm1()
         dtype norm2() # Frobenius norm
         dtype norm_infty()
-        void TTTP(int num_ops, int * modes, Tensor[dtype] ** mat_list, bool aux_mode_first)
-
+        
     cdef cppclass Vector[dtype](ctensor):
         Vector()
         Vector(Tensor[dtype] A)
@@ -249,6 +247,9 @@ cdef extern from "ctf.hpp" namespace "CTF":
     cdef cppclass contraction:
         contraction(ctensor *, int *, ctensor *, int *, char *, ctensor *, int *, char *, bivar_function *)
         void execute()
+
+cdef extern from "ctf.hpp" namespace "CTF":
+    cdef void TTTP_ "CTF::TTTP"[dtype](Tensor[dtype] * T, int num_ops, int * modes, Tensor[dtype] ** mat_list, bool aux_mode_first)
 
 
 
@@ -5434,7 +5435,7 @@ def TTTP(tensor A, mat_list):
     #B.i(s[:-1]) << exp
     B = tensor(copy=A)
     if A.dtype == np.float64:
-        (<Tensor[double]*>B.dt).TTTP(len(tsr_list),modes,tsrs,1)
+        TTTP_[double](<Tensor[double]*>B.dt,len(tsr_list),modes,tsrs,1)
     else:
         raise ValueError('CTF PYTHON ERROR: TTTP does not support this dtype')
     return B
