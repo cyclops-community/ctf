@@ -683,8 +683,7 @@ namespace CTF {
     lwork = get_int_fromreal<dtype>(dlwork);
     dtype * work = (dtype*)CTF_int::alloc(sizeof(dtype)*((int64_t)lwork));
 
-    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
-
+    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
  
     U = Matrix<dtype>(descu, u, layout_order, (*(this->wrld)));
     VT = Matrix<dtype>(descvt, vt, layout_order, (*(this->wrld)));
@@ -715,6 +714,34 @@ namespace CTF {
     CTF_int::cdealloc(work);
 
   }
-  
 
+    
+  template<typename dtype>
+  void Matrix<dtype>::svd_rand(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank, int iter, int oversamp, Matrix<dtype> * U_guess){
+    IASSERT(rank+oversamp <= std::min(nrow,ncol));
+    bool del_U_guess = false;
+    if (U_guess == NULL){
+      del_U_guess = true;
+      U_guess = new Matrix<dtype>(this->nrow, rank+oversamp);
+      U_guess->fill_random(-1.,1.);
+      Matrix<dtype> Q, R;
+      U_guess->qr(Q, R);
+      U_guess->operator[]("ij") = Q["ij"];
+    }
+    for (int i=0; i<iter; i++){
+      U_guess->operator[]("ir") = this->operator[]("ij") * this->operator[]("lj") * U_guess->operator[]("lr");
+      Matrix<dtype> Q, R;
+      U_guess->qr(Q,R);
+      U_guess->operator[]("ij") = Q["ij"];
+    }
+    if (oversamp > 0)
+      U = U_guess->slice(0,this->nrow*rank-1);
+    if (del_U_guess)
+      delete U_guess;
+    Matrix<dtype> B(rank, this->ncol);
+    B["ij"] = U["ki"]*this->operator[]("kj");
+    Matrix<dtype> U1;
+    B.svd(U1,S,VT,rank);
+    U["ij"] = U["ik"] * U1["kj"];
+  }
 }

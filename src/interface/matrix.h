@@ -110,7 +110,7 @@ namespace CTF {
 
 
       /**
-       * \brief constructor for a matrix with a given initial cyclic distribution 
+       * \brief constructor for a matrix with a given guessial cyclic distribution 
        * \param[in] nrow number of matrix rows
        * \param[in] ncol number of matrix columns
        * \param[in] idx assignment of characters to each dim
@@ -134,7 +134,7 @@ namespace CTF {
              int                       profile=0);
 
       /**
-       * \brief writes a nonsymmetric matrix from a block-cyclic initial distribution
+       * \brief writes a nonsymmetric matrix from a block-cyclic guessial distribution
        *        this is `cheap' if mb=nb=1, nrow%pr=0, ncol%pc=0, rsrc=0, csrc=0, but is done via sparse read/write otherwise
        *        assumes processor grid is row-major (otherwise transpose matrix)
        * \param[in] mb row block dimension
@@ -160,7 +160,7 @@ namespace CTF {
 
  
       /**
-       * \brief constructor for a nonsymmetric matrix with a block-cyclic initial distribution
+       * \brief constructor for a nonsymmetric matrix with a block-cyclic guessial distribution
        *        this is `cheap' if mb=nb=1, nrow%pr=0, ncol%pc=0, but is done via sparse read/write otherwise
        *        assumes processor grid is row-major (otherwise transpose matrix)
        * \param[in] nrow number of matrix rows
@@ -218,7 +218,7 @@ namespace CTF {
              int                       profile=0);
 
       /**
-       * \brief reads a nonsymmetric matrix into a block-cyclic initial distribution
+       * \brief reads a nonsymmetric matrix into a block-cyclic guessial distribution
        *        this is `cheap' if mb=nb=1, nrow%pr=0, ncol%pc=0, rsrc=0, csrc=0, but is done via sparse read/write otherwise
        *        assumes processor grid is row-major (otherwise transpose matrix)
        * \param[in] mb row block dimension
@@ -310,6 +310,18 @@ namespace CTF {
        * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns)
        */
       void svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank = 0);
+
+      /*
+       * \calculates uses randomized method (orthogonal iteration) to calculate a low-rank singular value decomposition, M = U x S x VT. Is faster, especially for low-rank, but less robust than typical svd.
+       * \param[out] U left singular vectors of matrix
+       * \param[out] S singular values of matrix
+       * \param[out] VT right singular vectors of matrix
+       * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns)
+       * \param[in] iter number of orthogonal iterations to perform (higher gives better accuracy)
+       * \param[in] oversamp oversampling parameter
+       * \param[in,out] U_guess guessial guess for first rank+oversamp singular vectors (matrix with orthogonal columns is also good), on output is final iterate (with oversamp more columns than U)
+       */
+      void svd_rand(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank, int iter=1, int oversamp=5, Matrix<dtype> * U_guess=NULL);
 
   };
   /**

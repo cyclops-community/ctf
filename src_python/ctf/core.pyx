@@ -187,6 +187,8 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void matrix_qr_cmplx(ctensor * A, ctensor * Q, ctensor * R)
     cdef void matrix_svd(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
     cdef void matrix_svd_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
+    cdef void matrix_svd_rand(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, int iter, int oversmap, ctensor * U_init);
+    cdef void matrix_svd_rand_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, int iter, int oversmap, ctensor * U_init);
     cdef void conv_type(int type_idx1, int type_idx2, ctensor * A, ctensor * B)
     cdef void delete_arr(ctensor * A, char * arr)
     cdef void delete_pairs(ctensor * A, char * pairs)
@@ -5497,6 +5499,61 @@ def svd(tensor A, rank=None):
         matrix_svd_cmplx(A.dt, VT.dt, S.dt, U.dt, rank)
     t_svd.stop()
     return [U, S, VT]
+
+def svd_rand(tensor A, rank, niter=1, oversamp=5, VT_guess=None):
+    """
+    svd_rand(A, rank=None)
+    Uses randomized method (orthogonal iteration) to calculate a low-rank singular value decomposition, M = U x S x VT. Is faster, especially for low-rank, but less robust than typical svd.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor 2-D dimensions.
+
+    rank: int
+        Target SVD rank
+    
+    niter: int or None, optional, default 1
+       number of orthogonal iterations to perform (higher gives better accuracy)
+
+    oversamp: int or None, optional, default 5
+       oversampling parameter
+
+    VT_guess: initial guess for first rank+oversamp singular vectors (matrix with orthogonal columns is also good), on output is final iterate (with oversamp more columns than VT)
+
+    Returns
+    -------
+    U: tensor
+        A unitary CTF tensor with 2-D dimensions.
+
+    S: tensor
+        A 1-D tensor with singular values.
+
+    VT: tensor
+        A unitary CTF tensor with 2-D dimensions.
+    """
+    t_svd = timer("pyRSVD")
+    t_svd.start()
+    if not isinstance(A,tensor) or A.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: SVD called on invalid tensor, must be CTF double matrix')
+    S = tensor(rank,dtype=A.dtype)
+    U = tensor([A.shape[0],rank],dtype=A.dtype)
+    VT = tensor([rank,A.shape[1]],dtype=A.dtype)
+    if A.dtype == np.float64 or A.dtype == np.float32:
+        if VT_guess is None:
+            matrix_svd_rand(A.dt, VT.dt, S.dt, U.dt, rank, niter, oversamp, NULL)
+        else:
+            tVT_guess = tensor(copy=VT_guess)
+            matrix_svd_rand(A.dt, VT.dt, S.dt, U.dt, rank, niter, oversamp, tVT_guess.dt)
+    elif A.dtype == np.complex128 or A.dtype == np.complex64:
+        if VT_guess is None:
+            matrix_svd_rand_cmplx(A.dt, VT.dt, S.dt, U.dt, rank, niter, oversamp, NULL)
+        else:
+            tVT_guess = tensor(copy=VT_guess)
+            matrix_svd_rand_cmplx(A.dt, VT.dt, S.dt, U.dt, rank, niter, oversamp, tVT_guess.dt)
+    t_svd.stop()
+    return [U, S, VT]
+
 
 def qr(tensor A):
     """

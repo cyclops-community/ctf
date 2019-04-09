@@ -111,6 +111,21 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(allclose(ctf.eye(k,dtype=numpy.complex128), ctf.dot(ctf.conj(U.T()), U)))
         self.assertTrue(allclose(ctf.eye(k,dtype=numpy.complex128), ctf.dot(VT, ctf.conj(VT.T()))))
 
+    def test_svd_rand(self):
+        m = 9
+        n = 5
+        k = 3
+        for dt in [numpy.float32, numpy.float64]:
+            A = ctf.random.random((m,n))
+            A = ctf.astensor(A,dtype=dt)
+            [U,S,VT]=ctf.svd_rand(A,k,5,1)
+            self.assertTrue(allclose(ctf.eye(k),ctf.dot(U.T(),U)))
+            self.assertTrue(allclose(ctf.eye(k),ctf.dot(VT,VT.T())))
+            [U2,S2,VT2]=ctf.svd(A,k)
+            rs1 = ctf.vecnorm(A - ctf.dot(U*S,VT))
+            rs2 = ctf.vecnorm(A - ctf.dot(U2*S2,VT2))
+            self.assertTrue(abs(rs1-rs2)<1.e-2)
+
     def test_qr(self):
         m = 8
         n = 4
@@ -154,7 +169,7 @@ if __name__ == "__main__":
     if ctf.comm().rank() != 0:
         result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))
     else:
-        print("Tests for QR and SVD")
+        print("Tests for linear algebra functionality")
         result = unittest.TextTestRunner().run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))
     ctf.MPI_Stop()
     sys.exit(not result)
