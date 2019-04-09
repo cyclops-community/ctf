@@ -24,7 +24,11 @@ namespace CTF {
 
     int64_t npair;
     Pair<dtype> * pairs;
-    T->get_local_pairs(&npair, &pairs, true, false);
+    if (T->is_sparse){
+      pairs = (Pair<dtype>*)T->data;
+      npair = T->nnz_loc;
+    } else
+      T->get_local_pairs(&npair, &pairs, true, false);
 
     for (int i=0; i<num_ops; i++){
       //printf("i=%d/%d %d %d %d\n",i,num_ops,modes[i],mat_list[i]->lens[aux_mode_first], T->lens[modes[i]]);
@@ -246,9 +250,11 @@ namespace CTF {
       T->sr->dealloc((char*)acc_arr);
     }
 
-    T->write(npair, pairs);
+    if (!T->is_sparse){
+      T->write(npair, pairs);
+      T->sr->pair_dealloc((char*)pairs);
+    }
     free(redist_mats);
-    T->sr->pair_dealloc((char*)pairs);
     if (mat_strides != NULL) free(mat_strides);
     free(phys_phase);
     free(ldas);
