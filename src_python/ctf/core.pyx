@@ -510,7 +510,7 @@ def _get_num_str(n):
     return allstr[0:n]
 
 
-cdef class CTF_Timer_epoch:
+cdef class timer_epoch:
     cdef Timer_epoch * te
 
     def __cinit__(self, name=None):
@@ -526,7 +526,7 @@ cdef class CTF_Timer_epoch:
         free(self.te)
 
 
-cdef class CTF_Timer:
+cdef class timer:
     cdef Timer * t
 
     def __cinit__(self, name=None):
@@ -821,6 +821,8 @@ cdef class tensor:
         return self.dtype
 
     def __cinit__(self, lens=None, sp=None, sym=None, dtype=None, order=None, tensor copy=None):
+        t_ti = timer("pytensor_init")
+        t_ti.start()
         if copy is None:
             if lens is None:
                 lens = []
@@ -937,6 +939,7 @@ cdef class tensor:
                     self.dt = new ctensor(<ctensor*>ccopy.dt, True, True)
         free(clens)
         free(csym)
+        t_ti.stop()
 
     def __dealloc__(self):
         del self.dt
@@ -1805,6 +1808,8 @@ cdef class tensor:
                [5],
                [6]])
         """
+        t_reshape = timer("pyreshape")
+        t_reshape.start()
         dim = self.shape
         total_size = 1
         newshape = []
@@ -1842,6 +1847,7 @@ cdef class tensor:
             (<ctensor*>B.dt).reshape(<ctensor*>self.dt, alpha, beta)
             #inds, vals = self.read_local_nnz()
             #B.write(inds, vals)
+            t_reshape.stop()
             return B
         elif nega == 1:
             pos = 0
@@ -1860,9 +1866,11 @@ cdef class tensor:
             (<ctensor*>B.dt).reshape(<ctensor*>self.dt,alpha,beta)
             #inds, vals = self.read_local_nnz()
             #B.write(inds, vals)
+            t_reshape.stop()
             return B
         else:
             raise ValueError('CTF PYTHON ERROR: can only specify one unknown dimension')
+            t_reshape.stop()
             return None
 
     def ravel(self, order="F"):
@@ -5318,6 +5326,8 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     """
     if order != 'K' or casting != 'safe':
         raise ValueError('CTF PYTHON ERROR: CTF Python einsum currently does not support order and casting')
+    t_einsum = timer("pyeinsum")
+    t_einsum.start()
     numop = len(operands)
     inds = []
     j=0
@@ -5375,6 +5385,7 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     for i in range(1,numop):
         operand = operand * operands[i].i(inds[i])
     out_scale*output.i(out_inds) << operand
+    t_einsum.stop()
     return output
 
 def TTTP(tensor A, mat_list):
@@ -5464,6 +5475,8 @@ def svd(tensor A, rank=None):
     VT: tensor
         A unitary CTF tensor with 2-D dimensions.
     """
+    t_svd = timer("pySVD")
+    t_svd.start()
     if not isinstance(A,tensor) or A.ndim != 2:
         raise ValueError('CTF PYTHON ERROR: SVD called on invalid tensor, must be CTF double matrix')
     if rank is None:
@@ -5478,6 +5491,7 @@ def svd(tensor A, rank=None):
         matrix_svd(A.dt, VT.dt, S.dt, U.dt, rank)
     elif A.dtype == np.complex128 or A.dtype == np.complex64:
         matrix_svd_cmplx(A.dt, VT.dt, S.dt, U.dt, rank)
+    t_svd.stop()
     return [U, S, VT]
 
 def qr(tensor A):

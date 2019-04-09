@@ -59,7 +59,7 @@ namespace CTF {
       for (int i=0; i<num_ops; i++){
         tot_size += mat_list[i]->lens[0]/phys_phase[modes[i]];
       }
-      if (tot_size*sizeof(dtype) > max_memuse){
+      if (tot_size*(int64_t)sizeof(dtype) > max_memuse){
         printf("CTF ERROR: insufficeint memory for TTTP");
       }
     } else {
@@ -70,7 +70,7 @@ namespace CTF {
         }
         if (div > 1)
           tot_size += npair;
-        if (tot_size*sizeof(dtype) > max_memuse){
+        if (tot_size*(int64_t)sizeof(dtype) > max_memuse){
           if (div == k)
             printf("CTF ERROR: insufficeint memory for TTTP");
           else
@@ -83,7 +83,9 @@ namespace CTF {
     dtype * acc_arr = NULL;
     if (!is_vec && div>1){
       acc_arr = (dtype*)T->sr->alloc(npair);
+#ifdef _OPENMP
       #pragma omp parallel for
+#endif
       for (int64_t i=0; i<npair; i++){
         acc_arr[i] = 1.;
       }
@@ -97,7 +99,6 @@ namespace CTF {
     char mat_idx[2];
     int slice_st[2];
     int slice_end[2];
-    int zeros[2] = {0,0};
     int k_start = 0;
     int kd = 0;
     for (int d=0; d<div; d++){
@@ -243,7 +244,9 @@ namespace CTF {
       }
     }
     if (acc_arr != NULL){
+#ifdef _OPENMP
       #pragma omp parallel for
+#endif
       for (int64_t i=0; i<npair; i++){
         pairs[i].d *= acc_arr[i];
       }

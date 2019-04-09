@@ -219,10 +219,10 @@ namespace CTF {
                                 dtype const * data_){
     bool is_order_same = true;
     if (layout_order == 'C'){
-      if (this->edge_map[0].cdt != 0 && pc > 1)
+      if ((this->edge_map[0].type != CTF_int::PHYSICAL_MAP || this->edge_map[0].cdt != 0) && pc > 1)
         is_order_same = false;
     } else {
-      if (this->edge_map[1].cdt != 0 && pr > 1)
+      if ((this->edge_map[1].type != CTF_int::PHYSICAL_MAP || this->edge_map[1].cdt != 0) && pr > 1)
         is_order_same = false;
     }
     IASSERT(is_order_same);
@@ -275,10 +275,10 @@ namespace CTF {
     //FIXME: (1) can optimize sparse for this case (mapping cyclic), (2) can use permute to avoid sparse redistribution always
     bool is_order_same = true;
     if (layout_order == 'C'){
-      if (this->edge_map[0].cdt != 0 && pc > 1)
+      if ((this->edge_map[0].type != CTF_int::PHYSICAL_MAP || this->edge_map[0].cdt != 0) && pc > 1)
         is_order_same = false;
     } else {
-      if (this->edge_map[1].cdt != 0 && pr > 1)
+      if ((this->edge_map[0].type != CTF_int::PHYSICAL_MAP || this->edge_map[1].cdt != 0) && pr > 1)
         is_order_same = false;
     }
     IASSERT(is_order_same);
