@@ -17,6 +17,18 @@ def allclose(a, b):
 
 
 class KnowValues(unittest.TestCase):
+    def test_cholesky(self):
+        n = 4
+        for dt in [numpy.float32, numpy.float64]:
+            A = ctf.random.random((n,n))
+            A = ctf.astensor(A,dtype=dt)
+            A = ctf.dot(A.T(), A)
+            L = ctf.cholesky(A)
+            D = L.T() * L
+            D.i("ii") << -1.0*L.i("ii")*L.i("ii")
+            self.assertTrue(abs(ctf.vecnorm(D))<= 1.e-6)
+            self.assertTrue(allclose(A, ctf.dot(L,L.T())))
+
     def test_svd(self):
         m = 9
         n = 5

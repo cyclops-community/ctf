@@ -87,6 +87,8 @@ namespace CTF_int{
   void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank);
   void matrix_svd_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank);
   
+  void matrix_cholesky(tensor * A, tensor * L);
+  void matrix_cholesky_cmplx(tensor * A, tensor * L);
   void matrix_qr(tensor * A, tensor * Q, tensor * R);
   void matrix_qr_cmplx(tensor * A, tensor * Q, tensor * R);
 

@@ -279,6 +279,13 @@ namespace CTF {
       void get_tri(Matrix<dtype> & T, bool lower=false, bool keep_diag=true);
 
       /*
+       * \calculates the Cholesky decomposition, assuming this matrix is SPD
+       * \param[out] L n-by-n lower-triangular matrix
+       * \param[in] lower if true L is lower triangular of false, upper
+       */
+      void cholesky(Matrix<dtype> & L, bool lower=true);
+
+      /*
        * \calculates the reduced QR decomposition, A = Q x R for A of dimensions m by n with m>=n
        * \param[out] Q m-by-n matrix with orthonormal columns
        * \param[out] R n-by-n upper-triangular matrix

@@ -500,6 +500,31 @@ namespace CTF {
   }
 
   template<typename dtype>
+  void Matrix<dtype>::cholesky(Matrix<dtype> & L, bool lower){
+    int info;
+    int m = this->nrow;
+    int n = this->ncol;
+    IASSERT(m==n);
+
+    int * desca;// = (int*)malloc(9*sizeof(int));
+
+    int ictxt;
+    char layout_order;
+    this->get_desc(ictxt, desca, layout_order);
+    dtype * A = (dtype*)malloc(this->size*sizeof(dtype));
+
+    this->read_mat(desca, A, layout_order);
+
+    char uplo = 'U';
+    if (lower) uplo = 'L';
+
+    CTF_SCALAPACK::ppotrf<dtype>(uplo,n,A,1,1,desca,&info);
+
+    Matrix<dtype> S(desca, A, layout_order, (*(this->wrld)));
+    S.get_tri(L, lower);
+  }
+
+  template<typename dtype>
   void Matrix<dtype>::qr(Matrix<dtype> & Q, Matrix<dtype> & R){
 
     int info;

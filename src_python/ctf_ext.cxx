@@ -105,9 +105,65 @@ namespace CTF_int{
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function sparisfy\n"); IASSERT(0); return; }
   }
 
+  void matrix_cholesky(tensor * A, tensor * L){
+   switch (A->sr->el_size){
+      case 4:
+        {
+          CTF::Matrix<float> mA(*A);
+          CTF::Matrix<float> mL;
+          mA.cholesky(mL, false);
+          (*L)["ij"] = mL["ij"];
+        }
+        break;
+
+
+      case 8:
+        {
+          CTF::Matrix<double> mA(*A);
+          CTF::Matrix<double> mL;
+          mA.cholesky(mL, false);
+          (*L)["ij"] = mL["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
+  void matrix_cholesky_cmplx(tensor * A, tensor * L){
+    switch (A->sr->el_size){
+      case 8:
+        {
+          CTF::Matrix<std::complex<float>> mA(*A);
+          CTF::Matrix<std::complex<float>> mL;
+          mA.cholesky(mL, false);
+          (*L)["ij"] = mL["ij"];
+        }
+        break;
+
+
+      case 16:
+        {
+          CTF::Matrix<std::complex<double>> mA(*A);
+          CTF::Matrix<std::complex<double>> mL;
+          mA.cholesky(mL, false);
+          (*L)["ij"] = mL["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
 
   void matrix_qr(tensor * A, tensor * Q, tensor * R){
-    switch (A->sr->el_size){
+   switch (A->sr->el_size){
       case 4:
         {
           CTF::Matrix<float> mA(*A);

@@ -181,6 +181,8 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void subsample(ctensor * A, double probability)
     cdef void matrix_svd(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
     cdef void matrix_svd_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
+    cdef void matrix_cholesky(ctensor * A, ctensor * L)
+    cdef void matrix_cholesky_cmplx(ctensor * A, ctensor * L)
     cdef void matrix_qr(ctensor * A, ctensor * Q, ctensor * R)
     cdef void matrix_qr_cmplx(ctensor * A, ctensor * Q, ctensor * R)
     cdef void conv_type(int type_idx1, int type_idx2, ctensor * A, ctensor * B)
@@ -5513,7 +5515,7 @@ def qr(tensor A):
         An upper triangular 2-D CTF tensor.
     """
     if not isinstance(A,tensor) or A.ndim != 2:
-        raise ValueError('CTF PYTHON ERROR: QR called on invalid tensor, must be CTF double matrix')
+        raise ValueError('CTF PYTHON ERROR: QR called on invalid tensor, must be CTF matrix')
     B = tensor(copy=A.T())
     Q = tensor([min(B.shape[0],B.shape[1]),B.shape[1]],dtype=B.dtype)
     R = tensor([B.shape[0],min(B.shape[0],B.shape[1])],dtype=B.dtype)
@@ -5522,6 +5524,31 @@ def qr(tensor A):
     elif A.dtype == np.complex128 or A.dtype == np.complex64:
         matrix_qr_cmplx(B.dt, Q.dt, R.dt)
     return [Q.T(), R.T()]
+
+def cholesky(tensor A):
+    """
+    cholesky(A)
+    Compute Cholesky factorization of tensor A.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor 2-D dimensions.
+
+    Returns
+    -------
+    L: tensor
+        A CTF tensor with 2 dimensions corresponding to lower triangular Cholesky factor of A
+    """
+    if not isinstance(A,tensor) or A.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: Cholesky called on invalid tensor, must be CTF matrix')
+    L = tensor(A.shape, dtype=A.dtype)
+    if A.dtype == np.float64 or A.dtype == np.float32:
+        matrix_cholesky(A.dt, L.dt)
+    elif A.dtype == np.complex128 or A.dtype == np.complex64:
+        matrix_cholesky_cmplx(A.dt, L.dt)
+    return L
+
 
 def vecnorm(A, ord=2):
     """

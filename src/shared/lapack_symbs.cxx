@@ -19,6 +19,10 @@
 #define PDORGQR pdorgqr_
 #define PCUNGQR pcungqr_
 #define PZUNGQR pzungqr_
+#define PSPOTRF pspotrf_
+#define PDPOTRF pdpotrf_
+#define PCPOTRF pcpotrf_
+#define PZPOTRF pzpotrf_
 #define DESCINIT descinit_
 #define BLACS_GRIDINFO blacs_gridinfo_
 #define BLACS_GRIDINIT blacs_gridinit_
@@ -38,6 +42,10 @@
 #define PDORGQR pdorgqr
 #define PCUNGQR pcungqr
 #define PZUNGQR pzungqr
+#define PSPOTRF pspotrf
+#define PDPOTRF pdpotrf
+#define PCPOTRF pcpotrf
+#define PZPOTRF pzpotrf
 #define DESCINIT descinit
 #define BLACS_GRIDINFO blacs_gridinfo
 #define BLACS_GRIDINIT blacs_gridinit
@@ -286,6 +294,41 @@ namespace CTF_SCALAPACK{
                 int *,
                 int *);
 
+  extern "C"
+  void PSPOTRF(char *  uplo,
+               int *   n,
+               float * A,
+               int *   ia,
+               int *   ja,
+               int *   desca,
+               int *   info);
+
+  extern "C"
+  void PDPOTRF(char *   uplo,
+               int *    n,
+               double * A,
+               int *    ia,
+               int *    ja,
+               int *    desca,
+               int *    info);
+
+  extern "C"
+  void PCPOTRF(char *                uplo,
+               int *                 n,
+               std::complex<float> * A,
+               int *                 ia,
+               int *                 ja,
+               int *                 desca,
+               int *                 info);
+
+  extern "C"
+  void PZPOTRF(char *                 uplo,
+               int *                  n,
+               std::complex<double> * A,
+               int *                  ia,
+               int *                  ja,
+               int *                  desca,
+               int *                  info);
 
   extern "C"
   void DESCINIT(int *, int *,
@@ -599,6 +642,67 @@ namespace CTF_SCALAPACK{
     assert(0);
 #endif
   }
+
+  template <>
+  void ppotrf<float>(char    uplo,
+                     int     n,
+                     float * A,
+                     int     ia,
+                     int     ja,
+                     int *   desca,
+                     int *   info){
+#ifdef USE_SCALAPACK
+    PSPOTRF(&uplo, &n, A, &ia, &ja, desca, info);
+#else
+    assert(0);
+#endif
+  }
+
+  template <>
+  void ppotrf<double>(char     uplo,
+                      int      n,
+                      double * A,
+                      int      ia,
+                      int      ja,
+                      int *    desca,
+                      int *    info){
+#ifdef USE_SCALAPACK
+    PDPOTRF(&uplo, &n, A, &ia, &ja, desca, info);
+#else
+    assert(0);
+#endif
+  }
+
+  template <>
+  void ppotrf<std::complex<float>>(char                  uplo,
+                                   int                   n,
+                                   std::complex<float> * A,
+                                   int                   ia,
+                                   int                   ja,
+                                   int *                 desca,
+                                   int *                 info){
+#ifdef USE_SCALAPACK
+    PCPOTRF(&uplo, &n, A, &ia, &ja, desca, info);
+#else
+    assert(0);
+#endif
+  }
+
+  template <>
+  void ppotrf<std::complex<double>>(char                   uplo,
+                                    int                    n,
+                                    std::complex<double> * A,
+                                    int                    ia,
+                                    int                    ja,
+                                    int *                  desca,
+                                    int *                  info){
+#ifdef USE_SCALAPACK
+    PZPOTRF(&uplo, &n, A, &ia, &ja, desca, info);
+#else
+    assert(0);
+#endif
+  }
+
 
 
   void cdescinit(int *  desc,

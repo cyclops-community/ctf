@@ -273,6 +273,54 @@ namespace CTF_SCALAPACK {
                                       int                     LWORK,
                                       int *                   INFO);
 
+  template <typename dtype>
+  void ppotrf(char    uplo,
+              int     n,
+              dtype * A,
+              int     ia,
+              int     ja,
+              int *   desca,
+              int *   info){
+    assert(0); // PORGQR not defined for this type
+  }
+
+  template <>
+  void ppotrf<float>(char    uplo,
+                     int     n,
+                     float * A,
+                     int     ia,
+                     int     ja,
+                     int *   desca,
+                     int *   info);
+
+  template <>
+  void ppotrf<double>(char     uplo,
+                      int      n,
+                      double * A,
+                      int      ia,
+                      int      ja,
+                      int *    desca,
+                      int *    info);
+
+  template <>
+  void ppotrf<std::complex<float>>(char                  uplo,
+                                   int                   n,
+                                   std::complex<float> * A,
+                                   int                   ia,
+                                   int                   ja,
+                                   int *                 desca,
+                                   int *                 info);
+
+  template <>
+  void ppotrf<std::complex<double>>(char                   uplo,
+                                    int                    n,
+                                    std::complex<double> * A,
+                                    int                    ia,
+                                    int                    ja,
+                                    int *                  desca,
+                                    int *                  info);
+
+
   void cdescinit( int *  desc,
                   int    m,
                   int    n,
