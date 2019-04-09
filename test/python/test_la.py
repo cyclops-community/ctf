@@ -10,10 +10,10 @@ from ctf import random
 import numpy.linalg as la
 
 def allclose(a, b):
-    if abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() > 1e-4:
+    if abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() > 1e-3:
         print(ctf.to_nparray(a))
         print(ctf.to_nparray(b))
-    return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() <= 1e-4
+    return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() <= 1e-3
 
 
 class KnowValues(unittest.TestCase):

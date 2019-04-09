@@ -536,16 +536,46 @@ namespace CTF {
     int ictxt;
     char layout_order_A;
     this->get_desc(ictxt, desca, layout_order_A);
-    dtype * A = (dtype*)malloc(this->size*sizeof(dtype));
-
-    this->read_mat(desca, A, layout_order_A);
 
     int ictxt2;
     char layout_order_L;
     L.get_desc(ictxt2, descl, layout_order_L);
-    IASSERT(ictxt == ictxt2);
-    dtype * dL = (dtype*)malloc(L.size*sizeof(dtype));
-    L.read_mat(descl, dL, layout_order_L);
+    dtype * dL;
+    if  (ictxt != ictxt2){
+      Partition part(this->topo->order, this->topo->lens);
+      Matrix<dtype> L_r;
+      if (this->topo->order == 2){
+        if (this->edge_map[0].cdt == 0 && 
+            this->edge_map[1].cdt == 1){ 
+          L_r = Matrix<dtype>(L.nrow, L.ncol, "ij", part["ij"], Idx_Partition(), 0, *this->wrld, *this->sr);
+  
+        } else {
+          IASSERT(this->edge_map[0].cdt == 1 && 
+                  this->edge_map[1].cdt == 0);
+          L_r = Matrix<dtype>(L.nrow, L.ncol, "ij", part["ji"], Idx_Partition(), 0, *this->wrld, *this->sr);
+        }
+      } else {
+        IASSERT(this->topo->order == 1);
+        if (this->edge_map[0].type == CTF_int::PHYSICAL_MAP){
+          L_r = Matrix<dtype>(L.nrow, L.ncol, "ij", part["i"], Idx_Partition(), 0, *this->wrld, *this->sr);
+        } else {
+          L_r = Matrix<dtype>(L.nrow, L.ncol, "ij", part["j"], Idx_Partition(), 0, *this->wrld, *this->sr);
+        }
+      }
+      L_r["ij"] += L["ij"];
+      L_r.get_desc(ictxt2, descl, layout_order_L);
+      IASSERT(ictxt == ictxt2);
+      IASSERT(layout_order_A == layout_order_L);
+      dL = (dtype*)malloc(L_r.size*sizeof(dtype));
+      L_r.read_mat(descl, dL, layout_order_L);
+    } else {
+      IASSERT(layout_order_A == layout_order_L);
+      dL = (dtype*)malloc(L.size*sizeof(dtype));
+      L.read_mat(descl, dL, layout_order_L);
+    }
+    dtype * A = (dtype*)malloc(this->size*sizeof(dtype));
+
+    this->read_mat(desca, A, layout_order_A);
 
     char SIDE = 'R';
     if (from_left) SIDE = 'L';
