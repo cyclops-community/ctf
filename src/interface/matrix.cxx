@@ -521,7 +521,46 @@ namespace CTF {
     CTF_SCALAPACK::ppotrf<dtype>(uplo,n,A,1,1,desca,&info);
 
     Matrix<dtype> S(desca, A, layout_order, (*(this->wrld)));
+    free(A);
     S.get_tri(L, lower);
+  }
+      
+  template<typename dtype>
+  void Matrix<dtype>::solve_tri(Matrix<dtype> L, Matrix<dtype> & X, bool lower, bool from_left, bool transp_L){
+    int m = this->nrow;
+    int n = this->ncol;
+
+    int * desca;// = (int*)malloc(9*sizeof(int));
+    int * descl;// = (int*)malloc(9*sizeof(int));
+
+    int ictxt;
+    char layout_order_A;
+    this->get_desc(ictxt, desca, layout_order_A);
+    dtype * A = (dtype*)malloc(this->size*sizeof(dtype));
+
+    this->read_mat(desca, A, layout_order_A);
+
+    int ictxt2;
+    char layout_order_L;
+    L.get_desc(ictxt2, descl, layout_order_L);
+    IASSERT(ictxt == ictxt2);
+    dtype * dL = (dtype*)malloc(L.size*sizeof(dtype));
+    L.read_mat(descl, dL, layout_order_L);
+
+    char SIDE = 'R';
+    if (from_left) SIDE = 'L';
+    char UPLO = 'U';
+    if (lower) UPLO = 'L';
+    char TRANS = 'N';
+    if (transp_L) TRANS = 'T';
+    char DIAG = 'N';
+
+    CTF_SCALAPACK::ptrsm<dtype>(SIDE, UPLO, TRANS, DIAG, m, n, 1., dL, 1, 1, descl, A, 1, 1, desca);
+    free(dL); 
+    X = Matrix<dtype>(desca, A, layout_order_A, (*(this->wrld)));
+    free(A);
+    free(desca);
+    free(descl);
   }
 
   template<typename dtype>
@@ -550,6 +589,7 @@ namespace CTF {
  
     dtype * dQ = (dtype*)malloc(this->size*sizeof(dtype));
     memcpy(dQ,A,this->size*sizeof(dtype));
+    free(A);
 
     Q = Matrix<dtype>(desca, dQ, layout_order, (*(this->wrld)));
     Q.get_tri(R);
@@ -560,13 +600,12 @@ namespace CTF {
     work = (dtype*)malloc(((int64_t)lwork)*sizeof(dtype));
     CTF_SCALAPACK::porgqr<dtype>(m,std::min(m,n),std::min(m,n),dQ,1,1,desca,tau,work,lwork,&info);
     Q = Matrix<dtype>(desca, dQ, layout_order, (*(this->wrld)));
+    free(dQ);
     if (m<n)
       Q = Q.slice(0,m*(m-1)+m-1);
     free(work);
     free(tau);
     free(desca);
-    free(A);
-    free(dQ);
   }
 
   template<typename dtype>

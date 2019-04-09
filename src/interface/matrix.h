@@ -286,6 +286,16 @@ namespace CTF {
       void cholesky(Matrix<dtype> & L, bool lower=true);
 
       /*
+       * \calculates triangular solve with many right-hand sides, this matrix is the right or left-hand-side
+       * \param[in] L n-by-n lower-triangular matrix
+       * \param[out] X solution(s) to triangular solve, same shape as this
+       * \param[in] lower if true L is lower triangular of false, upper
+       * \param[in] from_left if true, solve LX=this if false solve XL=this
+       * \param[in] transp_L if true, L solve L^TX=this or XL^T=this
+       */
+      void solve_tri(Matrix<dtype> L, Matrix<dtype> & X, bool lower=true, bool from_left=true, bool transp_L=false);
+
+      /*
        * \calculates the reduced QR decomposition, A = Q x R for A of dimensions m by n with m>=n
        * \param[out] Q m-by-n matrix with orthonormal columns
        * \param[out] R n-by-n upper-triangular matrix

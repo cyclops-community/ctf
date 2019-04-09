@@ -23,6 +23,10 @@
 #define PDPOTRF pdpotrf_
 #define PCPOTRF pcpotrf_
 #define PZPOTRF pzpotrf_
+#define PSTRSM pstrsm_
+#define PDTRSM pdtrsm_
+#define PCTRSM pctrsm_
+#define PZTRSM pztrsm_
 #define DESCINIT descinit_
 #define BLACS_GRIDINFO blacs_gridinfo_
 #define BLACS_GRIDINIT blacs_gridinit_
@@ -46,6 +50,10 @@
 #define PDPOTRF pdpotrf
 #define PCPOTRF pcpotrf
 #define PZPOTRF pzpotrf
+#define PSTRSM pstrsm
+#define PDTRSM pdtrsm
+#define PCTRSM pctrsm
+#define PZTRSM pztrsm
 #define DESCINIT descinit
 #define BLACS_GRIDINFO blacs_gridinfo
 #define BLACS_GRIDINIT blacs_gridinit
@@ -329,6 +337,31 @@ namespace CTF_SCALAPACK{
                int *                  ja,
                int *                  desca,
                int *                  info);
+
+  extern "C"
+  void PSTRSM(char * SIDE, char * UPLO, char * TRANS, char * DIAG,
+              int * M, int * N, float * ALPHA,
+              float * A, int * IA, int * JA, int * DESCA,
+              float * B, int * IB, int * JB, int * DESCB);
+
+  extern "C"
+  void PDTRSM(char * SIDE, char * UPLO, char * TRANS, char * DIAG,
+              int * M, int * N, double * ALPHA,
+              double * A, int * IA, int * JA, int * DESCA,
+              double * B, int * IB, int * JB, int * DESCB);
+
+  extern "C"
+  void PCTRSM(char * SIDE, char * UPLO, char * TRANS, char * DIAG,
+              int * M, int * N, std::complex<float> * ALPHA,
+              std::complex<float> * A, int * IA, int * JA, int * DESCA,
+              std::complex<float> * B, int * IB, int * JB, int * DESCB);
+
+  extern "C"
+  void PZTRSM(char * SIDE, char * UPLO, char * TRANS, char * DIAG,
+              int * M, int * N, std::complex<double> * ALPHA,
+              std::complex<double> * A, int * IA, int * JA, int * DESCA,
+              std::complex<double> * B, int * IB, int * JB, int * DESCB);
+
 
   extern "C"
   void DESCINIT(int *, int *,
@@ -704,6 +737,57 @@ namespace CTF_SCALAPACK{
   }
 
 
+  template <>
+  void ptrsm<float>(char SIDE, char UPLO, char TRANS, char DIAG,
+                    int M, int N, float ALPHA,
+                    float * A, int IA, int JA, int * DESCA,
+                    float * B, int IB, int JB, int * DESCB){
+#ifdef USE_SCALAPACK
+    PSTRSM(&SIDE, &UPLO, &TRANS, &DIAG, &M, &N, &ALPHA, A, &IA, &JA, DESCA, B, &IB, &JB, DESCB);
+#else
+    assert(0);
+#endif
+  }
+
+
+
+  template <>
+  void ptrsm<double>(char SIDE, char UPLO, char TRANS, char DIAG,
+                     int M, int N, double ALPHA,
+                     double * A, int IA, int JA, int * DESCA,
+                     double * B, int IB, int JB, int * DESCB){
+#ifdef USE_SCALAPACK
+    PDTRSM(&SIDE, &UPLO, &TRANS, &DIAG, &M, &N, &ALPHA, A, &IA, &JA, DESCA, B, &IB, &JB, DESCB);
+#else
+    assert(0);
+#endif
+  }
+
+
+  template <>
+  void ptrsm<std::complex<float>>(char SIDE, char UPLO, char TRANS, char DIAG,
+                    int M, int N, std::complex<float> ALPHA,
+                    std::complex<float> * A, int IA, int JA, int * DESCA,
+                    std::complex<float> * B, int IB, int JB, int * DESCB){
+#ifdef USE_SCALAPACK
+    PCTRSM(&SIDE, &UPLO, &TRANS, &DIAG, &M, &N, &ALPHA, A, &IA, &JA, DESCA, B, &IB, &JB, DESCB);
+#else
+    assert(0);
+#endif
+  }
+
+
+  template <>
+  void ptrsm<std::complex<double>>(char SIDE, char UPLO, char TRANS, char DIAG,
+                     int M, int N, std::complex<double> ALPHA,
+                     std::complex<double> * A, int IA, int JA, int * DESCA,
+                     std::complex<double> * B, int IB, int JB, int * DESCB){
+#ifdef USE_SCALAPACK
+    PZTRSM(&SIDE, &UPLO, &TRANS, &DIAG, &M, &N, &ALPHA, A, &IA, &JA, DESCA, B, &IB, &JB, DESCB);
+#else
+    assert(0);
+#endif
+  }
 
   void cdescinit(int *  desc,
                  int    m,

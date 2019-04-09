@@ -29,6 +29,48 @@ class KnowValues(unittest.TestCase):
             self.assertTrue(abs(ctf.vecnorm(D))<= 1.e-6)
             self.assertTrue(allclose(A, ctf.dot(L,L.T())))
 
+    def test_solve_tri(self):
+        n = 4
+        m = 7
+        for dt in [numpy.float32, numpy.float64]:
+            B = ctf.random.random((n,m))
+            B = ctf.astensor(B,dtype=dt)
+            L = ctf.random.random((n,n))
+            L = ctf.astensor(L,dtype=dt)
+            L = ctf.tril(L)
+            D = L.T() * L
+            D.i("ii") << -1.0*L.i("ii")*L.i("ii")
+            self.assertTrue(abs(ctf.vecnorm(D))<= 1.e-6)
+            X = ctf.solve_tri(L,B)
+            self.assertTrue(allclose(B, ctf.dot(L,X)))
+
+            U = ctf.random.random((n,n))
+            U = ctf.astensor(U,dtype=dt)
+            U = ctf.triu(U)
+            D = U.T() * U
+            D.i("ii") << -1.0*U.i("ii")*U.i("ii")
+            self.assertTrue(abs(ctf.vecnorm(D))<= 1.e-6)
+            X = ctf.solve_tri(U,B,False)
+            self.assertTrue(allclose(B, ctf.dot(U,X)))
+
+            U = ctf.random.random((m,m))
+            U = ctf.astensor(U,dtype=dt)
+            U = ctf.triu(U)
+            D = U.T() * U
+            D.i("ii") << -1.0*U.i("ii")*U.i("ii")
+            self.assertTrue(abs(ctf.vecnorm(D))<= 1.e-6)
+            X = ctf.solve_tri(U,B,False,False)
+            self.assertTrue(allclose(B, ctf.dot(X,U)))
+
+            U = ctf.random.random((m,m))
+            U = ctf.astensor(U,dtype=dt)
+            U = ctf.triu(U)
+            D = U.T() * U
+            D.i("ii") << -1.0*U.i("ii")*U.i("ii")
+            self.assertTrue(abs(ctf.vecnorm(D))<= 1.e-6)
+            X = ctf.solve_tri(U,B,False,False,True)
+            self.assertTrue(allclose(B, ctf.dot(X,U.T())))
+
     def test_svd(self):
         m = 9
         n = 5

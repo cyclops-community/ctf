@@ -281,7 +281,7 @@ namespace CTF_SCALAPACK {
               int     ja,
               int *   desca,
               int *   info){
-    assert(0); // PORGQR not defined for this type
+    assert(0); // PPOTRF not defined for this type
   }
 
   template <>
@@ -319,6 +319,39 @@ namespace CTF_SCALAPACK {
                                     int                    ja,
                                     int *                  desca,
                                     int *                  info);
+
+
+  template <typename dtype>
+  void ptrsm(char SIDE, char UPLO, char TRANS, char DIAG,
+             int M, int N, dtype ALPHA,
+             dtype * A, int IA, int JA, int * DESCA,
+             dtype * B, int IB, int JB, int * DESCB){
+    assert(0); // PTRSM not defined for this type
+  }
+
+  template <>
+  void ptrsm<float>(char SIDE, char UPLO, char TRANS, char DIAG,
+                    int M, int N, float ALPHA,
+                    float * A, int IA, int JA, int * DESCA,
+                    float * B, int IB, int JB, int * DESCB);
+
+  template <>
+  void ptrsm<double>(char SIDE, char UPLO, char TRANS, char DIAG,
+                     int M, int N, double ALPHA,
+                     double * A, int IA, int JA, int * DESCA,
+                     double * B, int IB, int JB, int * DESCB);
+
+  template <>
+  void ptrsm<std::complex<float>>(char SIDE, char UPLO, char TRANS, char DIAG,
+                    int M, int N, std::complex<float> ALPHA,
+                    std::complex<float> * A, int IA, int JA, int * DESCA,
+                    std::complex<float> * B, int IB, int JB, int * DESCB);
+
+  template <>
+  void ptrsm<std::complex<double>>(char SIDE, char UPLO, char TRANS, char DIAG,
+                     int M, int N, std::complex<double> ALPHA,
+                     std::complex<double> * A, int IA, int JA, int * DESCA,
+                     std::complex<double> * B, int IB, int JB, int * DESCB);
 
 
   void cdescinit( int *  desc,

@@ -105,6 +105,67 @@ namespace CTF_int{
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function sparisfy\n"); IASSERT(0); return; }
   }
 
+
+  void matrix_trsm(tensor * L, tensor * B, tensor * X, bool lower, bool from_left, bool transp_L){
+   switch (B->sr->el_size){
+      case 4:
+        {
+          CTF::Matrix<float> mB(*B);
+          CTF::Matrix<float> mL(*L);
+          CTF::Matrix<float> mX;
+          mB.solve_tri(mL, mX, lower, from_left, transp_L);
+          (*X)["ij"] = mX["ij"];
+        }
+        break;
+
+
+      case 8:
+        {
+          CTF::Matrix<double> mB(*B);
+          CTF::Matrix<double> mL(*L);
+          CTF::Matrix<double> mX;
+          mB.solve_tri(mL, mX, lower, from_left, transp_L);
+          (*X)["ij"] = mX["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
+  void matrix_trsm_cmplx(tensor * L, tensor * B, tensor * X, bool lower, bool from_left, bool transp_L){
+   switch (B->sr->el_size){
+      case 8:
+        {
+          CTF::Matrix<std::complex<float>> mB(*B);
+          CTF::Matrix<std::complex<float>> mL(*L);
+          CTF::Matrix<std::complex<float>> mX;
+          mB.solve_tri(mL, mX, lower, from_left, transp_L);
+          (*X)["ij"] = mX["ij"];
+        }
+        break;
+
+
+      case 16:
+        {
+          CTF::Matrix<std::complex<double>> mB(*B);
+          CTF::Matrix<std::complex<double>> mL(*L);
+          CTF::Matrix<std::complex<double>> mX;
+          mB.solve_tri(mL, mX, lower, from_left, transp_L);
+          (*X)["ij"] = mX["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
   void matrix_cholesky(tensor * A, tensor * L){
    switch (A->sr->el_size){
       case 4:
@@ -225,7 +286,6 @@ namespace CTF_int{
         break;
     }
   }
-
 
 
   void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank){

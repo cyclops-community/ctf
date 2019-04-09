@@ -179,12 +179,14 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void set_real[dtype](ctensor * A, ctensor * B)
     cdef void set_imag[dtype](ctensor * A, ctensor * B)
     cdef void subsample(ctensor * A, double probability)
-    cdef void matrix_svd(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
-    cdef void matrix_svd_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
     cdef void matrix_cholesky(ctensor * A, ctensor * L)
     cdef void matrix_cholesky_cmplx(ctensor * A, ctensor * L)
+    cdef void matrix_trsm(ctensor * L, ctensor * B, ctensor * X, bool lower, bool from_left, bool transp_L)
+    cdef void matrix_trsm_cmplx(ctensor * L, ctensor * B, ctensor * X, bool lower, bool from_left, bool transp_L)
     cdef void matrix_qr(ctensor * A, ctensor * Q, ctensor * R)
     cdef void matrix_qr_cmplx(ctensor * A, ctensor * Q, ctensor * R)
+    cdef void matrix_svd(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
+    cdef void matrix_svd_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
     cdef void conv_type(int type_idx1, int type_idx2, ctensor * A, ctensor * B)
     cdef void delete_arr(ctensor * A, char * arr)
     cdef void delete_pairs(ctensor * A, char * pairs)
@@ -5549,6 +5551,45 @@ def cholesky(tensor A):
         matrix_cholesky_cmplx(A.dt, L.dt)
     return L
 
+def solve_tri(tensor L, tensor B, lower=True, from_left=True, transp_L=False):
+    """
+    solve_tri(L,B,lower,from_left,transp_L)
+    Compute triangular solve (with multiple right or left hand sides)
+
+    Parameters
+    ----------
+    L: tensor_like
+       Triangular matrix encoding equations
+
+    B: tensor_like
+       Right or left hand sides
+
+    lower: bool
+       if true L is lower triangular, if false upper
+
+    from_left: bool
+       if true solve LX = B, if false, solve XL=B
+
+    transp_L: bool
+       if true solve L^TX = B or XL^T=B
+
+    Returns
+    -------
+    X: tensor
+        CTF matrix containing solutions to triangular equations, same shape as B
+    """
+    if not isinstance(L,tensor) or L.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: solve_tri called on invalid tensor, must be CTF matrix')
+    if not isinstance(B,tensor) or B.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: solve_tri called on invalid tensor, must be CTF matrix')
+    if L.dtype != B.dtype:
+        raise ValueError('CTF PYTHON ERROR: solve_tri dtype of B and L must match')
+    X = tensor(B.shape, dtype=B.dtype)
+    if B.dtype == np.float64 or B.dtype == np.float32:
+        matrix_trsm(L.dt, B.dt, X.dt, not lower, not from_left, transp_L)
+    elif B.dtype == np.complex128 or B.dtype == np.complex64:
+        matrix_trsm(L.dt, B.dt, X.dt, not lower, not from_left, transp_L)
+    return X
 
 def vecnorm(A, ord=2):
     """
