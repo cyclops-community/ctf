@@ -884,8 +884,11 @@ NORM1_INST(double)
     Tensor<dtype> cA(A.order, A.is_sparse, A.lens, *A.wrld, *A.sr);
     cA[inds] += A[inds];
     Transform<dtype>([](dtype & a){ a = a*a; })(cA[inds]);
-    nrm = cA[inds];
-    nrm = std::sqrt(nrm);
+    Tensor<dtype> sc(0, NULL, *A.wrld);
+    sc[""] = cA[inds];
+    dtype val = ((dtype*)sc.data)[0];
+    MPI_Bcast((char *)&val, sizeof(dtype), MPI_CHAR, 0, A.wrld->comm);
+    nrm = std::sqrt((double)val);
   }
 
   template<typename dtype>
