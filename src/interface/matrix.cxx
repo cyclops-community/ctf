@@ -461,20 +461,25 @@ namespace CTF {
   void Matrix<dtype>::get_tri(Matrix<dtype> & T, bool lower, bool keep_diag){
     int min_mn = std::min(this->nrow,this->ncol);
     int sym_type = SH;
-    if (keep_diag) sym_type = SY;
+    if ((keep_diag && !lower) || (!keep_diag && lower)) sym_type = SY;
     int syns[] = {sym_type, NS};
+    Tensor<dtype> F;
     Tensor<dtype> U;
     if (this->nrow != this->ncol){
-      U = this->slice(0,((int64_t)nrow)*(min_mn-1) + min_mn-1);
-      U = Tensor<dtype>(U,syns);
+      F = this->slice(0,((int64_t)nrow)*(min_mn-1) + min_mn-1);
+      U = Tensor<dtype>(F,syns);
     } else {
       U = Tensor<dtype>(*this,syns);
     }
     int nsns[] = {NS, NS};
     U = Tensor<dtype>(U,nsns);
     if (T.nrow == -1){
-      if (lower && this->nrow <= this->ncol)
-        T = Tensor<dtype>(false, U);
+      if (lower && this->nrow <= this->ncol){
+        if (this->nrow == this->ncol)
+          T = Tensor<dtype>(true, *this);
+        else
+          T = Tensor<dtype>(true, F);
+      }
       else if (lower && this->nrow > this->ncol)
         T = Tensor<dtype>(false, *this);
       else if (!lower && this->nrow >= this->ncol)
@@ -484,9 +489,9 @@ namespace CTF {
     }
     if (lower){
       if (T.nrow == min_mn && T.ncol == min_mn)
-        T["ij"] = U["ji"];
+        T["ij"] -= U["ij"];
       else
-        U["ij"] = U["ji"];
+        F["ij"] -= U["ij"];
     }
     if (T.nrow != T.ncol){
       assert(T.nrow == this->nrow && T.ncol == this->ncol);
@@ -495,7 +500,7 @@ namespace CTF {
         T["ij"] = this->operator[]("ij");
       else
         T.set_zero();
-      T.slice(0,((int64_t)nrow)*(min_mn-1) + min_mn-1,*(dtype*)this->sr->addid(),U,0,((int64_t)min_mn)*(min_mn-1) + min_mn-1,*(dtype*)this->sr->mulid());
+      T.slice(0,((int64_t)nrow)*(min_mn-1) + min_mn-1,*(dtype*)this->sr->addid(),F,0,((int64_t)min_mn)*(min_mn-1) + min_mn-1,*(dtype*)this->sr->mulid());
     }
   }
 
@@ -519,6 +524,7 @@ namespace CTF {
     if (lower) uplo = 'L';
 
     CTF_SCALAPACK::ppotrf<dtype>(uplo,n,A,1,1,desca,&info);
+    IASSERT(info == 0);
 
     Matrix<dtype> S(desca, A, layout_order, (*(this->wrld)));
     free(A);
