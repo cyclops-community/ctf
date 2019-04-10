@@ -678,7 +678,7 @@ namespace CTF_int {
       delete pop_A;
       delete pop_B;
     }
-    if (est_time)
+    //if (est_time)
       //printf("before last part time is %lf\n",*cost);
     if (est_time && terms_to_leave == 2){
       std::vector<Term*> to;
