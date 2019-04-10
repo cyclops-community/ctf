@@ -68,7 +68,7 @@ namespace CTF {
         tot_size = 0;
         int kd = (k+div-1)/div;
         for (int i=0; i<num_ops; i++){
-          tot_size += mat_list[i]->lens[aux_mode_first]*kd/phys_phase[modes[i]];
+          tot_size += 2*mat_list[i]->lens[aux_mode_first]*kd/phys_phase[modes[i]];
         }
         if (div > 1)
           tot_size += npair;
