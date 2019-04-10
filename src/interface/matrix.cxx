@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "world.h"
+#include "timer.h"
 #include "../shared/blas_symbs.h"
 #include "../shared/lapack_symbs.h"
 #include <stdlib.h>
@@ -459,6 +460,8 @@ namespace CTF {
 
   template<typename dtype>
   void Matrix<dtype>::get_tri(Matrix<dtype> & T, bool lower, bool keep_diag){
+    Timer t_get_tri("get_tri");
+    t_get_tri.start();
     int min_mn = std::min(this->nrow,this->ncol);
     int sym_type = SH;
     if ((keep_diag && !lower) || (!keep_diag && lower)) sym_type = SY;
@@ -502,10 +505,13 @@ namespace CTF {
         T.set_zero();
       T.slice(0,((int64_t)nrow)*(min_mn-1) + min_mn-1,*(dtype*)this->sr->addid(),F,0,((int64_t)min_mn)*(min_mn-1) + min_mn-1,*(dtype*)this->sr->mulid());
     }
+    t_get_tri.stop();
   }
 
   template<typename dtype>
   void Matrix<dtype>::cholesky(Matrix<dtype> & L, bool lower){
+    Timer t_cholesky("cholesky");
+    t_cholesky.start();
     int info;
     int m = this->nrow;
     int n = this->ncol;
@@ -529,10 +535,13 @@ namespace CTF {
     Matrix<dtype> S(desca, A, layout_order, (*(this->wrld)));
     free(A);
     S.get_tri(L, lower);
+    t_cholesky.stop();
   }
       
   template<typename dtype>
   void Matrix<dtype>::solve_tri(Matrix<dtype> L, Matrix<dtype> & X, bool lower, bool from_left, bool transp_L){
+    Timer t_solve_tri("solve_tri");
+    t_solve_tri.start();
     int m = this->nrow;
     int n = this->ncol;
 
@@ -597,11 +606,14 @@ namespace CTF {
     free(A);
     free(desca);
     free(descl);
+    t_solve_tri.stop();
   }
 
   template<typename dtype>
   void Matrix<dtype>::qr(Matrix<dtype> & Q, Matrix<dtype> & R){
 
+    Timer t_qr("QR");
+    t_qr.start();
     int info;
 
     int m = this->nrow;
@@ -642,11 +654,14 @@ namespace CTF {
     free(work);
     free(tau);
     free(desca);
+    t_qr.stop();
   }
 
   template<typename dtype>
   void Matrix<dtype>::svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT,  int rank){
 
+    Timer t_svd("SVD");
+    t_svd.start();
     int info;
 
     int m = this->nrow;
@@ -718,12 +733,15 @@ namespace CTF {
     free(descu);
     free(descvt);
     CTF_int::cdealloc(work);
+    t_svd.stop();
 
   }
 
     
   template<typename dtype>
   void Matrix<dtype>::svd_rand(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank, int iter, int oversamp, Matrix<dtype> * U_guess){
+    Timer t_svd("SVD_rand");
+    t_svd.start();
     int max_rank = std::min(std::min(nrow,ncol), rank+oversamp);
     IASSERT(rank+oversamp <= std::min(nrow,ncol) || U_guess==NULL);
     bool del_U_guess = false;
@@ -752,5 +770,6 @@ namespace CTF {
     Matrix<dtype> U1;
     B.svd(U1,S,VT,rank);
     U["ij"] = U["ik"] * U1["kj"];
+    t_svd.stop();
   }
 }

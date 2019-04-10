@@ -882,7 +882,7 @@ namespace CTF_int {
                      int const *  offsets_A,
                      int const *  ends_A,
                      char const * alpha){
-
+    TAU_FSTART(slice);
     int64_t i, j, sz_A, blk_sz_A, sz_B, blk_sz_B;
     char * all_data_A, * blk_data_A;
     char * all_data_B, * blk_data_B;
@@ -901,6 +901,7 @@ namespace CTF_int {
         if (ends_A[j] - offsets_A[j] == 1){ i--; continue; } // continue with i,j+1
         printf("CTF ERROR: slice dimensions inconsistent 1\n");
         ASSERT(0);
+        TAU_FSTOP(slice);
         return;
       }
     }
@@ -909,12 +910,14 @@ namespace CTF_int {
       if (ends_B[i] - offsets_B[i] == 1){ i++; continue; }
       printf("CTF ERROR: slice dimensions inconsistent 2\n");
       ASSERT(0);
+      TAU_FSTOP(slice);
       return;
     }
     while (this->order != 0 && j < A->order){
       if (ends_A[j] - offsets_A[j] == 1){ j++; continue; }
       printf("CTF ERROR: slice dimensions inconsistent 3\n");
       ASSERT(0);
+      TAU_FSTOP(slice);
       return;
     }
    // bool tsr_A_has_sym = false; 
@@ -1002,6 +1005,7 @@ namespace CTF_int {
     CTF_int::cdealloc(padding_B);
     CTF_int::cdealloc(toffset_A);
     CTF_int::cdealloc(toffset_B);
+    TAU_FSTOP(slice);
   }
 
 //#define USE_SLICE_FOR_SUBWORLD

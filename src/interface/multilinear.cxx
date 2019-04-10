@@ -64,12 +64,15 @@ namespace CTF {
       }
     } else {
       do {
+        tot_size = 0;
         int kd = (k+div-1)/div;
         for (int i=0; i<num_ops; i++){
           tot_size += mat_list[i]->lens[aux_mode_first]*kd/phys_phase[modes[i]];
         }
         if (div > 1)
           tot_size += npair;
+        if (T->wrld->rank == 0)
+          printf("tot_size = %ld max_memuse = %ld\n", tot_size*(int64_t)sizeof(dtype), max_memuse);
         if (tot_size*(int64_t)sizeof(dtype) > max_memuse){
           if (div == k)
             printf("CTF ERROR: insufficeint memory for TTTP");
@@ -80,6 +83,8 @@ namespace CTF {
       } while(true);
     }
     MPI_Allreduce(MPI_IN_PLACE, &div, 1, MPI_INT, MPI_MAX, T->wrld->comm);
+    if (T->wrld->rank == 0)
+      printf("In TTTP, chosen div is %d\n",div);
     dtype * acc_arr = NULL;
     if (!is_vec && div>1){
       acc_arr = (dtype*)T->sr->alloc(npair);
@@ -190,6 +195,8 @@ namespace CTF {
           }
         }
       }
+    if (T->wrld->rank == 0)
+      printf("Completed redistribution in TTTP\n");
   #ifdef _OPENMP
       #pragma omp parallel
   #endif
@@ -257,6 +264,8 @@ namespace CTF {
       T->write(npair, pairs);
       T->sr->pair_dealloc((char*)pairs);
     }
+    if (T->wrld->rank == 0)
+      printf("Completed TTTP\n");
     free(redist_mats);
     if (mat_strides != NULL) free(mat_strides);
     free(phys_phase);

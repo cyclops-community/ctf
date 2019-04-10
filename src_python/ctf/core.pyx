@@ -5418,6 +5418,8 @@ def TTTP(tensor A, mat_list):
     #B = tensor(A.shape, A.sp, A.sym, A.dtype, A.order)
     #s = _get_num_str(B.ndim+1)
     #exp = A.i(s[:-1])
+    t_tttp = timer("pyTTTP")
+    t_tttp.start()
     if len(mat_list) != A.ndim:
         raise ValueError('CTF PYTHON ERROR: mat_list argument to TTTP must be of same length as ndim')
     
@@ -5455,6 +5457,7 @@ def TTTP(tensor A, mat_list):
         TTTP_[double](<Tensor[double]*>B.dt,len(tsr_list),modes,tsrs,1)
     else:
         raise ValueError('CTF PYTHON ERROR: TTTP does not support this dtype')
+    t_tttp.stop()
     return B
 
 def svd(tensor A, rank=None):
@@ -5573,6 +5576,8 @@ def qr(tensor A):
     R: tensor
         An upper triangular 2-D CTF tensor.
     """
+    t_qr = timer("pyqr")
+    t_qr.start()
     if not isinstance(A,tensor) or A.ndim != 2:
         raise ValueError('CTF PYTHON ERROR: QR called on invalid tensor, must be CTF matrix')
     B = tensor(copy=A.T())
@@ -5582,6 +5587,7 @@ def qr(tensor A):
         matrix_qr(B.dt, Q.dt, R.dt)
     elif A.dtype == np.complex128 or A.dtype == np.complex64:
         matrix_qr_cmplx(B.dt, Q.dt, R.dt)
+    t_qr.stop()
     return [Q.T(), R.T()]
 
 def cholesky(tensor A):
@@ -5599,6 +5605,8 @@ def cholesky(tensor A):
     L: tensor
         A CTF tensor with 2 dimensions corresponding to lower triangular Cholesky factor of A
     """
+    t_cholesky = timer("pycholesky")
+    t_cholesky.start()
     if not isinstance(A,tensor) or A.ndim != 2:
         raise ValueError('CTF PYTHON ERROR: Cholesky called on invalid tensor, must be CTF matrix')
     L = tensor(A.shape, dtype=A.dtype)
@@ -5606,6 +5614,7 @@ def cholesky(tensor A):
         matrix_cholesky(A.dt, L.dt)
     elif A.dtype == np.complex128 or A.dtype == np.complex64:
         matrix_cholesky_cmplx(A.dt, L.dt)
+    t_cholesky.stop()
     return L
 
 def solve_tri(tensor L, tensor B, lower=True, from_left=True, transp_L=False):
@@ -5635,6 +5644,8 @@ def solve_tri(tensor L, tensor B, lower=True, from_left=True, transp_L=False):
     X: tensor
         CTF matrix containing solutions to triangular equations, same shape as B
     """
+    t_solve_tri = timer("pysolve_tri")
+    t_solve_tri.start()
     if not isinstance(L,tensor) or L.ndim != 2:
         raise ValueError('CTF PYTHON ERROR: solve_tri called on invalid tensor, must be CTF matrix')
     if not isinstance(B,tensor) or B.ndim != 2:
@@ -5646,6 +5657,7 @@ def solve_tri(tensor L, tensor B, lower=True, from_left=True, transp_L=False):
         matrix_trsm(L.dt, B.dt, X.dt, not lower, not from_left, transp_L)
     elif B.dtype == np.complex128 or B.dtype == np.complex64:
         matrix_trsm(L.dt, B.dt, X.dt, not lower, not from_left, transp_L)
+    t_solve_tri.stop()
     return X
 
 def vecnorm(A, ord=2):
@@ -5674,14 +5686,18 @@ def vecnorm(A, ord=2):
     >>> la.vecnorm(a)
     5.0
     """
+    t_norm = timer("pyvecnorm")
+    t_norm.start()
     if ord == 2:
-        return A.norm2()
+        nrm = A.norm2()
     elif ord == 1:
-        return A.norm1()
+        nrm = A.norm1()
     elif ord == np.inf:
-        return A.norm_infty()
+        nrm = A.norm_infty()
     else:
         raise ValueError('CTF PYTHON ERROR: CTF only supports 1/2/inf vector norms')
+    t_norm.stop()
+    return nrm
 
 def _match_tensor_types(first, other):
     if isinstance(first, tensor):
