@@ -718,11 +718,12 @@ namespace CTF {
     
   template<typename dtype>
   void Matrix<dtype>::svd_rand(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank, int iter, int oversamp, Matrix<dtype> * U_guess){
-    IASSERT(rank+oversamp <= std::min(nrow,ncol));
+    int max_rank = std::min(std::min(nrow,ncol), rank+oversamp);
+    IASSERT(rank+oversamp <= std::min(nrow,ncol) || U_guess==NULL);
     bool del_U_guess = false;
     if (U_guess == NULL){
       del_U_guess = true;
-      U_guess = new Matrix<dtype>(this->nrow, rank+oversamp);
+      U_guess = new Matrix<dtype>(this->nrow, max_rank);
       U_guess->fill_random(-1.,1.);
       Matrix<dtype> Q, R;
       U_guess->qr(Q, R);
@@ -734,8 +735,10 @@ namespace CTF {
       U_guess->qr(Q,R);
       U_guess->operator[]("ij") = Q["ij"];
     }
-    if (oversamp > 0)
+    if (max_rank - rank > 0)
       U = U_guess->slice(0,this->nrow*rank-1);
+    else
+      U = Matrix<dtype>(*U_guess);
     if (del_U_guess)
       delete U_guess;
     Matrix<dtype> B(rank, this->ncol);
