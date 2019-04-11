@@ -485,9 +485,11 @@ namespace CTF {
       }
       else if (lower && this->nrow > this->ncol)
         T = Tensor<dtype>(false, *this);
-      else if (!lower && this->nrow >= this->ncol)
-        T = Tensor<dtype>(true, U);
-      else
+      else if (!lower && this->nrow >= this->ncol){
+        // do not copy from U to permit general mapping
+        T = Tensor<dtype>(2, U.is_sparse, U.lens, *U.wrld, *U.sr);
+        T["ij"] += U["ij"];
+      } else
         T = Tensor<dtype>(false, *this);
     }
     if (lower){

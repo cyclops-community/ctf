@@ -857,7 +857,7 @@ namespace CTF_int {
     return htsum;
   }
 
-  int summation::home_sum_tsr(bool run_diag){
+  int summation::home_sum_tsr(bool run_diag, bool handle_sym){
     int ret, was_home_A, was_home_B;
     tensor * tnsr_A, * tnsr_B;
     // code below turns summations into scaling, but never seems to be invoked in AQ or test_suite, so commenting it out for now
@@ -949,7 +949,10 @@ namespace CTF_int {
 
   #ifndef HOME_CONTRACT
     #ifdef USE_SYM_SUM
-      ret = sym_sum_tsr(run_diag);
+      if (handle_sym)
+        ret = sym_sum_tsr(run_diag);
+      else
+        ret = sum_tensors(run_diag);
       return ret;
     #else
       ret = sum_tensors(run_diag);
@@ -1077,7 +1080,10 @@ namespace CTF_int {
   #endif
     
     #ifdef USE_SYM_SUM
-    ret = osum.sym_sum_tsr(run_diag);
+    if (handle_sym)
+      ret = osum.sym_sum_tsr(run_diag);
+    else
+      ret = osum.sum_tensors(run_diag);
     #else
     ret = osum.sum_tensors(run_diag);
     #endif

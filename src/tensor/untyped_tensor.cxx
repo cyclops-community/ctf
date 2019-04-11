@@ -200,7 +200,7 @@ namespace CTF_int {
         idx[j] = j;
       }
       summation ts(other, idx, sr->mulid(), this, idx, sr->addid());
-      ts.sum_tensors(true);
+      ts.home_sum_tsr(true,false);
     }
     cdealloc(nname);
   }
