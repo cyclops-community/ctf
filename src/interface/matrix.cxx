@@ -6,6 +6,7 @@
 #include "../shared/blas_symbs.h"
 #include "../shared/lapack_symbs.h"
 #include <stdlib.h>
+#include <algorithm>
 
 
 namespace CTF_int{
@@ -541,7 +542,7 @@ namespace CTF {
   }
       
   template<typename dtype>
-  void Matrix<dtype>::solve_tri(Matrix<dtype> L, Matrix<dtype> & X, bool lower, bool from_left, bool transp_L){
+  void Matrix<dtype>::solve_tri(Matrix<dtype> & L, Matrix<dtype> & X, bool lower, bool from_left, bool transp_L){
     Timer t_solve_tri("solve_tri");
     t_solve_tri.start();
     int m = this->nrow;
@@ -660,7 +661,12 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Matrix<dtype>::svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT,  int rank){
+  void get_svd(dtype * A, dtype * U, dtype * S, dtype * VT, int & rank, double threshold){
+
+  }
+
+  template<typename dtype>
+  void Matrix<dtype>::svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank, double threshold){
 
     Timer t_svd("SVD");
     t_svd.start();
@@ -695,32 +701,73 @@ namespace CTF {
 
 
     dtype * u = (dtype*)CTF_int::alloc(sizeof(dtype)*mpr*kpc);
-    dtype * s = (dtype*)CTF_int::alloc(sizeof(dtype)*k);
     dtype * vt = (dtype*)CTF_int::alloc(sizeof(dtype)*kpr*npc);
     this->read_mat(desca, A, layout_order);
 
-    int lwork;
-    dtype dlwork;
-    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
-
-    lwork = get_int_fromreal<dtype>(dlwork);
-    dtype * work = (dtype*)CTF_int::alloc(sizeof(dtype)*((int64_t)lwork));
-
-    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
- 
-    U = Matrix<dtype>(descu, u, layout_order, (*(this->wrld)));
-    VT = Matrix<dtype>(descvt, vt, layout_order, (*(this->wrld)));
 
     S = Vector<dtype>(k, (*(this->wrld)));
     int64_t sc;
     dtype * s_data = S.get_raw_data(&sc);
 
+    int lwork;
+    dtype dlwork;
+
+    //if (typeid(dtype) == typeid(std::complex<float>)){
+    //  float * s = (float*)CTF_int::alloc(sizeof(float)*k);
+    //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
+    //  lwork = get_int_fromreal<dtype>(dlwork);
+    //  float * work = (float*)CTF_int::alloc(sizeof(float)*((int64_t)lwork));
+    //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
+    //  if (threshold > 0.0)
+    //    rank = std::lower_bound(s, s+k, (float)threshold) - s;
+    //  int phase = S.edge_map[0].calc_phase();
+    //  if ((int)(this->wrld->rank) < phase){
+    //    for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
+    //      s_data[i/phase] = s[i];
+    //    } 
+    //  }
+    //  CTF_int::cdealloc(s);
+    //  CTF_int::cdealloc(work);
+    //} else if (typeid(dtype) == typeid(std::complex<double>)){
+    //  double * s = (double*)CTF_int::alloc(sizeof(double)*k);
+    //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
+    //  lwork = get_int_fromreal<dtype>(dlwork);
+    //  double * work = (double*)CTF_int::alloc(sizeof(double)*((int64_t)lwork));
+    //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
+    //  if (threshold > 0.0)
+    //    rank = std::lower_bound(s, s+k, (double)threshold) - s;
+    //  int phase = S.edge_map[0].calc_phase();
+    //  if ((int)(this->wrld->rank) < phase){
+    //    for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
+    //      s_data[i/phase] = s[i];
+    //    } 
+    //  }
+    //  CTF_int::cdealloc(s);
+    //  CTF_int::cdealloc(work);
+    //} else {
+    dtype * s = (dtype*)CTF_int::alloc(sizeof(dtype)*k);
+    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
+    lwork = get_int_fromreal<dtype>(dlwork);
+    dtype * work = (dtype*)CTF_int::alloc(sizeof(dtype)*((int64_t)lwork));
+    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
+    if (threshold > 0.0){
+      rank = std::upper_bound(s, s+k, (dtype)threshold, [](const dtype a, const dtype b){ return std::abs(a) > std::abs(b); }) - s;
+      printf("truncated value ");
+      this->sr->print((char*)(s+rank));
+      printf(", threshold was %lf\n",threshold);
+    }
     int phase = S.edge_map[0].calc_phase();
     if ((int)(this->wrld->rank) < phase){
       for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
         s_data[i/phase] = s[i];
       } 
     }
+    CTF_int::cdealloc(s);
+    CTF_int::cdealloc(work);
+
+    U = Matrix<dtype>(descu, u, layout_order, (*(this->wrld)));
+    VT = Matrix<dtype>(descvt, vt, layout_order, (*(this->wrld)));
+
     if (rank > 0 && rank < k) {
       S = S.slice(0, rank-1);
       U = U.slice(0, rank*((int64_t)m)-1);
@@ -729,12 +776,10 @@ namespace CTF {
 
     CTF_int::cdealloc(A);
     CTF_int::cdealloc(u);
-    CTF_int::cdealloc(s);
     CTF_int::cdealloc(vt);
     free(desca);
     free(descu);
     free(descvt);
-    CTF_int::cdealloc(work);
     t_svd.stop();
 
   }

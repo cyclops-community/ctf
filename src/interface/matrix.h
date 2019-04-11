@@ -293,7 +293,7 @@ namespace CTF {
        * \param[in] from_left if true, solve LX=this if false solve XL=this
        * \param[in] transp_L if true, L solve L^TX=this or XL^T=this
        */
-      void solve_tri(Matrix<dtype> L, Matrix<dtype> & X, bool lower=true, bool from_left=true, bool transp_L=false);
+      void solve_tri(Matrix<dtype> & L, Matrix<dtype> & X, bool lower=true, bool from_left=true, bool transp_L=false);
 
       /*
        * \calculates the reduced QR decomposition, A = Q x R for A of dimensions m by n with m>=n
@@ -308,8 +308,9 @@ namespace CTF {
        * \param[out] S singular values of matrix
        * \param[out] VT right singular vectors of matrix
        * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns)
+       * \param[in] threshold for truncating singular values of the SVD, determines rank, if used, must set previous paramter rank=0
        */
-      void svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank = 0);
+      void svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank = 0, double threshold=0.);
 
       /*
        * \calculates uses randomized method (orthogonal iteration) to calculate a low-rank singular value decomposition, M = U x S x VT. Is faster, especially for low-rank, but less robust than typical svd.

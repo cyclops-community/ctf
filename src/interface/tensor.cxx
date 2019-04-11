@@ -448,18 +448,6 @@ namespace CTF {
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function permute\n"); IASSERT(0); return; }
   }
 
-/*  template<typename dtype>
-  void Tensor<dtype>::svd(char const * idx_A, int order_U, char const * idx_U, Tensor<dtype> & U, Vector<dtype> & S, Tensor<dtype> & VT, int rank){
-    bool need_transpose_A = false;
-    bool need_transpose_U = false;
-    bool need_transpose_V = false;
-    for (int i=0; i<order_U; i++){
-      if (idx_A[i] !=
-
-    }
-
-  }*/
-
   template<typename dtype>
   void Tensor<dtype>::sparsify(){
     int ret = CTF_int::tensor::sparsify();
@@ -486,13 +474,13 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Tensor<dtype>::reshape(Tensor<dtype> old_tsr){
+  void Tensor<dtype>::reshape(Tensor<dtype> & old_tsr){
     int ret = CTF_int::tensor::reshape(&old_tsr, sr->mulid(), sr->addid());
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function reshape\n"); IASSERT(0); return; }
   }
 
   template<typename dtype>
-  void Tensor<dtype>::reshape(Tensor<dtype> old_tsr, dtype alpha, dtype beta){
+  void Tensor<dtype>::reshape(Tensor<dtype> & old_tsr, dtype alpha, dtype beta){
     int ret = CTF_int::tensor::reshape(&old_tsr, (char*)&alpha, (char*)&beta);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function reshape\n"); IASSERT(0); return; }
   }
