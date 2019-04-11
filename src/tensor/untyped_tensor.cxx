@@ -1525,6 +1525,28 @@ namespace CTF_int {
     return SUCCESS;
   }
 
+  int tensor::densify(){
+    if (is_sparse){
+      this->is_sparse = false;
+      cdealloc(this->nnz_blk);
+      ASSERT(!is_data_aliased); 
+      ASSERT(!(has_home && !is_home));
+      ASSERT(has_home);
+      char * old_data = this->data;
+      data = sr->alloc(size);
+      sr->set(this->data, sr->addid(), this->size);
+      this->home_size = this->size;
+      if (old_data != NULL){
+        this->write(this->nnz_loc, sr->mulid(), sr->mulid(), old_data, 'w');
+        sr->pair_dealloc(old_data);
+      }
+      this->nnz_loc = 0;
+      this->nnz_tot = 0;
+      this->nnz_blk = NULL;
+    }
+    return SUCCESS;
+  }
+
   int tensor::read_local(int64_t * num_pair,
                          int64_t ** inds,
                          char **   data,
@@ -1574,23 +1596,47 @@ namespace CTF_int {
     return SUCCESS;
   }
 
-  int tensor::reshape(tensor * new_tsr, char const * alpha, char const * beta){
+  int tensor::reshape(tensor * old_tsr, char const * alpha, char const * beta){
     char * pairs;
     int64_t n;
-    //FIXME: finish
-    /*
-    bool did_lens_change = this->order != new_tsr->order;
-    if (!did_lens_change){
-      for (int i=0; i<new_tsr->order; i++){
-        if (new_tsr->lens[i] != this->lens[i])
-          did_lens_change = true;
+    
+    if (beta == NULL || this->sr->isequal(beta,this->sr->addid())){
+      bool did_lens_change = this->order != old_tsr->order;
+      if (!did_lens_change){
+        for (int i=0; i<old_tsr->order; i++){
+          if (old_tsr->lens[i] != this->lens[i])
+            did_lens_change = true;
+        }
+      }
+      if (!did_lens_change){
+        bool is_map_changed = false;
+        if (topo != old_tsr->topo) is_map_changed = true;
+        topo = old_tsr->topo;
+        for (int i=0; i<order; i++){
+          if (!comp_dim_map(edge_map+i, old_tsr->edge_map+i)){
+            edge_map[i].clear();
+            copy_mapping(1, old_tsr->edge_map+i, edge_map+i);
+            is_map_changed = true;
+          }
+        }
+        if (!is_map_changed){
+          if (!this->is_sparse){
+            IASSERT(!old_tsr->is_sparse);
+            memcpy(this->data, old_tsr->data, this->sr->el_size*this->size);
+          } else {
+            IASSERT(old_tsr->is_sparse);
+            this->set_zero();
+            this->data = this->sr->pair_alloc(old_tsr->nnz_loc);
+            this->sr->copy_pairs(this->data, old_tsr->data, old_tsr->nnz_loc);
+            memcpy(this->nnz_blk, old_tsr->nnz_blk, old_tsr->calc_nvirt()*sizeof(int64_t));
+            this->set_new_nnz_glb(this->nnz_blk);
+          }
+        }
       }
     }
-    if (!did_lens_change){
-    }*/
     if (beta == NULL || this->sr->isequal(beta,this->sr->addid()))
       this->set_zero();
-    int stat = new_tsr->read_local_nnz(&n, &pairs, true);
+    int stat = old_tsr->read_local_nnz(&n, &pairs, true);
     if (stat != SUCCESS) return stat;
     stat = this->write(n, alpha, beta, pairs, 'w');
     this->sr->pair_dealloc(pairs);

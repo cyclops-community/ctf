@@ -20,6 +20,7 @@ namespace CTF_int{
       bool commutative;
       bool left_distributive;
       bool right_distributive;
+      bool intersect_only;
 
       /**
        * \brief apply function f to values stored at a and b
@@ -63,12 +64,14 @@ namespace CTF_int{
        */
       bivar_function(bool is_comm=false,
                      bool is_left_dist=false,
-                     bool is_right_dist=false){
+                     bool is_right_dist=false,
+                     bool intersect_only_=false){
         has_kernel = false;
         has_off_gemm = false;
         commutative = is_comm;
         left_distributive = is_left_dist;
         right_distributive = is_right_dist;
+        intersect_only = intersect_only_;
       }
 
       virtual ~bivar_function(){}

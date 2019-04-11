@@ -112,9 +112,9 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(allclose(ctf.eye(k,dtype=numpy.complex128), ctf.dot(VT, ctf.conj(VT.T()))))
 
     def test_svd_rand(self):
-        m = 9
-        n = 5
-        k = 3
+        m = 19
+        n = 15
+        k = 13
         for dt in [numpy.float32, numpy.float64]:
             A = ctf.random.random((m,n))
             A = ctf.astensor(A,dtype=dt)

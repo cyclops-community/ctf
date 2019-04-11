@@ -4910,6 +4910,50 @@ namespace CTF_int {
     }*/ 
 
     //CTF_ctr_type_t ntype = *stype;
+    if (this->func != NULL && !this->func->is_accumulator() && !this->func->intersect_only){
+      if (A->is_sparse){
+        char * tmp;
+        tmp = C->sr->alloc(1);
+        this->func->apply_f(A->sr->addid(), B->sr->mulid(), tmp);
+        bool do_densify = !C->sr->isequal(tmp, C->sr->addid());
+        this->func->apply_f(A->sr->addid(), B->sr->addid(), tmp);
+        do_densify = do_densify || !C->sr->isequal(tmp, C->sr->addid());
+        if (do_densify){
+
+          contraction pre_new_ctr = contraction(*this);
+          pre_new_ctr.A = new tensor(A, 1, 1);
+          pre_new_ctr.A->densify();
+          pre_new_ctr.execute();
+          delete pre_new_ctr.A;
+          return SUCCESS;
+        }
+      }
+      if (B->is_sparse){
+        char * tmp;
+        tmp = C->sr->alloc(1);
+        this->func->apply_f(A->sr->mulid(), B->sr->addid(), tmp);
+        bool do_densify = !C->sr->isequal(tmp, C->sr->addid());
+        this->func->apply_f(A->sr->addid(), B->sr->addid(), tmp);
+        do_densify = do_densify || !C->sr->isequal(tmp, C->sr->addid());
+        if (do_densify){
+          contraction pre_new_ctr = contraction(*this);
+          pre_new_ctr.B = new tensor(B, 1, 1);
+          pre_new_ctr.B->densify();
+          pre_new_ctr.execute();
+          delete pre_new_ctr.B;
+          return SUCCESS;
+        }
+      }
+    }
+
+    if (C->is_sparse && !A->is_sparse && !B->is_sparse){
+      contraction pre_new_ctr = contraction(*this);
+      pre_new_ctr.C->densify();
+      pre_new_ctr.execute();
+      char const * caddid = C->sr->addid();
+      C->sparsify([=](char const * v){ return v != caddid; });
+      return SUCCESS;
+    }
 
     if (C->is_sparse && !A->is_sparse){
       contraction pre_new_ctr = contraction(*this);
