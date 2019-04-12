@@ -1250,6 +1250,15 @@ namespace CTF_int {
 
   int tensor::read(int64_t num_pair,
                    char *  mapped_data){
+    if (is_sparse){
+      PairIterator pi(this->sr,mapped_data);
+#ifdef USE_OMP
+      #pragma omp parallel for
+#endif
+      for (int64_t i=0; i<num_pair; i++){
+        pi[i].write_val(sr->addid());
+      }
+    }
     return write(num_pair, NULL, NULL, mapped_data, 'r');
   }
 

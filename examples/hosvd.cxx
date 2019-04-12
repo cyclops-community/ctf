@@ -11,7 +11,7 @@ using namespace CTF;
 
 template <typename dtype>
 bool hosvd(int n, int R, double sp_frac, World & dw){
-  int lens[4] = {n, n, n, n};
+  int lens[4] = {n, n+1, n+2, n+3};
   bool is_sparse = sp_frac < 1.;
 
   Tensor<dtype> T(4, is_sparse, lens, dw);
@@ -20,22 +20,22 @@ bool hosvd(int n, int R, double sp_frac, World & dw){
 
   Tensor<dtype> U, S, V1, V2, V3, V4;
 
-  T["ijkl"].svd(U["aijk"],S["a"],V1["al"],R);
+  T["ijkl"].svd(U["aijk"],S["a"],V1["al"],R+3);
   U["aijk"] *= S["a"];
-  U["aijk"].svd(U["abij"],S["b"],V2["bk"],R);
+  U["aijk"].svd(U["abij"],S["b"],V2["bk"],R+2);
   U["abij"] *= S["b"];
-  U["abij"].svd(U["abci"],S["c"],V3["cj"],R);
+  U["abij"].svd(U["abci"],S["c"],V3["cj"],R+1);
   U["abci"] *= S["c"];
   U["abci"].svd(U["abcd"],S["d"],V4["di"],R);
   U["abcd"] *= S["d"];
 
   double Tnorm;
   T.norm2(Tnorm);
-  T["ijkl"] -= S["abcd"]*V1["al"]*V2["bk"]*V3["cj"]*V4["di"];
+  T["ijkl"] -= U["abcd"]*V1["al"]*V2["bk"]*V3["cj"]*V4["di"];
   double Tnorm2;
   T.norm2(Tnorm2);
   double Rn = ((double)R)/n;
-  bool pass = Tnorm2 <= (Tnorm*(1.-Rn*Rn*Rn*Rn) + 1.e-5);
+  bool pass = Tnorm2 <= (Tnorm*(1.-Rn*Rn*Rn*Rn) + 1.e-4);
   
 
   if (pass){

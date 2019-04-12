@@ -349,7 +349,6 @@ namespace CTF {
     if (use_rand_svd){
       A.svd_rand(tU, tS, tVT, rank, num_iter, oversamp);
     } else {
-      printf("%d %d\n",A.nrow, A.ncol);
       A.svd(tU, tS, tVT, rank, threshold);
     }
     (*(Tensor<dtype>*)S.parent) = tS;

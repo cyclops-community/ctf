@@ -1049,7 +1049,7 @@ NORM_INFTY_INST(double)
       str[i] = 'a'+i;
     }
 
-    Transform<dtype>([=](dtype & d){ d=(d>0.)*(CTF_int::get_rand48()*(rmax-rmin)+rmin); })(T->operator[](str));
+    Transform<dtype>([=](dtype & d){ d=((dtype)(d!=(dtype)0.))*(((dtype)CTF_int::get_rand48())*(rmax-rmin)+rmin); })(T->operator[](str));
 
     /*std::vector<Pair<dtype>> pairs;
     pairs.reserve(size*frac_sp);
@@ -1063,6 +1063,17 @@ NORM_INFTY_INST(double)
     this->write(npairs, pairs.data());*/
 
   }
+
+  template<>
+  inline void Tensor<std::complex<double>>::fill_sp_random(std::complex<double> rmin, std::complex<double> rmax, double frac_sp){
+    fill_sp_random_base<std::complex<double>>(rmin, rmax, frac_sp, this);
+  }
+
+  template<>
+  inline void Tensor<std::complex<float>>::fill_sp_random(std::complex<float> rmin, std::complex<float> rmax, double frac_sp){
+    fill_sp_random_base<std::complex<float>>(rmin, rmax, frac_sp, this);
+  }
+
 
   template<>
   inline void Tensor<double>::fill_sp_random(double rmin, double rmax, double frac_sp){
