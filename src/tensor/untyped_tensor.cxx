@@ -34,11 +34,11 @@ namespace CTF_int {
   }
 
   tensor::tensor(){
-    order=-1;
+    order=-2;
   }
 
   void tensor::free_self(){
-    if (order != -1){
+    if (order > -1){
       if (wrld->rank == 0) DPRINTF(3,"Deleted order %d tensor %s\n",order,name);
       if (is_folded) unfold();
       cdealloc(sym);
@@ -69,10 +69,12 @@ namespace CTF_int {
         }
       }
       if (is_sparse) cdealloc(nnz_blk);
-      order = -1;
+      order = -2;
       delete sr;
       cdealloc(name);
     }
+    if (order == -1)
+      delete sr;
   }
 
   tensor::~tensor(){
@@ -798,12 +800,12 @@ namespace CTF_int {
                                char **         sub_buffer_){
     int is_sub = 0;
     //FIXME: assumes order 0 dummy, what if we run this on actual order 0 tensor?
-    if (order != -1) is_sub = 1;
+    if (order >= -1) is_sub = 1;
     int tot_sub;
     greater_world->cdt.allred(&is_sub, &tot_sub, 1, MPI_INT, MPI_SUM);
     //ensure the number of processes that have a subcomm defined is equal to the size of the subcomm
     //this should in most sane cases ensure that a unique subcomm is involved
-    if (order != -1) ASSERT(tot_sub == wrld->np);
+    if (order >= -1) ASSERT(tot_sub == wrld->np);
     int aorder;
     greater_world->cdt.allred(&order, &aorder, 1, MPI_INT, MPI_MAX);
 
@@ -1015,7 +1017,7 @@ namespace CTF_int {
   #ifdef USE_SLICE_FOR_SUBWORLD
     int offsets[this->order];
     memset(offsets, 0, this->order*sizeof(int));
-    if (tsr_sub->order == -1){ // == NULL){
+    if (tsr_sub->order <= -1){ // == NULL){
 //      CommData * cdt = new CommData(MPI_COMM_SELF);
     // (CommData*)CTF_int::alloc(sizeof(CommData));
     //  SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
@@ -1061,7 +1063,7 @@ namespace CTF_int {
   #ifdef USE_SLICE_FOR_SUBWORLD
     int offsets[this->order];
     memset(offsets, 0, this->order*sizeof(int));
-    if (tsr_sub->order == -1){ // == NULL){
+    if (tsr_sub->order <= -1){ // == NULL){
       World dt_self = World(MPI_COMM_SELF);
       tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self, 0);
       slice(offsets, offsets, beta, &stsr, NULL, NULL, alpha);
@@ -1531,11 +1533,15 @@ namespace CTF_int {
       cdealloc(this->nnz_blk);
       ASSERT(!is_data_aliased); 
       ASSERT(!(has_home && !is_home));
-      ASSERT(has_home);
       char * old_data = this->data;
+      deregister_size();
       data = sr->alloc(size);
+      register_size(this->size*sr->el_size);
       sr->set(this->data, sr->addid(), this->size);
-      this->home_size = this->size;
+      if (has_home){
+        this->home_size = this->size;
+        this->home_buffer = this->data;
+      }
       if (old_data != NULL){
         this->write(this->nnz_loc, sr->mulid(), sr->mulid(), old_data, 'w');
         sr->pair_dealloc(old_data);

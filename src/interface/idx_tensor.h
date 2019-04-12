@@ -348,7 +348,7 @@ namespace CTF {
        * \param[in] oversamp oversampling parameter for randomized SVD
        */
       void svd(Idx_Tensor const & U, Idx_Tensor const & S, Idx_Tensor const & VT, int rank=0, double threshold=0., bool use_svd_rand=false, int num_iter=1, int oversamp=5){
-        svd(*this->dparent, this->idx_map, *U.parent, U.idx_map, *S.parent, S.idx_map, *VT.parent, VT.idx_map, rank, threshold, use_svd_rand, num_iter, oversamp);
+        CTF::svd<dtype>(*this->dparent, this->idx_map, U, S, VT, rank, threshold, use_svd_rand, num_iter, oversamp);
       } 
   };
 

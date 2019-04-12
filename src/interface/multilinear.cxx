@@ -278,7 +278,7 @@ namespace CTF {
 
 
   template<typename dtype>
-  void svd(Tensor<dtype> & dA, char const * idx_A, Idx_Tensor & U, Idx_Tensor & S, Idx_Tensor & VT, int rank, double threshold, bool use_rand_svd, int num_iter, int oversamp){
+  void svd(Tensor<dtype> & dA, char const * idx_A, Idx_Tensor const & U, Idx_Tensor const & S, Idx_Tensor const & VT, int rank, double threshold, bool use_rand_svd, int num_iter, int oversamp){
     bool need_transpose_A  = false;
     bool need_transpose_U  = false;
     bool need_transpose_VT = false;
@@ -319,22 +319,26 @@ namespace CTF {
       if (idx_A[i] != unf_idx_A[i]){
         need_transpose_A = true;
       }
+      int match = 0;
       for (int j=0; j<dA.order; j++){
         if (idx_A[j] == unf_idx_A[i]){
+          match++;
           unf_lens_A[i] = dA.lens[j];
           if (i<ndim_U-1){
             unf_lens_U[i] = unf_lens_A[i];
-            nrow_U *= unf_lens_U[i];
+            nrow_U *= unf_lens_A[i];
           } else {
-            unf_lens_VT[i-ndim_U] = unf_lens_A[i];
-            ncol_VT *= unf_lens_U[i];
+            unf_lens_VT[i-ndim_U+2] = unf_lens_A[i];
+            ncol_VT *= unf_lens_A[i];
           }
         }
       }
+      IASSERT(match==1);
+      
     }
-    Matrix<dtype> A(nrow_U, ncol_VT, SP*dA.is_sparse, dA.wrld, dA.sr);
+    Matrix<dtype> A(nrow_U, ncol_VT, SP*dA.is_sparse, *dA.wrld, *dA.sr);
     if (need_transpose_A){
-      Tensor<dtype> T(dA.order, dA.is_sparse, dA.lens, dA.wrld, dA.sr);
+      Tensor<dtype> T(dA.order, dA.is_sparse, dA.lens, *dA.wrld, *dA.sr);
       T[unf_idx_A] += dA.operator[](idx_A);
       A.reshape(T);
     } else {
@@ -345,65 +349,64 @@ namespace CTF {
     if (use_rand_svd){
       A.svd_rand(tU, tS, tVT, rank, num_iter, oversamp);
     } else {
-      A.svd_rand(tU, tS, tVT, rank, threshold);
+      printf("%d %d\n",A.nrow, A.ncol);
+      A.svd(tU, tS, tVT, rank, threshold);
     }
-    (*S.parent) = tS;
+    (*(Tensor<dtype>*)S.parent) = tS;
     int fin_rank = tS.lens[0];
     unf_lens_U[ndim_U-1] = fin_rank;
     unf_lens_VT[0] = fin_rank;
-    char * idx_U = (char*)malloc(sizeof(char)*(ndim_U));
-    char * idx_VT = (char*)malloc(sizeof(char)*(ndim_VT));
-    idx_U[ndim_U-1] = aux_idx;
-    idx_VT[0] = aux_idx;
-    int iU = 0;
+    char * unf_idx_U = (char*)malloc(sizeof(char)*(ndim_U));
+    char * unf_idx_VT = (char*)malloc(sizeof(char)*(ndim_VT));
+    unf_idx_U[ndim_U-1] = aux_idx;
+    unf_idx_VT[0] = aux_idx;
+    lens_U[idx_aux_U] = fin_rank;
+    lens_VT[idx_aux_VT] = fin_rank;
     for (int i=0; i<ndim_U; i++){
       if (i<idx_aux_U){
         lens_U[i] = unf_lens_U[i];
-        idx_U[i] = U.idx_map[i];
+        unf_idx_U[i] = U.idx_map[i];
       }
-      if (i==idx_aux_U)
-        lens_U[i] = fin_rank;
       if (i>idx_aux_U){
         lens_U[i] = unf_lens_U[i-1];
-        idx_U[i] = U.idx_map[i-1];
+        unf_idx_U[i-1] = U.idx_map[i];
       }
     }
     for (int i=0; i<ndim_VT; i++){
       if (i<idx_aux_VT){
         lens_VT[i] = unf_lens_VT[i+1];
-        idx_VT[i] = VT.idx_map[i+1];
+        unf_idx_VT[i+1] = VT.idx_map[i];
       }
-      if (i==idx_aux_VT)
-        lens_VT[i] = fin_rank;
       if (i>idx_aux_VT){
         lens_VT[i] = unf_lens_VT[i];
-        idx_VT[i] = VT.idx_map[i];
+        unf_idx_VT[i] = VT.idx_map[i];
       }
     }
     if (need_transpose_U){
-      Tensor<dtype> TU(ndim_U, unf_lens_U, dA.wrld, dA.sr);
+      Tensor<dtype> TU(ndim_U, unf_lens_U, *dA.wrld, *dA.sr);
       TU.reshape(tU);
-      (*U.parent) = Tensor<dtype>(ndim_U, lens_U, dA.wrld, dA.sr);
-      U.parent->operator[](U.idx_map) += TU[idx_U];
+      (*(Tensor<dtype>*)U.parent) = Tensor<dtype>(ndim_U, lens_U, *dA.wrld, *dA.sr);
+      U.parent->operator[](U.idx_map) += U.parent->operator[](U.idx_map);
+      U.parent->operator[](U.idx_map) += TU[unf_idx_U];
     } else {
-      (*U.parent) = Tensor<dtype>(ndim_U, unf_lens_U, dA.wrld, dA.sr);
-      U.parent->reshape(tU);
+      (*(Tensor<dtype>*)U.parent) = Tensor<dtype>(ndim_U, unf_lens_U, *dA.wrld, *dA.sr);
+      ((Tensor<dtype>*)U.parent)->reshape(tU);
     }
     if (need_transpose_VT){
-      Tensor<dtype> TVT(ndim_VT, unf_lens_VT, dA.wrld, dA.sr);
+      Tensor<dtype> TVT(ndim_VT, unf_lens_VT, *dA.wrld, *dA.sr);
       TVT.reshape(tVT);
-      (*VT.parent) = Tensor<dtype>(ndim_VT, lens_VT, dA.wrld, dA.sr);
-      VT.parent->operator[](VT.idx_map) += TVT[idx_VT];
+      (*(Tensor<dtype>*)VT.parent) = Tensor<dtype>(ndim_VT, lens_VT, *dA.wrld, *dA.sr);
+      VT.parent->operator[](VT.idx_map) += TVT[unf_idx_VT];
     } else {
-      (*VT.parent) = Tensor<dtype>(ndim_VT, unf_lens_VT, dA.wrld, dA.sr);
-      VT.parent->reshape(tVT);
+      (*(Tensor<dtype>*)VT.parent) = Tensor<dtype>(ndim_VT, unf_lens_VT, *dA.wrld, *dA.sr);
+      ((Tensor<dtype>*)VT.parent)->reshape(tVT);
     }
     free(unf_lens_A);
     free(unf_lens_U);
     free(unf_lens_VT);
     free(unf_idx_A);
-    free(idx_U);
-    free(idx_VT);
+    free(unf_idx_U);
+    free(unf_idx_VT);
     free(lens_U);
     free(lens_VT);
   }

@@ -146,8 +146,11 @@ namespace CTF_int {
        */
       CTF::Idx_Tensor operator[](char const * idx_map);
 
+      /**
+       * \brief default constructor for untyped instantiation
+       */
       tensor();
-
+  
       /** \brief class free self */
       ~tensor();
 

@@ -36,7 +36,7 @@ namespace CTF {
    * \param[in] oversamp oversampling parameter for randomized SVD
    */
   template <typename dtype>
-  void svd(Tensor<dtype> & dA, char const * idx_A, Idx_Tensor & U, Idx_Tensor & S, Idx_Tensor & VT, int rank=0, double threshold=0., bool use_svd_rand=false, int num_iter=1, int oversamp=5);
+  void svd(Tensor<dtype> & dA, char const * idx_A, Idx_Tensor const & U, Idx_Tensor const & S, Idx_Tensor const & VT, int rank=0, double threshold=0., bool use_svd_rand=false, int num_iter=1, int oversamp=5);
 
 
 }

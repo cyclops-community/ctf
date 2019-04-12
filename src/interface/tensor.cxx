@@ -12,7 +12,7 @@ namespace CTF_int {
 namespace CTF {
 
   template<typename dtype>
-  Tensor<dtype>::Tensor() : CTF_int::tensor() { }
+  Tensor<dtype>::Tensor() : CTF_int::tensor() { this->order = -1; this->sr = new Set<dtype>(); }
 
 
   template<typename dtype>

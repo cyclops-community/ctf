@@ -109,8 +109,12 @@ namespace CTF_int {
     //}
     
     int stat = home_contract();
-    if (stat != SUCCESS)
+    if (stat != SUCCESS){
       printf("CTF ERROR: Failed to perform contraction\n");
+#if (DEBUG >= 1 || VERBOSE >= 1)
+      ASSERT(0);
+#endif
+    }
   }
   
   template<typename ptype>
