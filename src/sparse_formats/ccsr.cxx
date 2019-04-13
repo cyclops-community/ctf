@@ -136,7 +136,7 @@ namespace CTF_int {
     return ((int64_t*)all_data)[4];
   }
 
-  char * CCSR_Matrix::nnz_row_encoding() const {
+  int * CCSR_Matrix::nnz_row_encoding() const {
     int offset = 5*sizeof(int64_t);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     return all_data + offset;
@@ -259,18 +259,21 @@ namespace CTF_int {
 
   void CCSR_Matrix::partition(int s, char ** parts_buffer, CCSR_Matrix ** parts){
     int part_nnz[s], part_nrows[s];
-    int m = nrow();
+    int nnz_r = nnz_row();
+    int nr = nrow();
     int v_sz = val_size();
     char * org_vals = vals();
-    int * org_ia = IA();
-    int * org_ja = JA();
+    int const * row_enc = cA.nnz_row_encoding();
+    int const * org_ia = IA();
+    int const * org_ja = JA();
     for (int i=0; i<s; i++){
       part_nnz[i] = 0;
       part_nrows[i] = 0;
     }
-    for (int i=0; i<m; i++){
-      part_nrows[i%s]++;
-      part_nnz[i%s]+=org_ia[i+1]-org_ia[i];
+    for (int i=0; i<nnz_r; i++){
+      int is = row_enc[i] % s;
+      part_nrows[is]++;
+      part_nnz[is]+=org_ia[i+1]-org_ia[i];
     }
     int64_t tot_sz = 0;
     for (int i=0; i<s; i++){
@@ -281,17 +284,22 @@ namespace CTF_int {
     for (int i=0; i<s; i++){
       ((int64_t*)part_data)[0] = part_nnz[i];
       ((int64_t*)part_data)[1] = v_sz;
-      ((int64_t*)part_data)[2] = part_nrows[i];
+      ((int64_t*)part_data)[2] = nr / s + (nr%s < s); //FIXME: check this
       ((int64_t*)part_data)[3] = ncol();
+      ((int64_t*)part_data)[4] = part_nrows[i];
       parts[i] = new CCSR_Matrix(part_data);
       char * pvals = parts[i]->vals();
+      int * prow_enc = parts[i]->nnz_row_encoding();
       int * pja = parts[i]->JA();
       int * pia = parts[i]->IA();
       pia[0] = 1;
-      for (int j=i, k=0; j<m; j+=s, k++){
-        memcpy(pvals+(pia[k]-1)*v_sz, org_vals+(org_ia[j]-1)*v_sz, (org_ia[j+1]-org_ia[j])*v_sz);
-        memcpy(pja+(pia[k]-1), org_ja+(org_ia[j]-1), (org_ia[j+1]-org_ia[j])*sizeof(int));
-        pia[k+1] = pia[k]+org_ia[j+1]-org_ia[j];
+      for (int j=i, k=0; j<m; j++, k++){
+        if (row_enc[j] % s == i){
+          prow_enc[k] = row_enc[j] / s;
+          memcpy(pvals+(pia[k]-1)*v_sz, org_vals+(org_ia[j]-1)*v_sz, (org_ia[j+1]-org_ia[j])*v_sz);
+          memcpy(pja+(pia[k]-1), org_ja+(org_ia[j]-1), (org_ia[j+1]-org_ia[j])*sizeof(int));
+          pia[k+1] = pia[k]+org_ia[j+1]-org_ia[j];
+        }
       }
       part_data += get_ccsr_size(part_nnz[i], part_nrows[i], v_sz);
     }
@@ -299,11 +307,12 @@ namespace CTF_int {
       
   CCSR_Matrix::CCSR_Matrix(char * const * smnds, int s){
     CCSR_Matrix * ccsrs[s];
-    int64_t tot_nnz=0, tot_nrow=0;
+    int64_t tot_nnz=0, tot_nnz_row=0, tot_nrow=0;
     for (int i=0; i<s; i++){
       ccsrs[i] = new CCSR_Matrix(smnds[i]);
       tot_nnz += ccsrs[i]->nnz();
       tot_nrow += ccsrs[i]->nrow();
+      tot_nnz_row += ccsrs[i]->nnz_row();
     }
     int64_t v_sz = ccsrs[0]->val_size();
     int64_t tot_ncol = ccsrs[0]->ncol();
@@ -312,8 +321,10 @@ namespace CTF_int {
     ((int64_t*)all_data)[1] = v_sz;
     ((int64_t*)all_data)[2] = tot_nrow;
     ((int64_t*)all_data)[3] = tot_ncol;
+    ((int64_t*)all_data)[4] = tot_nnz_row;
     
     char * ccsr_vs = vals();
+    int * row_enc = nnz_row_encoding();
     int * ccsr_ja = JA();
     int * ccsr_ia = IA();
 
@@ -323,6 +334,7 @@ namespace CTF_int {
       int ipart = i%s;
       int const * pja = ccsrs[ipart]->JA();
       int const * pia = ccsrs[ipart]->IA();
+      int const * prow_enc = ccsrs[ipart]->nnz_row_encoding();
       int i_nnz = pia[i/s+1]-pia[i/s];
       memcpy(ccsr_vs+(ccsr_ia[i]-1)*v_sz,
              ccsrs[ipart]->vals()+(pia[i/s]-1)*v_sz,
@@ -331,6 +343,7 @@ namespace CTF_int {
              pja+(pia[i/s]-1),
              i_nnz*sizeof(int));
       ccsr_ia[i+1] = ccsr_ia[i]+i_nnz;
+      row_enc[i] = prow_enc[...//FIXME: need to be smarter about merging nonzero rows, maybe out of order]
     }
     for (int i=0; i<s; i++){
       delete ccsrs[i];

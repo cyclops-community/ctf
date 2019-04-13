@@ -61,6 +61,9 @@ namespace CTF_int {
       /** \brief retrieves column indices of each value in vals stored in sorted form by row */
       int * JA() const;
 
+      /** \brief retrieves encoding of nonzero rows (each element of array gives true (local) index of row corresponding to each subsequent nonzero row)
+      int * nnz_row_encoding() const;
+
       /**
        * \brief splits CCSR matrix into s submatrices (returned) corresponding to subsets of rows, all parts allocated in one contiguous buffer (passed back in parts_buffer)
        */

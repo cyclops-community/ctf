@@ -220,9 +220,9 @@ namespace CTF_int {
     int part_nnz[s], part_nrows[s];
     int m = nrow();
     int v_sz = val_size();
-    char * org_vals = vals();
-    int * org_ia = IA();
-    int * org_ja = JA();
+    char const * org_vals = vals();
+    int const * org_ia = IA();
+    int const * org_ja = JA();
     for (int i=0; i<s; i++){
       part_nnz[i] = 0;
       part_nrows[i] = 0;
