@@ -112,7 +112,7 @@ namespace CTF_int {
                         int64_t          ngrp,
                         dtype const *    data){
     dtype ** data_ptrs = (dtype**)alloc(sizeof(dtype*)*ngrp);
-#ifdef USE_OMP
+#ifdef _OPENMP
     #pragma omp parallel for
 #endif
     for (int i=0; i<ngrp; i++){

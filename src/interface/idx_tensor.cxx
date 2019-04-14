@@ -83,13 +83,20 @@ namespace CTF {
   Idx_Tensor::Idx_Tensor(CTF_int::tensor * parent_,
                          const char *      idx_map_,
                          int               copy) : Term(parent_->sr) {
-    idx_map = (char*)CTF_int::alloc(parent_->order*sizeof(char));
+    if (parent_->order > -1)
+      idx_map = (char*)CTF_int::alloc((parent_->order+1)*sizeof(char));
+    else
+      idx_map = (char*)CTF_int::alloc((strlen(idx_map_)+1)*sizeof(char));
     if (copy){
       parent = new CTF_int::tensor(parent,1);
     } else {
       parent        = parent_;
     }
-    memcpy(idx_map, idx_map_, parent->order*sizeof(char));
+    if (parent->order > -1){
+      memcpy(idx_map, idx_map_, parent->order*sizeof(char));
+      idx_map[parent->order] = '\0';
+    } else
+      memcpy(idx_map, idx_map_, strlen(idx_map_)+1);
     is_intm       = 0;
   }
 

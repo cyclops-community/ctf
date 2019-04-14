@@ -3,6 +3,7 @@
 
 #include "term.h"
 #include "functions.h"
+#include "multilinear.h"
 
 namespace CTF {
   /**
@@ -85,8 +86,6 @@ namespace CTF {
        * \return out_inds unique indices to not contract/sum away
        */
       std::vector<char> get_uniq_inds() const;
-
-
 
       /**
       * \brief appends the tensors this depends on to the input set
@@ -226,8 +225,13 @@ namespace CTF {
   class Typ_AIdx_Tensor;
 
   template<typename dtype>
+  class Tensor;
+
+  template<typename dtype>
   class Typ_Idx_Tensor : public Idx_Tensor {
     public:
+      CTF::Tensor<dtype> * dparent;
+
       ~Typ_Idx_Tensor(){}
 
       /**
@@ -236,9 +240,9 @@ namespace CTF {
        * \param[in] idx_map_ the indices assigned ot this tensor
        * \param[in] copy if set to 1, create copy of parent
        */
-      Typ_Idx_Tensor(CTF_int::tensor * parent_,
-                     const char *      idx_map_,
-                     int               copy=0) : Idx_Tensor(parent_, idx_map_, copy) {}
+      Typ_Idx_Tensor(CTF::Tensor<dtype> * parent_,
+                     const char *         idx_map_,
+                     int                  copy=0) : Idx_Tensor(parent_, idx_map_, copy) { dparent = parent_; }
       
       /**
        * \brief copy constructor
@@ -248,7 +252,7 @@ namespace CTF {
        */
       Typ_Idx_Tensor(Typ_Idx_Tensor const &                            B,
                      int                                           copy=0,
-                     std::map<CTF_int::tensor*, CTF_int::tensor*>* remap=NULL) : Idx_Tensor(B, copy, remap) {}
+                     std::map<CTF_int::tensor*, CTF_int::tensor*>* remap=NULL) : Idx_Tensor(B, copy, remap) { dparent = B.dparent; }
 
 
       Typ_Idx_Tensor<dtype> * tclone() const { return new Typ_Idx_Tensor<dtype>(*this); }
@@ -315,7 +319,37 @@ namespace CTF {
       void operator()(std::function<void(dtype&)> f){
         ((Transform<dtype>(f)))(*this);
       }
-        
+       
+      /*
+       * \brief calculates the singular value decomposition, M = U x S x VT, of matrix (unfolding of this tensor) using pdgesvd from ScaLAPACK
+       * \param[out] U left singular vectors of matrix
+       * \param[out] S singular values of matrix
+       * \param[out] VT right singular vectors of matrix
+       * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns)
+       */
+
+
+      /**
+       * \brief calculates the singular value decomposition, M = U x S x VT, of matrix (unfolding of this tensor) using pdgesvd from ScaLAPACK
+       *        usage example for rank 10 SVD of mode-1 unfolding of order 3 tensor:
+       *          Tensor<double> A(3, ...)
+       *          ...
+       *          Tensor<double> U, VT, S;
+       *          A["ijk"].svd(U["ia"],S["a"],VT["ajk"], 10);
+       *          or with thresholding of singular values below .001 
+       *          A["ijk"].svd(U["ia"],S["a"],VT["ajk"], 0, .001);
+       * \param[in,out] U left singular vectors of matrix, unallocated tensor
+       * \param[in,out] S singular values of matrix
+       * \param[in,out] VT right singular vectors of matrix
+       * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns) or treshold
+       * \param[in] threshold for truncating singular values of the SVD, determines rank, if used, must set previous paramter rank=0
+       * \param[in] use_svd_rand if true, use randomized SVD, in which case rank must be prespecified as opposed to threshold
+       * \param[in] iter number of orthogonal iterations to perform (higher gives better accuracy) for randomized SVD
+       * \param[in] oversamp oversampling parameter for randomized SVD
+       */
+      void svd(Idx_Tensor const & U, Idx_Tensor const & S, Idx_Tensor const & VT, int rank=0, double threshold=0., bool use_svd_rand=false, int num_iter=1, int oversamp=5){
+        CTF::svd<dtype>(*this->dparent, this->idx_map, U, S, VT, rank, threshold, use_svd_rand, num_iter, oversamp);
+      } 
   };
 
   template<typename dtype>

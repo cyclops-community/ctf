@@ -2,9 +2,11 @@
 
 #include "common.h"
 #include "world.h"
+#include "timer.h"
 #include "../shared/blas_symbs.h"
 #include "../shared/lapack_symbs.h"
 #include <stdlib.h>
+#include <algorithm>
 
 
 namespace CTF_int{
@@ -219,10 +221,10 @@ namespace CTF {
                                 dtype const * data_){
     bool is_order_same = true;
     if (layout_order == 'C'){
-      if (this->edge_map[0].cdt != 0 && pc > 1)
+      if ((this->edge_map[0].type != CTF_int::PHYSICAL_MAP || this->edge_map[0].cdt != 0) && pc > 1)
         is_order_same = false;
     } else {
-      if (this->edge_map[1].cdt != 0 && pr > 1)
+      if ((this->edge_map[1].type != CTF_int::PHYSICAL_MAP || this->edge_map[1].cdt != 0) && pr > 1)
         is_order_same = false;
     }
     IASSERT(is_order_same);
@@ -275,10 +277,10 @@ namespace CTF {
     //FIXME: (1) can optimize sparse for this case (mapping cyclic), (2) can use permute to avoid sparse redistribution always
     bool is_order_same = true;
     if (layout_order == 'C'){
-      if (this->edge_map[0].cdt != 0 && pc > 1)
+      if ((this->edge_map[0].type != CTF_int::PHYSICAL_MAP || this->edge_map[0].cdt != 0) && pc > 1)
         is_order_same = false;
     } else {
-      if (this->edge_map[1].cdt != 0 && pr > 1)
+      if ((this->edge_map[0].type != CTF_int::PHYSICAL_MAP || this->edge_map[1].cdt != 0) && pr > 1)
         is_order_same = false;
     }
     IASSERT(is_order_same);
@@ -459,34 +461,43 @@ namespace CTF {
 
   template<typename dtype>
   void Matrix<dtype>::get_tri(Matrix<dtype> & T, bool lower, bool keep_diag){
+    Timer t_get_tri("get_tri");
+    t_get_tri.start();
     int min_mn = std::min(this->nrow,this->ncol);
     int sym_type = SH;
-    if (keep_diag) sym_type = SY;
+    if ((keep_diag && !lower) || (!keep_diag && lower)) sym_type = SY;
     int syns[] = {sym_type, NS};
+    Tensor<dtype> F;
     Tensor<dtype> U;
     if (this->nrow != this->ncol){
-      U = this->slice(0,((int64_t)nrow)*(min_mn-1) + min_mn-1);
-      U = Tensor<dtype>(U,syns);
+      F = this->slice(0,((int64_t)nrow)*(min_mn-1) + min_mn-1);
+      U = Tensor<dtype>(F,syns);
     } else {
       U = Tensor<dtype>(*this,syns);
     }
     int nsns[] = {NS, NS};
     U = Tensor<dtype>(U,nsns);
     if (T.nrow == -1){
-      if (lower && this->nrow <= this->ncol)
-        T = Tensor<dtype>(false, U);
+      if (lower && this->nrow <= this->ncol){
+        if (this->nrow == this->ncol)
+          T = Tensor<dtype>(true, *this);
+        else
+          T = Tensor<dtype>(true, F);
+      }
       else if (lower && this->nrow > this->ncol)
         T = Tensor<dtype>(false, *this);
-      else if (!lower && this->nrow >= this->ncol)
-        T = Tensor<dtype>(true, U);
-      else
+      else if (!lower && this->nrow >= this->ncol){
+        // do not copy from U to permit general mapping
+        T = Tensor<dtype>(2, U.is_sparse, U.lens, *U.wrld, *U.sr);
+        T["ij"] += U["ij"];
+      } else
         T = Tensor<dtype>(false, *this);
     }
     if (lower){
       if (T.nrow == min_mn && T.ncol == min_mn)
-        T["ij"] = U["ji"];
+        T["ij"] -= U["ij"];
       else
-        U["ij"] = U["ji"];
+        F["ij"] -= U["ij"];
     }
     if (T.nrow != T.ncol){
       assert(T.nrow == this->nrow && T.ncol == this->ncol);
@@ -495,13 +506,117 @@ namespace CTF {
         T["ij"] = this->operator[]("ij");
       else
         T.set_zero();
-      T.slice(0,((int64_t)nrow)*(min_mn-1) + min_mn-1,*(dtype*)this->sr->addid(),U,0,((int64_t)min_mn)*(min_mn-1) + min_mn-1,*(dtype*)this->sr->mulid());
+      T.slice(0,((int64_t)nrow)*(min_mn-1) + min_mn-1,*(dtype*)this->sr->addid(),F,0,((int64_t)min_mn)*(min_mn-1) + min_mn-1,*(dtype*)this->sr->mulid());
     }
+    t_get_tri.stop();
+  }
+
+  template<typename dtype>
+  void Matrix<dtype>::cholesky(Matrix<dtype> & L, bool lower){
+    Timer t_cholesky("cholesky");
+    t_cholesky.start();
+    int info;
+    int m = this->nrow;
+    int n = this->ncol;
+    IASSERT(m==n);
+
+    int * desca;// = (int*)malloc(9*sizeof(int));
+
+    int ictxt;
+    char layout_order;
+    this->get_desc(ictxt, desca, layout_order);
+    dtype * A = (dtype*)malloc(this->size*sizeof(dtype));
+
+    this->read_mat(desca, A, layout_order);
+
+    char uplo = 'U';
+    if (lower) uplo = 'L';
+
+    CTF_SCALAPACK::ppotrf<dtype>(uplo,n,A,1,1,desca,&info);
+    IASSERT(info == 0);
+
+    Matrix<dtype> S(desca, A, layout_order, (*(this->wrld)));
+    free(A);
+    S.get_tri(L, lower);
+    t_cholesky.stop();
+  }
+      
+  template<typename dtype>
+  void Matrix<dtype>::solve_tri(Matrix<dtype> & L, Matrix<dtype> & X, bool lower, bool from_left, bool transp_L){
+    Timer t_solve_tri("solve_tri");
+    t_solve_tri.start();
+    int m = this->nrow;
+    int n = this->ncol;
+
+    int * desca;// = (int*)malloc(9*sizeof(int));
+    int * descl;// = (int*)malloc(9*sizeof(int));
+
+    int ictxt;
+    char layout_order_A;
+    this->get_desc(ictxt, desca, layout_order_A);
+
+    int ictxt2;
+    char layout_order_L;
+    L.get_desc(ictxt2, descl, layout_order_L);
+    dtype * dL;
+    if  (ictxt != ictxt2){
+      Partition part(this->topo->order, this->topo->lens);
+      Matrix<dtype> L_r;
+      if (this->topo->order == 2){
+        if (this->edge_map[0].cdt == 0 && 
+            this->edge_map[1].cdt == 1){ 
+          L_r = Matrix<dtype>(L.nrow, L.ncol, "ij", part["ij"], Idx_Partition(), 0, *this->wrld, *this->sr);
+  
+        } else {
+          IASSERT(this->edge_map[0].cdt == 1 && 
+                  this->edge_map[1].cdt == 0);
+          L_r = Matrix<dtype>(L.nrow, L.ncol, "ij", part["ji"], Idx_Partition(), 0, *this->wrld, *this->sr);
+        }
+      } else {
+        IASSERT(this->topo->order == 1);
+        if (this->edge_map[0].type == CTF_int::PHYSICAL_MAP){
+          L_r = Matrix<dtype>(L.nrow, L.ncol, "ij", part["i"], Idx_Partition(), 0, *this->wrld, *this->sr);
+        } else {
+          L_r = Matrix<dtype>(L.nrow, L.ncol, "ij", part["j"], Idx_Partition(), 0, *this->wrld, *this->sr);
+        }
+      }
+      L_r["ij"] += L["ij"];
+      L_r.get_desc(ictxt2, descl, layout_order_L);
+      IASSERT(ictxt == ictxt2);
+      IASSERT(layout_order_A == layout_order_L);
+      dL = (dtype*)malloc(L_r.size*sizeof(dtype));
+      L_r.read_mat(descl, dL, layout_order_L);
+    } else {
+      IASSERT(layout_order_A == layout_order_L);
+      dL = (dtype*)malloc(L.size*sizeof(dtype));
+      L.read_mat(descl, dL, layout_order_L);
+    }
+    dtype * A = (dtype*)malloc(this->size*sizeof(dtype));
+
+    this->read_mat(desca, A, layout_order_A);
+
+    char SIDE = 'R';
+    if (from_left) SIDE = 'L';
+    char UPLO = 'U';
+    if (lower) UPLO = 'L';
+    char TRANS = 'N';
+    if (transp_L) TRANS = 'T';
+    char DIAG = 'N';
+
+    CTF_SCALAPACK::ptrsm<dtype>(SIDE, UPLO, TRANS, DIAG, m, n, 1., dL, 1, 1, descl, A, 1, 1, desca);
+    free(dL); 
+    X = Matrix<dtype>(desca, A, layout_order_A, (*(this->wrld)));
+    free(A);
+    free(desca);
+    free(descl);
+    t_solve_tri.stop();
   }
 
   template<typename dtype>
   void Matrix<dtype>::qr(Matrix<dtype> & Q, Matrix<dtype> & R){
 
+    Timer t_qr("QR");
+    t_qr.start();
     int info;
 
     int m = this->nrow;
@@ -525,6 +640,7 @@ namespace CTF {
  
     dtype * dQ = (dtype*)malloc(this->size*sizeof(dtype));
     memcpy(dQ,A,this->size*sizeof(dtype));
+    free(A);
 
     Q = Matrix<dtype>(desca, dQ, layout_order, (*(this->wrld)));
     Q.get_tri(R);
@@ -535,18 +651,25 @@ namespace CTF {
     work = (dtype*)malloc(((int64_t)lwork)*sizeof(dtype));
     CTF_SCALAPACK::porgqr<dtype>(m,std::min(m,n),std::min(m,n),dQ,1,1,desca,tau,work,lwork,&info);
     Q = Matrix<dtype>(desca, dQ, layout_order, (*(this->wrld)));
+    free(dQ);
     if (m<n)
       Q = Q.slice(0,m*(m-1)+m-1);
     free(work);
     free(tau);
     free(desca);
-    free(A);
-    free(dQ);
+    t_qr.stop();
   }
 
   template<typename dtype>
-  void Matrix<dtype>::svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT,  int rank){
+  void get_svd(dtype * A, dtype * U, dtype * S, dtype * VT, int & rank, double threshold){
 
+  }
+
+  template<typename dtype>
+  void Matrix<dtype>::svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank, double threshold){
+
+    Timer t_svd("SVD");
+    t_svd.start();
     int info;
 
     int m = this->nrow;
@@ -578,33 +701,73 @@ namespace CTF {
 
 
     dtype * u = (dtype*)CTF_int::alloc(sizeof(dtype)*mpr*kpc);
-    dtype * s = (dtype*)CTF_int::alloc(sizeof(dtype)*k);
     dtype * vt = (dtype*)CTF_int::alloc(sizeof(dtype)*kpr*npc);
     this->read_mat(desca, A, layout_order);
 
-    int lwork;
-    dtype dlwork;
-    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
-
-    lwork = get_int_fromreal<dtype>(dlwork);
-    dtype * work = (dtype*)CTF_int::alloc(sizeof(dtype)*((int64_t)lwork));
-
-    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
-
- 
-    U = Matrix<dtype>(descu, u, layout_order, (*(this->wrld)));
-    VT = Matrix<dtype>(descvt, vt, layout_order, (*(this->wrld)));
 
     S = Vector<dtype>(k, (*(this->wrld)));
     int64_t sc;
     dtype * s_data = S.get_raw_data(&sc);
 
+    int lwork;
+    dtype dlwork;
+
+    //if (typeid(dtype) == typeid(std::complex<float>)){
+    //  float * s = (float*)CTF_int::alloc(sizeof(float)*k);
+    //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
+    //  lwork = get_int_fromreal<dtype>(dlwork);
+    //  float * work = (float*)CTF_int::alloc(sizeof(float)*((int64_t)lwork));
+    //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
+    //  if (threshold > 0.0)
+    //    rank = std::lower_bound(s, s+k, (float)threshold) - s;
+    //  int phase = S.edge_map[0].calc_phase();
+    //  if ((int)(this->wrld->rank) < phase){
+    //    for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
+    //      s_data[i/phase] = s[i];
+    //    } 
+    //  }
+    //  CTF_int::cdealloc(s);
+    //  CTF_int::cdealloc(work);
+    //} else if (typeid(dtype) == typeid(std::complex<double>)){
+    //  double * s = (double*)CTF_int::alloc(sizeof(double)*k);
+    //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
+    //  lwork = get_int_fromreal<dtype>(dlwork);
+    //  double * work = (double*)CTF_int::alloc(sizeof(double)*((int64_t)lwork));
+    //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
+    //  if (threshold > 0.0)
+    //    rank = std::lower_bound(s, s+k, (double)threshold) - s;
+    //  int phase = S.edge_map[0].calc_phase();
+    //  if ((int)(this->wrld->rank) < phase){
+    //    for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
+    //      s_data[i/phase] = s[i];
+    //    } 
+    //  }
+    //  CTF_int::cdealloc(s);
+    //  CTF_int::cdealloc(work);
+    //} else {
+    dtype * s = (dtype*)CTF_int::alloc(sizeof(dtype)*k);
+    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
+    lwork = get_int_fromreal<dtype>(dlwork);
+    dtype * work = (dtype*)CTF_int::alloc(sizeof(dtype)*((int64_t)lwork));
+    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
+    if (threshold > 0.0){
+      rank = std::upper_bound(s, s+k, (dtype)threshold, [](const dtype a, const dtype b){ return std::abs(a) > std::abs(b); }) - s;
+      printf("truncated value ");
+      this->sr->print((char*)(s+rank));
+      printf(", threshold was %lf\n",threshold);
+    }
     int phase = S.edge_map[0].calc_phase();
     if ((int)(this->wrld->rank) < phase){
       for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
         s_data[i/phase] = s[i];
       } 
     }
+    CTF_int::cdealloc(s);
+    CTF_int::cdealloc(work);
+
+    U = Matrix<dtype>(descu, u, layout_order, (*(this->wrld)));
+    VT = Matrix<dtype>(descvt, vt, layout_order, (*(this->wrld)));
+
     if (rank > 0 && rank < k) {
       S = S.slice(0, rank-1);
       U = U.slice(0, rank*((int64_t)m)-1);
@@ -613,14 +776,47 @@ namespace CTF {
 
     CTF_int::cdealloc(A);
     CTF_int::cdealloc(u);
-    CTF_int::cdealloc(s);
     CTF_int::cdealloc(vt);
     free(desca);
     free(descu);
     free(descvt);
-    CTF_int::cdealloc(work);
+    t_svd.stop();
 
   }
-  
 
+    
+  template<typename dtype>
+  void Matrix<dtype>::svd_rand(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank, int iter, int oversamp, Matrix<dtype> * U_guess){
+    Timer t_svd("SVD_rand");
+    t_svd.start();
+    int max_rank = std::min(std::min(nrow,ncol), rank+oversamp);
+    IASSERT(rank+oversamp <= std::min(nrow,ncol) || U_guess==NULL);
+    bool del_U_guess = false;
+    if (U_guess == NULL){
+      del_U_guess = true;
+      U_guess = new Matrix<dtype>(this->nrow, max_rank);
+      U_guess->fill_random(-1.,1.);
+      Matrix<dtype> Q, R;
+      U_guess->qr(Q, R);
+      U_guess->operator[]("ij") = Q["ij"];
+    }
+    for (int i=0; i<iter; i++){
+      U_guess->operator[]("ir") = this->operator[]("ij") * this->operator[]("lj") * U_guess->operator[]("lr");
+      Matrix<dtype> Q, R;
+      U_guess->qr(Q,R);
+      U_guess->operator[]("ij") = Q["ij"];
+    }
+    if (max_rank - rank > 0)
+      U = U_guess->slice(0,this->nrow*rank-1);
+    else
+      U = Matrix<dtype>(*U_guess);
+    if (del_U_guess)
+      delete U_guess;
+    Matrix<dtype> B(rank, this->ncol);
+    B["ij"] = U["ki"]*this->operator[]("kj");
+    Matrix<dtype> U1;
+    B.svd(U1,S,VT,rank);
+    U["ij"] = U["ik"] * U1["kj"];
+    t_svd.stop();
+  }
 }

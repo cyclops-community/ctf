@@ -5,11 +5,14 @@
 #include "idx_tensor.h"
 #include "../tensor/untyped_tensor.h"
 
+namespace CTF_int {
+  int64_t proc_bytes_available();
+}
 
 namespace CTF {
 
   template<typename dtype>
-  Tensor<dtype>::Tensor() : CTF_int::tensor() { }
+  Tensor<dtype>::Tensor() : CTF_int::tensor() { this->order = -1; this->sr = new Set<dtype>(); }
 
 
   template<typename dtype>
@@ -445,18 +448,6 @@ namespace CTF {
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function permute\n"); IASSERT(0); return; }
   }
 
-/*  template<typename dtype>
-  void Tensor<dtype>::svd(char const * idx_A, int order_U, char const * idx_U, Tensor<dtype> & U, Vector<dtype> & S, Tensor<dtype> & VT, int rank){
-    bool need_transpose_A = false;
-    bool need_transpose_U = false;
-    bool need_transpose_V = false;
-    for (int i=0; i<order_U; i++){
-      if (idx_A[i] !=
-
-    }
-
-  }*/
-
   template<typename dtype>
   void Tensor<dtype>::sparsify(){
     int ret = CTF_int::tensor::sparsify();
@@ -483,13 +474,13 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Tensor<dtype>::reshape(Tensor<dtype> old_tsr){
+  void Tensor<dtype>::reshape(Tensor<dtype> & old_tsr){
     int ret = CTF_int::tensor::reshape(&old_tsr, sr->mulid(), sr->addid());
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function reshape\n"); IASSERT(0); return; }
   }
 
   template<typename dtype>
-  void Tensor<dtype>::reshape(Tensor<dtype> old_tsr, dtype alpha, dtype beta){
+  void Tensor<dtype>::reshape(Tensor<dtype> & old_tsr, dtype alpha, dtype beta){
     int ret = CTF_int::tensor::reshape(&old_tsr, (char*)&alpha, (char*)&beta);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function reshape\n"); IASSERT(0); return; }
   }
@@ -714,7 +705,7 @@ namespace CTF {
       new_lens[i] = ends[i] - offsets[i];
     }
     //FIXME: could discard sr qualifiers
-    Tensor<dtype> new_tsr(order, new_lens, new_sym, *owrld, *sr);
+    Tensor<dtype> new_tsr(order, is_sparse, new_lens, new_sym, *owrld, *sr);
 //   Tensor<dtype> new_tsr = tensor(sr, order, new_lens, new_sym, owrld, 1);
     std::fill(new_sym, new_sym+order, 0);
     new_tsr.slice(new_sym, new_lens, *(dtype*)sr->addid(), *this, offsets, ends, *(dtype*)sr->mulid());
@@ -878,7 +869,14 @@ NORM1_INST(double)
       inds[i] = 'a'+i;
     }
     //CTF::Scalar<double> dnrm(A.dw);
-    nrm = std::sqrt((double)Function<dtype,double>([](dtype a){ return (double)(a*a); })(A[inds]));
+    Tensor<dtype> cA(A.order, A.is_sparse, A.lens, *A.wrld, *A.sr);
+    cA[inds] += A[inds];
+    Transform<dtype>([](dtype & a){ a = a*a; })(cA[inds]);
+    Tensor<dtype> sc(0, NULL, *A.wrld);
+    sc[""] = cA[inds];
+    dtype val = ((dtype*)sc.data)[0];
+    MPI_Bcast((char *)&val, sizeof(dtype), MPI_CHAR, 0, A.wrld->comm);
+    nrm = std::sqrt((double)val);
   }
 
   template<typename dtype>
@@ -920,6 +918,26 @@ NORM2_REAL_INST(float)
 NORM2_REAL_INST(double)
 NORM2_COMPLEX_INST(float)
 NORM2_COMPLEX_INST(double)
+
+#define NORM2_INST(dtype) \
+  template<> \
+  inline dtype Tensor<dtype>::norm2(){ \
+    double nrm = 0; \
+    this->norm2(nrm); \
+    return (dtype)nrm; \
+  }
+
+
+NORM2_INST(int8_t)
+NORM2_INST(int16_t)
+NORM2_INST(int)
+NORM2_INST(int64_t)
+NORM2_INST(float)
+NORM2_INST(double)
+NORM2_INST(std::complex<float>)
+NORM2_INST(std::complex<double>)
+
+
 
   template<typename dtype>
   void Tensor<dtype>::norm_infty(double & nrm){
@@ -1031,7 +1049,7 @@ NORM_INFTY_INST(double)
       str[i] = 'a'+i;
     }
 
-    Transform<dtype>([=](dtype & d){ d=(d>0.)*(CTF_int::get_rand48()*(rmax-rmin)+rmin); })(T->operator[](str));
+    Transform<dtype>([=](dtype & d){ d=((dtype)(d!=(dtype)0.))*(((dtype)CTF_int::get_rand48())*(rmax-rmin)+rmin); })(T->operator[](str));
 
     /*std::vector<Pair<dtype>> pairs;
     pairs.reserve(size*frac_sp);
@@ -1045,6 +1063,17 @@ NORM_INFTY_INST(double)
     this->write(npairs, pairs.data());*/
 
   }
+
+  template<>
+  inline void Tensor<std::complex<double>>::fill_sp_random(std::complex<double> rmin, std::complex<double> rmax, double frac_sp){
+    fill_sp_random_base<std::complex<double>>(rmin, rmax, frac_sp, this);
+  }
+
+  template<>
+  inline void Tensor<std::complex<float>>::fill_sp_random(std::complex<float> rmin, std::complex<float> rmax, double frac_sp){
+    fill_sp_random_base<std::complex<float>>(rmin, rmax, frac_sp, this);
+  }
+
 
   template<>
   inline void Tensor<double>::fill_sp_random(double rmin, double rmax, double frac_sp){

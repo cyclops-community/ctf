@@ -138,6 +138,7 @@ namespace CTF_int {
       imax = std::min(imax,idx[idx_map_B[rB+1]]+1);
 
     int imin = 0;
+    char * tmp = (char*)malloc(sr_A->el_size);
 
     if (rA > 0 && sym_A[rA-1] != NS)
       imin = idx[idx_map_A[rA-1]];
@@ -154,7 +155,6 @@ namespace CTF_int {
         CTF_FLOPS_ADD(imax-imin);
       } else {
         for (int i=imin; i<imax; i++){
-          char tmp[sr_A->el_size];
           sr_A->mul(A+offsets_A[0][i], 
                     alpha,
                     tmp);
@@ -165,6 +165,7 @@ namespace CTF_int {
         CTF_FLOPS_ADD(2*(imax-imin));
       }
     } else assert(0); //FIXME else 
+    free(tmp);
   }
 
   template 

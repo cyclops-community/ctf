@@ -179,16 +179,21 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void set_real[dtype](ctensor * A, ctensor * B)
     cdef void set_imag[dtype](ctensor * A, ctensor * B)
     cdef void subsample(ctensor * A, double probability)
-    cdef void matrix_svd(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
-    cdef void matrix_svd_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
+    cdef void matrix_cholesky(ctensor * A, ctensor * L)
+    cdef void matrix_cholesky_cmplx(ctensor * A, ctensor * L)
+    cdef void matrix_trsm(ctensor * L, ctensor * B, ctensor * X, bool lower, bool from_left, bool transp_L)
+    cdef void matrix_trsm_cmplx(ctensor * L, ctensor * B, ctensor * X, bool lower, bool from_left, bool transp_L)
     cdef void matrix_qr(ctensor * A, ctensor * Q, ctensor * R)
     cdef void matrix_qr_cmplx(ctensor * A, ctensor * Q, ctensor * R)
+    cdef void matrix_svd(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
+    cdef void matrix_svd_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
+    cdef void matrix_svd_rand(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, int iter, int oversmap, ctensor * U_init);
+    cdef void matrix_svd_rand_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, int iter, int oversmap, ctensor * U_init);
     cdef void conv_type(int type_idx1, int type_idx2, ctensor * A, ctensor * B)
     cdef void delete_arr(ctensor * A, char * arr)
     cdef void delete_pairs(ctensor * A, char * pairs)
 
 cdef extern from "ctf.hpp" namespace "CTF":
-
     cdef cppclass Timer:
         Timer(char * name)
         void start()
@@ -233,7 +238,7 @@ cdef extern from "ctf.hpp" namespace "CTF":
         dtype norm1()
         dtype norm2() # Frobenius norm
         dtype norm_infty()
-
+        
     cdef cppclass Vector[dtype](ctensor):
         Vector()
         Vector(Tensor[dtype] A)
@@ -248,6 +253,9 @@ cdef extern from "ctf.hpp" namespace "CTF":
     cdef cppclass contraction:
         contraction(ctensor *, int *, ctensor *, int *, char *, ctensor *, int *, char *, bivar_function *)
         void execute()
+
+cdef extern from "ctf.hpp" namespace "CTF":
+    cdef void TTTP_ "CTF::TTTP"[dtype](Tensor[dtype] * T, int num_ops, int * modes, Tensor[dtype] ** mat_list, bool aux_mode_first)
 
 
 
@@ -508,7 +516,7 @@ def _get_num_str(n):
     return allstr[0:n]
 
 
-cdef class CTF_Timer_epoch:
+cdef class timer_epoch:
     cdef Timer_epoch * te
 
     def __cinit__(self, name=None):
@@ -524,7 +532,7 @@ cdef class CTF_Timer_epoch:
         free(self.te)
 
 
-cdef class CTF_Timer:
+cdef class timer:
     cdef Timer * t
 
     def __cinit__(self, name=None):
@@ -819,6 +827,8 @@ cdef class tensor:
         return self.dtype
 
     def __cinit__(self, lens=None, sp=None, sym=None, dtype=None, order=None, tensor copy=None):
+        t_ti = timer("pytensor_init")
+        t_ti.start()
         if copy is None:
             if lens is None:
                 lens = []
@@ -935,6 +945,7 @@ cdef class tensor:
                     self.dt = new ctensor(<ctensor*>ccopy.dt, True, True)
         free(clens)
         free(csym)
+        t_ti.stop()
 
     def __dealloc__(self):
         del self.dt
@@ -1777,7 +1788,7 @@ cdef class tensor:
         B = tensor(copy=self)
         return B
 
-    def reshape(self, *integer):
+    def reshape(tensor self, *integer):
         """
         reshape(*integer)
         Return a new tensor with reshaped shape.
@@ -1803,6 +1814,8 @@ cdef class tensor:
                [5],
                [6]])
         """
+        t_reshape = timer("pyreshape")
+        t_reshape.start()
         dim = self.shape
         total_size = 1
         newshape = []
@@ -1829,7 +1842,6 @@ cdef class tensor:
         for i in range(len(newshape)):
             if newshape[i] < 0:
                 nega += 1
-        B = None
         if nega == 0:
             for i in range(len(newshape)):
                 new_size *= newshape[i]
@@ -1838,9 +1850,11 @@ cdef class tensor:
             B = tensor(newshape,sp=self.sp,dtype=self.dtype)
             alpha = <char*>self.dt.sr.mulid()
             beta = <char*>self.dt.sr.addid()
-            B.dt.reshape(self.dt,alpha,beta)
+            (<ctensor*>B.dt).reshape(<ctensor*>self.dt, alpha, beta)
             #inds, vals = self.read_local_nnz()
             #B.write(inds, vals)
+            t_reshape.stop()
+            return B
         elif nega == 1:
             pos = 0
             for i in range(len(newshape)):
@@ -1855,13 +1869,15 @@ cdef class tensor:
             B = tensor(newshape,sp=self.sp,dtype=self.dtype)
             alpha = <char*>self.dt.sr.mulid()
             beta = <char*>self.dt.sr.addid()
-            B.dt.reshape(self.dt,alpha,beta)
+            (<ctensor*>B.dt).reshape(<ctensor*>self.dt,alpha,beta)
             #inds, vals = self.read_local_nnz()
             #B.write(inds, vals)
-
+            t_reshape.stop()
+            return B
         else:
             raise ValueError('CTF PYTHON ERROR: can only specify one unknown dimension')
-        return B
+            t_reshape.stop()
+            return None
 
     def ravel(self, order="F"):
         """
@@ -5316,6 +5332,8 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     """
     if order != 'K' or casting != 'safe':
         raise ValueError('CTF PYTHON ERROR: CTF Python einsum currently does not support order and casting')
+    t_einsum = timer("pyeinsum")
+    t_einsum.start()
     numop = len(operands)
     inds = []
     j=0
@@ -5373,7 +5391,74 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     for i in range(1,numop):
         operand = operand * operands[i].i(inds[i])
     out_scale*output.i(out_inds) << operand
+    t_einsum.stop()
     return output
+
+def TTTP(tensor A, mat_list):
+    """
+    TTTP(A, mat_list)
+    Compute updates to entries in tensor A based on matrices in mat_list (tensor times tensor products)
+
+    Parameters
+    ----------
+    A: tensor_like
+       Input tensor of arbitrary ndim
+
+    mat_list: list of size A.ndim
+              Contains either None or matrix of dimensions m-by-k or vector,
+              where m matches the corresponding mode length of A and k is the same for all 
+              given matrices (or all are vectors)
+
+    Returns
+    -------
+    B: tensor
+        A tensor of the same ndim as A, updating by taking products of entries of A with multilinear dot products of columns of given matrices.
+        For ndim=3 and mat_list=[X,Y,Z], this operation is equivalent to einsum("ijk,ia,ja,ka->ijk",A,X,Y,Z)
+    """
+    #B = tensor(A.shape, A.sp, A.sym, A.dtype, A.order)
+    #s = _get_num_str(B.ndim+1)
+    #exp = A.i(s[:-1])
+    t_tttp = timer("pyTTTP")
+    t_tttp.start()
+    if len(mat_list) != A.ndim:
+        raise ValueError('CTF PYTHON ERROR: mat_list argument to TTTP must be of same length as ndim')
+    
+    k = -1
+    cdef int * modes
+    modes = <int*>malloc(len(mat_list)*sizeof(int))
+    tsrs = <Tensor[double]**>malloc(len(mat_list)*sizeof(ctensor*))
+    imode = 0
+    tsr_list = []
+    for i in range(len(mat_list))[::-1]:
+        if mat_list[i] is not None:
+            modes[imode] = len(mat_list)-i-1
+            t = tensor(copy=mat_list[i])
+            tsr_list.append(t)
+            tsrs[imode] = <Tensor[double]*>t.dt
+            imode += 1
+            if mat_list[i].ndim == 1:
+                if k != -1:
+                    raise ValueError('CTF PYTHON ERROR: mat_list must contain only vectors or only matrices')
+                if mat_list[i].shape[0] != A.shape[i]:
+                    raise ValueError('CTF PYTHON ERROR: input vector to TTTP does not match the corresponding tensor dimension')
+                #exp = exp*mat_list[i].i(s[i])
+            else:
+                if mat_list[i].ndim != 2:
+                    raise ValueError('CTF PYTHON ERROR: mat_list operands has invalid dimension')
+                if k == -1:
+                    k = mat_list[i].shape[1]
+                else:
+                    if k != mat_list[i].shape[1]:
+                        raise ValueError('CTF PYTHON ERROR: mat_list second mode lengths of tensor must match')
+                #exp = exp*mat_list[i].i(s[i]+s[-1])
+    #B.i(s[:-1]) << exp
+    B = tensor(copy=A)
+    if A.dtype == np.float64:
+        TTTP_[double](<Tensor[double]*>B.dt,len(tsr_list),modes,tsrs,1)
+    else:
+        raise ValueError('CTF PYTHON ERROR: TTTP does not support this dtype')
+    t_tttp.stop()
+    return B
 
 def svd(tensor A, rank=None):
     """
@@ -5399,6 +5484,8 @@ def svd(tensor A, rank=None):
     VT: tensor
         A unitary CTF tensor with 2-D dimensions.
     """
+    t_svd = timer("pySVD")
+    t_svd.start()
     if not isinstance(A,tensor) or A.ndim != 2:
         raise ValueError('CTF PYTHON ERROR: SVD called on invalid tensor, must be CTF double matrix')
     if rank is None:
@@ -5413,7 +5500,63 @@ def svd(tensor A, rank=None):
         matrix_svd(A.dt, VT.dt, S.dt, U.dt, rank)
     elif A.dtype == np.complex128 or A.dtype == np.complex64:
         matrix_svd_cmplx(A.dt, VT.dt, S.dt, U.dt, rank)
+    t_svd.stop()
     return [U, S, VT]
+
+def svd_rand(tensor A, rank, niter=1, oversamp=5, VT_guess=None):
+    """
+    svd_rand(A, rank=None)
+    Uses randomized method (orthogonal iteration) to calculate a low-rank singular value decomposition, M = U x S x VT. Is faster, especially for low-rank, but less robust than typical svd.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor 2-D dimensions.
+
+    rank: int
+        Target SVD rank
+    
+    niter: int or None, optional, default 1
+       number of orthogonal iterations to perform (higher gives better accuracy)
+
+    oversamp: int or None, optional, default 5
+       oversampling parameter
+
+    VT_guess: initial guess for first rank+oversamp singular vectors (matrix with orthogonal columns is also good), on output is final iterate (with oversamp more columns than VT)
+
+    Returns
+    -------
+    U: tensor
+        A unitary CTF tensor with 2-D dimensions.
+
+    S: tensor
+        A 1-D tensor with singular values.
+
+    VT: tensor
+        A unitary CTF tensor with 2-D dimensions.
+    """
+    t_svd = timer("pyRSVD")
+    t_svd.start()
+    if not isinstance(A,tensor) or A.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: SVD called on invalid tensor, must be CTF double matrix')
+    S = tensor(rank,dtype=A.dtype)
+    U = tensor([A.shape[0],rank],dtype=A.dtype)
+    VT = tensor([rank,A.shape[1]],dtype=A.dtype)
+    if A.dtype == np.float64 or A.dtype == np.float32:
+        if VT_guess is None:
+            matrix_svd_rand(A.dt, VT.dt, S.dt, U.dt, rank, niter, oversamp, NULL)
+        else:
+            tVT_guess = tensor(copy=VT_guess)
+            matrix_svd_rand(A.dt, VT.dt, S.dt, U.dt, rank, niter, oversamp, tVT_guess.dt)
+    elif A.dtype == np.complex128 or A.dtype == np.complex64:
+        if VT_guess is None:
+            matrix_svd_rand_cmplx(A.dt, VT.dt, S.dt, U.dt, rank, niter, oversamp, NULL)
+        else:
+            tVT_guess = tensor(copy=VT_guess)
+            matrix_svd_rand_cmplx(A.dt, VT.dt, S.dt, U.dt, rank, niter, oversamp, tVT_guess.dt)
+    t_svd.stop()
+    return [U, S, VT]
+
 
 def qr(tensor A):
     """
@@ -5433,8 +5576,10 @@ def qr(tensor A):
     R: tensor
         An upper triangular 2-D CTF tensor.
     """
+    t_qr = timer("pyqr")
+    t_qr.start()
     if not isinstance(A,tensor) or A.ndim != 2:
-        raise ValueError('CTF PYTHON ERROR: QR called on invalid tensor, must be CTF double matrix')
+        raise ValueError('CTF PYTHON ERROR: QR called on invalid tensor, must be CTF matrix')
     B = tensor(copy=A.T())
     Q = tensor([min(B.shape[0],B.shape[1]),B.shape[1]],dtype=B.dtype)
     R = tensor([B.shape[0],min(B.shape[0],B.shape[1])],dtype=B.dtype)
@@ -5442,7 +5587,78 @@ def qr(tensor A):
         matrix_qr(B.dt, Q.dt, R.dt)
     elif A.dtype == np.complex128 or A.dtype == np.complex64:
         matrix_qr_cmplx(B.dt, Q.dt, R.dt)
+    t_qr.stop()
     return [Q.T(), R.T()]
+
+def cholesky(tensor A):
+    """
+    cholesky(A)
+    Compute Cholesky factorization of tensor A.
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor 2-D dimensions.
+
+    Returns
+    -------
+    L: tensor
+        A CTF tensor with 2 dimensions corresponding to lower triangular Cholesky factor of A
+    """
+    t_cholesky = timer("pycholesky")
+    t_cholesky.start()
+    if not isinstance(A,tensor) or A.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: Cholesky called on invalid tensor, must be CTF matrix')
+    L = tensor(A.shape, dtype=A.dtype)
+    if A.dtype == np.float64 or A.dtype == np.float32:
+        matrix_cholesky(A.dt, L.dt)
+    elif A.dtype == np.complex128 or A.dtype == np.complex64:
+        matrix_cholesky_cmplx(A.dt, L.dt)
+    t_cholesky.stop()
+    return L
+
+def solve_tri(tensor L, tensor B, lower=True, from_left=True, transp_L=False):
+    """
+    solve_tri(L,B,lower,from_left,transp_L)
+    Compute triangular solve (with multiple right or left hand sides)
+
+    Parameters
+    ----------
+    L: tensor_like
+       Triangular matrix encoding equations
+
+    B: tensor_like
+       Right or left hand sides
+
+    lower: bool
+       if true L is lower triangular, if false upper
+
+    from_left: bool
+       if true solve LX = B, if false, solve XL=B
+
+    transp_L: bool
+       if true solve L^TX = B or XL^T=B
+
+    Returns
+    -------
+    X: tensor
+        CTF matrix containing solutions to triangular equations, same shape as B
+    """
+    t_solve_tri = timer("pysolve_tri")
+    t_solve_tri.start()
+    if not isinstance(L,tensor) or L.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: solve_tri called on invalid tensor, must be CTF matrix')
+    if not isinstance(B,tensor) or B.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: solve_tri called on invalid tensor, must be CTF matrix')
+    if L.dtype != B.dtype:
+        raise ValueError('CTF PYTHON ERROR: solve_tri dtype of B and L must match')
+    X = tensor(B.shape, dtype=B.dtype)
+    if B.dtype == np.float64 or B.dtype == np.float32:
+        matrix_trsm(L.dt, B.dt, X.dt, not lower, not from_left, transp_L)
+    elif B.dtype == np.complex128 or B.dtype == np.complex64:
+        matrix_trsm(L.dt, B.dt, X.dt, not lower, not from_left, transp_L)
+    t_solve_tri.stop()
+    return X
 
 def vecnorm(A, ord=2):
     """
@@ -5470,14 +5686,18 @@ def vecnorm(A, ord=2):
     >>> la.vecnorm(a)
     5.0
     """
+    t_norm = timer("pyvecnorm")
+    t_norm.start()
     if ord == 2:
-        return A.norm2()
+        nrm = A.norm2()
     elif ord == 1:
-        return A.norm1()
+        nrm = A.norm1()
     elif ord == np.inf:
-        return A.norm_infty()
+        nrm = A.norm_infty()
     else:
         raise ValueError('CTF PYTHON ERROR: CTF only supports 1/2/inf vector norms')
+    t_norm.stop()
+    return nrm
 
 def _match_tensor_types(first, other):
     if isinstance(first, tensor):

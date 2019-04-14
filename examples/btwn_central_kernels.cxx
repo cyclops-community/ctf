@@ -13,7 +13,9 @@ DEVICE HOST
 mpath addw(int w, mpath p){ p.w=p.w+w; return p; }
 
 Bivar_Function<int,mpath,mpath> * get_Bellman_kernel(){
-  return new Bivar_Kernel<int,mpath,mpath,addw,mfunc>();
+  Bivar_Kernel<int,mpath,mpath,addw,mfunc> * k = new Bivar_Kernel<int,mpath,mpath,addw,mfunc>();
+  k->intersect_only = true;
+  return k;
   //return new Bivar_Function<int,mpath,mpath>(addw);
 }
 
@@ -29,7 +31,9 @@ cpath subw(int w, cpath p){
 }
 
 Bivar_Function<int,cpath,cpath> * get_Brandes_kernel(){
-  return new Bivar_Kernel<int,cpath,cpath,subw,cfunc>();
+  Bivar_Kernel<int,cpath,cpath,subw,cfunc> * k = new Bivar_Kernel<int,cpath,cpath,subw,cfunc>();
+  k->intersect_only = true;
+  return k;
   //return new Bivar_Function<int,mpath,mpath>(addw);
 }
 
@@ -37,7 +41,9 @@ Bivar_Function<int,cpath,cpath> * get_Brandes_kernel(){
 void mpath_red(mpath const * a,
                mpath * b,
                int n){
+#ifdef _OPENMP
   #pragma omp parallel for
+#endif
   for (int i=0; i<n; i++){
     if (a[i].w <  b[i].w){
       b[i].w  = a[i].w;
@@ -82,7 +88,9 @@ Semiring<mpath> get_mpath_semiring(){
 void cpath_red(cpath const * a,
                cpath * b,
                int n){
+#ifdef _OPENMP
   #pragma omp parallel for
+#endif
   for (int i=0; i<n; i++){
     if (a[i].w > b[i].w){
       b[i].w  = a[i].w;

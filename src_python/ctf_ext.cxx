@@ -106,8 +106,125 @@ namespace CTF_int{
   }
 
 
-  void matrix_qr(tensor * A, tensor * Q, tensor * R){
+  void matrix_trsm(tensor * L, tensor * B, tensor * X, bool lower, bool from_left, bool transp_L){
+   switch (B->sr->el_size){
+      case 4:
+        {
+          CTF::Matrix<float> mB(*B);
+          CTF::Matrix<float> mL(*L);
+          CTF::Matrix<float> mX;
+          mB.solve_tri(mL, mX, lower, from_left, transp_L);
+          (*X)["ij"] = mX["ij"];
+        }
+        break;
+
+
+      case 8:
+        {
+          CTF::Matrix<double> mB(*B);
+          CTF::Matrix<double> mL(*L);
+          CTF::Matrix<double> mX;
+          mB.solve_tri(mL, mX, lower, from_left, transp_L);
+          (*X)["ij"] = mX["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
+  void matrix_trsm_cmplx(tensor * L, tensor * B, tensor * X, bool lower, bool from_left, bool transp_L){
+   switch (B->sr->el_size){
+      case 8:
+        {
+          CTF::Matrix<std::complex<float>> mB(*B);
+          CTF::Matrix<std::complex<float>> mL(*L);
+          CTF::Matrix<std::complex<float>> mX;
+          mB.solve_tri(mL, mX, lower, from_left, transp_L);
+          (*X)["ij"] = mX["ij"];
+        }
+        break;
+
+
+      case 16:
+        {
+          CTF::Matrix<std::complex<double>> mB(*B);
+          CTF::Matrix<std::complex<double>> mL(*L);
+          CTF::Matrix<std::complex<double>> mX;
+          mB.solve_tri(mL, mX, lower, from_left, transp_L);
+          (*X)["ij"] = mX["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
+  void matrix_cholesky(tensor * A, tensor * L){
+   switch (A->sr->el_size){
+      case 4:
+        {
+          CTF::Matrix<float> mA(*A);
+          CTF::Matrix<float> mL;
+          mA.cholesky(mL, false);
+          (*L)["ij"] = mL["ij"];
+        }
+        break;
+
+
+      case 8:
+        {
+          CTF::Matrix<double> mA(*A);
+          CTF::Matrix<double> mL;
+          mA.cholesky(mL, false);
+          (*L)["ij"] = mL["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
+  void matrix_cholesky_cmplx(tensor * A, tensor * L){
     switch (A->sr->el_size){
+      case 8:
+        {
+          CTF::Matrix<std::complex<float>> mA(*A);
+          CTF::Matrix<std::complex<float>> mL;
+          mA.cholesky(mL, false);
+          (*L)["ij"] = mL["ij"];
+        }
+        break;
+
+
+      case 16:
+        {
+          CTF::Matrix<std::complex<double>> mA(*A);
+          CTF::Matrix<std::complex<double>> mL;
+          mA.cholesky(mL, false);
+          (*L)["ij"] = mL["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
+
+  void matrix_qr(tensor * A, tensor * Q, tensor * R){
+   switch (A->sr->el_size){
       case 4:
         {
           CTF::Matrix<float> mA(*A);
@@ -169,7 +286,6 @@ namespace CTF_int{
         break;
     }
   }
-
 
 
   void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank){
@@ -234,6 +350,106 @@ namespace CTF_int{
           CTF::Vector< std::complex<double> > vS;
           CTF::Matrix< std::complex<double> > mVT;
           mA.svd(mU, vS, mVT, rank);
+          //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
+          (*U)["ij"] = mU["ij"];
+          (*S)["i"] = vS["i"];
+          (*VT)["ij"] = mVT["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
+  void matrix_svd_rand(tensor * A, tensor * U, tensor * S, tensor * VT, int rank, int iter, int oversamp, tensor * U_init){
+    switch (A->sr->el_size){
+      case 4:
+        {
+          CTF::Matrix<float> mA(*A);
+          CTF::Matrix<float> mU;
+          CTF::Vector<float> vS;
+          CTF::Matrix<float> mVT;
+          if (U_init != NULL){
+            CTF::Matrix<float> mU_init(*U_init);
+            mA.svd_rand(mU, vS, mVT, rank, iter, oversamp, &mU_init);
+            (*U_init)["ij"] = mU_init["ij"];
+          } else 
+            mA.svd_rand(mU, vS, mVT, rank, iter, oversamp);
+          
+          //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
+          (*U)["ij"] = mU["ij"];
+          (*S)["i"] = vS["i"];
+          (*VT)["ij"] = mVT["ij"];
+        }
+        break;
+
+
+      case 8:
+        {
+          CTF::Matrix<double> mA(*A);
+          CTF::Matrix<double> mU;
+          CTF::Vector<double> vS;
+          CTF::Matrix<double> mVT;
+          if (U_init != NULL){
+            CTF::Matrix<double> mU_init(*U_init);
+            mA.svd_rand(mU, vS, mVT, rank, iter, oversamp, &mU_init);
+            (*U_init)["ij"] = mU_init["ij"];
+          } else 
+            mA.svd_rand(mU, vS, mVT, rank, iter, oversamp);
+          
+          //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
+          (*U)["ij"] = mU["ij"];
+          (*S)["i"] = vS["i"];
+          (*VT)["ij"] = mVT["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
+  void matrix_svd_rand_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank, int iter, int oversamp, tensor * U_init){
+    switch (A->sr->el_size){
+      case 8:
+        {
+          CTF::Matrix<std::complex<float>> mA(*A);
+          CTF::Matrix<std::complex<float>> mU;
+          CTF::Vector<std::complex<float>> vS;
+          CTF::Matrix<std::complex<float>> mVT;
+          if (U_init != NULL){
+            CTF::Matrix<std::complex<float>> mU_init(*U_init);
+            mA.svd_rand(mU, vS, mVT, rank, iter, oversamp, &mU_init);
+            (*U_init)["ij"] = mU_init["ij"];
+          } else 
+            mA.svd_rand(mU, vS, mVT, rank, iter, oversamp);
+          
+          //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
+          (*U)["ij"] = mU["ij"];
+          (*S)["i"] = vS["i"];
+          (*VT)["ij"] = mVT["ij"];
+        }
+        break;
+
+
+      case 16:
+        {
+          CTF::Matrix<std::complex<double>> mA(*A);
+          CTF::Matrix<std::complex<double>> mU;
+          CTF::Vector<std::complex<double>> vS;
+          CTF::Matrix<std::complex<double>> mVT;
+          if (U_init != NULL){
+            CTF::Matrix<std::complex<double>> mU_init(*U_init);
+            mA.svd_rand(mU, vS, mVT, rank, iter, oversamp, &mU_init);
+            (*U_init)["ij"] = mU_init["ij"];
+          } else 
+            mA.svd_rand(mU, vS, mVT, rank, iter, oversamp);
+          
           //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
           (*U)["ij"] = mU["ij"];
           (*S)["i"] = vS["i"];

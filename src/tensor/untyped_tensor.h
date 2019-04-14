@@ -148,8 +148,11 @@ namespace CTF_int {
        */
       CTF::Idx_Tensor operator[](char const * idx_map);
 
+      /**
+       * \brief default constructor for untyped instantiation
+       */
       tensor();
-
+  
       /** \brief class free self */
       ~tensor();
 
@@ -287,6 +290,14 @@ namespace CTF_int {
        * \param[in] allcall (if 1 print only with proc 0)
        */
       void print_map(FILE * stream=stdout, bool allcall=1) const;
+
+      /**
+       * \brief displays edge length information
+       * \param[in] stream output log (e.g. stdout)
+       * \param[in] allcall (if 1 print only with proc 0)
+       */
+      void print_lens(FILE * stream=stdout, bool allcall=1) const;
+
 
       /**
        * \brief set the tensor name
@@ -491,6 +502,11 @@ namespace CTF_int {
       int sparsify(std::function<bool(char const*)> f);
 
       /**
+       * \brief densifies tensor (converts to dense format)
+       */
+      int densify();
+
+      /**
        * \brief read tensor data pairs local to processor including those with zero values
        *          WARNING: for sparse tensors this includes the zeros to maintain consistency with
        *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
@@ -536,11 +552,11 @@ namespace CTF_int {
 
       /**
        * \brief reshape tensors into dimensions given by lens, keeps sparsity if this tensor has it, sheds any symmetries
-       * \param[in,out] new_tsr pre-allocated tensor with new shape
+       * \param[in,out] old_tsr pre-allocated tensor with old shape
        * \param[in] alpha scalar with which to scale data of this tensor
-       * \param[in] beta parameter with which to scale data already in new_tsr
+       * \param[in] beta parameter with which to scale data already in old_tsr
        */
-      int reshape(tensor * new_tsr, char const * alpha, char const * beta);
+      int reshape(tensor * old_tsr, char const * alpha, char const * beta);
 
       /**
        * brief copy A into this (B). Realloc if necessary
@@ -549,7 +565,7 @@ namespace CTF_int {
       //int copy(tensor * A);
 
       /**
-       * \brief align mapping of thisa tensor to that of B
+       * \brief align mapping of this tensor to that of B
        * \param[in] B tensor handle of B
        */
       int align(tensor const * B);

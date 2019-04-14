@@ -117,6 +117,14 @@ namespace CTF_int {
       /** \brief print contraction details */
       void print();
 
+      /**
+       * \brief a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B).
+       *        performs all necessary symmetric permutations removes/returns A/B to home buffer
+       * \param[in] run_diag if 1 run diagonal sum
+       * \param[in] handle_sym if true, use sym_sum
+       */
+      int home_sum_tsr(bool run_diag, bool handle_sym=true);
+
     private:
       /**
        * \brief finds and return all summation indices which can be folded into
@@ -197,13 +205,6 @@ namespace CTF_int {
       tsum * construct_dense_sum(int         inner_stride,
                                  int const * phys_mapped);
 
-
-      /**
-       * \brief a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B).
-       *        performs all necessary symmetric permutations removes/returns A/B to home buffer
-       * \param[in] run_diag if 1 run diagonal sum
-       */
-      int home_sum_tsr(bool run_diag);
 
       /**
        * \brief a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B).

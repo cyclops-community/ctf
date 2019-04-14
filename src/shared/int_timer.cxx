@@ -153,7 +153,7 @@ namespace CTF{
     if (exited == 0){
       int is_fin;
       MPI_Finalized(&is_fin);
-      if (!is_fin){
+      if (!is_fin && function_timers != NULL){
         double delta_time = MPI_Wtime() - (*function_timers)[index].start_time;
         (*function_timers)[index].acc_time += delta_time;
         (*function_timers)[index].acc_excl_time += delta_time - 
@@ -297,10 +297,12 @@ namespace CTF{
         //function_timers->clear();
         return;
       }
-      print_timers("all");  
-      function_timers->clear();
-      delete function_timers;
-      function_timers = NULL;
+      if (function_timers != NULL){
+        print_timers("all");  
+        function_timers->clear();
+        delete function_timers;
+        function_timers = NULL;
+      }
     }
   #endif
   }

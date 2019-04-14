@@ -110,7 +110,7 @@ namespace CTF {
 
 
       /**
-       * \brief constructor for a matrix with a given initial cyclic distribution 
+       * \brief constructor for a matrix with a given guessial cyclic distribution 
        * \param[in] nrow number of matrix rows
        * \param[in] ncol number of matrix columns
        * \param[in] idx assignment of characters to each dim
@@ -134,7 +134,7 @@ namespace CTF {
              int                       profile=0);
 
       /**
-       * \brief writes a nonsymmetric matrix from a block-cyclic initial distribution
+       * \brief writes a nonsymmetric matrix from a block-cyclic guessial distribution
        *        this is `cheap' if mb=nb=1, nrow%pr=0, ncol%pc=0, rsrc=0, csrc=0, but is done via sparse read/write otherwise
        *        assumes processor grid is row-major (otherwise transpose matrix)
        * \param[in] mb row block dimension
@@ -160,7 +160,7 @@ namespace CTF {
 
  
       /**
-       * \brief constructor for a nonsymmetric matrix with a block-cyclic initial distribution
+       * \brief constructor for a nonsymmetric matrix with a block-cyclic guessial distribution
        *        this is `cheap' if mb=nb=1, nrow%pr=0, ncol%pc=0, but is done via sparse read/write otherwise
        *        assumes processor grid is row-major (otherwise transpose matrix)
        * \param[in] nrow number of matrix rows
@@ -218,7 +218,7 @@ namespace CTF {
              int                       profile=0);
 
       /**
-       * \brief reads a nonsymmetric matrix into a block-cyclic initial distribution
+       * \brief reads a nonsymmetric matrix into a block-cyclic guessial distribution
        *        this is `cheap' if mb=nb=1, nrow%pr=0, ncol%pc=0, rsrc=0, csrc=0, but is done via sparse read/write otherwise
        *        assumes processor grid is row-major (otherwise transpose matrix)
        * \param[in] mb row block dimension
@@ -279,6 +279,23 @@ namespace CTF {
       void get_tri(Matrix<dtype> & T, bool lower=false, bool keep_diag=true);
 
       /*
+       * \calculates the Cholesky decomposition, assuming this matrix is SPD
+       * \param[out] L n-by-n lower-triangular matrix
+       * \param[in] lower if true L is lower triangular of false, upper
+       */
+      void cholesky(Matrix<dtype> & L, bool lower=true);
+
+      /*
+       * \calculates triangular solve with many right-hand sides, this matrix is the right or left-hand-side
+       * \param[in] L n-by-n lower-triangular matrix
+       * \param[out] X solution(s) to triangular solve, same shape as this
+       * \param[in] lower if true L is lower triangular of false, upper
+       * \param[in] from_left if true, solve LX=this if false solve XL=this
+       * \param[in] transp_L if true, L solve L^TX=this or XL^T=this
+       */
+      void solve_tri(Matrix<dtype> & L, Matrix<dtype> & X, bool lower=true, bool from_left=true, bool transp_L=false);
+
+      /*
        * \calculates the reduced QR decomposition, A = Q x R for A of dimensions m by n with m>=n
        * \param[out] Q m-by-n matrix with orthonormal columns
        * \param[out] R n-by-n upper-triangular matrix
@@ -291,8 +308,21 @@ namespace CTF {
        * \param[out] S singular values of matrix
        * \param[out] VT right singular vectors of matrix
        * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns)
+       * \param[in] threshold for truncating singular values of the SVD, determines rank, if used, must set previous paramter rank=0
        */
-      void svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank = 0);
+      void svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank = 0, double threshold=0.);
+
+      /*
+       * \calculates uses randomized method (orthogonal iteration) to calculate a low-rank singular value decomposition, M = U x S x VT. Is faster, especially for low-rank, but less robust than typical svd.
+       * \param[out] U left singular vectors of matrix
+       * \param[out] S singular values of matrix
+       * \param[out] VT right singular vectors of matrix
+       * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns)
+       * \param[in] iter number of orthogonal iterations to perform (higher gives better accuracy)
+       * \param[in] oversamp oversampling parameter
+       * \param[in,out] U_guess guessial guess for first rank+oversamp singular vectors (matrix with orthogonal columns is also good), on output is final iterate (with oversamp more columns than U)
+       */
+      void svd_rand(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank, int iter=1, int oversamp=5, Matrix<dtype> * U_guess=NULL);
 
   };
   /**

@@ -109,8 +109,12 @@ namespace CTF_int {
     //}
     
     int stat = home_contract();
-    if (stat != SUCCESS)
+    if (stat != SUCCESS){
       printf("CTF ERROR: Failed to perform contraction\n");
+#if (DEBUG >= 1 || VERBOSE >= 1)
+      ASSERT(0);
+#endif
+    }
   }
   
   template<typename ptype>
@@ -179,7 +183,7 @@ namespace CTF_int {
         } else if (idx_arr[3*i+1] != -1){
           dense_flops *= B->lens[idx_arr[3*i+1]];
         } else {
-          dense_flops *= C->lens[idx_arr[3*i+1]];
+          dense_flops *= C->lens[idx_arr[3*i+2]];
         }
       }
     }
@@ -194,13 +198,13 @@ namespace CTF_int {
 
     //scale by probability of nonzero flop
     if (A->is_sparse)
-      flops *= A->nnz_tot/A->size/A->wrld->np;
+      flops *= ((double)A->nnz_tot)/A->size/A->wrld->np;
     if (B->is_sparse)
-      flops *= B->nnz_tot/B->size/B->wrld->np;
+      flops *= ((double)B->nnz_tot)/B->size/B->wrld->np;
     if (C->is_sparse)
       flops += C->nnz_tot;
     else
-      flops += C->size*C->wrld->np;
+      flops += ((double)C->size)*C->wrld->np;
 
     return flops;
   }
@@ -4914,6 +4918,50 @@ namespace CTF_int {
     }*/ 
 
     //CTF_ctr_type_t ntype = *stype;
+    if (this->func != NULL && !this->func->is_accumulator() && !this->func->intersect_only){
+      if (A->is_sparse){
+        char * tmp;
+        tmp = C->sr->alloc(1);
+        this->func->apply_f(A->sr->addid(), B->sr->mulid(), tmp);
+        bool do_densify = !C->sr->isequal(tmp, C->sr->addid());
+        this->func->apply_f(A->sr->addid(), B->sr->addid(), tmp);
+        do_densify = do_densify || !C->sr->isequal(tmp, C->sr->addid());
+        if (do_densify){
+
+          contraction pre_new_ctr = contraction(*this);
+          pre_new_ctr.A = new tensor(A, 1, 1);
+          pre_new_ctr.A->densify();
+          pre_new_ctr.execute();
+          delete pre_new_ctr.A;
+          return SUCCESS;
+        }
+      }
+      if (B->is_sparse){
+        char * tmp;
+        tmp = C->sr->alloc(1);
+        this->func->apply_f(A->sr->mulid(), B->sr->addid(), tmp);
+        bool do_densify = !C->sr->isequal(tmp, C->sr->addid());
+        this->func->apply_f(A->sr->addid(), B->sr->addid(), tmp);
+        do_densify = do_densify || !C->sr->isequal(tmp, C->sr->addid());
+        if (do_densify){
+          contraction pre_new_ctr = contraction(*this);
+          pre_new_ctr.B = new tensor(B, 1, 1);
+          pre_new_ctr.B->densify();
+          pre_new_ctr.execute();
+          delete pre_new_ctr.B;
+          return SUCCESS;
+        }
+      }
+    }
+
+    if (C->is_sparse && !A->is_sparse && !B->is_sparse){
+      contraction pre_new_ctr = contraction(*this);
+      pre_new_ctr.C->densify();
+      pre_new_ctr.execute();
+      char const * caddid = C->sr->addid();
+      C->sparsify([=](char const * v){ return v != caddid; });
+      return SUCCESS;
+    }
 
     if (C->is_sparse && !A->is_sparse){
       contraction pre_new_ctr = contraction(*this);
@@ -5253,8 +5301,10 @@ namespace CTF_int {
           npres++;
       }
       
-      if (npres > 1)
+      if (npres > 1){
+        free(idx_arr);
         return true;
+      }
     }
 
     for (int iV=0; iV<V->order; iV++){
@@ -5272,9 +5322,12 @@ namespace CTF_int {
       if (V->sym[iV+npres] == NS && iiC == -1 && iiT == -1){
         npres++;
       }
-      if (npres > 1)
+      if (npres > 1){
+        free(idx_arr);
         return true;
+      }
     }
+    free(idx_arr);
     return false;
   }
 
@@ -5431,6 +5484,9 @@ namespace CTF_int {
           sprintf(cname+strlen(cname),"%d",idx_B[i]);
       }
       sprintf(cname+strlen(cname),"]");
+      A->print_lens();
+      B->print_lens();
+      C->print_lens();
       printf("CTF: Contraction %s\n",cname);
       if (alpha != NULL){
         printf("CTF: input scale ");

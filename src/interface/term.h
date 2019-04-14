@@ -88,6 +88,13 @@ namespace CTF_int {
       * \brief multiply scaling factor by mulscl
       */
       void mult_scl(char const * mulscl);
+ 
+     /**
+      * \brief returns whether this term is a Contract_Term
+      * \return false if not a contract term
+      */
+      virtual bool is_contract_term(){ return false; }
+
 
       /**
        * \brief constructs a new term which multiplies by tensor A
@@ -346,6 +353,17 @@ namespace CTF_int {
        * \brief negates term
        */
 //      Contract_Term operator-() const;
+ 
+      /**
+       * \brief returns whether this term is a Contract_Term
+       * \return true
+       */
+      bool is_contract_term(){ return true; }
+
+      /**
+       * \brief unfold tree of contract terms (necessary for python interface)
+       */
+      std::vector<Term*> get_ops_rec() const;
 
       /**
        * \brief figures out what world this term lives on
