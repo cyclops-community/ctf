@@ -88,6 +88,8 @@ namespace CTF_int {
     for (int i=1; i<nz; i++){
       if (coo_rs_copy[i-1] != coo_rs_copy[i]){
         row_enc[nnz_row_ctr] = coo_rs_copy[i];
+        nnz_row_ctr++;
+        //printf("row_enc[%d] = %d\n");
       }
     }
     cdealloc(coo_rs_copy);
@@ -170,7 +172,7 @@ namespace CTF_int {
     return (int*)(all_data + offset);
   } 
 
-  void CCSR_Matrix::ccsrmm(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func, bool do_offload){
+  void CCSR_Matrix::ccsrmm(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char *& C, algstrct const * sr_C, bivar_function const * func, bool do_offload){
     if (func != NULL && func->has_off_gemm && do_offload){
       assert(sr_C->isequal(beta, sr_C->mulid()));
       assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
@@ -379,7 +381,12 @@ namespace CTF_int {
     int irow= 0;
     int v_sz = val_size();
     int64_t nz = nnz();
-    printf("CCSR Matrix has %ld nonzeros %d rows %d cols\n", nz, nrow(), ncol());
+    int64_t nzr = nnz_row();
+    int * row_enc = nnz_row_encoding();
+    printf("CCSR Matrix has %ld nonzeros %d rows (%ld of them nonzero) %d cols\n", nz, nrow(), nzr, ncol());
+    for (int64_t i=0; i<nzr; i++){
+      printf("row_enc[%ld] = %d\n", i,row_enc[i]);
+    }
     for (int64_t i=0; i<nz; i++){
       while (i>=ccsr_ia[irow+1]-1) irow++;
       printf("[%d,%d] ",irow,ccsr_ja[i]);
@@ -409,6 +416,9 @@ namespace CTF_int {
     TAU_FSTART(ccsr_add);
     CCSR_Matrix A(cA);
     CCSR_Matrix B(cB);
+    /*printf("Performing CCSR add\n");
+    A.print((algstrct*)adder);
+    B.print((algstrct*)adder);*/
 
     int el_size = A.val_size();
 
@@ -449,7 +459,7 @@ namespace CTF_int {
     for (int i=0; i<nnz_row; i++){
       memset(has_col, 0, sizeof(int)*ncol);
       IC[i+1] = IC[i];
-      printf("i = %d nnz_row = %d, innz_row_A = %d nnz_row_A = %d, innz_row_B = %d nnz_row_B = %d\n",i,nnz_row,innz_row_A,nnz_row_A,innz_row_B,nnz_row_B);
+      //printf("i = %d nnz_row = %d, innz_row_A = %d nnz_row_A = %d, innz_row_B = %d nnz_row_B = %d\n",i,nnz_row,innz_row_A,nnz_row_A,innz_row_B,nnz_row_B);
       if (innz_row_A<nnz_row_A && innz_row_B<nnz_row_B &&  row_enc_A[innz_row_A] == row_enc_B[innz_row_B]){
         row_enc[i] = row_enc_A[innz_row_A];
         innz_row_A++;
@@ -458,7 +468,6 @@ namespace CTF_int {
           has_col[JA[IA[i]+j-1]-1] = 1;
         }
         for (int j=0; j<IB[i+1]-IB[i]; j++){
-          printf("JB[%d]-1 is %d, ncol = %d\n",IB[i]+j-1,JB[IB[i]+j-1]-1,ncol);
           has_col[JB[IB[i]+j-1]-1] = 1;
         }
         for (int j=0; j<ncol; j++){
@@ -522,12 +531,12 @@ namespace CTF_int {
             memcpy(vC+rev_col[JB[idx_B]-1],vB+idx_B*el_size,el_size);
         }
       } else if (innz_row_B>=nnz_row_B || (innz_row_A < nnz_row_A && row_enc_A[innz_row_A] < row_enc_B[innz_row_B])){
-        memcpy(JC+IC[i]-1, JA+IA[nnz_row_A]-1, sizeof(int)*(IA[innz_row_A+1] - IA[innz_row_A]));
-        memcpy(vC+(IC[i]-1)*el_size, vA+(IA[nnz_row_A]-1)*el_size, el_size*(IA[innz_row_A+1] - IA[innz_row_A]));
+        memcpy(JC+IC[i]-1, JA+IA[innz_row_A]-1, sizeof(int)*(IA[innz_row_A+1] - IA[innz_row_A]));
+        memcpy(vC+(IC[i]-1)*el_size, vA+(IA[innz_row_A]-1)*el_size, el_size*(IA[innz_row_A+1] - IA[innz_row_A]));
         innz_row_A++;
       } else {
-        memcpy(JC+IC[i]-1, JB+IB[nnz_row_B]-1, sizeof(int)*(IB[innz_row_B+1] - IB[innz_row_B]));
-        memcpy(vC+(IC[i]-1)*el_size, vB+(IB[nnz_row_B]-1)*el_size, el_size*(IB[innz_row_B+1] - IB[innz_row_B]));
+        memcpy(JC+IC[i]-1, JB+IB[innz_row_B]-1, sizeof(int)*(IB[innz_row_B+1] - IB[innz_row_B]));
+        memcpy(vC+(IC[i]-1)*el_size, vB+(IB[innz_row_B]-1)*el_size, el_size*(IB[innz_row_B+1] - IB[innz_row_B]));
         innz_row_B++;
       }
     }
@@ -538,7 +547,6 @@ namespace CTF_int {
     printf("%d %d\n",C.JA()[0],C.JA()[1]);
     printf("%lf %lf\n",((double*)C.vals())[0],((double*)C.vals())[1]);*/
     TAU_FSTOP(ccsr_add);
-    
     return C.all_data;
   }
 

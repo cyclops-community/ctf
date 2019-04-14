@@ -10,7 +10,8 @@ using namespace CTF;
 
 int spmv(int     n,
          bool    sp_out,
-         World & dw){
+         World & dw,
+         double  sp=.1){
 
   Matrix<> spA(n, n, SP, dw);
   Matrix<> dnA(n, n, dw);
@@ -20,25 +21,17 @@ int spmv(int     n,
 
   srand48(dw.rank);
   b.fill_random(0.0,1.0);
-  c1.fill_sp_random(0.0,1.0,.2);
-  dnA.fill_random(0.0,1.0);
+  c1.fill_sp_random(0.0,1.0,.5);
+  dnA.fill_sp_random(0.0,1.0,sp);
 
   spA["ij"] += dnA["ij"];
-  spA.sparsify(.5/n);
-  dnA["ij"] = 0.0;
-  dnA["ij"] += spA["ij"];
  
   c2["i"] = c1["i"];
   
   c1["i"] += dnA["ij"]*b["j"];
   
-  c2["i"] += spA["ij"]*b["j"];
-  //c2["i"] += .5*b["j"]*spA["ij"];
-  //c2["i"] += .5*spA["ij"]*b["j"];
-  //c2["i"] += .5*b["j"]*spA["ij"];
-
-  c1.print();
-  c2.print();
+  c2["i"] += .5*spA["ij"]*b["j"];
+  c2["i"] += .5*b["j"]*spA["ij"];
 
   bool pass = c2.norm2() >= 1E-6;
 
@@ -77,6 +70,7 @@ char* getCmdOption(char ** begin,
 
 int main(int argc, char ** argv){
   int rank, np, n, pass;
+  double sp;
   int const in_num = argc;
   char ** input_str = argv;
 
@@ -89,20 +83,26 @@ int main(int argc, char ** argv){
     if (n < 0) n = 7;
   } else n = 7;
 
+  if (getCmdOption(input_str, input_str+in_num, "-sp")){
+    sp = atof(getCmdOption(input_str, input_str+in_num, "-sp"));
+    if (sp < 0.0 || sp > 1.0) sp = .5/n;
+  } else sp = .5/n;
+
+
 
   {
     World dw(argc, argv);
 
     if (rank == 0){
-      printf("Multiplying %d-by-%d sparse matrix by vector\n",n,n);
+      printf("Multiplying %d-by-%d %lf pct sparse matrix by vector\n",n,n,sp);
     }
-    pass = spmv(n, false, dw);
+    pass = spmv(n, false, dw, sp);
     assert(pass);
 
     if (rank == 0){
-      printf("Multiplying %d-by-%d sparse matrix by vector into sparse vector\n",n,n);
+      printf("Multiplying %d-by-%d %lf pct sparse matrix by vector into sparse vector\n",n,n,sp);
     }
-    pass = spmv(n, true, dw);
+    pass = spmv(n, true, dw, sp);
     assert(pass);
 
   }

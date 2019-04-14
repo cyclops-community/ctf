@@ -164,20 +164,31 @@ namespace CTF_int {
         order_C++;
       }
     }
-    bool is_sparse_C = A.parent->is_sparse && B.parent->is_sparse;
-    tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, !create_dummy, NULL, false, is_sparse_C);
 
+    bool is_sparse_C = A.parent->is_sparse || B.parent->is_sparse;
+    tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, false, NULL, false, is_sparse_C);
     //estimate number of nonzeros
-    if (create_dummy && is_sparse_C){
+    if (is_sparse_C){
       if (contract){
         contraction ctr(A.parent, A.idx_map, B.parent, B.idx_map, tsr_C->sr->mulid(), tsr_C, idx_C, tsr_C->sr->addid());
         //double dense_flops = ctr->estimate_num_dense_flops();
         double flops = ctr.estimate_num_flops();
         double est_nnz = std::min(flops,((double)tsr_C->size)*tsr_C->wrld->np);
-        tsr_C->nnz_tot = (int64_t)est_nnz;
+        if (!(A.parent->is_sparse && B.parent->is_sparse) && est_nnz >= ((double)tsr_C->size)*tsr_C->wrld->np/4.)
+          is_sparse_C = false;
+        if (create_dummy){
+          tsr_C->nnz_tot = (int64_t)est_nnz;
+        }
       } else {
-        tsr_C->nnz_tot = std::min(A.parent->nnz_tot+B.parent->nnz_tot,tsr_C->size*tsr_C->wrld->np);
+        is_sparse_C = A.parent->is_sparse && B.parent->is_sparse;
+        if (create_dummy){
+          tsr_C->nnz_tot = std::min(A.parent->nnz_tot+B.parent->nnz_tot,tsr_C->size*tsr_C->wrld->np);
+        }
       }
+    }
+    if (!create_dummy){
+      delete tsr_C;
+      tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, !create_dummy, NULL, false, is_sparse_C);
     }
     Idx_Tensor * out = new Idx_Tensor(tsr_C, idx_C);
     out->is_intm = 1;

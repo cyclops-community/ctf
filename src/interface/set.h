@@ -122,14 +122,13 @@ namespace CTF_int {
       //printf("%p %d\n",coo_vs+i,*(int32_t*)(coo_vs+i));
     }
     ccsr_ia[0] = 1;
-    ccsr_ia[1] = 0;
+    ccsr_ia[1] = 1 + (nz>0);
     //FIXME: parallelize
     int cia = 1;
     for (int64_t i=1; i<nz; i++){
       if (coo_rs[ccsr_ja[i]] > coo_rs[ccsr_ja[i-1]]){
         cia++;
         ccsr_ia[cia] = ccsr_ia[cia-1];
-        //printf("ccsr_ia[%d] = %d\n",cia-1,ccsr_ia[cia-1]);
       }
       ccsr_ia[cia]++;
     }
