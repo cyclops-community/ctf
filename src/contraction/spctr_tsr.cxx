@@ -308,6 +308,14 @@ namespace CTF_int {
           return seq_tsr_spctr_k4.est_time(ps);
         }
         break;
+      case 5:
+        if (is_custom){
+          return seq_tsr_spctr_cst_k5.est_time(ps);
+        } else {
+          return seq_tsr_spctr_k5.est_time(ps);
+        }
+        break;
+
     }
     assert(0); //wont make it here
     return 0.0;

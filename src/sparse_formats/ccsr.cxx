@@ -439,7 +439,7 @@ namespace CTF_int {
       }
       nnz_row++;
     }
-    nnz_row += (nnz_row_A-nnz_row_A) + (nnz_row_B-innz_row_B);
+    nnz_row += (nnz_row_A-innz_row_A) + (nnz_row_B-innz_row_B);
     int * row_enc = (int*)alloc(sizeof(int)*nnz_row);
     int * IC = (int*)alloc(sizeof(int)*(nnz_row+1));
     int * has_col = (int*)alloc(sizeof(int)*ncol);
@@ -449,7 +449,8 @@ namespace CTF_int {
     for (int i=0; i<nnz_row; i++){
       memset(has_col, 0, sizeof(int)*ncol);
       IC[i+1] = IC[i];
-      if (row_enc_A[innz_row_A] == row_enc_B[innz_row_B]){
+      printf("i = %d nnz_row = %d, innz_row_A = %d nnz_row_A = %d, innz_row_B = %d nnz_row_B = %d\n",i,nnz_row,innz_row_A,nnz_row_A,innz_row_B,nnz_row_B);
+      if (innz_row_A<nnz_row_A && innz_row_B<nnz_row_B &&  row_enc_A[innz_row_A] == row_enc_B[innz_row_B]){
         row_enc[i] = row_enc_A[innz_row_A];
         innz_row_A++;
         innz_row_B++;
@@ -457,12 +458,13 @@ namespace CTF_int {
           has_col[JA[IA[i]+j-1]-1] = 1;
         }
         for (int j=0; j<IB[i+1]-IB[i]; j++){
+          printf("JB[%d]-1 is %d, ncol = %d\n",IB[i]+j-1,JB[IB[i]+j-1]-1,ncol);
           has_col[JB[IB[i]+j-1]-1] = 1;
         }
         for (int j=0; j<ncol; j++){
           IC[i+1] += has_col[j];
         }
-      } else if (row_enc_A[innz_row_A] < row_enc_B[innz_row_B]){
+      } else if (innz_row_B>=nnz_row_B || (innz_row_A < nnz_row_A && row_enc_A[innz_row_A] < row_enc_B[innz_row_B])){
         row_enc[i] = row_enc_A[innz_row_A];
         IC[i+1] += IA[innz_row_A+1] - IA[innz_row_A];
         innz_row_A++;
@@ -471,7 +473,9 @@ namespace CTF_int {
         IC[i+1] += IB[innz_row_B+1] - IB[innz_row_B];
         innz_row_B++;
       }
+      //printf("i=%d,nnz_row =%d\n",i,nnz_row);
     }
+    //printf("nnz is %d\n",IC[nnz_row]-1);
     CCSR_Matrix C(IC[nnz_row]-1, nnz_row, nrow, ncol, adder);
     char * vC = C.vals();
     int * JC = C.JA();
@@ -485,8 +489,7 @@ namespace CTF_int {
     innz_row_A = 0;
     innz_row_B = 0;
     for (int i=0; i<nnz_row; i++){
-      if (row_enc_A[innz_row_A] == row_enc_B[innz_row_B]){
-        row_enc[i] = row_enc_A[innz_row_A];
+      if (innz_row_A < nnz_row_A && innz_row_B < nnz_row_B && row_enc_A[innz_row_A] == row_enc_B[innz_row_B]){
         innz_row_A++;
         innz_row_B++;
         memset(has_col, 0, sizeof(int)*ncol);
@@ -518,13 +521,11 @@ namespace CTF_int {
           else
             memcpy(vC+rev_col[JB[idx_B]-1],vB+idx_B*el_size,el_size);
         }
-      } else if (row_enc_A[innz_row_A] < row_enc_B[innz_row_B]){
-        row_enc[i] = row_enc_A[innz_row_A];
+      } else if (innz_row_B>=nnz_row_B || (innz_row_A < nnz_row_A && row_enc_A[innz_row_A] < row_enc_B[innz_row_B])){
         memcpy(JC+IC[i]-1, JA+IA[nnz_row_A]-1, sizeof(int)*(IA[innz_row_A+1] - IA[innz_row_A]));
         memcpy(vC+(IC[i]-1)*el_size, vA+(IA[nnz_row_A]-1)*el_size, el_size*(IA[innz_row_A+1] - IA[innz_row_A]));
         innz_row_A++;
       } else {
-        row_enc[i] = row_enc_B[innz_row_B];
         memcpy(JC+IC[i]-1, JB+IB[nnz_row_B]-1, sizeof(int)*(IB[innz_row_B+1] - IB[innz_row_B]));
         memcpy(vC+(IC[i]-1)*el_size, vB+(IB[nnz_row_B]-1)*el_size, el_size*(IB[innz_row_B+1] - IB[innz_row_B]));
         innz_row_B++;

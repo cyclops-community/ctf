@@ -351,7 +351,7 @@ namespace CTF_int {
     printf("CTF ERROR: cannot convert elements of this algebraic structure to CSR\n");
     ASSERT(0);
   }
-  void algstrct::coo_to_ccsr(int64_t nz, int nonz_row, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
+  void algstrct::coo_to_ccsr(int64_t nz, int64_t nnz_row, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
     printf("CTF ERROR: cannot convert elements of this algebraic structure to CCSR\n");
     ASSERT(0);
   }
@@ -362,7 +362,7 @@ namespace CTF_int {
     ASSERT(0);
   }
 
-  void algstrct::ccsr_to_coo(int64_t nz, int nnz_nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, int const * row_enc, char * coo_vs, int * coo_rs, int * coo_cs) const {
+  void algstrct::ccsr_to_coo(int64_t nz, int64_t nnz_row, char const * csr_vs, int const * csr_ja, int const * csr_ia, int const * row_enc, char * coo_vs, int * coo_rs, int * coo_cs) const {
     printf("CTF ERROR: cannot convert elements of this algebraic structure to CCSR\n");
     ASSERT(0);
   }

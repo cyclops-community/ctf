@@ -720,7 +720,7 @@ namespace CTF {
         memcpy(M.nnz_row_encoding(), row_enc, nnz_row*sizeof(int));
         int * C_IA = M.IA();
         C_IA[0] = 1;
-        for (int row_A=1; row_A<nnz_row; row_A++){
+        for (int row_A=1; row_A<nnz_row+1; row_A++){
           C_IA[row_A] = C_IA[row_A-1] + n;
         }
         int * C_JA = M.JA();
@@ -732,7 +732,7 @@ namespace CTF {
           #pragma omp parallel for
 #endif
           for (int col_C=0; col_C<n; col_C++){
-            C_JA[row_C*n+col_C] = col_C;
+            C_JA[row_C*n+col_C] = col_C+1;
           }
         }
         CTF_int::CCSR_Matrix C(C_CCSR);

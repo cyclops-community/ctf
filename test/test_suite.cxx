@@ -270,7 +270,11 @@ int main(int argc, char ** argv){
     
     if (rank == 0)
       printf("Testing sparse-matrix times vector with n=%d:\n",n);
-    pass.push_back(spmv(n,dw));
+    pass.push_back(spmv(n,false,dw));
+ 
+    if (rank == 0)
+      printf("Testing doubly-compressed sparse-matrix times vector with n=%d:\n",n);
+    pass.push_back(spmv(n,true,dw));
     
     if (rank == 0)
       printf("Testing sparse-matrix times matrix with n=%d k=%d:\n",n*n,n);

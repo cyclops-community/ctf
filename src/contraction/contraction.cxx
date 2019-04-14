@@ -4011,7 +4011,6 @@ namespace CTF_int {
     int krnl_type = -1;
     if (is_inner){
       ASSERT(!(!A->is_sparse && (B->is_sparse || C->is_sparse)));
-      ASSERT(!(C->is_sparse && (!B->is_sparse || !A->is_sparse)));
       if (A->is_sparse && !B->is_sparse && !C->is_sparse){
         if (is_custom || !A->sr->has_coo_ker) krnl_type = 2;
         else krnl_type = 1;

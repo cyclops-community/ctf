@@ -9,21 +9,22 @@
 using namespace CTF;
 
 int spmv(int     n,
+         bool    sp_out,
          World & dw){
 
   Matrix<> spA(n, n, SP, dw);
   Matrix<> dnA(n, n, dw);
   Vector<> b(n, dw);
   Vector<> c1(n, dw);
-  Vector<> c2(n, dw);
+  Vector<> c2(n, sp_out, dw);
 
   srand48(dw.rank);
   b.fill_random(0.0,1.0);
-  c1.fill_random(0.0,1.0);
+  c1.fill_sp_random(0.0,1.0,.2);
   dnA.fill_random(0.0,1.0);
 
   spA["ij"] += dnA["ij"];
-  spA.sparsify(.5);
+  spA.sparsify(.5/n);
   dnA["ij"] = 0.0;
   dnA["ij"] += spA["ij"];
  
@@ -31,9 +32,13 @@ int spmv(int     n,
   
   c1["i"] += dnA["ij"]*b["j"];
   
-  c2["i"] += .5*spA["ij"]*b["j"];
-  c2["i"] += .5*b["j"]*spA["ij"];
+  c2["i"] += spA["ij"]*b["j"];
+  //c2["i"] += .5*b["j"]*spA["ij"];
+  //c2["i"] += .5*spA["ij"]*b["j"];
+  //c2["i"] += .5*b["j"]*spA["ij"];
 
+  c1.print();
+  c2.print();
 
   bool pass = c2.norm2() >= 1E-6;
 
@@ -42,10 +47,17 @@ int spmv(int     n,
   if (pass) pass = c2.norm2() <= 1.E-6;
 
   if (dw.rank == 0){
-    if (pass) 
-      printf("{ c[\"i\"] += A[\"ij\"]*b[\"j\"] with sparse, A } passed \n");
-    else
-      printf("{ c[\"i\"] += A[\"ij\"]*b[\"j\"] with sparse, A } failed \n");
+    if (sp_out){
+      if (pass)
+        printf("{ c[\"i\"] += A[\"ij\"]*b[\"j\"] with sparse A and sparse c} passed \n");
+      else
+        printf("{ c[\"i\"] += A[\"ij\"]*b[\"j\"] with sparse A and sparse c} failed \n");
+    } else {
+      if (pass)
+        printf("{ c[\"i\"] += A[\"ij\"]*b[\"j\"] with sparse A } passed \n");
+      else
+        printf("{ c[\"i\"] += A[\"ij\"]*b[\"j\"] with sparse A } failed \n");
+    }
   }
   return pass;
 } 
@@ -84,8 +96,15 @@ int main(int argc, char ** argv){
     if (rank == 0){
       printf("Multiplying %d-by-%d sparse matrix by vector\n",n,n);
     }
-    pass = spmv(n, dw);
+    pass = spmv(n, false, dw);
     assert(pass);
+
+    if (rank == 0){
+      printf("Multiplying %d-by-%d sparse matrix by vector into sparse vector\n",n,n);
+    }
+    pass = spmv(n, true, dw);
+    assert(pass);
+
   }
 
   MPI_Finalize();

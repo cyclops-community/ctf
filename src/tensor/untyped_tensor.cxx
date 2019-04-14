@@ -2905,8 +2905,8 @@ namespace CTF_int {
       CTF_int::alloc_ptr(new_sz_A, (void**)&this->rec_tsr->data);
       char * data_ptr_out = this->rec_tsr->data;
       for (int i=0; i<nvirt_A; i++){
-        data_ptr_out += this->rec_tsr->nnz_blk[i];
         memcpy(data_ptr_out, mat_list[i].all_data, mat_list[i].size());
+        data_ptr_out += this->rec_tsr->nnz_blk[i];
       }
       delete [] mat_list;
     } else {
