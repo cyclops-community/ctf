@@ -556,7 +556,7 @@ namespace CTF_int {
        * \param[in] alpha scalar with which to scale data of this tensor
        * \param[in] beta parameter with which to scale data already in old_tsr
        */
-      int reshape(tensor * old_tsr, char const * alpha, char const * beta);
+      int reshape(tensor const * old_tsr, char const * alpha, char const * beta);
 
       /**
        * brief copy A into this (B). Realloc if necessary

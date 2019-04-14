@@ -164,7 +164,7 @@ namespace CTF_int {
   } 
 
   int * CCSR_Matrix::JA() const {
-    int64_t nr = this->nrow();
+    int64_t nr = this->nnz_row();
     char * ptr = (char*)this->IA();
     int64_t offset = ptr-all_data; 
     offset += (nr+1)*sizeof(int);
@@ -343,7 +343,7 @@ namespace CTF_int {
 
     int * row_inds = (int*)malloc(sizeof(int)*s);
     std::fill(row_inds,row_inds+s,0);
-    for (int i=0; i<tot_nrow; i++){
+    for (int i=0; i<tot_nnz_row; i++){
       int min_row = INT_MAX;
       int ipart = -1;
       for (int j=0; j<s; j++){
@@ -462,17 +462,17 @@ namespace CTF_int {
       //printf("i = %d nnz_row = %d, innz_row_A = %d nnz_row_A = %d, innz_row_B = %d nnz_row_B = %d\n",i,nnz_row,innz_row_A,nnz_row_A,innz_row_B,nnz_row_B);
       if (innz_row_A<nnz_row_A && innz_row_B<nnz_row_B &&  row_enc_A[innz_row_A] == row_enc_B[innz_row_B]){
         row_enc[i] = row_enc_A[innz_row_A];
-        innz_row_A++;
-        innz_row_B++;
-        for (int j=0; j<IA[i+1]-IA[i]; j++){
-          has_col[JA[IA[i]+j-1]-1] = 1;
+        for (int j=0; j<IA[innz_row_A+1]-IA[innz_row_A]; j++){
+          has_col[JA[IA[innz_row_A]+j-1]-1] = 1;
         }
-        for (int j=0; j<IB[i+1]-IB[i]; j++){
-          has_col[JB[IB[i]+j-1]-1] = 1;
+        for (int j=0; j<IB[innz_row_B+1]-IB[innz_row_B]; j++){
+          has_col[JB[IB[innz_row_B]+j-1]-1] = 1;
         }
         for (int j=0; j<ncol; j++){
           IC[i+1] += has_col[j];
         }
+        innz_row_A++;
+        innz_row_B++;
       } else if (innz_row_B>=nnz_row_B || (innz_row_A < nnz_row_A && row_enc_A[innz_row_A] < row_enc_B[innz_row_B])){
         row_enc[i] = row_enc_A[innz_row_A];
         IC[i+1] += IA[innz_row_A+1] - IA[innz_row_A];
@@ -489,9 +489,9 @@ namespace CTF_int {
     char * vC = C.vals();
     int * JC = C.JA();
     int * row_enc_C = C.nnz_row_encoding();
-    memcpy(C.IA(), IC, sizeof(int)*(nrow+1));
+    memcpy(C.IA(), IC, sizeof(int)*(nnz_row+1));
     cdealloc(IC);
-    memcpy(row_enc_C, row_enc, sizeof(int)*nrow);
+    memcpy(row_enc_C, row_enc, sizeof(int)*nnz_row);
     cdealloc(row_enc);
     IC = C.IA();
     int64_t * rev_col = (int64_t*)alloc(sizeof(int64_t)*ncol);
@@ -499,14 +499,12 @@ namespace CTF_int {
     innz_row_B = 0;
     for (int i=0; i<nnz_row; i++){
       if (innz_row_A < nnz_row_A && innz_row_B < nnz_row_B && row_enc_A[innz_row_A] == row_enc_B[innz_row_B]){
-        innz_row_A++;
-        innz_row_B++;
         memset(has_col, 0, sizeof(int)*ncol);
-        for (int j=0; j<IA[i+1]-IA[i]; j++){
-          has_col[JA[IA[i]+j-1]-1] = 1;
+        for (int j=0; j<IA[innz_row_A+1]-IA[innz_row_A]; j++){
+          has_col[JA[IA[innz_row_A]+j-1]-1] = 1;
         }
-        for (int j=0; j<IB[i+1]-IB[i]; j++){
-          has_col[JB[IB[i]+j-1]-1] = 1;
+        for (int j=0; j<IB[innz_row_B+1]-IB[innz_row_B]; j++){
+          has_col[JB[IB[innz_row_B]+j-1]-1] = 1;
         }
         int vs = 0;
         for (int j=0; j<ncol; j++){
@@ -518,18 +516,20 @@ namespace CTF_int {
           }
         }
         memset(has_col, 0, sizeof(int)*ncol);
-        for (int j=0; j<IA[i+1]-IA[i]; j++){
-          int idx_A = IA[i]+j-1;
+        for (int j=0; j<IA[innz_row_A+1]-IA[innz_row_A]; j++){
+          int idx_A = IA[innz_row_A]+j-1;
           memcpy(vC+rev_col[JA[idx_A]-1],vA+idx_A*el_size,el_size);
           has_col[JA[idx_A]-1] = 1;
         }
-        for (int j=0; j<IB[i+1]-IB[i]; j++){
-          int idx_B = IB[i]+j-1;
+        for (int j=0; j<IB[innz_row_B+1]-IB[innz_row_B]; j++){
+          int idx_B = IB[innz_row_B]+j-1;
           if (has_col[JB[idx_B]-1])
             adder->accum(vB+idx_B*el_size,vC+rev_col[JB[idx_B]-1]);
           else
             memcpy(vC+rev_col[JB[idx_B]-1],vB+idx_B*el_size,el_size);
         }
+        innz_row_A++;
+        innz_row_B++;
       } else if (innz_row_B>=nnz_row_B || (innz_row_A < nnz_row_A && row_enc_A[innz_row_A] < row_enc_B[innz_row_B])){
         memcpy(JC+IC[i]-1, JA+IA[innz_row_A]-1, sizeof(int)*(IA[innz_row_A+1] - IA[innz_row_A]));
         memcpy(vC+(IC[i]-1)*el_size, vA+(IA[innz_row_A]-1)*el_size, el_size*(IA[innz_row_A+1] - IA[innz_row_A]));
@@ -547,6 +547,7 @@ namespace CTF_int {
     printf("%d %d\n",C.JA()[0],C.JA()[1]);
     printf("%lf %lf\n",((double*)C.vals())[0],((double*)C.vals())[1]);*/
     TAU_FSTOP(ccsr_add);
+    //C.print((algstrct*)adder);
     return C.all_data;
   }
 

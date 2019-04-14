@@ -1613,7 +1613,7 @@ namespace CTF_int {
     return SUCCESS;
   }
 
-  int tensor::reshape(tensor * old_tsr, char const * alpha, char const * beta){
+  int tensor::reshape(tensor const * old_tsr, char const * alpha, char const * beta){
     char * pairs;
     int64_t n;
     
@@ -2898,6 +2898,7 @@ namespace CTF_int {
         COO_Matrix cm(this->nnz_blk[i], this->sr);
         cm.set_data(this->nnz_blk[i], this->order, this->sym, this->lens, this->pad_edge_len, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
         mat_list[i] = CCSR_Matrix(cm, m, n, this->sr);
+        cdealloc(cm.all_data);
         this->rec_tsr->nnz_blk[i] = mat_list[i].size();
         new_sz_A += this->rec_tsr->nnz_blk[i];
         data_ptr_in += this->nnz_blk[i]*this->sr->pair_size();
@@ -2906,6 +2907,7 @@ namespace CTF_int {
       char * data_ptr_out = this->rec_tsr->data;
       for (int i=0; i<nvirt_A; i++){
         memcpy(data_ptr_out, mat_list[i].all_data, mat_list[i].size());
+        cdealloc(mat_list[i].all_data);
         data_ptr_out += this->rec_tsr->nnz_blk[i];
       }
       delete [] mat_list;

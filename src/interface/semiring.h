@@ -4,6 +4,7 @@
 #include "functions.h"
 #include "../sparse_formats/csr.h"
 #include "../sparse_formats/ccsr.h"
+#include "../redistribution/nosym_transp.h"
 #include <iostream>
 
 using namespace std;
@@ -715,8 +716,27 @@ namespace CTF {
                       dtype const * B,
                       dtype         beta,
                       char *&       C_CCSR) const {
-        CTF_int::CCSR_Matrix M(nnz_row*n, nnz_row, m, n, this);
-        csrmm(nnz_row,n,k,(char const *)&alpha, (char const *)A, JA, IA, nnz_A, (char const*)B, this->mulid(), M.vals(), NULL);
+        //printf("Doing ccsrmm with %d nonzeros and %d/%d nonzero rows\n",nnz_A,nnz_row,m);
+        CTF_int::CCSR_Matrix M;
+        if (nnz_row == 0){
+          M = CTF_int::CCSR_Matrix(nnz_row*n, nnz_row, m, n, this);
+        } else {
+          int new_order[2] = {1, 0};
+          int lens[2] = {nnz_row, n};
+          bool use_hptt = CTF_int::hptt_is_applicable(2, new_order, this->el_size);
+          if (use_hptt){
+            char * data = this->alloc(((int64_t)nnz_row)*n);
+            this->init_shell(((int64_t)nnz_row)*n, data);
+            csrmm(nnz_row,n,k,(char const *)&alpha, (char const *)A, JA, IA, nnz_A, (char const*)B, this->mulid(), data, NULL);
+            M = CTF_int::CCSR_Matrix(((int64_t)nnz_row)*n, nnz_row, m, n, this);
+            CTF_int::nosym_transpose_hptt(2, new_order, lens, 1, data, M.vals(), this);
+            this->dealloc(data);
+          } else {
+            M = CTF_int::CCSR_Matrix(((int64_t)nnz_row)*n, nnz_row, m, n, this);
+            csrmm(nnz_row,n,k,(char const *)&alpha, (char const *)A, JA, IA, nnz_A, (char const*)B, this->mulid(), M.vals(), NULL);
+            CTF_int::nosym_transpose(2,new_order,lens,M.vals(),1,this);
+          }
+        }
         memcpy(M.nnz_row_encoding(), row_enc, nnz_row*sizeof(int));
         int * C_IA = M.IA();
         C_IA[0] = 1;
@@ -735,11 +755,15 @@ namespace CTF {
             C_JA[row_C*n+col_C] = col_C+1;
           }
         }
-        CTF_int::CCSR_Matrix C(C_CCSR);
-        if (!this->isequal((char const *)&beta, this->addid())){
+        if (C_CCSR != NULL && !this->isequal((char const *)&beta, this->addid())){
+          CTF_int::CCSR_Matrix C(C_CCSR);
           if (!this->isequal((char const *)&beta, this->mulid()))
             this->scal(C.nnz(), (char*)&beta, C.all_data, 1);
           C_CCSR = CTF_int::CCSR_Matrix::ccsr_add(C.all_data, M.all_data, this);
+          CTF_int::cdealloc(M.all_data);
+        } else {
+          //CTF_int::cdealloc(C_CCSR);
+          C_CCSR = M.all_data;
         }
       }
 

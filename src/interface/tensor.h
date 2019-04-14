@@ -748,7 +748,7 @@ namespace CTF {
        * \brief reshape tensors into dimensions given by lens, keeps sparsity if this tensor has it, sheds any symmetries
        * \param[in] old_tsr pre-allocated tensor with old shape
        */
-      void reshape(Tensor<dtype> & old_tsr);
+      void reshape(Tensor<dtype> const & old_tsr);
 
       /**
        * \brief reshape tensors into dimensions given by lens, keeps sparsity if this tensor has it, sheds any symmetries
@@ -756,7 +756,7 @@ namespace CTF {
        * \param[in] alpha scalar with which to scale data of old_tsr
        * \param[in] beta parameter with which to scale data already in this tensor
        */
-      void reshape(Tensor<dtype> & old_tsr, dtype alpha, dtype beta);
+      void reshape(Tensor<dtype> const & old_tsr, dtype alpha, dtype beta);
 
 
       /**

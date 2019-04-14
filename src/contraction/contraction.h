@@ -107,6 +107,9 @@ namespace CTF_int {
       /** \brief run contraction */
       void execute();
       
+      /** \brief predicts sparsityu fraction of output */
+      double estimate_output_nnz_frac();
+
       /** \brief predicts number of flops, treatign all tensors as dense even if they are sparse */
       double estimate_num_dense_flops();
 

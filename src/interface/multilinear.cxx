@@ -268,6 +268,7 @@ namespace CTF {
     //  printf("Completed TTTP\n");
     free(redist_mats);
     if (mat_strides != NULL) free(mat_strides);
+    free(par_idx);
     free(phys_phase);
     free(ldas);
     free(op_lens);

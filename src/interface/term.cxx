@@ -172,12 +172,14 @@ namespace CTF_int {
       if (contract){
         contraction ctr(A.parent, A.idx_map, B.parent, B.idx_map, tsr_C->sr->mulid(), tsr_C, idx_C, tsr_C->sr->addid());
         //double dense_flops = ctr->estimate_num_dense_flops();
-        double flops = ctr.estimate_num_flops();
-        double est_nnz = std::min(flops,((double)tsr_C->size)*tsr_C->wrld->np);
-        if (!(A.parent->is_sparse && B.parent->is_sparse) && est_nnz >= ((double)tsr_C->size)*tsr_C->wrld->np/4.)
+        //double flops = ctr.estimate_num_flops();
+        //double est_nnz = std::min(flops,((double)tsr_C->size)*tsr_C->wrld->np);
+        double nnz_frac_C = ctr.estimate_output_nnz_frac();
+        //if (!(A.parent->is_sparse && B.parent->is_sparse) && est_nnz >= ((double)tsr_C->size)*tsr_C->wrld->np/4.)
+        if (nnz_frac_C > 1./3.)
           is_sparse_C = false;
         if (create_dummy){
-          tsr_C->nnz_tot = (int64_t)est_nnz;
+          tsr_C->nnz_tot = (int64_t)nnz_frac_C*tsr_C->get_tot_size(false);
         }
       } else {
         is_sparse_C = A.parent->is_sparse && B.parent->is_sparse;
@@ -186,6 +188,8 @@ namespace CTF_int {
         }
       }
     }
+    //if (is_sparse_C && !(A.parent->is_sparse && B.parent->is_sparse))
+    //  printf("Decided to use CCSR\n");
     if (!create_dummy){
       delete tsr_C;
       tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, !create_dummy, NULL, false, is_sparse_C);

@@ -80,13 +80,20 @@ namespace CTF_int {
    * \brief High-performance implementation of nosym_transpose using HPTT
    *
    * \param[in] order dimension of tensor
-   * \param[in] edge_len original edge lengths
+   * \param[in] st_new_order new ordering of modes
+   * \param[in] st_edge_len original edge lengths
    * \param[in] dir which way are we going?
-   * \param[in,out] A tensor to be transposed
+   * \param[in] st_buffer initial buffer
+   * \param[in,out] new_buffer destination buffer, preallocated
+   * \param[in] sr algebraic structure
    */
-  void nosym_transpose_hptt(int         order,
-                       int const *      edge_len,
-                       int              dir,
-                       tensor *         &A);
+
+  void nosym_transpose_hptt(int              order,
+                            int const *      st_new_order,
+                            int const *      st_edge_len,
+                            int              dir,
+                            char const *     st_buffer,
+                            char *           new_buffer,
+                            algstrct const * sr);
 }
 #endif

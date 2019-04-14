@@ -474,13 +474,13 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Tensor<dtype>::reshape(Tensor<dtype> & old_tsr){
+  void Tensor<dtype>::reshape(Tensor<dtype> const & old_tsr){
     int ret = CTF_int::tensor::reshape(&old_tsr, sr->mulid(), sr->addid());
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function reshape\n"); IASSERT(0); return; }
   }
 
   template<typename dtype>
-  void Tensor<dtype>::reshape(Tensor<dtype> & old_tsr, dtype alpha, dtype beta){
+  void Tensor<dtype>::reshape(Tensor<dtype> const & old_tsr, dtype alpha, dtype beta){
     int ret = CTF_int::tensor::reshape(&old_tsr, (char*)&alpha, (char*)&beta);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function reshape\n"); IASSERT(0); return; }
   }
@@ -988,7 +988,7 @@ NORM_INFTY_INST(double)
       return;
     }
     for (int64_t i=0; i<T.size; i++){
-      ((dtype*)T.data)[i] = CTF_int::get_rand48()*(rmax-rmin)+rmin;
+      ((dtype*)T.data)[i] = ((dtype)CTF_int::get_rand48())*(rmax-rmin)+rmin;
     }
     T.zero_out_padding();
   }
@@ -1002,6 +1002,17 @@ NORM_INFTY_INST(double)
   inline void Tensor<float>::fill_random(float rmin, float rmax){
     fill_random_base<float>(rmin, rmax, *this);
   }
+
+  template<>
+  inline void Tensor<std::complex<double>>::fill_random(std::complex<double> rmin, std::complex<double> rmax){
+    fill_random_base<std::complex<double>>(rmin, rmax, *this);
+  }
+
+  template<>
+  inline void Tensor<std::complex<float>>::fill_random(std::complex<float> rmin, std::complex<float> rmax){
+    fill_random_base<std::complex<float>>(rmin, rmax, *this);
+  }
+
 
   template<>
   inline void Tensor<int64_t>::fill_random(int64_t rmin, int64_t rmax){

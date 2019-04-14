@@ -162,6 +162,38 @@ namespace CTF_int {
     }
   }
 
+  double contraction::estimate_output_nnz_frac(){
+    int num_tot;
+    int * idx_arr;
+
+    inv_idx(A->order, idx_A,
+            B->order, idx_B,
+            C->order, idx_C,
+            &num_tot, &idx_arr);
+    double nnz_frac_C = 1.;
+
+    if (C->is_sparse){
+      double nnz_frac_A = 1.0;
+      double nnz_frac_B = 1.0;
+      if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
+      if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
+
+      nnz_frac_C = std::min(1.,((double)C->nnz_tot)/(C->size*C->calc_npe()));
+      int64_t len_ctr = 1;
+      for (int i=0; i<num_tot; i++){
+        if (idx_arr[3*i+2]==-1){
+          int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
+                                              : B->lens[idx_arr[3*i+1]];
+          len_ctr *= edge_len;
+        }
+      }
+      nnz_frac_C = std::min(1.,std::max(nnz_frac_C,nnz_frac_A*nnz_frac_B*len_ctr));
+    }
+    CTF_int::cdealloc(idx_arr);
+
+    return nnz_frac_C;
+  }
+
   double contraction::estimate_num_dense_flops(){
     double dense_flops = 1.;
     int num_tot;
@@ -862,6 +894,8 @@ namespace CTF_int {
       //printf("A is sparse %d B is sparse %d\n",A->is_sparse,B->is_sparse);
       bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
       bool use_ccsr =  csr_or_coo && A->is_sparse && C->is_sparse && !B->is_sparse;
+      //if (use_ccsr)
+      //  printf("using CCSR\n");
       if (!A->is_sparse){
         nosym_transpose(A, all_fdim_A, all_flen_A, A->inner_ordering, 1);
       } else {
@@ -2601,18 +2635,19 @@ namespace CTF_int {
         double nnz_frac_C = 1.0;
         if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
         if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
-        if (C->is_sparse){
-          nnz_frac_C = std::min(1.,((double)C->nnz_tot)/(C->size*C->calc_npe()));
-          int64_t len_ctr = 1;
-          for (int i=0; i<num_tot; i++){
-            if (idx_arr[3*i+2]==-1){
-              int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
-                                                  : B->lens[idx_arr[3*i+1]];
-              len_ctr *= edge_len;
-            }
-          }
-          nnz_frac_C = std::min(1.,std::max(nnz_frac_C,nnz_frac_A*nnz_frac_B*len_ctr));
-        }
+        nnz_frac_C = estimate_output_nnz_frac();
+        //if (C->is_sparse){
+        //  nnz_frac_C = std::min(1.,((double)C->nnz_tot)/(C->size*C->calc_npe()));
+        //  int64_t len_ctr = 1;
+        //  for (int i=0; i<num_tot; i++){
+        //    if (idx_arr[3*i+2]==-1){
+        //      int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
+        //                                          : B->lens[idx_arr[3*i+1]];
+        //      len_ctr *= edge_len;
+        //    }
+        //  }
+        //  nnz_frac_C = std::min(1.,std::max(nnz_frac_C,nnz_frac_A*nnz_frac_B*len_ctr));
+        //}
         // check this early on to avoid 64-bit integer overflow
         double size_memuse = A->size*nnz_frac_A*A->sr->el_size + B->size*nnz_frac_B*B->sr->el_size + C->size*nnz_frac_C*C->sr->el_size;
         if (size_memuse >= (double)max_memuse){
@@ -2820,20 +2855,22 @@ namespace CTF_int {
         double nnz_frac_C = 1.0;
         if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
         if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
-        if (C->is_sparse){
-          nnz_frac_C = std::min(1.,((double)C->nnz_tot)/(C->size*C->calc_npe()));
-          nnz_frac_C = std::max(nnz_frac_C,nnz_frac_A);
-          nnz_frac_C = std::max(nnz_frac_C,nnz_frac_B);
-          int64_t len_ctr = 1;
-          for (int i=0; i<num_tot; i++){
-            if (idx_arr[3*i+2]==-1){
-              int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
-                                                  : B->lens[idx_arr[3*i+1]];
-              len_ctr *= edge_len;
-            }
-          }
-          nnz_frac_C = std::min(1.,std::max(nnz_frac_C,nnz_frac_A*nnz_frac_B*len_ctr));
-        }
+
+        nnz_frac_C = estimate_output_nnz_frac();
+        //if (C->is_sparse){
+        //  nnz_frac_C = std::min(1.,((double)C->nnz_tot)/(C->size*C->calc_npe()));
+        //  nnz_frac_C = std::max(nnz_frac_C,nnz_frac_A);
+        //  nnz_frac_C = std::max(nnz_frac_C,nnz_frac_B);
+        //  int64_t len_ctr = 1;
+        //  for (int i=0; i<num_tot; i++){
+        //    if (idx_arr[3*i+2]==-1){
+        //      int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
+        //                                          : B->lens[idx_arr[3*i+1]];
+        //      len_ctr *= edge_len;
+        //    }
+        //  }
+        //  nnz_frac_C = std::min(1.,std::max(nnz_frac_C,nnz_frac_A*nnz_frac_B*len_ctr));
+        //}
 
 
         ctr * sctr;
@@ -4961,6 +4998,14 @@ namespace CTF_int {
       return SUCCESS;
     }
 
+    // if multiplying A and B with one sparse, make first sparse 
+    if (!A->is_sparse && B->is_sparse){
+      assert(this->func==NULL); // currently if contracting two tensors with special function and one is sparse, first operand of the two must be the sparse one
+      contraction new_ctr = contraction(this->B,this->idx_B,this->A,this->idx_A,this->alpha,this->C,this->idx_C,this->beta,this->func);
+      new_ctr.execute();
+      return SUCCESS;
+    }
+
     if (C->is_sparse && !A->is_sparse){
       contraction pre_new_ctr = contraction(*this);
       pre_new_ctr.A = new tensor(A, 1, 1);
@@ -4977,14 +5022,6 @@ namespace CTF_int {
       pre_new_ctr.B->sparsify([](char const *){ return true; });
       pre_new_ctr.execute();
       delete pre_new_ctr.B;
-      return SUCCESS;
-    }
-
-    // if multiplying A and B with one sparse, make first sparse 
-    if (!A->is_sparse && B->is_sparse){
-      assert(this->func==NULL); // currently if contracting two tensors with special function and one is sparse, first operand of the two must be the sparse one
-      contraction new_ctr = contraction(this->B,this->idx_B,this->A,this->idx_A,this->alpha,this->C,this->idx_C,this->beta,this->func);
-      new_ctr.execute();
       return SUCCESS;
     }
 
