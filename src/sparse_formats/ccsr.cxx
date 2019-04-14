@@ -24,7 +24,7 @@ namespace CTF_int {
 
   CCSR_Matrix::CCSR_Matrix(int64_t nnz, int64_t nnz_row, int64_t nrow_, int64_t ncol, accumulatable const * sr){
     ASSERT(ALIGN >= 16);
-    int64_t size = get_ccsr_size(nnz, nrow_, sr->el_size);
+    int64_t size = get_ccsr_size(nnz, nnz_row, sr->el_size);
     all_data = (char*)alloc(size);
     ((int64_t*)all_data)[0] = nnz;
     ((int64_t*)all_data)[1] = sr->el_size;
@@ -58,12 +58,12 @@ namespace CTF_int {
     int64_t nnz_row = 0;
     if (nz > 0){
 #ifdef USE_OMP
-      #pragma omp parallel for shared(nnz_row) reduction(+: nnz_row)
+      #pragma omp parallel for reduction(+: nnz_row)
 #endif
       for (int i=1; i<nz; i++){
         nnz_row += (coo_rs_copy[i-1] != coo_rs_copy[i]);
       }
-      int64_t nnz_row+=1;
+      nnz_row+=1;
     }
 
     int64_t size = get_ccsr_size(nz, nnz_row, v_sz);
@@ -121,7 +121,7 @@ namespace CTF_int {
   }
 
   int64_t CCSR_Matrix::size() const {
-    return get_ccsr_size(nnz(),nrow(),val_size());
+    return get_ccsr_size(nnz(),nnz_row(),val_size());
   }
   
   int CCSR_Matrix::nrow() const {
@@ -139,11 +139,11 @@ namespace CTF_int {
   int * CCSR_Matrix::nnz_row_encoding() const {
     int offset = 5*sizeof(int64_t);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
-    return all_data + offset;
+    return (int*)(all_data + offset);
   }
 
   char * CCSR_Matrix::vals() const {
-    char * ptr = this->nnz_row_encoding();
+    char * ptr = (char*)this->nnz_row_encoding();
     int64_t offset = ptr-all_data; 
     offset += this->nnz_row()*sizeof(int);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
@@ -163,7 +163,7 @@ namespace CTF_int {
 
   int * CCSR_Matrix::JA() const {
     int64_t nr = this->nrow();
-    ptr = (char*)this->IA();
+    char * ptr = (char*)this->IA();
     int64_t offset = ptr-all_data; 
     offset += (nr+1)*sizeof(int);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
@@ -174,10 +174,11 @@ namespace CTF_int {
     if (func != NULL && func->has_off_gemm && do_offload){
       assert(sr_C->isequal(beta, sr_C->mulid()));
       assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
-      func->coffload_ccsrmm(m,n,k,A,B,C);
+      ASSERT(0);
     } else {
       CCSR_Matrix cA((char*)A);
       int64_t nz = cA.nnz(); 
+      int64_t nnz_row = cA.nnz_row(); 
       int const * row_enc = cA.nnz_row_encoding();
       int const * ja = cA.JA();
       int const * ia = cA.IA();
@@ -191,7 +192,7 @@ namespace CTF_int {
         ASSERT(sr_B->el_size == sr_A->el_size);
         ASSERT(sr_C->el_size == sr_A->el_size);
         assert(!do_offload);
-        sr_C->ccsrmm(m,n,k,alpha,vs,row_enc,ja,ia,nz,B,beta,C,func);
+        sr_C->ccsrmm(m,n,k,nnz_row,alpha,vs,ja,ia,row_enc,nz,B,beta,C,func);
       }
     }
   }
@@ -263,7 +264,7 @@ namespace CTF_int {
     int nr = nrow();
     int v_sz = val_size();
     char * org_vals = vals();
-    int const * row_enc = cA.nnz_row_encoding();
+    int const * row_enc = nnz_row_encoding();
     int const * org_ia = IA();
     int const * org_ja = JA();
     for (int i=0; i<s; i++){
@@ -271,7 +272,7 @@ namespace CTF_int {
       part_nrows[i] = 0;
     }
     for (int i=0; i<nnz_r; i++){
-      int is = row_enc[i] % s;
+      int is = (row_enc[i]-1) % s;
       part_nrows[is]++;
       part_nnz[is]+=org_ia[i+1]-org_ia[i];
     }
@@ -293,9 +294,9 @@ namespace CTF_int {
       int * pja = parts[i]->JA();
       int * pia = parts[i]->IA();
       pia[0] = 1;
-      for (int j=i, k=0; j<m; j++, k++){
-        if (row_enc[j] % s == i){
-          prow_enc[k] = row_enc[j] / s;
+      for (int j=i, k=0; j<nnz_r; j++, k++){
+        if ((row_enc[j]-1) % s == i){
+          prow_enc[k] = (row_enc[j]-1) / s + 1;
           memcpy(pvals+(pia[k]-1)*v_sz, org_vals+(org_ia[j]-1)*v_sz, (org_ia[j+1]-org_ia[j])*v_sz);
           memcpy(pja+(pia[k]-1), org_ja+(org_ia[j]-1), (org_ia[j+1]-org_ia[j])*sizeof(int));
           pia[k+1] = pia[k]+org_ia[j+1]-org_ia[j];
@@ -306,16 +307,24 @@ namespace CTF_int {
   }
       
   CCSR_Matrix::CCSR_Matrix(char * const * smnds, int s){
-    CCSR_Matrix * ccsrs[s];
+    CCSR_Matrix * ccsrs = new CCSR_Matrix[s];
+    int const ** pja = (int const **)malloc(sizeof(int*)*s);
+    int const ** pia = (int const **)malloc(sizeof(int*)*s);
+    int const ** prow_enc = (int const **)malloc(sizeof(int*)*s);
+    int * pnnz_row = (int*)malloc(sizeof(int)*s);
     int64_t tot_nnz=0, tot_nnz_row=0, tot_nrow=0;
     for (int i=0; i<s; i++){
-      ccsrs[i] = new CCSR_Matrix(smnds[i]);
-      tot_nnz += ccsrs[i]->nnz();
-      tot_nrow += ccsrs[i]->nrow();
-      tot_nnz_row += ccsrs[i]->nnz_row();
+      ccsrs[i] = CCSR_Matrix(smnds[i]);
+      tot_nnz += ccsrs[i].nnz();
+      tot_nrow += ccsrs[i].nrow();
+      tot_nnz_row += ccsrs[i].nnz_row();
+      pnnz_row[i] = ccsrs[i].nnz_row();
+      pja[i] = ccsrs[i].JA();
+      pia[i] = ccsrs[i].IA();
+      prow_enc[i] = ccsrs[i].nnz_row_encoding();
     }
-    int64_t v_sz = ccsrs[0]->val_size();
-    int64_t tot_ncol = ccsrs[0]->ncol();
+    int64_t v_sz = ccsrs[0].val_size();
+    int64_t tot_ncol = ccsrs[0].ncol();
     all_data = (char*)alloc(get_ccsr_size(tot_nnz, tot_nrow, v_sz));
     ((int64_t*)all_data)[0] = tot_nnz;
     ((int64_t*)all_data)[1] = v_sz;
@@ -330,24 +339,37 @@ namespace CTF_int {
 
     ccsr_ia[0] = 1;
 
+    int * row_inds = (int*)malloc(sizeof(int)*s);
+    std::fill(row_inds,row_inds+s,0);
     for (int i=0; i<tot_nrow; i++){
-      int ipart = i%s;
-      int const * pja = ccsrs[ipart]->JA();
-      int const * pia = ccsrs[ipart]->IA();
-      int const * prow_enc = ccsrs[ipart]->nnz_row_encoding();
-      int i_nnz = pia[i/s+1]-pia[i/s];
+      int min_row = INT_MAX;
+      int ipart = -1;
+      for (int j=0; j<s; j++){
+        if (row_inds[j] < pnnz_row[j]){
+          if (prow_enc[j][row_inds[j]] < min_row){
+            min_row = prow_enc[j][row_inds[j]];
+            ipart = j;
+          }
+        }
+      }
+      int ri = row_inds[ipart];
+      row_inds[ipart]++;
+      ASSERT(ipart != -1);
+      int i_nnz = pia[ipart][ri+1]-pia[ipart][ri];
       memcpy(ccsr_vs+(ccsr_ia[i]-1)*v_sz,
-             ccsrs[ipart]->vals()+(pia[i/s]-1)*v_sz,
+             ccsrs[ipart].vals()+(pia[ipart][ri]-1)*v_sz,
              i_nnz*v_sz);
       memcpy(ccsr_ja+(ccsr_ia[i]-1),
-             pja+(pia[i/s]-1),
+             pja[ipart]+(pia[ipart][ri]-1),
              i_nnz*sizeof(int));
       ccsr_ia[i+1] = ccsr_ia[i]+i_nnz;
-      row_enc[i] = prow_enc[...//FIXME: need to be smarter about merging nonzero rows, maybe out of order]
+      row_enc[i] = s*(prow_enc[ipart][ri]-1) + ipart + 1;
     }
-    for (int i=0; i<s; i++){
-      delete ccsrs[i];
-    }
+    free(pja);
+    free(pia);
+    free(pnnz_row);
+    free(row_inds);
+    delete [] ccsrs;
   }
 
   void CCSR_Matrix::print(algstrct const * sr){
@@ -367,21 +389,21 @@ namespace CTF_int {
 
   }
 
-  void CCSR_Matrix::compute_has_col(
-                      int const * JA,
-                      int const * IA,
-                      int const * JB,
-                      int const * IB,
-                      int         i,
-                      int *       has_col){
-    for (int j=0; j<IA[i+1]-IA[i]; j++){
-      int row_B = JA[IA[i]+j-1]-1;
-      for (int k=0; k<IB[row_B+1]-IB[row_B]; k++){
-        int idx_B = IB[row_B]+k-1;
-        has_col[JB[idx_B]-1] = 1;
-      }
-    }
-  }
+  //void CCSR_Matrix::compute_has_col(
+  //                    int const * JA,
+  //                    int const * IA,
+  //                    int const * JB,
+  //                    int const * IB,
+  //                    int         i,
+  //                    int *       has_col){
+  //  for (int j=0; j<IA[i+1]-IA[i]; j++){
+  //    int row_B = JA[IA[i]+j-1]-1;
+  //    for (int k=0; k<IB[row_B+1]-IB[row_B]; k++){
+  //      int idx_B = IB[row_B]+k-1;
+  //      has_col[JB[idx_B]-1] = 1;
+  //    }
+  //  }
+  //}
 
   char * CCSR_Matrix::ccsr_add(char * cA, char * cB, accumulatable const * adder){
     TAU_FSTART(ccsr_add);
@@ -393,64 +415,119 @@ namespace CTF_int {
     char const * vA = A.vals();
     int const * JA = A.JA();
     int const * IA = A.IA();
+    int const * row_enc_A = A.nnz_row_encoding();
     int nrow = A.nrow();
+    int nnz_row_A = A.nnz_row();
     char const * vB = B.vals();
     int const * JB = B.JA();
     int const * IB = B.IA();
+    int const * row_enc_B = B.nnz_row_encoding();
+    int nnz_row_B = B.nnz_row();
     ASSERT(nrow == B.nrow());
     int ncol = std::max(A.ncol(),B.ncol());
-    int * IC = (int*)alloc(sizeof(int)*(nrow+1));
+    int nnz_row = 0;
+    int innz_row_A = 0;
+    int innz_row_B = 0;
+    while (innz_row_A<nnz_row_A && innz_row_B<nnz_row_B){
+      if (row_enc_A[innz_row_A] == row_enc_B[innz_row_B]){
+        innz_row_A++;
+        innz_row_B++;
+      } else if (row_enc_A[innz_row_A] < row_enc_B[innz_row_B]){
+        innz_row_A++;
+      } else {
+        innz_row_B++;
+      }
+      nnz_row++;
+    }
+    nnz_row += (nnz_row_A-nnz_row_A) + (nnz_row_B-innz_row_B);
+    int * row_enc = (int*)alloc(sizeof(int)*nnz_row);
+    int * IC = (int*)alloc(sizeof(int)*(nnz_row+1));
     int * has_col = (int*)alloc(sizeof(int)*ncol);
     IC[0] = 1;
-    for (int i=0; i<nrow; i++){
+    innz_row_A = 0;
+    innz_row_B = 0;
+    for (int i=0; i<nnz_row; i++){
       memset(has_col, 0, sizeof(int)*ncol);
       IC[i+1] = IC[i];
-      for (int j=0; j<IA[i+1]-IA[i]; j++){
-        has_col[JA[IA[i]+j-1]-1] = 1;
-      }
-      for (int j=0; j<IB[i+1]-IB[i]; j++){
-        has_col[JB[IB[i]+j-1]-1] = 1;
-      }
-      for (int j=0; j<ncol; j++){
-        IC[i+1] += has_col[j];
+      if (row_enc_A[innz_row_A] == row_enc_B[innz_row_B]){
+        row_enc[i] = row_enc_A[innz_row_A];
+        innz_row_A++;
+        innz_row_B++;
+        for (int j=0; j<IA[i+1]-IA[i]; j++){
+          has_col[JA[IA[i]+j-1]-1] = 1;
+        }
+        for (int j=0; j<IB[i+1]-IB[i]; j++){
+          has_col[JB[IB[i]+j-1]-1] = 1;
+        }
+        for (int j=0; j<ncol; j++){
+          IC[i+1] += has_col[j];
+        }
+      } else if (row_enc_A[innz_row_A] < row_enc_B[innz_row_B]){
+        row_enc[i] = row_enc_A[innz_row_A];
+        IC[i+1] += IA[innz_row_A+1] - IA[innz_row_A];
+        innz_row_A++;
+      } else {
+        row_enc[i] = row_enc_B[innz_row_B];
+        IC[i+1] += IB[innz_row_B+1] - IB[innz_row_B];
+        innz_row_B++;
       }
     }
-    CCSR_Matrix C(IC[nrow]-1, nrow, ncol, adder);
+    CCSR_Matrix C(IC[nnz_row]-1, nnz_row, nrow, ncol, adder);
     char * vC = C.vals();
     int * JC = C.JA();
+    int * row_enc_C = C.nnz_row_encoding();
     memcpy(C.IA(), IC, sizeof(int)*(nrow+1));
     cdealloc(IC);
+    memcpy(row_enc_C, row_enc, sizeof(int)*nrow);
+    cdealloc(row_enc);
     IC = C.IA();
     int64_t * rev_col = (int64_t*)alloc(sizeof(int64_t)*ncol);
-    for (int i=0; i<nrow; i++){
-      memset(has_col, 0, sizeof(int)*ncol);
-      for (int j=0; j<IA[i+1]-IA[i]; j++){
-        has_col[JA[IA[i]+j-1]-1] = 1;
-      }
-      for (int j=0; j<IB[i+1]-IB[i]; j++){
-        has_col[JB[IB[i]+j-1]-1] = 1;
-      }
-      int vs = 0;
-      for (int j=0; j<ncol; j++){
-        if (has_col[j]){
-          JC[IC[i]+vs-1] = j+1;
-          //FIXME:: overflow?
-          rev_col[j] = (IC[i]+vs-1)*el_size;
-          vs++;
+    innz_row_A = 0;
+    innz_row_B = 0;
+    for (int i=0; i<nnz_row; i++){
+      if (row_enc_A[innz_row_A] == row_enc_B[innz_row_B]){
+        row_enc[i] = row_enc_A[innz_row_A];
+        innz_row_A++;
+        innz_row_B++;
+        memset(has_col, 0, sizeof(int)*ncol);
+        for (int j=0; j<IA[i+1]-IA[i]; j++){
+          has_col[JA[IA[i]+j-1]-1] = 1;
         }
-      }
-      memset(has_col, 0, sizeof(int)*ncol);
-      for (int j=0; j<IA[i+1]-IA[i]; j++){
-        int idx_A = IA[i]+j-1;
-        memcpy(vC+rev_col[JA[idx_A]-1],vA+idx_A*el_size,el_size);
-        has_col[JA[idx_A]-1] = 1;
-      }
-      for (int j=0; j<IB[i+1]-IB[i]; j++){
-        int idx_B = IB[i]+j-1;
-        if (has_col[JB[idx_B]-1])
-          adder->accum(vB+idx_B*el_size,vC+rev_col[JB[idx_B]-1]);
-        else
-          memcpy(vC+rev_col[JB[idx_B]-1],vB+idx_B*el_size,el_size);
+        for (int j=0; j<IB[i+1]-IB[i]; j++){
+          has_col[JB[IB[i]+j-1]-1] = 1;
+        }
+        int vs = 0;
+        for (int j=0; j<ncol; j++){
+          if (has_col[j]){
+            JC[IC[i]+vs-1] = j+1;
+            //FIXME:: overflow?
+            rev_col[j] = (IC[i]+vs-1)*el_size;
+            vs++;
+          }
+        }
+        memset(has_col, 0, sizeof(int)*ncol);
+        for (int j=0; j<IA[i+1]-IA[i]; j++){
+          int idx_A = IA[i]+j-1;
+          memcpy(vC+rev_col[JA[idx_A]-1],vA+idx_A*el_size,el_size);
+          has_col[JA[idx_A]-1] = 1;
+        }
+        for (int j=0; j<IB[i+1]-IB[i]; j++){
+          int idx_B = IB[i]+j-1;
+          if (has_col[JB[idx_B]-1])
+            adder->accum(vB+idx_B*el_size,vC+rev_col[JB[idx_B]-1]);
+          else
+            memcpy(vC+rev_col[JB[idx_B]-1],vB+idx_B*el_size,el_size);
+        }
+      } else if (row_enc_A[innz_row_A] < row_enc_B[innz_row_B]){
+        row_enc[i] = row_enc_A[innz_row_A];
+        memcpy(JC+IC[i]-1, JA+IA[nnz_row_A]-1, sizeof(int)*(IA[innz_row_A+1] - IA[innz_row_A]));
+        memcpy(vC+(IC[i]-1)*el_size, vA+(IA[nnz_row_A]-1)*el_size, el_size*(IA[innz_row_A+1] - IA[innz_row_A]));
+        innz_row_A++;
+      } else {
+        row_enc[i] = row_enc_B[innz_row_B];
+        memcpy(JC+IC[i]-1, JB+IB[nnz_row_B]-1, sizeof(int)*(IB[innz_row_B+1] - IB[innz_row_B]));
+        memcpy(vC+(IC[i]-1)*el_size, vB+(IB[nnz_row_B]-1)*el_size, el_size*(IB[innz_row_B+1] - IB[innz_row_B]));
+        innz_row_B++;
       }
     }
     cdealloc(has_col);

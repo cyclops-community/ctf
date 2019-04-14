@@ -177,11 +177,36 @@ namespace CTF_int {
     seq_csr_to_coo<dtype>(nz, nrow, csr_vs, csr_ja, csr_ia, coo_vs, coo_rs, coo_cs);
   }
 
+  template <typename dtype>  
+  void seq_ccsr_to_coo(int64_t nz, int nnz_row, dtype const * ccsr_vs, int const * ccsr_ja, int const * ccsr_ia, int const * row_enc, dtype * coo_vs, int * coo_rs, int * coo_cs){
+    //memcpy(coo_vs, ccsr_vs, sizeof(dtype)*nz);
+    std::copy(ccsr_vs, ccsr_vs+nz, coo_vs);
+    memcpy(coo_cs, ccsr_ja, sizeof(int)*nz);
+    for (int i=0; i<nnz_row; i++){
+      std::fill(coo_rs+ccsr_ia[i]-1, coo_rs+ccsr_ia[i+1]-1, row_enc[i]);
+    }
+  }
+
+  template <typename dtype>  
+  void def_coo_to_ccsr(int64_t nz, int64_t nnz_row, dtype * ccsr_vs, int * ccsr_ja, int * ccsr_ia, int const * row_enc, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
+    seq_coo_to_ccsr<dtype>(nz, nnz_row, ccsr_vs, ccsr_ja, ccsr_ia, row_enc, coo_vs, coo_rs, coo_cs);
+  }
+
+  template <typename dtype>  
+  void def_coo_to_ccsr(int64_t nz, int nnz_row, dtype * ccsr_vs, int * ccsr_ja, int * ccsr_ia, int const * row_enc, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
+    seq_coo_to_ccsr<dtype>(nz, nnz_row, ccsr_vs, ccsr_ja, ccsr_ia, row_enc, coo_vs, coo_rs, coo_cs);
+  }
+
+  template <typename dtype>  
+  void def_ccsr_to_coo(int64_t nz, int nnz_row, dtype const * ccsr_vs, int const * ccsr_ja, int const * ccsr_ia, int const * row_enc, dtype * coo_vs, int * coo_rs, int * coo_cs){
+    seq_ccsr_to_coo<dtype>(nz, nnz_row, ccsr_vs, ccsr_ja, ccsr_ia, row_enc, coo_vs, coo_rs, coo_cs);
+  }
+
   template <typename dtype>
   dtype default_addinv(dtype a){
     return -a;
   }
- 
+
   template <typename dtype, bool is_ord>
   inline typename std::enable_if<is_ord, dtype>::type
   default_abs(dtype a){
@@ -482,6 +507,9 @@ namespace CTF {
         CTF_int::def_coo_to_ccsr(nz, nnz_row, (dtype *)ccsr_vs, ccsr_ja, ccsr_ia, (dtype const *) coo_vs, coo_rs, coo_cs);
       }
 
+      void ccsr_to_coo(int64_t nz, int nnz_nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, int const * row_enc, char * coo_vs, int * coo_rs, int * coo_cs) const {
+        CTF_int::def_ccsr_to_coo(nz, nnz_nrow, (dtype const *)csr_vs, csr_ja, csr_ia, row_enc, (dtype*) coo_vs, coo_rs, coo_cs);
+      }
 
       char * pair_alloc(int64_t n) const {
         //assert(sizeof(std::pair<int64_t,dtype>[n])==(uint64_t)(pair_size()*n));

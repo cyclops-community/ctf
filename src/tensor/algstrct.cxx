@@ -351,13 +351,21 @@ namespace CTF_int {
     printf("CTF ERROR: cannot convert elements of this algebraic structure to CSR\n");
     ASSERT(0);
   }
+  void algstrct::coo_to_ccsr(int64_t nz, int nonz_row, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
+    printf("CTF ERROR: cannot convert elements of this algebraic structure to CCSR\n");
+    ASSERT(0);
+  }
+
 
   void algstrct::csr_to_coo(int64_t nz, int nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, char * coo_vs, int * coo_rs, int * coo_cs) const {
     printf("CTF ERROR: cannot convert elements of this algebraic structure to CSR\n");
     ASSERT(0);
   }
 
-
+  void algstrct::ccsr_to_coo(int64_t nz, int nnz_nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, int const * row_enc, char * coo_vs, int * coo_rs, int * coo_cs) const {
+    printf("CTF ERROR: cannot convert elements of this algebraic structure to CCSR\n");
+    ASSERT(0);
+  }
 //  void algstrct::csr_add(int64_t m, int64_t n, char const * a, int const * ja, int const * ia, char const * b, int const * jb, int const * ib, char *& c, int *& jc, int *& ic){
   char * algstrct::csr_add(char * cA, char * cB) const {
 
@@ -709,7 +717,22 @@ namespace CTF_int {
     printf("CTF ERROR: csrmm not present for this algebraic structure\n");
     ASSERT(0);
   }
-
+  void algstrct::ccsrmm(int          m,
+                        int          n,
+                        int          k,
+                        int          nnz_row,
+                        char const * alpha,
+                        char const * A,
+                        int const *  JA,
+                        int const *  IA,
+                        int const *  row_enc,
+                        int64_t      nnz_A,
+                        char const * B,
+                        char const * beta,
+                        char *&       C,
+                        CTF_int::bivar_function const * func) const {
+    ASSERT(0);
+  }
   void algstrct::csrmultd
                 (int          m,
                  int          n,

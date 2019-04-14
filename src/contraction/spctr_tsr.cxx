@@ -7,6 +7,7 @@
 #include "contraction.h"
 #include "../sparse_formats/coo.h"
 #include "../sparse_formats/csr.h"
+#include "../sparse_formats/ccsr.h"
 #include "../tensor/untyped_tensor.h"
 
 namespace CTF_int {
@@ -242,11 +243,13 @@ namespace CTF_int {
   LinModel<3> seq_tsr_spctr_cst_k2(seq_tsr_spctr_cst_k2_init,"seq_tsr_spctr_cst_k2");
   LinModel<3> seq_tsr_spctr_cst_k3(seq_tsr_spctr_cst_k3_init,"seq_tsr_spctr_cst_k3");
   LinModel<3> seq_tsr_spctr_cst_k4(seq_tsr_spctr_cst_k4_init,"seq_tsr_spctr_cst_k4");
+  LinModel<3> seq_tsr_spctr_cst_k5(seq_tsr_spctr_cst_k5_init,"seq_tsr_spctr_cst_k5");
   LinModel<3> seq_tsr_spctr_k0(seq_tsr_spctr_k0_init,"seq_tsr_spctr_k0");
   LinModel<3> seq_tsr_spctr_k1(seq_tsr_spctr_k1_init,"seq_tsr_spctr_k1");
   LinModel<3> seq_tsr_spctr_k2(seq_tsr_spctr_k2_init,"seq_tsr_spctr_k2");
   LinModel<3> seq_tsr_spctr_k3(seq_tsr_spctr_k3_init,"seq_tsr_spctr_k3");
   LinModel<3> seq_tsr_spctr_k4(seq_tsr_spctr_k4_init,"seq_tsr_spctr_k4");
+  LinModel<3> seq_tsr_spctr_k5(seq_tsr_spctr_k5_init,"seq_tsr_spctr_k5");
 
   double seq_tsr_spctr::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
 //    return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
@@ -500,6 +503,17 @@ namespace CTF_int {
         TAU_FSTOP(CSRMULTCSR);
       }
       break;
+
+      case 5:
+      {
+        // Do mm using CSR format for A
+        TAU_FSTART(CCSRMM);
+        CCSR_Matrix::ccsrmm(A, sr_A, inner_params.m, inner_params.n, inner_params.k,
+                          alpha, B, sr_B, sr_C->mulid(), C, sr_C, func, inner_params.offload);
+        TAU_FSTOP(CCSRMM);
+      }
+      break;
+
     }
 #ifdef TUNE
     nnz_frac_A = 1.0;
@@ -574,6 +588,13 @@ namespace CTF_int {
           seq_tsr_spctr_cst_k4.observe(tps);
         } else {
           seq_tsr_spctr_k4.observe(tps);
+        }
+        break;
+      case 2:
+        if (is_custom){
+          seq_tsr_spctr_cst_k5.observe(tps);
+        } else {
+          seq_tsr_spctr_k5.observe(tps);
         }
         break;
     }

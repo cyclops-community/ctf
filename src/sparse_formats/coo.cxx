@@ -1,5 +1,6 @@
 #include "coo.h"
 #include "csr.h"
+#include "ccsr.h"
 #include "../shared/util.h"
 #include "../contraction/ctr_comm.h"
 
@@ -20,7 +21,7 @@ namespace CTF_int {
   COO_Matrix::COO_Matrix(char * all_data_){
     all_data = all_data_;
   }
-      
+ 
   COO_Matrix::COO_Matrix(CSR_Matrix const & csr, algstrct const * sr){
     int64_t nnz = csr.nnz(); 
     int64_t v_sz = csr.val_size(); 
@@ -41,6 +42,30 @@ namespace CTF_int {
   
     sr->csr_to_coo(nnz, csr.nrow(), csr_vs, csr_ja, csr_ia, vs, coo_rs, coo_cs);
   }
+ 
+  COO_Matrix::COO_Matrix(CCSR_Matrix const & csr, algstrct const * sr){
+    int64_t nnz = csr.nnz(); 
+    int64_t nnz_row = csr.nnz_row(); 
+    int64_t v_sz = csr.val_size(); 
+    int const * csr_ja = csr.JA();
+    int const * csr_ia = csr.IA();
+    int const * row_enc = csr.nnz_row_encoding();
+    char const * csr_vs = csr.vals();
+
+    int64_t size = get_coo_size(nnz, v_sz);
+    all_data = (char*)alloc(size);
+    ((int64_t*)all_data)[0] = nnz;
+    ((int64_t*)all_data)[1] = v_sz;
+    
+    char * vs = vals();
+    int * coo_rs = rows();
+    int * coo_cs = cols();
+
+    sr->init_shell(nnz, vs);
+  
+    sr->ccsr_to_coo(nnz, nnz_row, csr_vs, csr_ja, csr_ia, row_enc, vs, coo_rs, coo_cs);
+  }
+
 
   int64_t COO_Matrix::nnz() const {
     return ((int64_t*)all_data)[0];

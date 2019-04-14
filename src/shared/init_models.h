@@ -33,6 +33,7 @@ namespace CTF_int{
   extern double seq_tsr_spctr_cst_k2_init[];
   extern double seq_tsr_spctr_cst_k3_init[];
   extern double seq_tsr_spctr_cst_k4_init[];
+  extern double seq_tsr_spctr_cst_k5_init[];
   extern double seq_tsr_spctr_off_k0_init[];
   extern double seq_tsr_spctr_off_k1_init[];
   extern double seq_tsr_spctr_off_k2_init[];
@@ -41,6 +42,7 @@ namespace CTF_int{
   extern double seq_tsr_spctr_k2_init[];
   extern double seq_tsr_spctr_k3_init[];
   extern double seq_tsr_spctr_k4_init[];
+  extern double seq_tsr_spctr_k5_init[];
 }
 
 #endif

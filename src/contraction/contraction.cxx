@@ -854,10 +854,11 @@ namespace CTF_int {
     permute_target(tfA->order, fnew_ord_A, tA->inner_ordering);
     permute_target(tfB->order, fnew_ord_B, tB->inner_ordering);
     permute_target(tfC->order, fnew_ord_C, tC->inner_ordering);
- 
+
     if (do_transp){
       //printf("A is sparse %d B is sparse %d\n",A->is_sparse,B->is_sparse);
       bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
+      bool use_ccsr =  csr_or_coo && A->is_sparse && C->is_sparse && !B->is_sparse;
       if (!A->is_sparse){
         nosym_transpose(A, all_fdim_A, all_flen_A, A->inner_ordering, 1);
       } else {
@@ -869,7 +870,7 @@ namespace CTF_int {
             }
           }
         }
-        A->spmatricize(iprm.m, iprm.k, nrow_idx, all_fdim_A, all_flen_A, csr_or_coo);
+        A->spmatricize(iprm.m, iprm.k, nrow_idx, all_fdim_A, all_flen_A, csr_or_coo, use_ccsr);
       }
       if (!B->is_sparse){
         nosym_transpose(B, all_fdim_B, all_flen_B, B->inner_ordering, 1);
@@ -900,7 +901,7 @@ namespace CTF_int {
             }
           }
         }
-        C->spmatricize(iprm.m, iprm.n, nrow_idx, all_fdim_C, all_flen_C, csr_or_coo);
+        C->spmatricize(iprm.m, iprm.n, nrow_idx, all_fdim_C, all_flen_C, csr_or_coo, use_ccsr);
         C->sr->dealloc(C->data);
       }
     
@@ -4017,6 +4018,9 @@ namespace CTF_int {
       if (A->is_sparse && B->is_sparse && C->is_sparse){
         krnl_type = 4;
       }
+      if (A->is_sparse && !B->is_sparse && C->is_sparse){
+        krnl_type = 5;
+      }
     } else {
       // Shouldn't be here ever anymore
       //printf("%d %d %d\n", A->is_sparse, B->is_sparse, C->is_sparse);
@@ -4920,7 +4924,8 @@ namespace CTF_int {
       return SUCCESS;
     }
 
-    if (C->is_sparse && !B->is_sparse){
+    if (C->is_sparse && !A->is_sparse && !B->is_sparse){
+      ASSERT(0); // contraction of two dense tensors should be dense
       contraction pre_new_ctr = contraction(*this);
       pre_new_ctr.B = new tensor(B, 1, 1);
       pre_new_ctr.B->sparsify([](char const *){ return true; });

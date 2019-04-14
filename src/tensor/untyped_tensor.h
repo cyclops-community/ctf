@@ -131,6 +131,8 @@ namespace CTF_int {
       bool is_sparse;
       /** \brief whether CSR or COO if folded */
       bool is_csr;
+      /** \brief whether CCSR if folded */
+      bool is_ccsr;
       /** \brief how many modes are folded into matricized row */
       int nrow_idx;
       /** \brief number of local nonzero elements */
@@ -761,15 +763,17 @@ namespace CTF_int {
        * \param[in] all_flen lengths of dimensions of folded
        * \param[in] nrow_idx number of indices to fold into column
        * \param[in] csr whether to do csr (1) or coo (0) layout
+       * \param[in] ccsr whether to do doubly compressed csr
        */
-      void spmatricize(int m, int n, int nrow_idx, int all_fdim, int const * all_flen, bool csr);
+      void spmatricize(int m, int n, int nrow_idx, int all_fdim, int const * all_flen, bool csr, bool ccsr=false);
 
       /**
        * \brief transposes back local data from sparse matrix format to key-value pair format
        * \param[in] nrow_idx number of indices to fold into column
        * \param[in] csr whether to go from csr (1) or coo (0) layout
+       * \param[in] ccsr whether to go from doubly compressed csr
        */
-      void despmatricize(int nrow_idx, bool csr);
+      void despmatricize(int nrow_idx, bool csr, bool ccsr);
 
       /**
        * \brief degister home buffer

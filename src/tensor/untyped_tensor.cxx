@@ -14,6 +14,7 @@
 #include "../redistribution/cyclic_reshuffle.h"
 #include "../redistribution/glb_cyclic_reshuffle.h"
 #include "../redistribution/dgtog_redist.h"
+#include "../sparse_formats/ccsr.h"
 
 
 using namespace CTF;
@@ -333,6 +334,7 @@ namespace CTF_int {
     this->nnz_tot           = 0;
     this->nnz_blk           = NULL;
     this->is_csr            = false;
+    this->is_ccsr           = false;
     this->nrow_idx          = -1;
     this->left_home_transp  = 0;
 //    this->nnz_loc_max       = 0;
@@ -2078,7 +2080,7 @@ namespace CTF_int {
       } else {
         ASSERT(this->nrow_idx != -1);
         if (was_mod)
-          despmatricize(this->nrow_idx, this->is_csr);
+          despmatricize(this->nrow_idx, this->is_csr, this->is_ccsr);
         cdealloc(this->rec_tsr->data);
       }
       CTF_int::cdealloc(all_edge_len);
@@ -2788,7 +2790,8 @@ namespace CTF_int {
     }
   }
 
-  void tensor::spmatricize(int m, int n, int nrow_idx, int all_fdim, int const * all_flen, bool csr){
+  void tensor::spmatricize(int m, int n, int nrow_idx, int all_fdim, int const * all_flen, bool csr, bool ccsr){
+
     ASSERT(is_sparse);
 
 #ifdef PROFILE
@@ -2800,36 +2803,57 @@ namespace CTF_int {
     this->rec_tsr->is_sparse = 1;
     int nvirt_A = calc_nvirt();
     this->rec_tsr->nnz_blk = (int64_t*)alloc(nvirt_A*sizeof(int64_t));
-    for (int i=0; i<nvirt_A; i++){
-      if (csr)
-        this->rec_tsr->nnz_blk[i] = get_csr_size(this->nnz_blk[i], m, this->sr->el_size);
-      else
-        this->rec_tsr->nnz_blk[i] = get_coo_size(this->nnz_blk[i], this->sr->el_size);
-      new_sz_A += this->rec_tsr->nnz_blk[i];
-    }
-    CTF_int::alloc_ptr(new_sz_A, (void**)&this->rec_tsr->data);
     this->rec_tsr->is_data_aliased = false;
     int phase[this->order];
     for (int i=0; i<this->order; i++){
       phase[i] = this->edge_map[i].calc_phase();
     }
-    char * data_ptr_out = this->rec_tsr->data;
     char const * data_ptr_in = this->data;
-    for (int i=0; i<nvirt_A; i++){
-      if (csr){
+    if (ccsr){
+      CCSR_Matrix * mat_list = new CCSR_Matrix[nvirt_A];
+
+      for (int i=0; i<nvirt_A; i++){
         COO_Matrix cm(this->nnz_blk[i], this->sr);
         cm.set_data(this->nnz_blk[i], this->order, this->sym, this->lens, this->pad_edge_len, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
-        //printf("m=%d, n=%d, nnz=%ld\n",m,n,this->nnz_blk[i]);
-        CSR_Matrix cs(cm, m, n, this->sr, data_ptr_out);
-        cdealloc(cm.all_data);
-      } else {
-        COO_Matrix cm(data_ptr_out);
-        cm.set_data(this->nnz_blk[i], this->order, this->sym, this->lens, this->pad_edge_len, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
+        mat_list[i] = CCSR_Matrix(cm, m, n, this->sr);
+        this->rec_tsr->nnz_blk[i] = mat_list[i].size();
+        new_sz_A += this->rec_tsr->nnz_blk[i];
+        data_ptr_in += this->nnz_blk[i]*this->sr->pair_size();
       }
-      data_ptr_in += this->nnz_blk[i]*this->sr->pair_size();
-      data_ptr_out += this->rec_tsr->nnz_blk[i];
+      CTF_int::alloc_ptr(new_sz_A, (void**)&this->rec_tsr->data);
+      char * data_ptr_out = this->rec_tsr->data;
+      for (int i=0; i<nvirt_A; i++){
+        data_ptr_out += this->rec_tsr->nnz_blk[i];
+        memcpy(data_ptr_out, mat_list[i].all_data, mat_list[i].size());
+      }
+      delete [] mat_list;
+    } else {
+      for (int i=0; i<nvirt_A; i++){
+        if (csr)
+          this->rec_tsr->nnz_blk[i] = get_csr_size(this->nnz_blk[i], m, this->sr->el_size);
+        else
+          this->rec_tsr->nnz_blk[i] = get_coo_size(this->nnz_blk[i], this->sr->el_size);
+        new_sz_A += this->rec_tsr->nnz_blk[i];
+      }
+      CTF_int::alloc_ptr(new_sz_A, (void**)&this->rec_tsr->data);
+      char * data_ptr_out = this->rec_tsr->data;
+
+      for (int i=0; i<nvirt_A; i++){
+        if (csr){
+          COO_Matrix cm(this->nnz_blk[i], this->sr);
+          cm.set_data(this->nnz_blk[i], this->order, this->sym, this->lens, this->pad_edge_len, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
+          CSR_Matrix cs(cm, m, n, this->sr, data_ptr_out);
+          cdealloc(cm.all_data);
+        } else {
+          COO_Matrix cm(data_ptr_out);
+          cm.set_data(this->nnz_blk[i], this->order, this->sym, this->lens, this->pad_edge_len, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
+        }
+        data_ptr_in += this->nnz_blk[i]*this->sr->pair_size();
+        data_ptr_out += this->rec_tsr->nnz_blk[i];
+      }
     }
     this->is_csr = csr;
+    this->is_ccsr = ccsr;
     this->nrow_idx = nrow_idx;
 #ifdef PROFILE
 //        double t_end = MPI_Wtime();
@@ -2851,7 +2875,7 @@ namespace CTF_int {
 #endif
   }
 
-  void tensor::despmatricize(int nrow_idx, bool csr){
+  void tensor::despmatricize(int nrow_idx, bool csr, bool ccsr){
     ASSERT(is_sparse);
 
 #ifdef PROFILE
@@ -2865,7 +2889,10 @@ namespace CTF_int {
     int nvirt = calc_nvirt();
     for (int i=0; i<nvirt; i++){
       if (this->rec_tsr->nnz_blk[i]>0){
-        if (csr){
+        if (ccsr){
+          CCSR_Matrix cA(this->rec_tsr->data+offset);
+          new_sz += cA.nnz();
+        } else if (csr){
           CSR_Matrix cA(this->rec_tsr->data+offset);
           new_sz += cA.nnz();
         } else {
@@ -2888,7 +2915,13 @@ namespace CTF_int {
     char const * data_ptr_in = this->rec_tsr->data;
     for (int i=0; i<nvirt; i++){
       if (this->rec_tsr->nnz_blk[i]>0){
-        if (csr){
+        if (ccsr){
+          CCSR_Matrix cs((char*)data_ptr_in);
+          COO_Matrix cm(cs, this->sr);
+          cm.get_data(cs.nnz(), this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_out, this->sr, phase, phase_rank);
+          this->nnz_blk[i] = cm.nnz();
+          cdealloc(cm.all_data);
+        } else if (csr){
           CSR_Matrix cs((char*)data_ptr_in);
           COO_Matrix cm(cs, this->sr);
           cm.get_data(cs.nnz(), this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_out, this->sr, phase, phase_rank);
@@ -2915,7 +2948,6 @@ namespace CTF_int {
       }
     }
     set_new_nnz_glb(this->nnz_blk);
-    this->rec_tsr->is_csr = csr;
 
 #ifdef PROFILE
 //        double t_end = MPI_Wtime();

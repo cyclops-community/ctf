@@ -104,7 +104,7 @@ namespace CTF_int{
                         char *       C) const { assert(0); }
 
 
-    virtual void ccsrmm
+    virtual void fcsrmm
                (int              m,
                 int              n,
                 int              k,
@@ -116,7 +116,7 @@ namespace CTF_int{
                 char *           C,
                 algstrct const * sr_C) const { assert(0); }
 
-    virtual void ccsrmultd
+    virtual void fcsrmultd
                  (int              m,
                   int              n,
                   int              k,
@@ -131,7 +131,7 @@ namespace CTF_int{
                   char *           C,
                   algstrct const * sr_C) const { assert(0); }
 
-    virtual void ccsrmultcsr
+    virtual void fcsrmultcsr
               (int              m,
                int              n,
                int              k,
@@ -146,6 +146,19 @@ namespace CTF_int{
                char *&          C_CSR,
                algstrct const * sr_C) const { assert(0); }
 
+
+
+    virtual void ccsrmm
+               (int              m,
+                int              n,
+                int              k,
+                char const *     A,
+                int const *      JA,
+                int const *      IA,
+                int64_t          nnz_A,
+                char const *     B,
+                char *           C,
+                algstrct const * sr_C) const { assert(0); }
 
     virtual void coffload_csrmm(int          m,
                                 int          n,

@@ -35,7 +35,7 @@ namespace CTF_int {
       CCSR_Matrix(CCSR_Matrix const & other){ all_data=other.all_data; }
       
       /** \brief constructor given coordinate format (COO) matrix */
-      CCSR_Matrix(COO_Matrix const & coom, int nrow, int ncol, algstrct const * sr, char * data=NULL, bool init_data=true);
+      CCSR_Matrix(COO_Matrix const & coom, int64_t nrow, int64_t ncol, algstrct const * sr, char * data=NULL, bool init_data=true);
 
       /** \brief retrieves number of nonzeros out of all_data */
       int64_t nnz() const;
@@ -48,6 +48,9 @@ namespace CTF_int {
       
       /** \brief retrieves number of columns out of all_data */
       int ncol() const;
+  
+      /** \brief retrieves number of nonzero rows */
+      int nnz_row() const;
       
       /** \brief retrieves matrix entry size out of all_data */
       int val_size() const;
@@ -62,6 +65,7 @@ namespace CTF_int {
       int * JA() const;
 
       /** \brief retrieves encoding of nonzero rows (each element of array gives true (local) index of row corresponding to each subsequent nonzero row)
+      */
       int * nnz_row_encoding() const;
 
       /**
@@ -88,21 +92,21 @@ namespace CTF_int {
       /**
        * \brief computes C = beta*C + func(alpha*A*B) where A and B are CCSR_Matrices, while C is dense
        */
-      static void ccsrmultd(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func, bool do_offload);
+      //static void ccsrmultd(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func, bool do_offload);
 
       /**
        * \brief computes C = beta*C + func(alpha*A*B) where A, B, and C are CCSR_Matrices, while C is dense
        */
-      static void ccsrmultccsr(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char *& C, algstrct const * sr_C, bivar_function const * func, bool do_offload);
+      //static void ccsrmultccsr(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char *& C, algstrct const * sr_C, bivar_function const * func, bool do_offload);
 
-      static void compute_has_col(
+      //static void compute_has_col(
 
-                      int const * JA,
-                      int const * IA,
-                      int const * JB,
-                      int const * IB,
-                      int         i,
-                      int *       has_col);
+      //                int const * JA,
+      //                int const * IA,
+      //                int const * JB,
+      //                int const * IB,
+      //                int         i,
+      //                int *       has_col);
       
       static char * ccsr_add(char * cA, char * cB, accumulatable const * adder);
   };

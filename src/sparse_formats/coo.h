@@ -6,6 +6,7 @@
 namespace CTF_int {
 
   class CSR_Matrix;
+  class CCSR_Matrix;
   class bivar_function;
 
   int64_t get_coo_size(int64_t nnz, int val_size);
@@ -35,6 +36,13 @@ namespace CTF_int {
        * \param[in] sr algebraic structure
        */
       COO_Matrix(CSR_Matrix const & csr, algstrct const * sr);
+
+      /** 
+       * \brief constructor that constructs serialized COO Matrix from a CCSR_Matrix
+       * \param[in] csr a matrix in CCSR format
+       * \param[in] sr algebraic structure
+       */
+      COO_Matrix(CCSR_Matrix const & csr, algstrct const * sr);
 
       /** \brief retrieves number of nonzeros out of all_data */
       int64_t nnz() const;
