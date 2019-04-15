@@ -184,7 +184,7 @@ namespace CTF_int {
     //memcpy(coo_vs, ccsr_vs, sizeof(dtype)*nz);
     std::copy(ccsr_vs, ccsr_vs+nz, coo_vs);
     memcpy(coo_cs, ccsr_ja, sizeof(int)*nz);
-    for (int i=0; i<nnz_row; i++){
+    for (int64_t i=0; i<nnz_row; i++){
       std::fill(coo_rs+ccsr_ia[i]-1, coo_rs+ccsr_ia[i+1]-1, row_enc[i]);
     }
   }

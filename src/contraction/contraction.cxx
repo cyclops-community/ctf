@@ -3217,7 +3217,7 @@ namespace CTF_int {
     if (global_comm.rank == 0){
       VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
               (double)memuse,(double)proc_bytes_available(),std::min(gbest_time_sel,gbest_time_exh));
-#if DEBUG >= 3
+#if VERBOSE >= 2
       (*ctrf)->print();
 #endif
     }
@@ -5079,7 +5079,7 @@ namespace CTF_int {
         int iX;
         tensor * X;
         int const * idx_X;
-        if (A_sz < B_sz){
+        if (A->is_sparse && (!B->is_sparse || A_sz < B_sz)){
           iX = iA;
           X = A;
           idx_X = idx_A;
@@ -5122,7 +5122,7 @@ namespace CTF_int {
         summation s(X, nidxX, X->sr->mulid(), X2, sidxX, X->sr->mulid());
         s.execute();
         contraction * nc;
-        if (A_sz < B_sz){
+        if (A->is_sparse && (!B->is_sparse || A_sz < B_sz)){
           nc = new contraction(X2, cidxX, B, idx_B, alpha, C, idx_C, beta, func);
           nc->idx_B[iB] = num_tot;
         } else {

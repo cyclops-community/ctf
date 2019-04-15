@@ -42,13 +42,13 @@ namespace CTF_int {
       int64_t size() const;
 
       /** \brief retrieves number of rows out of all_data */
-      int nrow() const;
+      int64_t nrow() const;
       
       /** \brief retrieves number of columns out of all_data */
-      int ncol() const;
+      int64_t ncol() const;
   
       /** \brief retrieves number of nonzero rows */
-      int nnz_row() const;
+      int64_t nnz_row() const;
       
       /** \brief retrieves matrix entry size out of all_data */
       int val_size() const;
@@ -85,7 +85,7 @@ namespace CTF_int {
       /**
        * \brief computes C = beta*C + func(alpha*A*B) where A is a CCSR_Matrix, while B and C are dense
        */
-      static void ccsrmm(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char *& C, algstrct const * sr_C, bivar_function const * func, bool do_offload);
+      static void ccsrmm(char const * A, algstrct const * sr_A, int64_t m, int64_t n, int64_t k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char *& C, algstrct const * sr_C, bivar_function const * func, bool do_offload);
       
       /**
        * \brief computes C = beta*C + func(alpha*A*B) where A and B are CCSR_Matrices, while C is dense

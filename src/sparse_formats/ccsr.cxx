@@ -60,7 +60,7 @@ namespace CTF_int {
 #ifdef USE_OMP
       #pragma omp parallel for reduction(+: nnz_row)
 #endif
-      for (int i=1; i<nz; i++){
+      for (int64_t i=1; i<nz; i++){
         nnz_row += (coo_rs_copy[i-1] != coo_rs_copy[i]);
       }
       nnz_row+=1;
@@ -79,13 +79,13 @@ namespace CTF_int {
     ((int64_t*)all_data)[4] = nnz_row;
 
     int * row_enc = nnz_row_encoding();
-    int nnz_row_ctr = 0;
+    int64_t nnz_row_ctr = 0;
     if (nz > 0){
       row_enc[0] = coo_rs_copy[0];
       nnz_row_ctr++;
     }
     //FIXME add openmp
-    for (int i=1; i<nz; i++){
+    for (int64_t i=1; i<nz; i++){
       if (coo_rs_copy[i-1] != coo_rs_copy[i]){
         row_enc[nnz_row_ctr] = coo_rs_copy[i];
         nnz_row_ctr++;
@@ -126,20 +126,20 @@ namespace CTF_int {
     return get_ccsr_size(nnz(),nnz_row(),val_size());
   }
   
-  int CCSR_Matrix::nrow() const {
+  int64_t CCSR_Matrix::nrow() const {
     return ((int64_t*)all_data)[2];
   }
   
-  int CCSR_Matrix::ncol() const {
+  int64_t CCSR_Matrix::ncol() const {
     return ((int64_t*)all_data)[3];
   }
    
-  int CCSR_Matrix::nnz_row() const {
+  int64_t CCSR_Matrix::nnz_row() const {
     return ((int64_t*)all_data)[4];
   }
 
   int * CCSR_Matrix::nnz_row_encoding() const {
-    int offset = 5*sizeof(int64_t);
+    int64_t offset = 5*sizeof(int64_t);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     return (int*)(all_data + offset);
   }
@@ -172,7 +172,7 @@ namespace CTF_int {
     return (int*)(all_data + offset);
   } 
 
-  void CCSR_Matrix::ccsrmm(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char *& C, algstrct const * sr_C, bivar_function const * func, bool do_offload){
+  void CCSR_Matrix::ccsrmm(char const * A, algstrct const * sr_A, int64_t m, int64_t n, int64_t k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char *& C, algstrct const * sr_C, bivar_function const * func, bool do_offload){
     if (func != NULL && func->has_off_gemm && do_offload){
       assert(sr_C->isequal(beta, sr_C->mulid()));
       assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
@@ -261,10 +261,9 @@ namespace CTF_int {
   }*/
 
   void CCSR_Matrix::partition(int s, char ** parts_buffer, sparse_matrix ** parts){
-    printf("partitioning CCSR\n");
     int part_nnz[s], part_nrows[s];
-    int nnz_r = nnz_row();
-    int nr = nrow();
+    int64_t nnz_r = nnz_row();
+    int64_t nr = nrow();
     int v_sz = val_size();
     char * org_vals = vals();
     int const * row_enc = nnz_row_encoding();
@@ -274,7 +273,7 @@ namespace CTF_int {
       part_nnz[i] = 0;
       part_nrows[i] = 0;
     }
-    for (int i=0; i<nnz_r; i++){
+    for (int64_t i=0; i<nnz_r; i++){
       int is = (row_enc[i]-1) % s;
       part_nrows[is]++;
       part_nnz[is]+=org_ia[i+1]-org_ia[i];
@@ -288,7 +287,7 @@ namespace CTF_int {
     for (int i=0; i<s; i++){
       ((int64_t*)part_data)[0] = part_nnz[i];
       ((int64_t*)part_data)[1] = v_sz;
-      ((int64_t*)part_data)[2] = nr / s + (nr%s < s); //FIXME: check this
+      ((int64_t*)part_data)[2] = nr / s + (nr%s > i);
       ((int64_t*)part_data)[3] = ncol();
       ((int64_t*)part_data)[4] = part_nrows[i];
       CCSR_Matrix * mat = new CCSR_Matrix(part_data);
@@ -298,12 +297,13 @@ namespace CTF_int {
       int * pja = mat->JA();
       int * pia = mat->IA();
       pia[0] = 1;
-      for (int j=i, k=0; j<nnz_r; j++, k++){
+      for (int64_t j=0, k=0; j<nnz_r; j++){
         if ((row_enc[j]-1) % s == i){
           prow_enc[k] = (row_enc[j]-1) / s + 1;
           memcpy(pvals+(pia[k]-1)*v_sz, org_vals+(org_ia[j]-1)*v_sz, (org_ia[j+1]-org_ia[j])*v_sz);
           memcpy(pja+(pia[k]-1), org_ja+(org_ia[j]-1), (org_ia[j+1]-org_ia[j])*sizeof(int));
           pia[k+1] = pia[k]+org_ia[j+1]-org_ia[j];
+          k++;
         }
       }
       part_data += get_ccsr_size(part_nnz[i], part_nrows[i], v_sz);
@@ -329,7 +329,7 @@ namespace CTF_int {
     }
     int64_t v_sz = ccsrs[0].val_size();
     int64_t tot_ncol = ccsrs[0].ncol();
-    all_data = (char*)alloc(get_ccsr_size(tot_nnz, tot_nrow, v_sz));
+    all_data = (char*)alloc(get_ccsr_size(tot_nnz, tot_nnz_row, v_sz));
     ((int64_t*)all_data)[0] = tot_nnz;
     ((int64_t*)all_data)[1] = v_sz;
     ((int64_t*)all_data)[2] = tot_nrow;
@@ -345,8 +345,8 @@ namespace CTF_int {
 
     int * row_inds = (int*)malloc(sizeof(int)*s);
     std::fill(row_inds,row_inds+s,0);
-    for (int i=0; i<tot_nnz_row; i++){
-      int min_row = INT_MAX;
+    for (int64_t i=0; i<tot_nnz_row; i++){
+      int64_t min_row = INT64_MAX;
       int ipart = -1;
       for (int j=0; j<s; j++){
         if (row_inds[j] < pnnz_row[j]){
@@ -359,7 +359,7 @@ namespace CTF_int {
       int ri = row_inds[ipart];
       row_inds[ipart]++;
       ASSERT(ipart != -1);
-      int i_nnz = pia[ipart][ri+1]-pia[ipart][ri];
+      int64_t i_nnz = pia[ipart][ri+1]-pia[ipart][ri];
       memcpy(ccsr_vs+(ccsr_ia[i]-1)*v_sz,
              ccsrs[ipart].vals()+(pia[ipart][ri]-1)*v_sz,
              i_nnz*v_sz);
@@ -372,6 +372,7 @@ namespace CTF_int {
     free(pja);
     free(pia);
     free(pnnz_row);
+    free(prow_enc);
     free(row_inds);
     delete [] ccsrs;
   }
@@ -385,7 +386,7 @@ namespace CTF_int {
     int64_t nz = nnz();
     int64_t nzr = nnz_row();
     int * row_enc = nnz_row_encoding();
-    printf("CCSR Matrix has %ld nonzeros %d rows (%ld of them nonzero) %d cols\n", nz, nrow(), nzr, ncol());
+    printf("CCSR Matrix has %ld nonzeros %ld rows (%ld of them nonzero) %ld cols\n", nz, nrow(), nzr, ncol());
     for (int64_t i=0; i<nzr; i++){
       printf("row_enc[%ld] = %d\n", i,row_enc[i]);
     }
@@ -428,18 +429,18 @@ namespace CTF_int {
     int const * JA = A.JA();
     int const * IA = A.IA();
     int const * row_enc_A = A.nnz_row_encoding();
-    int nrow = A.nrow();
-    int nnz_row_A = A.nnz_row();
+    int64_t nrow = A.nrow();
+    int64_t nnz_row_A = A.nnz_row();
     char const * vB = B.vals();
     int const * JB = B.JA();
     int const * IB = B.IA();
     int const * row_enc_B = B.nnz_row_encoding();
-    int nnz_row_B = B.nnz_row();
+    int64_t nnz_row_B = B.nnz_row();
     ASSERT(nrow == B.nrow());
-    int ncol = std::max(A.ncol(),B.ncol());
-    int nnz_row = 0;
-    int innz_row_A = 0;
-    int innz_row_B = 0;
+    int64_t ncol = std::max(A.ncol(),B.ncol());
+    int64_t nnz_row = 0;
+    int64_t innz_row_A = 0;
+    int64_t innz_row_B = 0;
     while (innz_row_A<nnz_row_A && innz_row_B<nnz_row_B){
       if (row_enc_A[innz_row_A] == row_enc_B[innz_row_B]){
         innz_row_A++;
@@ -499,7 +500,7 @@ namespace CTF_int {
     int64_t * rev_col = (int64_t*)alloc(sizeof(int64_t)*ncol);
     innz_row_A = 0;
     innz_row_B = 0;
-    for (int i=0; i<nnz_row; i++){
+    for (int64_t i=0; i<nnz_row; i++){
       if (innz_row_A < nnz_row_A && innz_row_B < nnz_row_B && row_enc_A[innz_row_A] == row_enc_B[innz_row_B]){
         memset(has_col, 0, sizeof(int)*ncol);
         for (int j=0; j<IA[innz_row_A+1]-IA[innz_row_A]; j++){

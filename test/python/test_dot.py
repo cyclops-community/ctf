@@ -42,6 +42,17 @@ class KnowValues(unittest.TestCase):
         with self.assertRaises(IndexError):
             ctf.tensordot(a0, a0, [[2,1,0,3],[0,1,2,3]])
 
+    def test_hypersparse_dot(self):
+        A = ctf.tensor((37, 513),sp=True)
+        A.fill_sp_random(0.,1.,1./2047)
+        B = ctf.tensor((513,17))
+        C = ctf.tensor((37,17),sp=True)
+        C.i("ij") << A.i("ik")*B.i("kj")
+        C2 = ctf.tensor((37,17))
+        C2 = ctf.dot(A,B)
+        self.assertTrue(allclose(C,C2))
+
+
 
 if __name__ == "__main__":
     numpy.random.seed(5330);

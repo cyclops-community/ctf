@@ -4,6 +4,7 @@
 #include "../tensor/untyped_tensor.h"
 #include "../mapping/mapping.h"
 #include "../shared/util.h"
+#include "../sparse_formats/ccsr.h"
 #include <climits>
 
 namespace CTF_int {
@@ -294,7 +295,10 @@ namespace CTF_int {
           new_Cs[blk] = sr_C->csr_reduce(up_C+csr_sz_acc, owner_C, cdt_C->cm, is_ccsr_C);
         
           csr_sz_acc += new_size_blk_C[blk];
-          new_size_blk_C[blk] = cdt_C->rank == owner_C ? ((CSR_Matrix)(new_Cs[blk])).size() : 0;
+          if (is_ccsr_C)
+            new_size_blk_C[blk] = cdt_C->rank == owner_C ? ((CCSR_Matrix)(new_Cs[blk])).size() : 0;
+          else
+            new_size_blk_C[blk] = cdt_C->rank == owner_C ? ((CSR_Matrix)(new_Cs[blk])).size() : 0;
           new_csr_sz_acc += new_size_blk_C[blk];
         }
         cdealloc(up_C);
@@ -567,16 +571,26 @@ namespace CTF_int {
       int64_t new_offset = 0;
       for (int i=0; i<nblk_C; i++){
         new_Cs[i] = sr_C->csr_add(C+org_offset, new_C+cmp_offset, is_ccsr_C);
-        new_offset += ((CSR_Matrix)new_Cs[i]).size();
-        org_offset += ((CSR_Matrix)(C+org_offset)).size();
-        cmp_offset += ((CSR_Matrix)(new_C+cmp_offset)).size();
+        if (is_ccsr_C){
+          new_offset += ((CCSR_Matrix)new_Cs[i]).size();
+          org_offset += ((CCSR_Matrix)(C+org_offset)).size();
+          cmp_offset += ((CCSR_Matrix)(new_C+cmp_offset)).size();
+        } else {
+          new_offset += ((CSR_Matrix)new_Cs[i]).size();
+          org_offset += ((CSR_Matrix)(C+org_offset)).size();
+          cmp_offset += ((CSR_Matrix)(new_C+cmp_offset)).size();
+        }
       }
       if (new_C != C)        
         cdealloc(new_C);
       new_C = (char*)alloc(new_offset);
       new_offset = 0;
       for (int i=0; i<nblk_C; i++){
-        size_blk_C[i] = ((CSR_Matrix)new_Cs[i]).size();
+        if (is_ccsr_C){
+          size_blk_C[i] = ((CCSR_Matrix)new_Cs[i]).size();
+        } else {
+          size_blk_C[i] = ((CSR_Matrix)new_Cs[i]).size();
+        }
         memcpy(new_C+new_offset, new_Cs[i], size_blk_C[i]);
         new_offset += size_blk_C[i];
         cdealloc(new_Cs[i]);

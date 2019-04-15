@@ -477,12 +477,13 @@ namespace CTF_int {
     TAU_FSTART(csr_reduce);
     if (smnds[0] != red_sum) cdealloc(smnds[0]);
     if (r/s == root/s){
-      sparse_matrix cf;
+      sparse_matrix * cf;
       if (is_ccsr)
-        cf = CCSR_Matrix(red_sum);
+        cf = new CCSR_Matrix(red_sum);
       else
-        cf = CSR_Matrix(red_sum);
-      int sz = cf.size();
+        cf = new CSR_Matrix(red_sum);
+      int sz = cf->size();
+      delete cf;
       int sroot = root%s;
       int cb_sizes[s];
       if (sroot == sr) sz = 0;
@@ -739,10 +740,10 @@ namespace CTF_int {
     printf("CTF ERROR: csrmm not present for this algebraic structure\n");
     ASSERT(0);
   }
-  void algstrct::ccsrmm(int          m,
-                        int          n,
-                        int          k,
-                        int          nnz_row,
+  void algstrct::ccsrmm(int64_t      m,
+                        int64_t      n,
+                        int64_t      k,
+                        int64_t      nnz_row,
                         char const * alpha,
                         char const * A,
                         int const *  JA,
@@ -751,7 +752,7 @@ namespace CTF_int {
                         int64_t      nnz_A,
                         char const * B,
                         char const * beta,
-                        char *&       C,
+                        char *&      C,
                         CTF_int::bivar_function const * func) const {
     ASSERT(0);
   }

@@ -230,10 +230,10 @@ namespace CTF_int {
                          bivar_function const * func) const;
 
       /** \brief sparse version of gemm using CCSR format for A */
-      virtual void ccsrmm(int          m,
-                          int          n,
-                          int          k,
-                          int          nnz_row,
+      virtual void ccsrmm(int64_t      m,
+                          int64_t      n,
+                          int64_t      k,
+                          int64_t      nnz_row,
                           char const * alpha,
                           char const * A,
                           int const *  JA,
