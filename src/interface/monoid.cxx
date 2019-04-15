@@ -26,11 +26,14 @@ namespace CTF {
   }*/
 
   template <>
-  char * CTF::Monoid<double,1>::csr_add(char * cA, char * cB) const {
+  char * CTF::Monoid<double,1>::csr_add(char * cA, char * cB, bool is_ccsr) const {
+    //FIXME reduce CCSR add to MKL CSR add for shared part
+    if (is_ccsr)
+      return CTF_int::algstrct::csr_add(cA, cB, is_ccsr);
 #if USE_MKL
     TAU_FSTART(mkl_csr_add)
     if (fadd != &default_add<double>){
-      return CTF_int::algstrct::csr_add(cA, cB);
+      return CTF_int::algstrct::csr_add(cA, cB, is_ccsr);
     }
     CSR_Matrix A(cA);
     CSR_Matrix B(cB);
@@ -52,7 +55,7 @@ namespace CTF {
     TAU_FSTOP(mkl_csr_add)
     return C.all_data;
 #else
-    return CTF_int::algstrct::csr_add(cA, cB);
+    return CTF_int::algstrct::csr_add(cA, cB, is_ccsr);
 #endif
   }
 

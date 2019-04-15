@@ -4,6 +4,7 @@
 #include "untyped_tensor.h"
 #include "algstrct.h"
 #include "../sparse_formats/csr.h"
+#include "../sparse_formats/ccsr.h"
 
 using namespace std;
 
@@ -367,12 +368,14 @@ namespace CTF_int {
     ASSERT(0);
   }
 //  void algstrct::csr_add(int64_t m, int64_t n, char const * a, int const * ja, int const * ia, char const * b, int const * jb, int const * ib, char *& c, int *& jc, int *& ic){
-  char * algstrct::csr_add(char * cA, char * cB) const {
-
-    return CTF_int::CSR_Matrix::csr_add(cA, cB, this);
+  char * algstrct::csr_add(char * cA, char * cB, bool is_ccsr) const {
+    if (is_ccsr)
+      return CTF_int::CCSR_Matrix::ccsr_add(cA, cB, this);
+    else
+      return CTF_int::CSR_Matrix::csr_add(cA, cB, this);
   }
 
-  char * algstrct::csr_reduce(char * cA, int root, MPI_Comm cm) const {
+  char * algstrct::csr_reduce(char * cA, int root, MPI_Comm cm, bool is_ccsr) const {
     int r, p;
     MPI_Comm_rank(cm, &r);
     MPI_Comm_size(cm, &p);
@@ -387,11 +390,19 @@ namespace CTF_int {
     MPI_Comm_split(cm, r/s, sr, &scm);
     MPI_Comm_split(cm, sr, r/s, &rcm);
 
-    CSR_Matrix A(cA);
-    int64_t sz_A = A.size();
+    sparse_matrix * A;
+    sparse_matrix ** parts;
+    if (is_ccsr){
+      A = new CCSR_Matrix(cA);
+      parts = (sparse_matrix**)CTF_int::alloc(sizeof(CCSR_Matrix*)*s);
+    } else {
+      A = new CSR_Matrix(cA);
+      parts = (sparse_matrix**)CTF_int::alloc(sizeof(CSR_Matrix*)*s);
+    }
+    int64_t sz_A = A->size();
     char * parts_buffer; 
-    CSR_Matrix ** parts = (CSR_Matrix**)CTF_int::alloc(sizeof(CSR_Matrix*)*s);
-    A.partition(s, &parts_buffer, parts);
+    A->partition(s, &parts_buffer, (sparse_matrix**)parts);
+    delete A;
     //MPI_Request reqs[2*(s-1)];
     int rcv_szs[s];
     int snd_szs[s];
@@ -445,7 +456,7 @@ namespace CTF_int {
     cdealloc(parts);*/
     for (int z=1; z<s; z<<=1){
       for (int i=0; i<s-z; i+=2*z){
-        char * csr_new = csr_add(smnds[i], smnds[i+z]);
+        char * csr_new = csr_add(smnds[i], smnds[i+z], is_ccsr);
         if ((smnds[i] < parts_buffer ||
              smnds[i] > parts_buffer+tot_buf_size) &&
             (smnds[i] < rcv_buf ||
@@ -462,11 +473,15 @@ namespace CTF_int {
     cdealloc(parts_buffer); //dealloc all parts
     cdealloc(rcv_buf);
     TAU_FSTOP(csr_reduce);
-    char * red_sum = csr_reduce(smnds[0], root/s, rcm);
+    char * red_sum = csr_reduce(smnds[0], root/s, rcm, is_ccsr);
     TAU_FSTART(csr_reduce);
     if (smnds[0] != red_sum) cdealloc(smnds[0]);
     if (r/s == root/s){
-      CSR_Matrix cf(red_sum);
+      sparse_matrix cf;
+      if (is_ccsr)
+        cf = CCSR_Matrix(red_sum);
+      else
+        cf = CSR_Matrix(red_sum);
       int sz = cf.size();
       int sroot = root%s;
       int cb_sizes[s];
@@ -489,7 +504,12 @@ namespace CTF_int {
           smnds[i] = cb_bufs + cb_displs[i];
           if (i==sr) smnds[i] = red_sum;
         }
-        CSR_Matrix out(smnds, s);
+        sparse_matrix * out;
+        if (is_ccsr)
+          out = new CCSR_Matrix();
+        else
+          out = new CSR_Matrix();
+        out->assemble(smnds,s);
         cdealloc(red_sum);
         cdealloc(cb_bufs);
         double t_end = MPI_Wtime() - t_st;
@@ -498,7 +518,9 @@ namespace CTF_int {
         // note-quite-sure
         csrred_mdl.observe(tps);
         TAU_FSTOP(csr_reduce);
-        return out.all_data;
+        char * data = out->all_data;
+        delete out;
+        return data;
       } else {
         cdealloc(red_sum);
         cdealloc(cb_bufs);

@@ -285,7 +285,7 @@ namespace CTF_int {
         int64_t new_csr_sz_acc = 0;
         char * new_Cs[nblk_C];
         for (int blk=0; blk<nblk_C; blk++){
-          new_Cs[blk] = sr_C->csr_reduce(new_C+csr_sz_acc, 0, cdt_C[i]->cm);
+          new_Cs[blk] = sr_C->csr_reduce(new_C+csr_sz_acc, 0, cdt_C[i]->cm, this->is_ccsr_C);
   //        printf("%d out of %d reds complete, size = %ld should be %ld\n",blk,nblk_C,size_blk_C[blk],((CSR_Matrix)(new_C+csr_sz_acc)).size());
         
           csr_sz_acc += size_blk_C[blk];

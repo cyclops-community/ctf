@@ -94,13 +94,13 @@ int main(int argc, char ** argv){
     World dw(argc, argv);
 
     if (rank == 0){
-      printf("Multiplying %d-by-%d %lf pct sparse matrix by vector\n",n,n,sp);
+      printf("Multiplying %d-by-%d %lf sparse matrix by vector\n",n,n,sp);
     }
     pass = spmv(n, false, dw, sp);
     assert(pass);
 
     if (rank == 0){
-      printf("Multiplying %d-by-%d %lf pct sparse matrix by vector into sparse vector\n",n,n,sp);
+      printf("Multiplying %d-by-%d %lf sparse matrix by vector into sparse vector\n",n,n,sp);
     }
     pass = spmv(n, true, dw, sp);
     assert(pass);

@@ -12,6 +12,7 @@ namespace CTF_int{
       bool      is_sparse_A;
       bool      is_sparse_B;
       bool      is_sparse_C;
+      bool      is_ccsr_C;
       char *    new_C;
 
       ~spctr();

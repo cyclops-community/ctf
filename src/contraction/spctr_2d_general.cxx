@@ -278,7 +278,7 @@ namespace CTF_int {
   }
 
 
-  void reduce_step_post(int edge_len, char * C, bool is_sparse_C, bool move_C, algstrct const * sr_C, int64_t b_C, int64_t s_C, char * buf_C, CommData * cdt_C, int64_t ctr_sub_lda_C, int64_t ctr_lda_C, int nblk_C, int64_t * size_blk_C, int & new_nblk_C, int64_t *& new_size_blk_C, int64_t * offsets_C, int ib, char const *& rec_beta, char const * beta, char *& up_C, char *& new_C, int n_new_C_grps, int & i_new_C_grp, char ** new_C_grps){
+  void reduce_step_post(int edge_len, char * C, bool is_sparse_C, bool move_C, algstrct const * sr_C, int64_t b_C, int64_t s_C, char * buf_C, CommData * cdt_C, int64_t ctr_sub_lda_C, int64_t ctr_lda_C, int nblk_C, int64_t * size_blk_C, int & new_nblk_C, int64_t *& new_size_blk_C, int64_t * offsets_C, int ib, char const *& rec_beta, char const * beta, char *& up_C, char *& new_C, int n_new_C_grps, int & i_new_C_grp, char ** new_C_grps, bool is_ccsr_C){
     if (move_C){
 #ifdef PROFILE
       TAU_FSTART(spctr_2d_general_barrier);
@@ -291,7 +291,7 @@ namespace CTF_int {
         int64_t new_csr_sz_acc = 0;
         char * new_Cs[new_nblk_C];
         for (int blk=0; blk<new_nblk_C; blk++){
-          new_Cs[blk] = sr_C->csr_reduce(up_C+csr_sz_acc, owner_C, cdt_C->cm);
+          new_Cs[blk] = sr_C->csr_reduce(up_C+csr_sz_acc, owner_C, cdt_C->cm, is_ccsr_C);
         
           csr_sz_acc += new_size_blk_C[blk];
           new_size_blk_C[blk] = cdt_C->rank == owner_C ? ((CSR_Matrix)(new_Cs[blk])).size() : 0;
@@ -503,7 +503,7 @@ namespace CTF_int {
       if (is_sparse_B && ((move_B && (cdt_B->rank != (ib % cdt_B->np) || b_B != 1)) || (!move_B && ctr_sub_lda_B != 0 && ctr_lda_B != 1))){
         cdealloc(op_B);
       }
-      reduce_step_post(edge_len, C, is_sparse_C, move_C, sr_C, b_C, s_C, buf_C, cdt_C, ctr_sub_lda_C, ctr_lda_C, nblk_C, size_blk_C, new_nblk_C, new_size_blk_C, offsets_C, ib, rec_ctr->beta, this->beta, up_C, new_C, n_new_C_grps, i_new_C_grp, new_C_grps);
+      reduce_step_post(edge_len, C, is_sparse_C, move_C, sr_C, b_C, s_C, buf_C, cdt_C, ctr_sub_lda_C, ctr_lda_C, nblk_C, size_blk_C, new_nblk_C, new_size_blk_C, offsets_C, ib, rec_ctr->beta, this->beta, up_C, new_C, n_new_C_grps, i_new_C_grp, new_C_grps, this->is_ccsr_C);
       
       if (new_size_blk_A != size_blk_A)
         cdealloc(new_size_blk_A);
@@ -566,7 +566,7 @@ namespace CTF_int {
       int64_t cmp_offset = 0;
       int64_t new_offset = 0;
       for (int i=0; i<nblk_C; i++){
-        new_Cs[i] = sr_C->csr_add(C+org_offset, new_C+cmp_offset);
+        new_Cs[i] = sr_C->csr_add(C+org_offset, new_C+cmp_offset, is_ccsr_C);
         new_offset += ((CSR_Matrix)new_Cs[i]).size();
         org_offset += ((CSR_Matrix)(C+org_offset)).size();
         cmp_offset += ((CSR_Matrix)(new_C+cmp_offset)).size();

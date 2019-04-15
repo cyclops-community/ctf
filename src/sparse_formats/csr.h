@@ -3,6 +3,7 @@
 
 #include "../tensor/algstrct.h"
 #include "coo.h"
+#include "sparse_matrix.h"
 
 namespace CTF_int {
 
@@ -19,10 +20,8 @@ namespace CTF_int {
   /**
    * \brief abstraction for a serialized sparse matrix stored in compressed-sparse-row (CSR) layout
    */
-  class CSR_Matrix{
+  class CSR_Matrix : public sparse_matrix {
     public:
-      /** \brief serialized buffer containing all info, index, and values related to matrix */
-      char * all_data;
       
       /** \brief constructor allocates all_data */
       CSR_Matrix(int64_t nnz, int nrow, int ncol, accumulatable const * sr);
@@ -64,12 +63,12 @@ namespace CTF_int {
       /**
        * \brief splits CSR matrix into s submatrices (returned) corresponding to subsets of rows, all parts allocated in one contiguous buffer (passed back in parts_buffer)
        */
-      void partition(int s, char ** parts_buffer, CSR_Matrix ** parts);
+      void partition(int s, char ** parts_buffer, sparse_matrix ** parts);
       
       /**
-       * \brief constructor merges parts into one CSR matrix, assuming they are split by partition() (Above)
+       * \brief merges parts into one CSR matrix (This, assuming they are split by partition() (Above)
        */
-      CSR_Matrix(char * const * smnds, int s);
+      void assemble(char * const * smnds, int s);
       
       /**
        * \brief outputs matrix data to stdout, intended for debugging

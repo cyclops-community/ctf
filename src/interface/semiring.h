@@ -972,7 +972,7 @@ namespace CTF {
           if (!this->isequal((char const *)&beta, this->mulid())){
             this->scal(C_in.nnz(), (char const *)&beta, C_in.vals(), 1);
           }
-          char * ans = this->csr_add(C_CSR, C.all_data);
+          char * ans = this->csr_add(C_CSR, C.all_data, false);
           CTF_int::cdealloc(C.all_data);
           C_CSR = ans;
         }

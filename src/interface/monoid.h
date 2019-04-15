@@ -129,13 +129,13 @@ namespace CTF {
       }
 
       /** \brief adds CSR matrices A (stored in cA) and B (stored in cB) to create matric C (pointer to all_data returned), C data allocated internally */
-      char * csr_add(char * cA, char * cB) const {
-        return CTF_int::algstrct::csr_add(cA, cB);
+      char * csr_add(char * cA, char * cB, bool is_ccsr) const {
+        return CTF_int::algstrct::csr_add(cA, cB, is_ccsr);
       }
 
   };
   template <>
-  char * Monoid<double,1>::csr_add(char *, char *) const;
+  char * Monoid<double,1>::csr_add(char *, char *, bool) const;
   
   /**
    * @}

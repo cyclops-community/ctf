@@ -260,7 +260,8 @@ namespace CTF_int {
 
   }*/
 
-  void CCSR_Matrix::partition(int s, char ** parts_buffer, CCSR_Matrix ** parts){
+  void CCSR_Matrix::partition(int s, char ** parts_buffer, sparse_matrix ** parts){
+    printf("partitioning CCSR\n");
     int part_nnz[s], part_nrows[s];
     int nnz_r = nnz_row();
     int nr = nrow();
@@ -290,11 +291,12 @@ namespace CTF_int {
       ((int64_t*)part_data)[2] = nr / s + (nr%s < s); //FIXME: check this
       ((int64_t*)part_data)[3] = ncol();
       ((int64_t*)part_data)[4] = part_nrows[i];
-      parts[i] = new CCSR_Matrix(part_data);
-      char * pvals = parts[i]->vals();
-      int * prow_enc = parts[i]->nnz_row_encoding();
-      int * pja = parts[i]->JA();
-      int * pia = parts[i]->IA();
+      CCSR_Matrix * mat = new CCSR_Matrix(part_data);
+      parts[i] = mat;
+      char * pvals = mat->vals();
+      int * prow_enc = mat->nnz_row_encoding();
+      int * pja = mat->JA();
+      int * pia = mat->IA();
       pia[0] = 1;
       for (int j=i, k=0; j<nnz_r; j++, k++){
         if ((row_enc[j]-1) % s == i){
@@ -308,7 +310,7 @@ namespace CTF_int {
     }
   }
       
-  CCSR_Matrix::CCSR_Matrix(char * const * smnds, int s){
+  void CCSR_Matrix::assemble(char * const * smnds, int s){
     CCSR_Matrix * ccsrs = new CCSR_Matrix[s];
     int const ** pja = (int const **)malloc(sizeof(int*)*s);
     int const ** pia = (int const **)malloc(sizeof(int*)*s);

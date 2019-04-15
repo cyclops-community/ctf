@@ -216,7 +216,7 @@ namespace CTF_int {
 
   }
 
-  void CSR_Matrix::partition(int s, char ** parts_buffer, CSR_Matrix ** parts){
+  void CSR_Matrix::partition(int s, char ** parts_buffer, sparse_matrix ** parts){
     int part_nnz[s], part_nrows[s];
     int m = nrow();
     int v_sz = val_size();
@@ -242,10 +242,11 @@ namespace CTF_int {
       ((int64_t*)part_data)[1] = v_sz;
       ((int64_t*)part_data)[2] = part_nrows[i];
       ((int64_t*)part_data)[3] = ncol();
-      parts[i] = new CSR_Matrix(part_data);
-      char * pvals = parts[i]->vals();
-      int * pja = parts[i]->JA();
-      int * pia = parts[i]->IA();
+      CSR_Matrix * mat = new CSR_Matrix(part_data);
+      parts[i] = mat;
+      char * pvals = mat->vals();
+      int * pja = mat->JA();
+      int * pia = mat->IA();
       pia[0] = 1;
       for (int j=i, k=0; j<m; j+=s, k++){
         memcpy(pvals+(pia[k]-1)*v_sz, org_vals+(org_ia[j]-1)*v_sz, (org_ia[j+1]-org_ia[j])*v_sz);
@@ -256,7 +257,7 @@ namespace CTF_int {
     }
   }
       
-  CSR_Matrix::CSR_Matrix(char * const * smnds, int s){
+  void CSR_Matrix::assemble(char * const * smnds, int s){
     CSR_Matrix * csrs[s];
     int64_t tot_nnz=0, tot_nrow=0;
     for (int i=0; i<s; i++){

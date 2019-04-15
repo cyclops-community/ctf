@@ -16,6 +16,7 @@ namespace CTF_int {
     is_sparse_A = c->A->is_sparse;
     is_sparse_B = c->B->is_sparse;
     is_sparse_C = c->C->is_sparse;
+    is_ccsr_C = c->C->is_sparse && (c->A->is_sparse ^ c->B->is_sparse);
   }
 
   spctr::spctr(spctr * other)
@@ -23,6 +24,7 @@ namespace CTF_int {
     is_sparse_A = other->is_sparse_A;
     is_sparse_B = other->is_sparse_B;
     is_sparse_C = other->is_sparse_C;
+    is_ccsr_C = other->is_ccsr_C;
   }
 
   spctr::~spctr(){  }

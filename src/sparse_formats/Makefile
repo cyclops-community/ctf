@@ -1,4 +1,4 @@
-LOBJS = coo.o csr.o ccsr.o
+LOBJS = coo.o csr.o ccsr.o sparse_matrix.o
 OBJS = $(addprefix $(ODIR)/, $(LOBJS))
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq

@@ -616,7 +616,7 @@ namespace CTF {
       if (C_CSR == NULL){ \
         C_CSR = C_add.all_data; \
       } else { \
-        char * C_ret = csr_add(C_CSR, C_add.all_data); \
+        char * C_ret = csr_add(C_CSR, C_add.all_data, true); \
         cdealloc(C_add.all_data); \
         C_CSR = C_ret; \
       } \
