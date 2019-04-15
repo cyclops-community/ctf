@@ -288,7 +288,7 @@ namespace CTF_int{
   }
 
 
-  void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank){
+  void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank, double threshold){
     switch (A->sr->el_size){
       case 4:
         {
@@ -296,7 +296,7 @@ namespace CTF_int{
           CTF::Matrix<float> mU;
           CTF::Vector<float> vS;
           CTF::Matrix<float> mVT;
-          mA.svd(mU, vS, mVT, rank);
+          mA.svd(mU, vS, mVT, rank, threshold);
           //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
           (*U)["ij"] = mU["ij"];
           (*S)["i"] = vS["i"];
@@ -311,7 +311,7 @@ namespace CTF_int{
           CTF::Matrix<double> mU;
           CTF::Vector<double> vS;
           CTF::Matrix<double> mVT;
-          mA.svd(mU, vS, mVT, rank);
+          mA.svd(mU, vS, mVT, rank, threshold);
           //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
           (*U)["ij"] = mU["ij"];
           (*S)["i"] = vS["i"];
@@ -326,7 +326,7 @@ namespace CTF_int{
     }
   }
 
-  void matrix_svd_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank){
+  void matrix_svd_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank, double threshold){
     switch (A->sr->el_size){
       case 8:
         {
@@ -334,7 +334,7 @@ namespace CTF_int{
           CTF::Matrix< std::complex<float> > mU;
           CTF::Vector< std::complex<float> > vS;
           CTF::Matrix< std::complex<float> > mVT;
-          mA.svd(mU, vS, mVT, rank);
+          mA.svd(mU, vS, mVT, rank, threshold);
           //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
           (*U)["ij"] = mU["ij"];
           (*S)["i"] = vS["i"];
@@ -349,7 +349,7 @@ namespace CTF_int{
           CTF::Matrix< std::complex<double> > mU;
           CTF::Vector< std::complex<double> > vS;
           CTF::Matrix< std::complex<double> > mVT;
-          mA.svd(mU, vS, mVT, rank);
+          mA.svd(mU, vS, mVT, rank, threshold);
           //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
           (*U)["ij"] = mU["ij"];
           (*S)["i"] = vS["i"];
@@ -463,6 +463,49 @@ namespace CTF_int{
         break;
     }
   }
+
+  void tensor_svd(tensor * dA, char * idx_A, char * idx_U, char * idx_VT, int rank, double threshold, bool use_svd_rand, int num_iter, int oversamp, tensor ** USVT){
+    char idx_S[2];
+    idx_S[1] = '\0';
+    for (int i=0; i<(int)strlen(idx_U); i++){ 
+      for (int j=0; j<(int)strlen(idx_VT); j++){ 
+        if (idx_U[i] == idx_VT[j]) idx_S[0] = idx_U[i];
+      }
+    }
+    switch (dA->sr->el_size){
+      case 4:
+        {
+          CTF::Tensor<float> * U = new CTF::Tensor<float>();
+          CTF::Tensor<float> * S = new CTF::Tensor<float>();
+          CTF::Tensor<float> * VT = new CTF::Tensor<float>();
+          ((CTF::Tensor<float>*)dA)->operator[](idx_A).svd(U->operator[](idx_U), S->operator[](idx_S), VT->operator[](idx_VT), rank, threshold, use_svd_rand, num_iter, oversamp);
+          USVT[0] = U;
+          USVT[1] = S;
+          USVT[2] = VT;
+        }
+        break;
+
+
+      case 8:
+        {
+          CTF::Tensor<double> * U = new CTF::Tensor<double>();
+          CTF::Tensor<double> * S = new CTF::Tensor<double>();
+          CTF::Tensor<double> * VT = new CTF::Tensor<double>();
+          ((CTF::Tensor<double>*)dA)->operator[](idx_A).svd(U->operator[](idx_U), S->operator[](idx_S), VT->operator[](idx_VT), rank, threshold, use_svd_rand, num_iter, oversamp);
+          USVT[0] = U;
+          USVT[1] = S;
+          USVT[2] = VT;
+          //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
 
 
 /*  template <>

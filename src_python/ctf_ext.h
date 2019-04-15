@@ -91,10 +91,11 @@ namespace CTF_int{
   void matrix_svd_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank);
   void matrix_qr(tensor * A, tensor * Q, tensor * R);
   void matrix_qr_cmplx(tensor * A, tensor * Q, tensor * R);
-  void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank);
-  void matrix_svd_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank);
+  void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank, double threshold);
+  void matrix_svd_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank, double threshold);
   void matrix_svd_rand(tensor * A, tensor * U, tensor * S, tensor * VT, int rank, int iter, int oversamp, tensor * U_init);
   void matrix_svd_rand_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank, int iter, int oversamp, tensor * U_init);
+  void tensor_svd(tensor * dA, char * idx_A, char * idx_U, char * idx_VT, int rank, double threshold, bool use_svd_rand, int num_iter, int oversamp, tensor ** USVT);
 
   /**
    * \brief convert tensor from one type to another

@@ -185,10 +185,12 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void matrix_trsm_cmplx(ctensor * L, ctensor * B, ctensor * X, bool lower, bool from_left, bool transp_L)
     cdef void matrix_qr(ctensor * A, ctensor * Q, ctensor * R)
     cdef void matrix_qr_cmplx(ctensor * A, ctensor * Q, ctensor * R)
-    cdef void matrix_svd(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
-    cdef void matrix_svd_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
+    cdef void matrix_svd(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, double threshold)
+    cdef void matrix_svd_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, double threshold)
     cdef void matrix_svd_rand(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, int iter, int oversmap, ctensor * U_init);
     cdef void matrix_svd_rand_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, int iter, int oversmap, ctensor * U_init);
+    cdef void tensor_svd(ctensor * dA, char * idx_A, char * idx_U, char * idx_VT, int rank, double threshold, bool use_svd_rand, int num_iter, int oversamp, ctensor ** USVT)
+    #cdef void tensor_svd_cmplx(Tensor * dA, char * idx_A, char * idx_U, char * idx_VT, int rank, double threshold, bool use_svd_rand, int num_iter, int oversamp, ctensor ** USVT)
     cdef void conv_type(int type_idx1, int type_idx2, ctensor * A, ctensor * B)
     cdef void delete_arr(ctensor * A, char * arr)
     cdef void delete_pairs(ctensor * A, char * pairs)
@@ -256,7 +258,6 @@ cdef extern from "ctf.hpp" namespace "CTF":
 
 cdef extern from "ctf.hpp" namespace "CTF":
     cdef void TTTP_ "CTF::TTTP"[dtype](Tensor[dtype] * T, int num_ops, int * modes, Tensor[dtype] ** mat_list, bool aux_mode_first)
-
 
 
 #from enum import Enum
@@ -503,6 +504,69 @@ cdef class itensor(term):
     def scl(self, s):
         self.it.multeq(<double>s)
         return self
+
+
+    def svd(self, row_string, col_string, rank=None, threshold=None, use_svd_rand=False, num_iter=1, oversamp=5):
+        """
+        svd(self, row_string, col_string, rank=None, threshold=None, use_svd_rand=False, num_iter=1, oversamp=5)
+        Compute Single Value Decomposition of a given transposition/matricization of tensor A.
+    
+        Parameters
+        ----------
+        row_string: char string
+            Indices indexing row of matricization, should be subset of the string of this itensor
+
+        col_string: char string
+            Indices indexing columns of matricization, should be subset of the string of this itensor
+    
+        threshold: real double precision or None, optional
+            threshold for truncation of singular values. Either rank or threshold must be set to None.
+
+        niter: int or None, optional, default 1
+            number of orthogonal iterations to perform (higher gives better accuracy)
+
+        oversamp: int or None, optional, default 5
+           oversampling parameter
+
+        Returns
+        -------
+        U: tensor
+            A unitary CTF tensor with dimensions len(row_string)+1.
+    
+        S: tensor
+            A 1-D tensor with singular values.
+    
+        VT: tensor
+            A unitary CTF tensor with dimensions len(col_string)+1.
+        """
+        t_svd = timer("pyTSVD")
+        t_svd.start()
+        if rank == None:
+            rank = 0
+        if threshold == None:
+            threshold = 0.
+        cdef ctensor ** ctsrs = <ctensor**>malloc(sizeof(ctensor*)*3)
+        if self.tsr.order == 'F':
+            row_string = _rev_array(row_string)
+            col_string = _rev_array(col_string)
+        if self.tsr.dtype == np.float64 or self.tsr.dtype == np.float32:
+            tensor_svd(self.tsr.dt, self.string.encode(),  col_string.encode(), row_string.encode(), rank, threshold, use_svd_rand, num_iter, oversamp, ctsrs)
+#        elif A.dtype == np.complex128 or A.dtype == np.complex64:
+        else:
+            raise ValueError('CTF PYTHON ERROR: SVD must be called on real or complex single/double precision tensor')
+        U = tensor([],dtype=self.tsr.dtype,order=self.tsr.order)
+        S = tensor([],dtype=self.tsr.dtype,order=self.tsr.order)
+        VT = tensor([],dtype=self.tsr.dtype,order=self.tsr.order)
+        del U.dt
+        del S.dt
+        del VT.dt
+        U.dt = ctsrs[0]
+        S.dt = ctsrs[1]
+        VT.dt = ctsrs[2]
+        free(ctsrs)
+        t_svd.stop()
+        return [U, S, VT]
+        
 
 def _rev_array(arr):
     if len(arr) == 1:
@@ -827,6 +891,29 @@ cdef class tensor:
         return self.dtype
 
     def __cinit__(self, lens=None, sp=None, sym=None, dtype=None, order=None, tensor copy=None):
+        """
+        tensor object constructor
+
+        Parameters
+        ----------
+        lens: int array, optional, default []
+            specifies dimension of each tensor mode
+
+        sp: boolean, optional, default False
+            specifies whether to use sparse internal storage
+
+        sym: int array same shape as lens, optional, default {NS,...,NS}
+            specifies symmetries among consecutive tensor modes, if sym[i]=SY, the ith mode is symmetric with respect to the i+1th, if it is NS, SH, or AS, then it is nonsymmetric, symmetric hollow (symmetric with zero diagonal), or antisymmetric (skew-symmetric), e.g. if sym={SY,SY,NS,AS,NS}, the order 5 tensor contains a group of three symmetric modes and a group of two antisymmetric modes
+
+        dtype: numpy.dtype
+            specifies the element type of the tensor dat, most real/complex/int/bool types are supported
+
+        order: char
+            'C' or 'F' (row-major or column-major), default is 'F'
+
+        copy: tensor-like
+            tensor to copy, including all attributes and data
+        """
         t_ti = timer("pytensor_init")
         t_ti.start()
         if copy is None:
@@ -3262,7 +3349,7 @@ def diag(A, k=0, sp=False):
     Parameters
     ----------
     A: tensor_like
-        Input tensor with 1-D or 2-D dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
+        Input tensor with 1 or 2 dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
 
     k: int, optional
         `k=0` is the diagonal. `k<0`, diagnals below the main diagonal. `k>0`, diagonals above the main diagonal.
@@ -3379,7 +3466,7 @@ def spdiag(A, k=0):
     Parameters
     ----------
     A: tensor_like
-        Input tensor with 1-D or 2-D dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
+        Input tensor with 1 or 2 dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
 
     k: int, optional
         `k=0` is the diagonal. `k<0`, diagnals below the main diagonal. `k>0`, diagonals above the main diagonal.
@@ -5460,29 +5547,32 @@ def TTTP(tensor A, mat_list):
     t_tttp.stop()
     return B
 
-def svd(tensor A, rank=None):
+def svd(tensor A, rank=None, threshold=None):
     """
     svd(A, rank=None)
-    Compute Single Value Decomposition of tensor A.
+    Compute Single Value Decomposition of matrix A.
 
     Parameters
     ----------
     A: tensor_like
-        Input tensor 2-D dimensions.
+        Input tensor 2 dimensions.
 
     rank: int or None, optional
-        Target rank for SVD, default `k=0`.
+        Target rank for SVD, default `rank=None`, implying full rank.
+    
+    threshold: real double precision or None, optional
+        Threshold for truncation of singular values. Either rank or threshold must be set to None.
 
     Returns
     -------
     U: tensor
-        A unitary CTF tensor with 2-D dimensions.
+        A unitary CTF tensor with 2 dimensions.
 
     S: tensor
         A 1-D tensor with singular values.
 
     VT: tensor
-        A unitary CTF tensor with 2-D dimensions.
+        A unitary CTF tensor with 2 dimensions.
     """
     t_svd = timer("pySVD")
     t_svd.start()
@@ -5493,13 +5583,18 @@ def svd(tensor A, rank=None):
         k = min(A.shape[0],A.shape[1])
     else:
         k = rank
+    if threshold is None:
+        threshold = 0.
+
     S = tensor(k,dtype=A.dtype)
     U = tensor([A.shape[0],k],dtype=A.dtype)
     VT = tensor([k,A.shape[1]],dtype=A.dtype)
     if A.dtype == np.float64 or A.dtype == np.float32:
-        matrix_svd(A.dt, VT.dt, S.dt, U.dt, rank)
+        matrix_svd(A.dt, VT.dt, S.dt, U.dt, rank, threshold)
     elif A.dtype == np.complex128 or A.dtype == np.complex64:
-        matrix_svd_cmplx(A.dt, VT.dt, S.dt, U.dt, rank)
+        matrix_svd_cmplx(A.dt, VT.dt, S.dt, U.dt, rank, threshold)
+    else:
+        raise ValueError('CTF PYTHON ERROR: SVD must be called on real or complex single/double precision tensor')
     t_svd.stop()
     return [U, S, VT]
 
@@ -5511,7 +5606,7 @@ def svd_rand(tensor A, rank, niter=1, oversamp=5, VT_guess=None):
     Parameters
     ----------
     A: tensor_like
-        Input tensor 2-D dimensions.
+        Input tensor 2 dimensions.
 
     rank: int
         Target SVD rank
@@ -5527,13 +5622,13 @@ def svd_rand(tensor A, rank, niter=1, oversamp=5, VT_guess=None):
     Returns
     -------
     U: tensor
-        A unitary CTF tensor with 2-D dimensions.
+        A unitary CTF tensor with 2 dimensions.
 
     S: tensor
         A 1-D tensor with singular values.
 
     VT: tensor
-        A unitary CTF tensor with 2-D dimensions.
+        A unitary CTF tensor with 2 dimensions.
     """
     t_svd = timer("pyRSVD")
     t_svd.start()
@@ -5554,24 +5649,25 @@ def svd_rand(tensor A, rank, niter=1, oversamp=5, VT_guess=None):
         else:
             tVT_guess = tensor(copy=VT_guess)
             matrix_svd_rand_cmplx(A.dt, VT.dt, S.dt, U.dt, rank, niter, oversamp, tVT_guess.dt)
+    else:
+        raise ValueError('CTF PYTHON ERROR: SVD must be called on real or complex single/double precision tensor')
     t_svd.stop()
     return [U, S, VT]
-
 
 def qr(tensor A):
     """
     qr(A)
-    Compute QR factorization of tensor A.
+    Compute QR factorization of matrix A.
 
     Parameters
     ----------
     A: tensor_like
-        Input tensor 2-D dimensions.
+        Input tensor 2 dimensions.
 
     Returns
     -------
     Q: tensor
-        A CTF tensor with 2-D dimensions and orthonormal columns.
+        A CTF tensor with 2 dimensions and orthonormal columns.
 
     R: tensor
         An upper triangular 2-D CTF tensor.
@@ -5598,7 +5694,7 @@ def cholesky(tensor A):
     Parameters
     ----------
     A: tensor_like
-        Input tensor 2-D dimensions.
+        Input tensor 2 dimensions.
 
     Returns
     -------
@@ -5668,7 +5764,7 @@ def vecnorm(A, ord=2):
     Parameters
     ----------
     A: tensor_like
-        Input tensor with 1-D or 2-D dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
+        Input tensor with 1 or 2 dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
 
     ord: {int 1, 2, inf}, optional
         Order of the norm.
