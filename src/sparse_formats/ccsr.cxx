@@ -9,7 +9,7 @@ namespace CTF_int {
   int64_t get_ccsr_size(int64_t nnz, int64_t nnz_row, int val_size){
     int64_t offset = 5*sizeof(int64_t);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
-    offset += nnz_row*sizeof(int);
+    offset += nnz_row*sizeof(int64_t);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     offset += nnz*val_size;
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
@@ -39,12 +39,12 @@ namespace CTF_int {
     all_data = all_data_;
   }
 
-  CCSR_Matrix::CCSR_Matrix(COO_Matrix const & coom, int64_t nrow_, int64_t ncol, algstrct const * sr, char * data, bool init_data){
+  CCSR_Matrix::CCSR_Matrix(tCOO_Matrix<int64_t> const & coom, int64_t nrow_, int64_t ncol, algstrct const * sr, char * data, bool init_data){
     ASSERT(ALIGN >= 16);
     int64_t nz = coom.nnz(); 
     int64_t v_sz = coom.val_size(); 
-    int const * coo_rs = coom.rows();
-    int const * coo_cs = coom.cols();
+    int64_t const * coo_rs = coom.rows();
+    int64_t const * coo_cs = coom.cols();
     char const * vs = coom.vals();
     /*if (nz >= 2){
       printf("hereccsr\n");
@@ -52,8 +52,8 @@ namespace CTF_int {
       sr->print(vs+v_sz);
     }*/
    
-    int * coo_rs_copy = (int*)alloc(nz*sizeof(int));
-    memcpy(coo_rs_copy, coo_rs, nz*sizeof(int)); 
+    int64_t * coo_rs_copy = (int64_t*)alloc(nz*sizeof(int64_t));
+    memcpy(coo_rs_copy, coo_rs, nz*sizeof(int64_t)); 
     std::sort(coo_rs_copy, coo_rs_copy+nz);
     int64_t nnz_row = 0;
     if (nz > 0){
@@ -78,7 +78,7 @@ namespace CTF_int {
     ((int64_t*)all_data)[3] = ncol;
     ((int64_t*)all_data)[4] = nnz_row;
 
-    int * row_enc = nnz_row_encoding();
+    int64_t * row_enc = nnz_row_encoding();
     int64_t nnz_row_ctr = 0;
     if (nz > 0){
       row_enc[0] = coo_rs_copy[0];
@@ -138,16 +138,16 @@ namespace CTF_int {
     return ((int64_t*)all_data)[4];
   }
 
-  int * CCSR_Matrix::nnz_row_encoding() const {
+  int64_t * CCSR_Matrix::nnz_row_encoding() const {
     int64_t offset = 5*sizeof(int64_t);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
-    return (int*)(all_data + offset);
+    return (int64_t*)(all_data + offset);
   }
 
   char * CCSR_Matrix::vals() const {
     char * ptr = (char*)this->nnz_row_encoding();
     int64_t offset = ptr-all_data; 
-    offset += this->nnz_row()*sizeof(int);
+    offset += this->nnz_row()*sizeof(int64_t);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     return all_data + offset;
   }
@@ -181,7 +181,7 @@ namespace CTF_int {
       CCSR_Matrix cA((char*)A);
       int64_t nz = cA.nnz(); 
       int64_t nnz_row = cA.nnz_row(); 
-      int const * row_enc = cA.nnz_row_encoding();
+      int64_t const * row_enc = cA.nnz_row_encoding();
       int const * ja = cA.JA();
       int const * ia = cA.IA();
       char const * vs = cA.vals();
@@ -266,7 +266,7 @@ namespace CTF_int {
     int64_t nr = nrow();
     int v_sz = val_size();
     char * org_vals = vals();
-    int const * row_enc = nnz_row_encoding();
+    int64_t const * row_enc = nnz_row_encoding();
     int const * org_ia = IA();
     int const * org_ja = JA();
     for (int i=0; i<s; i++){
@@ -293,7 +293,7 @@ namespace CTF_int {
       CCSR_Matrix * mat = new CCSR_Matrix(part_data);
       parts[i] = mat;
       char * pvals = mat->vals();
-      int * prow_enc = mat->nnz_row_encoding();
+      int64_t * prow_enc = mat->nnz_row_encoding();
       int * pja = mat->JA();
       int * pia = mat->IA();
       pia[0] = 1;
@@ -314,8 +314,8 @@ namespace CTF_int {
     CCSR_Matrix * ccsrs = new CCSR_Matrix[s];
     int const ** pja = (int const **)malloc(sizeof(int*)*s);
     int const ** pia = (int const **)malloc(sizeof(int*)*s);
-    int const ** prow_enc = (int const **)malloc(sizeof(int*)*s);
-    int * pnnz_row = (int*)malloc(sizeof(int)*s);
+    int64_t const ** prow_enc = (int64_t const **)malloc(sizeof(int64_t*)*s);
+    int64_t * pnnz_row = (int64_t*)malloc(sizeof(int64_t)*s);
     int64_t tot_nnz=0, tot_nnz_row=0, tot_nrow=0;
     for (int i=0; i<s; i++){
       ccsrs[i] = CCSR_Matrix(smnds[i]);
@@ -337,7 +337,7 @@ namespace CTF_int {
     ((int64_t*)all_data)[4] = tot_nnz_row;
     
     char * ccsr_vs = vals();
-    int * row_enc = nnz_row_encoding();
+    int64_t * row_enc = nnz_row_encoding();
     int * ccsr_ja = JA();
     int * ccsr_ia = IA();
 
@@ -385,10 +385,10 @@ namespace CTF_int {
     int v_sz = val_size();
     int64_t nz = nnz();
     int64_t nzr = nnz_row();
-    int * row_enc = nnz_row_encoding();
+    int64_t * row_enc = nnz_row_encoding();
     printf("CCSR Matrix has %ld nonzeros %ld rows (%ld of them nonzero) %ld cols\n", nz, nrow(), nzr, ncol());
     for (int64_t i=0; i<nzr; i++){
-      printf("row_enc[%ld] = %d\n", i,row_enc[i]);
+      printf("row_enc[%ld] = %ld\n", i,row_enc[i]);
     }
     for (int64_t i=0; i<nz; i++){
       while (i>=ccsr_ia[irow+1]-1) irow++;
@@ -428,13 +428,13 @@ namespace CTF_int {
     char const * vA = A.vals();
     int const * JA = A.JA();
     int const * IA = A.IA();
-    int const * row_enc_A = A.nnz_row_encoding();
+    int64_t const * row_enc_A = A.nnz_row_encoding();
     int64_t nrow = A.nrow();
     int64_t nnz_row_A = A.nnz_row();
     char const * vB = B.vals();
     int const * JB = B.JA();
     int const * IB = B.IA();
-    int const * row_enc_B = B.nnz_row_encoding();
+    int64_t const * row_enc_B = B.nnz_row_encoding();
     int64_t nnz_row_B = B.nnz_row();
     ASSERT(nrow == B.nrow());
     int64_t ncol = std::max(A.ncol(),B.ncol());
@@ -453,7 +453,7 @@ namespace CTF_int {
       nnz_row++;
     }
     nnz_row += (nnz_row_A-innz_row_A) + (nnz_row_B-innz_row_B);
-    int * row_enc = (int*)alloc(sizeof(int)*nnz_row);
+    int64_t * row_enc = (int64_t*)alloc(sizeof(int64_t)*nnz_row);
     int * IC = (int*)alloc(sizeof(int)*(nnz_row+1));
     int * has_col = (int*)alloc(sizeof(int)*ncol);
     IC[0] = 1;
@@ -491,10 +491,10 @@ namespace CTF_int {
     CCSR_Matrix C(IC[nnz_row]-1, nnz_row, nrow, ncol, adder);
     char * vC = C.vals();
     int * JC = C.JA();
-    int * row_enc_C = C.nnz_row_encoding();
+    int64_t * row_enc_C = C.nnz_row_encoding();
     memcpy(C.IA(), IC, sizeof(int)*(nnz_row+1));
     cdealloc(IC);
-    memcpy(row_enc_C, row_enc, sizeof(int)*nnz_row);
+    memcpy(row_enc_C, row_enc, sizeof(int64_t)*nnz_row);
     cdealloc(row_enc);
     IC = C.IA();
     int64_t * rev_col = (int64_t*)alloc(sizeof(int64_t)*ncol);

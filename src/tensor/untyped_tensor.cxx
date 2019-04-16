@@ -2895,7 +2895,7 @@ namespace CTF_int {
       CCSR_Matrix * mat_list = new CCSR_Matrix[nvirt_A];
 
       for (int i=0; i<nvirt_A; i++){
-        COO_Matrix cm(this->nnz_blk[i], this->sr);
+        tCOO_Matrix<int64_t> cm(this->nnz_blk[i], this->sr);
         cm.set_data(this->nnz_blk[i], this->order, this->sym, this->lens, this->pad_edge_len, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
         mat_list[i] = CCSR_Matrix(cm, m, n, this->sr);
         cdealloc(cm.all_data);
@@ -3001,7 +3001,7 @@ namespace CTF_int {
       if (this->rec_tsr->nnz_blk[i]>0){
         if (ccsr){
           CCSR_Matrix cs((char*)data_ptr_in);
-          COO_Matrix cm(cs, this->sr);
+          tCOO_Matrix<int64_t> cm(cs, this->sr);
           cm.get_data(cs.nnz(), this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_out, this->sr, phase, phase_rank);
           this->nnz_blk[i] = cm.nnz();
           cdealloc(cm.all_data);

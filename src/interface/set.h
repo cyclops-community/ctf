@@ -85,7 +85,7 @@ namespace CTF_int {
   }
 
   template <typename dtype>  
-  void seq_coo_to_ccsr(int64_t nz, int64_t nnz_row, dtype * ccsr_vs, int * ccsr_ja, int * ccsr_ia, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
+  void seq_coo_to_ccsr(int64_t nz, int64_t nnz_row, dtype * ccsr_vs, int * ccsr_ja, int * ccsr_ia, dtype const * coo_vs, int64_t const * coo_rs, int64_t const * coo_cs){
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
@@ -96,8 +96,8 @@ namespace CTF_int {
 
     class comp_ref {
       public:
-        int const * a;
-        comp_ref(int const * a_){ a = a_; }
+        int64_t const * a;
+        comp_ref(int64_t const * a_){ a = a_; }
         bool operator()(int u, int v){ 
           return a[u] < a[v];
         }
@@ -124,7 +124,7 @@ namespace CTF_int {
     ccsr_ia[0] = 1;
     ccsr_ia[1] = 1 + (nz>0);
     //FIXME: parallelize
-    int cia = 1;
+    int64_t cia = 1;
     for (int64_t i=1; i<nz; i++){
       if (coo_rs[ccsr_ja[i]] > coo_rs[ccsr_ja[i-1]]){
         cia++;
@@ -165,7 +165,7 @@ namespace CTF_int {
   }
 
   template <typename dtype>  
-  void def_coo_to_ccsr(int64_t nz, int64_t nnz_row, dtype * ccsr_vs, int * ccsr_ja, int * ccsr_ia, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
+  void def_coo_to_ccsr(int64_t nz, int64_t nnz_row, dtype * ccsr_vs, int * ccsr_ja, int * ccsr_ia, dtype const * coo_vs, int64_t const * coo_rs, int64_t const * coo_cs){
     seq_coo_to_ccsr<dtype>(nz, nnz_row, ccsr_vs, ccsr_ja, ccsr_ia, coo_vs, coo_rs, coo_cs);
   }
 
@@ -180,22 +180,31 @@ namespace CTF_int {
   }
 
   template <typename dtype>  
-  void seq_ccsr_to_coo(int64_t nz, int64_t nnz_row, dtype const * ccsr_vs, int const * ccsr_ja, int const * ccsr_ia, int const * row_enc, dtype * coo_vs, int * coo_rs, int * coo_cs){
+  void seq_ccsr_to_coo(int64_t nz, int64_t nnz_row, dtype const * ccsr_vs, int const * ccsr_ja, int const * ccsr_ia, int const * row_enc, dtype * coo_vs, int64_t * coo_rs, int64_t * coo_cs){
     //memcpy(coo_vs, ccsr_vs, sizeof(dtype)*nz);
     std::copy(ccsr_vs, ccsr_vs+nz, coo_vs);
-    memcpy(coo_cs, ccsr_ja, sizeof(int)*nz);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<nz; i++){
+      coo_cs[i] = ccsr_ja[i];
+    }
+
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (int64_t i=0; i<nnz_row; i++){
       std::fill(coo_rs+ccsr_ia[i]-1, coo_rs+ccsr_ia[i+1]-1, row_enc[i]);
     }
   }
 
   template <typename dtype>  
-  void def_coo_to_ccsr(int64_t nz, int64_t nnz_row, dtype * ccsr_vs, int * ccsr_ja, int * ccsr_ia, int const * row_enc, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
+  void def_coo_to_ccsr(int64_t nz, int64_t nnz_row, dtype * ccsr_vs, int * ccsr_ja, int * ccsr_ia, int const * row_enc, dtype const * coo_vs, int64_t const * coo_rs, int64_t const * coo_cs){
     seq_coo_to_ccsr<dtype>(nz, nnz_row, ccsr_vs, ccsr_ja, ccsr_ia, row_enc, coo_vs, coo_rs, coo_cs);
   }
 
   template <typename dtype>  
-  void def_ccsr_to_coo(int64_t nz, int64_t nnz_row, dtype const * ccsr_vs, int const * ccsr_ja, int const * ccsr_ia, int const * row_enc, dtype * coo_vs, int * coo_rs, int * coo_cs){
+  void def_ccsr_to_coo(int64_t nz, int64_t nnz_row, dtype const * ccsr_vs, int const * ccsr_ja, int const * ccsr_ia, int const * row_enc, dtype * coo_vs, int64_t * coo_rs, int64_t * coo_cs){
     seq_ccsr_to_coo<dtype>(nz, nnz_row, ccsr_vs, ccsr_ja, ccsr_ia, row_enc, coo_vs, coo_rs, coo_cs);
   }
 
@@ -500,11 +509,11 @@ namespace CTF {
         CTF_int::def_csr_to_coo(nz, nrow, (dtype const *)csr_vs, csr_ja, csr_ia, (dtype*) coo_vs, coo_rs, coo_cs);
       }
 
-      void coo_to_ccsr(int64_t nz, int64_t nnz_row, char * ccsr_vs, int * ccsr_ja, int * ccsr_ia, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
+      void coo_to_ccsr(int64_t nz, int64_t nnz_row, char * ccsr_vs, int * ccsr_ja, int * ccsr_ia, char const * coo_vs, int64_t const * coo_rs, int64_t const * coo_cs) const {
         CTF_int::def_coo_to_ccsr(nz, nnz_row, (dtype *)ccsr_vs, ccsr_ja, ccsr_ia, (dtype const *) coo_vs, coo_rs, coo_cs);
       }
 
-      void ccsr_to_coo(int64_t nz, int64_t nnz_row, char const * csr_vs, int const * csr_ja, int const * csr_ia, int const * row_enc, char * coo_vs, int * coo_rs, int * coo_cs) const {
+      void ccsr_to_coo(int64_t nz, int64_t nnz_row, char const * csr_vs, int const * csr_ja, int const * csr_ia, int const * row_enc, char * coo_vs, int64_t * coo_rs, int64_t * coo_cs) const {
         CTF_int::def_ccsr_to_coo(nz, nnz_row, (dtype const *)csr_vs, csr_ja, csr_ia, row_enc, (dtype*) coo_vs, coo_rs, coo_cs);
       }
 
