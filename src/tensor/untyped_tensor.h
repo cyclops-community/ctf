@@ -33,7 +33,7 @@ namespace CTF_int {
        */
       void init(algstrct const * sr,
                 int              order,
-                int const *      edge_len,
+                int64_t const *  edge_len,
                 int const *      sym,
                 CTF::World *     wrld,
                 bool             alloc_data,
@@ -75,9 +75,9 @@ namespace CTF_int {
       /** \brief number of tensor dimensions */
       int order;
       /** \brief unpadded tensor edge lengths */
-      int * lens;
+      int64_t * lens;
       /** \brief padded tensor edge lengths */
-      int * pad_edge_len;
+      int64_t * pad_edge_len;
       /** \brief padding along each edge length (less than distribution phase) */
       int * padding;
       /** \brief name given to tensor */
@@ -173,7 +173,7 @@ namespace CTF_int {
        */
       tensor(algstrct const * sr,
              int              order,
-             int const *      edge_len,
+             int64_t const *  edge_len,
              int const *      sym,
              CTF::World *     wrld,
              bool             alloc_data=true,
@@ -198,7 +198,7 @@ namespace CTF_int {
       tensor(algstrct const *           sr,
              int                        order,
              bool                       is_sparse,
-             int const *                edge_len,
+             int64_t const *            edge_len,
              int const *                sym,
              CTF::World *               wrld,
              char const *               idx,
