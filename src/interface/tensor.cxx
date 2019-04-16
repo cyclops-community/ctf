@@ -885,7 +885,16 @@ NORM1_INST(double)
     for (int i=0; i<A.order; i++){
       inds[i] = 'a'+i;
     }
-    nrm = std::sqrt((double)Function<dtype,double>([](dtype a){ return (double)std::norm(a); })(A[inds]));
+    //nrm = std::sqrt((double)Function<dtype,double>([](dtype a){ return (double)std::norm(a); })(A[inds]));
+    Tensor<dtype> cA(A.order, A.is_sparse, A.lens, *A.wrld, *A.sr);
+    cA[inds] += A[inds];
+    Transform<dtype>([](dtype & a){ a = std::abs(a)*std::abs(a); })(cA[inds]);
+    Tensor<dtype> sc(0, NULL, *A.wrld);
+    sc[""] = cA[inds];
+    dtype val = ((dtype*)sc.data)[0];
+    MPI_Bcast((char *)&val, sizeof(dtype), MPI_CHAR, 0, A.wrld->comm);
+    nrm = std::abs(val);
+
   }
 
 

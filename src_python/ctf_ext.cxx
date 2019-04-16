@@ -507,6 +507,48 @@ namespace CTF_int{
   }
 
 
+  void tensor_svd_cmplx(tensor * dA, char * idx_A, char * idx_U, char * idx_VT, int rank, double threshold, bool use_svd_rand, int num_iter, int oversamp, tensor ** USVT){
+    char idx_S[2];
+    idx_S[1] = '\0';
+    for (int i=0; i<(int)strlen(idx_U); i++){ 
+      for (int j=0; j<(int)strlen(idx_VT); j++){ 
+        if (idx_U[i] == idx_VT[j]) idx_S[0] = idx_U[i];
+      }
+    }
+    switch (dA->sr->el_size){
+      case 8:
+        {
+          CTF::Tensor<std::complex<float>> * U = new CTF::Tensor<std::complex<float>>();
+          CTF::Tensor<std::complex<float>> * S = new CTF::Tensor<std::complex<float>>();
+          CTF::Tensor<std::complex<float>> * VT = new CTF::Tensor<std::complex<float>>();
+          ((CTF::Tensor<std::complex<float>>*)dA)->operator[](idx_A).svd(U->operator[](idx_U), S->operator[](idx_S), VT->operator[](idx_VT), rank, threshold, use_svd_rand, num_iter, oversamp);
+          USVT[0] = U;
+          USVT[1] = S;
+          USVT[2] = VT;
+        }
+        break;
+
+
+      case 16:
+        {
+          CTF::Tensor<std::complex<double>> * U = new CTF::Tensor<std::complex<double>>();
+          CTF::Tensor<std::complex<double>> * S = new CTF::Tensor<std::complex<double>>();
+          CTF::Tensor<std::complex<double>> * VT = new CTF::Tensor<std::complex<double>>();
+          ((CTF::Tensor<std::complex<double>>*)dA)->operator[](idx_A).svd(U->operator[](idx_U), S->operator[](idx_S), VT->operator[](idx_VT), rank, threshold, use_svd_rand, num_iter, oversamp);
+          USVT[0] = U;
+          USVT[1] = S;
+          USVT[2] = VT;
+          //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
 
 /*  template <>
   void tensor::conv_type<bool, std::complex<float>>(tensor * B){

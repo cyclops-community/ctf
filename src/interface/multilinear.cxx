@@ -339,7 +339,7 @@ namespace CTF {
     }
     Matrix<dtype> A(nrow_U, ncol_VT, SP*dA.is_sparse, *dA.wrld, *dA.sr);
     if (need_transpose_A){
-      Tensor<dtype> T(dA.order, dA.is_sparse, dA.lens, *dA.wrld, *dA.sr);
+      Tensor<dtype> T(dA.order, dA.is_sparse, unf_lens_A, *dA.wrld, *dA.sr);
       T[unf_idx_A] += dA.operator[](idx_A);
       A.reshape(T);
     } else {
