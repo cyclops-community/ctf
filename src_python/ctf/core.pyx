@@ -68,8 +68,10 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
     cdef cppclass ctensor "CTF_int::tensor":
         World * wrld
         algstrct * sr
+        int * lens
         bool is_sparse
         int64_t nnz_tot
+        int order
         ctensor()
         ctensor(ctensor * other, bool copy, bool alloc_data)
         ctensor(ctensor * other, int * new_sym)
@@ -185,10 +187,12 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void matrix_trsm_cmplx(ctensor * L, ctensor * B, ctensor * X, bool lower, bool from_left, bool transp_L)
     cdef void matrix_qr(ctensor * A, ctensor * Q, ctensor * R)
     cdef void matrix_qr_cmplx(ctensor * A, ctensor * Q, ctensor * R)
-    cdef void matrix_svd(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
-    cdef void matrix_svd_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
+    cdef void matrix_svd(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, double threshold)
+    cdef void matrix_svd_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, double threshold)
     cdef void matrix_svd_rand(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, int iter, int oversmap, ctensor * U_init);
     cdef void matrix_svd_rand_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, int iter, int oversmap, ctensor * U_init);
+    cdef void tensor_svd(ctensor * dA, char * idx_A, char * idx_U, char * idx_VT, int rank, double threshold, bool use_svd_rand, int num_iter, int oversamp, ctensor ** USVT)
+    cdef void tensor_svd_cmplx(ctensor * dA, char * idx_A, char * idx_U, char * idx_VT, int rank, double threshold, bool use_svd_rand, int num_iter, int oversamp, ctensor ** USVT)
     cdef void conv_type(int type_idx1, int type_idx2, ctensor * A, ctensor * B)
     cdef void delete_arr(ctensor * A, char * arr)
     cdef void delete_pairs(ctensor * A, char * pairs)
@@ -256,7 +260,6 @@ cdef extern from "ctf.hpp" namespace "CTF":
 
 cdef extern from "ctf.hpp" namespace "CTF":
     cdef void TTTP_ "CTF::TTTP"[dtype](Tensor[dtype] * T, int num_ops, int * modes, Tensor[dtype] ** mat_list, bool aux_mode_first)
-
 
 
 #from enum import Enum
@@ -503,6 +506,82 @@ cdef class itensor(term):
     def scl(self, s):
         self.it.multeq(<double>s)
         return self
+
+    def svd(self, U_string, VT_string, rank=None, threshold=None, use_svd_rand=False, num_iter=1, oversamp=5):
+        """
+        svd(self, U_string, VT_string, rank=None, threshold=None, use_svd_rand=False, num_iter=1, oversamp=5)
+        Compute Single Value Decomposition of a given transposition/matricization of tensor A.
+    
+        Parameters
+        ----------
+        U_string: char string
+            Indices indexing left singular vectors, should be subset of the string of this itensor plus an auxiliary index
+
+        VT_string: char string
+            Indices indexing right singular vectors, should be subset of the string of this itensor, plus same auxiliary index as in U
+    
+        threshold: real double precision or None, optional
+            threshold for truncation of singular values. Either rank or threshold must be set to None.
+
+        niter: int or None, optional, default 1
+            number of orthogonal iterations to perform (higher gives better accuracy)
+
+        oversamp: int or None, optional, default 5
+           oversampling parameter
+
+        Returns
+        -------
+        U: tensor
+            A unitary CTF tensor with dimensions len(U_string).
+    
+        S: tensor
+            A 1-D tensor with singular values.
+    
+        VT: tensor
+            A unitary CTF tensor with dimensions len(VT_string)+1.
+        """
+        t_svd = timer("pyTSVD")
+        t_svd.start()
+        if rank == None:
+            rank = 0
+        if threshold == None:
+            threshold = 0.
+        cdef ctensor ** ctsrs = <ctensor**>malloc(sizeof(ctensor*)*3)
+        if _ord_comp(self.tsr.order, 'F'):
+            U_string = _rev_array(U_string)
+            VT_string = _rev_array(VT_string)
+        if self.tsr.dtype == np.float64 or self.tsr.dtype == np.float32:
+            tensor_svd(self.tsr.dt, self.string.encode(),  VT_string.encode(), U_string.encode(), rank, threshold, use_svd_rand, num_iter, oversamp, ctsrs)
+        elif self.tsr.dtype == np.complex128 or self.tsr.dtype == np.complex64:
+            tensor_svd_cmplx(self.tsr.dt, self.string.encode(),  VT_string.encode(), U_string.encode(), rank, threshold, use_svd_rand, num_iter, oversamp, ctsrs)
+        else:
+            raise ValueError('CTF PYTHON ERROR: SVD must be called on real or complex single/double precision tensor')
+        cdef cnp.ndarray lens_U = cnp.ndarray(ctsrs[2].order,dtype=np.int)
+        cdef cnp.ndarray lens_S = cnp.ndarray(ctsrs[1].order,dtype=np.int)
+        cdef cnp.ndarray lens_VT = cnp.ndarray(ctsrs[0].order,dtype=np.int)
+        for i in range(ctsrs[0].order):
+            lens_VT[i] = ctsrs[0].lens[i]
+        if _ord_comp(self.tsr.order, 'F'):
+            lens_VT = _rev_array(lens_VT)
+        for i in range(ctsrs[1].order):
+            lens_S[i] = ctsrs[1].lens[i]
+        for i in range(ctsrs[2].order):
+            lens_U[i] = ctsrs[2].lens[i]
+        if _ord_comp(self.tsr.order, 'F'):
+            lens_U = _rev_array(lens_U)
+        U = tensor(lens_U,dtype=self.tsr.dtype,order=self.tsr.order)
+        S = tensor(lens_S,dtype=self.tsr.dtype,order=self.tsr.order)
+        VT = tensor(lens_VT,dtype=self.tsr.dtype,order=self.tsr.order)
+        del U.dt
+        del S.dt
+        del VT.dt
+        U.dt = ctsrs[2]
+        S.dt = ctsrs[1]
+        VT.dt = ctsrs[0]
+        free(ctsrs)
+        t_svd.stop()
+        return [U, S, VT]
+        
 
 def _rev_array(arr):
     if len(arr) == 1:
@@ -827,6 +906,29 @@ cdef class tensor:
         return self.dtype
 
     def __cinit__(self, lens=None, sp=None, sym=None, dtype=None, order=None, tensor copy=None):
+        """
+        tensor object constructor
+
+        Parameters
+        ----------
+        lens: int array, optional, default []
+            specifies dimension of each tensor mode
+
+        sp: boolean, optional, default False
+            specifies whether to use sparse internal storage
+
+        sym: int array same shape as lens, optional, default {NS,...,NS}
+            specifies symmetries among consecutive tensor modes, if sym[i]=SY, the ith mode is symmetric with respect to the i+1th, if it is NS, SH, or AS, then it is nonsymmetric, symmetric hollow (symmetric with zero diagonal), or antisymmetric (skew-symmetric), e.g. if sym={SY,SY,NS,AS,NS}, the order 5 tensor contains a group of three symmetric modes and a group of two antisymmetric modes
+
+        dtype: numpy.dtype
+            specifies the element type of the tensor dat, most real/complex/int/bool types are supported
+
+        order: char
+            'C' or 'F' (row-major or column-major), default is 'F'
+
+        copy: tensor-like
+            tensor to copy, including all attributes and data
+        """
         t_ti = timer("pytensor_init")
         t_ti.start()
         if copy is None:
@@ -1293,6 +1395,10 @@ cdef class tensor:
             (<Tensor[float]*>self.dt).fill_random(mn,mx)
         elif self.dtype == np.float64:
             (<Tensor[double]*>self.dt).fill_random(mn,mx)
+        elif self.dtype == np.complex64:
+            (<Tensor[complex64_t]*>self.dt).fill_random(mn,mx)
+        elif self.dtype == np.complex128:
+            (<Tensor[complex128_t]*>self.dt).fill_random(mn,mx)
         else:
             raise ValueError('CTF PYTHON ERROR: bad dtype')
 
@@ -2182,7 +2288,7 @@ cdef class tensor:
         delete_arr(self.dt, cdata)
         return inds, vals
 
-    def _tot_size(self, unpack=True):
+    def tot_size(self, unpack=True):
         return self.dt.get_tot_size(not unpack)
 
     def read_all(self, arr=None, unpack=True):
@@ -2696,10 +2802,10 @@ cdef class tensor:
 
         Returns
         -------
-        output: scalar
+        output: scalar np.float64
             2-norm of the tensor.
 
-        Examples
+        xamples
         --------
         >>> import ctf
         >>> a = ctf.ones([3,4], dtype=np.float64)
@@ -2707,19 +2813,21 @@ cdef class tensor:
         3.4641016151377544
         """
         if self.dtype == np.float64:
-            return (<Tensor[double]*>self.dt).norm2()
+            return np.float64((<Tensor[double]*>self.dt).norm2())
         elif self.dtype == np.float32:
-            return (<Tensor[float]*>self.dt).norm2()
+            return np.float64((<Tensor[float]*>self.dt).norm2())
         elif self.dtype == np.int64:
-            return (<Tensor[int64_t]*>self.dt).norm2()
+            return np.float64((<Tensor[int64_t]*>self.dt).norm2())
         elif self.dtype == np.int32:
-            return (<Tensor[int32_t]*>self.dt).norm2()
+            return np.float64((<Tensor[int32_t]*>self.dt).norm2())
         elif self.dtype == np.int16:
-            return (<Tensor[int16_t]*>self.dt).norm2()
+            return np.float64((<Tensor[int16_t]*>self.dt).norm2())
         elif self.dtype == np.int8:
-            return (<Tensor[int8_t]*>self.dt).norm2()
-#        elif self.dtype == np.complex128:
-#            return (<Tensor[double complex]*>self.dt).norm2()
+            return np.float64((<Tensor[int8_t]*>self.dt).norm2())
+        elif self.dtype == np.complex64:
+            return np.float64(np.abs(np.complex64((<Tensor[complex64_t]*>self.dt).norm2())))
+        elif self.dtype == np.complex128:
+            return np.float64(np.abs(np.complex128((<Tensor[complex128_t]*>self.dt).norm2())))
         else:
             raise ValueError('CTF PYTHON ERROR: norm not present for this dtype')
 
@@ -2787,7 +2895,7 @@ cdef class tensor:
                [1., 1., 1., 1.],
                [1., 1., 1., 1.]])
         """
-        vals = np.zeros(self._tot_size(), dtype=self.dtype)
+        vals = np.zeros(self.tot_size(), dtype=self.dtype)
         self.read_all(vals)
         #return np.asarray(np.ascontiguousarray(np.reshape(vals, self.shape, order='F')),order='C')
         #return np.reshape(vals, _rev_array(self.shape)).transpose()
@@ -2822,9 +2930,9 @@ cdef class tensor:
         if self.dt.wrld.np == 1:
             self.write_all(arr)
         elif self.dt.wrld.rank == 0:
-            #self.write(np.arange(0,self._tot_size(),dtype=np.int64),np.asfortranarray(arr).flatten())
-            #self.write(np.arange(0,self._tot_size(),dtype=np.int64),np.asfortranarray(arr).flatten())
-            self.write(np.arange(0,self._tot_size(),dtype=np.int64),arr.ravel())
+            #self.write(np.arange(0,self.tot_size(),dtype=np.int64),np.asfortranarray(arr).flatten())
+            #self.write(np.arange(0,self.tot_size(),dtype=np.int64),np.asfortranarray(arr).flatten())
+            self.write(np.arange(0,self.tot_size(),dtype=np.int64),arr.ravel())
         else:
             self.write([], [])
 
@@ -3262,7 +3370,7 @@ def diag(A, k=0, sp=False):
     Parameters
     ----------
     A: tensor_like
-        Input tensor with 1-D or 2-D dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
+        Input tensor with 1 or 2 dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
 
     k: int, optional
         `k=0` is the diagonal. `k<0`, diagnals below the main diagonal. `k>0`, diagonals above the main diagonal.
@@ -3379,7 +3487,7 @@ def spdiag(A, k=0):
     Parameters
     ----------
     A: tensor_like
-        Input tensor with 1-D or 2-D dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
+        Input tensor with 1 or 2 dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
 
     k: int, optional
         `k=0` is the diagonal. `k<0`, diagnals below the main diagonal. `k>0`, diagonals above the main diagonal.
@@ -5014,7 +5122,7 @@ def _comp_all(tensor A, axis=None, out=None, keepdims=None):
         raise ValueError("'keepdims' not supported for all yet")
     if axis is None:
         x = A._bool_sum()
-        return x == A._tot_size()
+        return x == A.tot_size()
 
 def transpose(init_A, axes=None):
     """
@@ -5460,29 +5568,32 @@ def TTTP(tensor A, mat_list):
     t_tttp.stop()
     return B
 
-def svd(tensor A, rank=None):
+def svd(tensor A, rank=None, threshold=None):
     """
     svd(A, rank=None)
-    Compute Single Value Decomposition of tensor A.
+    Compute Single Value Decomposition of matrix A.
 
     Parameters
     ----------
     A: tensor_like
-        Input tensor 2-D dimensions.
+        Input tensor 2 dimensions.
 
     rank: int or None, optional
-        Target rank for SVD, default `k=0`.
+        Target rank for SVD, default `rank=None`, implying full rank.
+    
+    threshold: real double precision or None, optional
+        Threshold for truncation of singular values. Either rank or threshold must be set to None.
 
     Returns
     -------
     U: tensor
-        A unitary CTF tensor with 2-D dimensions.
+        A unitary CTF tensor with 2 dimensions.
 
     S: tensor
         A 1-D tensor with singular values.
 
     VT: tensor
-        A unitary CTF tensor with 2-D dimensions.
+        A unitary CTF tensor with 2 dimensions.
     """
     t_svd = timer("pySVD")
     t_svd.start()
@@ -5493,13 +5604,18 @@ def svd(tensor A, rank=None):
         k = min(A.shape[0],A.shape[1])
     else:
         k = rank
+    if threshold is None:
+        threshold = 0.
+
     S = tensor(k,dtype=A.dtype)
     U = tensor([A.shape[0],k],dtype=A.dtype)
     VT = tensor([k,A.shape[1]],dtype=A.dtype)
     if A.dtype == np.float64 or A.dtype == np.float32:
-        matrix_svd(A.dt, VT.dt, S.dt, U.dt, rank)
+        matrix_svd(A.dt, VT.dt, S.dt, U.dt, rank, threshold)
     elif A.dtype == np.complex128 or A.dtype == np.complex64:
-        matrix_svd_cmplx(A.dt, VT.dt, S.dt, U.dt, rank)
+        matrix_svd_cmplx(A.dt, VT.dt, S.dt, U.dt, rank, threshold)
+    else:
+        raise ValueError('CTF PYTHON ERROR: SVD must be called on real or complex single/double precision tensor')
     t_svd.stop()
     return [U, S, VT]
 
@@ -5511,7 +5627,7 @@ def svd_rand(tensor A, rank, niter=1, oversamp=5, VT_guess=None):
     Parameters
     ----------
     A: tensor_like
-        Input tensor 2-D dimensions.
+        Input tensor 2 dimensions.
 
     rank: int
         Target SVD rank
@@ -5527,13 +5643,13 @@ def svd_rand(tensor A, rank, niter=1, oversamp=5, VT_guess=None):
     Returns
     -------
     U: tensor
-        A unitary CTF tensor with 2-D dimensions.
+        A unitary CTF tensor with 2 dimensions.
 
     S: tensor
         A 1-D tensor with singular values.
 
     VT: tensor
-        A unitary CTF tensor with 2-D dimensions.
+        A unitary CTF tensor with 2 dimensions.
     """
     t_svd = timer("pyRSVD")
     t_svd.start()
@@ -5554,24 +5670,25 @@ def svd_rand(tensor A, rank, niter=1, oversamp=5, VT_guess=None):
         else:
             tVT_guess = tensor(copy=VT_guess)
             matrix_svd_rand_cmplx(A.dt, VT.dt, S.dt, U.dt, rank, niter, oversamp, tVT_guess.dt)
+    else:
+        raise ValueError('CTF PYTHON ERROR: SVD must be called on real or complex single/double precision tensor')
     t_svd.stop()
     return [U, S, VT]
-
 
 def qr(tensor A):
     """
     qr(A)
-    Compute QR factorization of tensor A.
+    Compute QR factorization of matrix A.
 
     Parameters
     ----------
     A: tensor_like
-        Input tensor 2-D dimensions.
+        Input tensor 2 dimensions.
 
     Returns
     -------
     Q: tensor
-        A CTF tensor with 2-D dimensions and orthonormal columns.
+        A CTF tensor with 2 dimensions and orthonormal columns.
 
     R: tensor
         An upper triangular 2-D CTF tensor.
@@ -5598,7 +5715,7 @@ def cholesky(tensor A):
     Parameters
     ----------
     A: tensor_like
-        Input tensor 2-D dimensions.
+        Input tensor 2 dimensions.
 
     Returns
     -------
@@ -5668,7 +5785,7 @@ def vecnorm(A, ord=2):
     Parameters
     ----------
     A: tensor_like
-        Input tensor with 1-D or 2-D dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
+        Input tensor with 1 or 2 dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
 
     ord: {int 1, 2, inf}, optional
         Order of the norm.

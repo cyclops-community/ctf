@@ -20,12 +20,12 @@ namespace CTF_int {
   }
    
   template <int idim>
-  int64_t calc_cnt(int const * sym,
-                   int const * rep_phase,
-                   int const * sphase,
-                   int const * gidx_off,
-                   int const * edge_len,
-                   int const * loc_edge_len){
+  int64_t calc_cnt(int const *     sym,
+                   int const *     rep_phase,
+                   int const *     sphase,
+                   int const *     gidx_off,
+                   int64_t const * edge_len,
+                   int64_t const * loc_edge_len){
     assert(sym[idim] == NS); //otherwise should be in calc_sy_pfx
     if (sym[idim-1] == NS){
       return (get_loc(edge_len[idim]-1,sphase[idim],gidx_off[idim])+1)*calc_cnt<idim-1>(sym, rep_phase, sphase, gidx_off, edge_len, loc_edge_len);
@@ -41,12 +41,12 @@ namespace CTF_int {
   }
  
   template <>
-  int64_t calc_cnt<0>(int const * sym,
-                      int const * rep_phase,
-                      int const * sphase,
-                      int const * gidx_off,
-                      int const * edge_len,
-                      int const * loc_edge_len){
+  int64_t calc_cnt<0>(int const *     sym,
+                      int const *     rep_phase,
+                      int const *     sphase,
+                      int const *     gidx_off,
+                      int64_t const * edge_len,
+                      int64_t const * loc_edge_len){
     assert(sym[0] == NS);
     return get_loc(edge_len[0]-1, sphase[0], gidx_off[0])+1;
   }
@@ -94,12 +94,12 @@ namespace CTF_int {
   }
  
   template <>
-  int64_t * calc_sy_pfx<1>(int const * sym,
-                           int const * rep_phase,
-                           int const * sphase,
-                           int const * gidx_off,
-                           int const * edge_len,
-                           int const * loc_edge_len){
+  int64_t * calc_sy_pfx<1>(int const *     sym,
+                           int const *     rep_phase,
+                           int const *     sphase,
+                           int const *     gidx_off,
+                           int64_t const * edge_len,
+                           int64_t const * loc_edge_len){
     int64_t * pfx= (int64_t*)alloc(sizeof(int64_t)*loc_edge_len[1]);
     if (sym[0] == NS){
       int64_t cnt = calc_cnt<0>(sym, rep_phase, sphase, gidx_off, edge_len, loc_edge_len);
@@ -117,16 +117,16 @@ namespace CTF_int {
   }
 
   template <int idim>
-  void calc_drv_cnts(int         order,
-                     int const * sym,
-                     int64_t *   counts,
-                     int const * rep_phase,
-                     int const * rep_phase_lda,
-                     int const * sphase,
-                     int const * phys_phase,
-                     int       * gidx_off,
-                     int const * edge_len,
-                     int const * loc_edge_len){
+  void calc_drv_cnts(int             order,
+                     int const *     sym,
+                     int64_t *       counts,
+                     int const *     rep_phase,
+                     int const *     rep_phase_lda,
+                     int const *     sphase,
+                     int const *     phys_phase,
+                     int       *     gidx_off,
+                     int64_t const * edge_len,
+                     int64_t const * loc_edge_len){
     for (int i=0; i<rep_phase[idim]; i++, gidx_off[idim]+=phys_phase[idim]){
        calc_drv_cnts<idim-1>(order, sym, counts+i*rep_phase_lda[idim], rep_phase, rep_phase_lda, sphase, phys_phase,
                              gidx_off, edge_len, loc_edge_len);
@@ -135,16 +135,16 @@ namespace CTF_int {
   }
   
   template <>
-  void calc_drv_cnts<0>(int         order,
-                        int const * sym,
-                        int64_t *   counts,
-                        int const * rep_phase,
-                        int const * rep_phase_lda,
-                        int const * sphase,
-                        int const * phys_phase,
-                        int       * gidx_off,
-                        int const * edge_len,
-                        int const * loc_edge_len){
+  void calc_drv_cnts<0>(int             order,
+                        int const *     sym,
+                        int64_t *       counts,
+                        int const *     rep_phase,
+                        int const *     rep_phase_lda,
+                        int const *     sphase,
+                        int const *     phys_phase,
+                        int       *     gidx_off,
+                        int64_t const * edge_len,
+                        int64_t const * loc_edge_len){
     for (int i=0; i<rep_phase[0]; i++, gidx_off[0]+=phys_phase[0]){
       SWITCH_ORD_CALL_RET(counts[i], calc_cnt, order-1, sym, rep_phase, sphase, gidx_off, edge_len, loc_edge_len)
     }
@@ -218,7 +218,7 @@ namespace CTF_int {
   INST_CALC_CNT_BEC_ICPC_SUCKS(11)
 
   void calc_drv_displs(int const *          sym,
-                       int const *          edge_len,
+                       int64_t const *      edge_len,
                        distribution const & old_dist,
                        distribution const & new_dist,
                        int64_t *            counts,
@@ -226,14 +226,14 @@ namespace CTF_int {
     TAU_FSTART(calc_drv_displs);
     int * rep_phase, * gidx_off, * sphase;
     int * rep_phase_lda;
-    int * new_loc_edge_len;
+    int64_t * new_loc_edge_len;
     if (idx_lyr == 0){
       int order = old_dist.order;
       rep_phase     = (int*)alloc(order*sizeof(int));
       rep_phase_lda = (int*)alloc(order*sizeof(int));
       sphase        = (int*)alloc(order*sizeof(int));
       gidx_off      = (int*)alloc(order*sizeof(int));
-      new_loc_edge_len      = (int*)alloc(order*sizeof(int));
+      new_loc_edge_len = (int64_t*)alloc(order*sizeof(int64_t));
       int nrep = 1;
       for (int i=0; i<order; i++){
         //FIXME: computed elsewhere already
@@ -261,10 +261,10 @@ namespace CTF_int {
   void precompute_offsets(distribution const & old_dist,
                           distribution const & new_dist,
                           int const *          sym,
-                          int const *          len,
+                          int64_t const *      len,
                           int const *          rep_phase,
-                          int const *          phys_edge_len,
-                          int const *          virt_edge_len,
+                          int64_t const *      phys_edge_len,
+                          int64_t const *      virt_edge_len,
                           int const *          virt_dim,
                           int const *          virt_lda,
                           int64_t              virt_nelem,

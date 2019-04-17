@@ -125,8 +125,10 @@ namespace CTF_int {
 #endif
     //update_all_models(A->wrld->cdt.cm);
     int stat = home_sum_tsr(run_diag);
-    if (stat != SUCCESS)
+    if (stat != SUCCESS){
       printf("CTF ERROR: Failed to perform summation\n");
+      ASSERT(0);
+    }
   }
   
   double summation::estimate_time(){

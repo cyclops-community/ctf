@@ -19,7 +19,7 @@ namespace CTF_int {
    */
   void pad_key(int              order,
                int64_t          num_pair,
-               int const *      edge_len,
+               int64_t const *  edge_len,
                int const *      padding,
                PairIterator     pairs,
                algstrct const * sr,
@@ -40,7 +40,7 @@ namespace CTF_int {
    */
   void depad_tsr(int              order,
                  int64_t          num_pair,
-                 int const *      edge_len,
+                 int64_t const *  edge_len,
                  int const *      sym,
                  int const *      padding,
                  int const *      prepadding,
@@ -96,7 +96,7 @@ namespace CTF_int {
   void zero_padding( int              order,
                      int64_t          size,
                      int              nvirt,
-                     int const *      edge_len,
+                     int64_t const *  edge_len,
                      int const *      sym,
                      int const *      padding,
                      int const *      phase,
@@ -125,7 +125,7 @@ namespace CTF_int {
   void scal_diag(int              order,
                  int64_t          size,
                  int              nvirt,
-                 int const *      edge_len,
+                 int64_t const *  edge_len,
                  int const *      sym,
                  int const *      padding,
                  int const *      phase,
@@ -148,7 +148,7 @@ namespace CTF_int {
 */
 
   void sp_scal_diag(int              order,
-                    int const *      lens,
+                    int64_t const *  lens,
                     int const *      sym,
                     int64_t          nnz_loc,
                     char *           vdata,

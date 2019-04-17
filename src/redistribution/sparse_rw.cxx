@@ -9,8 +9,8 @@
 namespace CTF_int {
   void permute_keys(int              order,
                     int              num_pair,
-                    int const *      edge_len,
-                    int const *      new_edge_len,
+                    int64_t const *  edge_len,
+                    int64_t const *  new_edge_len,
                     int * const *    permutation,
                     char *           pairs_buf,
                     int64_t *        new_num_pair,
@@ -27,7 +27,8 @@ namespace CTF_int {
     #pragma omp parallel
   #endif
     { 
-      int i, j, tid, ntd, outside;
+      int64_t i, j;
+      int tid, ntd, outside;
       int64_t lda, wkey, knew, kdim, tstart, tnum_pair, cnum_pair;
   #ifdef USE_OMP
       tid = omp_get_thread_num();
@@ -98,8 +99,8 @@ namespace CTF_int {
 
   void depermute_keys(int              order,
                       int              num_pair,
-                      int const *      edge_len,
-                      int const *      new_edge_len,
+                      int64_t const *  edge_len,
+                      int64_t const *  new_edge_len,
                       int * const *    permutation,
                       char *           pairs_buf,
                       algstrct const * sr){
@@ -119,7 +120,7 @@ namespace CTF_int {
       } else {
         depermutation[d] = (int*)CTF_int::alloc(new_edge_len[d]*sizeof(int));
         std::fill(depermutation[d],depermutation[d]+new_edge_len[d], -1);
-        for (int i=0; i<edge_len[d]; i++){
+        for (int64_t i=0; i<edge_len[d]; i++){
           if (permutation[d][i] > -1)
             depermutation[d][permutation[d][i]] = i;
         }
@@ -130,7 +131,8 @@ namespace CTF_int {
     #pragma omp parallel
   #endif
     { 
-      int i, j, tid, ntd;
+      int64_t i, j;
+      int tid, ntd;
       int64_t lda, wkey, knew, kdim, tstart, tnum_pair;
   #ifdef USE_OMP
       tid = omp_get_thread_num();
@@ -180,7 +182,7 @@ namespace CTF_int {
   void assign_keys(int              order,
                    int64_t          size,
                    int              nvirt,
-                   int const *      edge_len,
+                   int64_t const *  edge_len,
                    int const *      sym,
                    int const *      phase,
                    int const *      phys_phase,
@@ -189,9 +191,11 @@ namespace CTF_int {
                    char const *     vdata,
                    char *           vpairs,
                    algstrct const * sr){
-    int i, imax, act_lda, act_max;
+    int64_t i, imax;
+    int act_lda, act_max;
     int64_t p, idx_offset, buf_offset;
-    int * idx, * virt_rank;
+    int64_t * idx;
+    int * virt_rank;
     int64_t * edge_lda;  
     if (order == 0){
       ASSERT(size <= 1);
@@ -202,7 +206,7 @@ namespace CTF_int {
     }
 
     TAU_FSTART(assign_keys);
-    CTF_int::alloc_ptr(order*sizeof(int), (void**)&idx);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&idx);
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_rank);
     CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&edge_lda);
     
@@ -222,7 +226,7 @@ namespace CTF_int {
       } 
     
       //printf("size = %d\n", size); 
-      memset(idx, 0, order*sizeof(int));
+      memset(idx, 0, order*sizeof(int64_t));
       imax = edge_len[0]/phase[0];
       for (;;){
         if (sym[0] != NS)
@@ -276,7 +280,7 @@ namespace CTF_int {
   void spsfy_tsr(int              order,
                  int64_t          size,
                  int              nvirt,
-                 int const *      edge_len,
+                 int64_t const *  edge_len,
                  int const *      sym,
                  int const *      phase,
                  int const *      phys_phase,
@@ -288,9 +292,11 @@ namespace CTF_int {
                  algstrct const * sr,
                  int64_t const *  edge_lda,
                  std::function<bool(char const*)> f){
-    int i, imax, act_lda, act_max;
+    int64_t i, imax;
+    int act_lda, act_max;
     int64_t p, idx_offset, buf_offset;
-    int * idx, * virt_rank;
+    int64_t * idx;
+    int * virt_rank;
     memset(nnz_blk, 0, sizeof(int64_t)*nvirt); 
     if (order == 0){
       ASSERT(size <= 1);
@@ -305,7 +311,7 @@ namespace CTF_int {
     }
 
     TAU_FSTART(spsfy_tsr);
-    CTF_int::alloc_ptr(order*sizeof(int), (void**)&idx);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&idx);
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_rank);
     
     memset(virt_rank, 0, sizeof(int)*order);
@@ -318,7 +324,7 @@ namespace CTF_int {
       bool * keep_vals = vkeep_vals + p*(size/nvirt);
     
       buf_offset = 0;
-      memset(idx, 0, order*sizeof(int));
+      memset(idx, 0, order*sizeof(int64_t));
       imax = edge_len[0]/phase[0];
       for (;;){
         if (sym[0] != NS)
@@ -383,7 +389,7 @@ namespace CTF_int {
       } 
     
     
-      memset(idx, 0, order*sizeof(int));
+      memset(idx, 0, order*sizeof(int64_t));
       imax = edge_len[0]/phase[0];
       for (;;){
         if (sym[0] != NS)
@@ -449,7 +455,7 @@ namespace CTF_int {
                     int const *       phys_phase,
                     int const *       virt_phase,
                     int const *       bucket_lda,
-                    int const *       edge_len,
+                    int64_t const *   edge_len,
                     ConstPairIterator mapped_data,
                     int64_t *         bucket_counts,
                     int64_t *         bucket_off,
@@ -555,7 +561,7 @@ namespace CTF_int {
                            int64_t           num_pair,
                            int const *       phys_phase,
                            int const *       virt_phase,
-                           int const *       edge_len,
+                           int64_t const *   edge_len,
                            ConstPairIterator mapped_data,
                            PairIterator      bucket_data,
                            algstrct const *  sr){
@@ -701,7 +707,7 @@ namespace CTF_int {
                  char const *     alpha,
                  char const *     beta,
                  int              nvirt,
-                 int const *      edge_len,
+                 int64_t const *  edge_len,
                  int const *      sym,
                  int const *      phase,
                  int const *      phys_phase,
@@ -891,7 +897,7 @@ namespace CTF_int {
                        char             rw,
                        int              num_virt,
                        int const *      sym,
-                       int const *      edge_len,
+                       int64_t const *  edge_len,
                        int const *      padding,
                        int const *      phase,
                        int const *      phys_phase,
@@ -910,8 +916,8 @@ namespace CTF_int {
     int64_t new_num_pair, nwrite, swp;
     int64_t * bucket_counts, * recv_counts;
     int64_t * recv_displs, * send_displs;
-    int * depadding, * depad_edge_len;
-    int * ckey;
+    int64_t * depadding, * depad_edge_len;
+    int64_t * ckey;
     int j, is_out, sign, is_perm;
     char * swap_datab, * buf_datab;
     int64_t * old_nnz_blk;
@@ -949,11 +955,11 @@ namespace CTF_int {
 
     /* Copy out the input data, do not touch that array */
   //  memcpy(swap_data, wr_pairs, nwrite*sizeof(tkv_pair<dtype>));
-    CTF_int::alloc_ptr(order*sizeof(int), (void**)&depad_edge_len);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&depad_edge_len);
     for (int i=0; i<order; i++){
       depad_edge_len[i] = edge_len[i] - padding[i];
     } 
-    CTF_int::alloc_ptr(order*sizeof(int), (void**)&ckey);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&ckey);
     TAU_FSTART(check_key_ranges);
 
     //calculate the number of keys that need to be vchanged first
@@ -1063,7 +1069,7 @@ namespace CTF_int {
     TAU_FSTOP(check_key_ranges);
 
     /* If the packed tensor is padded, pad keys */
-    int const * wlen;
+    int64_t const * wlen;
     if (!is_sparse){
       pad_key(order, nwrite, depad_edge_len, padding, swap_data, sr);
       CTF_int::cdealloc(depad_edge_len);
@@ -1166,7 +1172,7 @@ namespace CTF_int {
     /* If we want to read the keys, we must return them to where they
        were requested */
     if (rw == 'r'){
-      CTF_int::alloc_ptr(order*sizeof(int), (void**)&depadding);
+      CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&depadding);
       /* Sort the key-value pairs we determine*/
       //std::sort(buf_data, buf_data+new_num_pair);
       buf_data.sort(new_num_pair);
@@ -1179,7 +1185,7 @@ namespace CTF_int {
   #if (DEBUG>=5)
         ///if (el_loc < buf_data || el_loc >= buf_data+new_num_pair){
         if (el_loc < 0 || el_loc >= new_num_pair){
-          DEBUG_PRINTF("swap_data[%d].k = %d, not found\n", i, (int)swap_data[i].k());
+          DEBUG_PRINTF("swap_data[%d].k = %d, not found\n", i, (int64_t)swap_data[i].k());
           ASSERT(0);
         }
   #endif
@@ -1250,7 +1256,7 @@ namespace CTF_int {
                       int64_t          nval,
                       int              num_virt,
                       int const *      sym,
-                      int const *      edge_len,
+                      int64_t const *  edge_len,
                       int const *      padding,
                       int const *      phase,
                       int const *      phys_phase,
@@ -1287,7 +1293,7 @@ namespace CTF_int {
     /* If we need to unpad */
     int64_t new_num_pair;
     int * depadding;
-    int * pad_len;
+    int64_t * pad_len;
     char * new_pairsb;
     new_pairsb = sr->pair_alloc(nval);
    
