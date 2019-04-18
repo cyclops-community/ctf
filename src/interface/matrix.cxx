@@ -752,9 +752,9 @@ namespace CTF {
     CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
     if (threshold > 0.0){
       rank = std::upper_bound(s, s+k, (dtype)threshold, [](const dtype a, const dtype b){ return std::abs(a) > std::abs(b); }) - s;
-      printf("truncated value ");
-      this->sr->print((char*)(s+rank));
-      printf(", threshold was %lf\n",threshold);
+      //printf("truncated value ");
+      //this->sr->print((char*)(s+rank));
+      //printf(", threshold was %lf\n",threshold);
     }
     int phase = S.edge_map[0].calc_phase();
     if ((int)(this->wrld->rank) < phase){
