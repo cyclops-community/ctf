@@ -2552,12 +2552,12 @@ cdef class tensor:
     def __getitem__(self, key_init):
         [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape] = _setgetitem_helper(self, key_init)
 
-        if is_everything:
-            return self.reshape(corr_shape)
-
         if is_single_val:
             vals = self.read(np.asarray([key]).reshape(1,self.ndim))
             return vals[0]
+
+        if is_everything:
+            return self.reshape(corr_shape)
 
         if is_contig:
             offs = [ind[0] for ind in inds]
@@ -5780,15 +5780,15 @@ def solve_tri(tensor L, tensor B, lower=True, from_left=True, transp_L=False):
 def vecnorm(A, ord=2):
     """
     vecnorm(A, ord=2)
-    Return norm of tensor A.
+    Return vector (elementwise) norm of tensor A.
 
     Parameters
     ----------
     A: tensor_like
-        Input tensor with 1 or 2 dimensions. If A is 1-D tensor, return a 2-D tensor with A on diagonal.
+        Input tensor with 1, 2 or more dimensions.
 
     ord: {int 1, 2, inf}, optional
-        Order of the norm.
+        Type the norm, 2=Frobenius.
 
     Returns
     -------
@@ -5815,6 +5815,62 @@ def vecnorm(A, ord=2):
         raise ValueError('CTF PYTHON ERROR: CTF only supports 1/2/inf vector norms')
     t_norm.stop()
     return nrm
+
+def norm(A, ord=2):
+    """
+    norm(A, ord='fro')
+    Return vector or matrix norm of tensor A.
+    If A a matrix, compute induced (1/2/infinity)-matrix norms or Frobenius norm, if A has one or more than three dimensions, treat as vector
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor with 1, 2, or more dimensions.
+
+    ord: {int 1, 2, inf}, optional
+        Order of the norm.
+
+    Returns
+    -------
+    output: tensor
+        Norm of tensor A.
+
+    Examples
+    --------
+    >>> import ctf
+    >>> import ctf.linalg as la
+    >>> a = ctf.astensor([3,4.])
+    >>> la.vecnorm(a)
+    5.0
+    """
+    t_norm = timer("pynorm")
+    t_norm.start()
+    if A.ndim == 2:
+        if ord == 'fro':
+            nrm = vecnorm(A)
+        elif ord == 2:
+            [U,S,VT] = svd(A,1)
+            nrm = S[0]
+        elif ord == 1:
+            nrm = max(sum(abs(A),axis=0))
+        elif ord == np.inf:
+            nrm = max(sum(abs(A),axis=1))
+        else:
+            raise ValueError('CTF PYTHON ERROR: CTF only supports 1/2/inf vector norms')
+    else:
+        if ord == 'fro':
+            nrm = A.norm2()
+        elif ord == 2:
+            nrm = A.norm2()
+        elif ord == 1:
+            nrm = A.norm1()
+        elif ord == np.inf:
+            nrm = A.norm_infty()
+        else:
+            raise ValueError('CTF PYTHON ERROR: CTF only supports 1/2/inf vector norms')
+    t_norm.stop()
+    return nrm
+
 
 def _match_tensor_types(first, other):
     if isinstance(first, tensor):
