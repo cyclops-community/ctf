@@ -124,17 +124,18 @@ namespace CTF_int {
                              bool create_dummy=false,
                              bool contract=true){
 
-    int * len_C, * sym_C;
+    int64_t * len_C;
+    int * sym_C;
     char * idx_C;
     int order_C, i, j;
     int num_out_inds = (int)out_inds.size();
     idx_C = (char*)alloc(sizeof(char)*num_out_inds);
     sym_C = (int*)alloc(sizeof(int)*num_out_inds);
-    len_C = (int*)alloc(sizeof(int)*num_out_inds);
+    len_C = (int64_t*)alloc(sizeof(int64_t)*num_out_inds);
     order_C = 0;
     for (j=0; j<num_out_inds; j++){
       bool found = false;
-      int len = -1;
+      int64_t len = -1;
       int sym_prev = -1;
       for (i=0; i<A.parent->order; i++){
         if (A.idx_map[i] == out_inds[j]){

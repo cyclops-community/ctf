@@ -120,6 +120,10 @@ namespace CTF_int {
                type const * cidx_C,
                int **       iidx_C);
 
+  int64_t * conv_to_int64(int const * arr, int len);
+  
+  int64_t * copy_int64(int64_t const * arr, int len);
+
   void flops_add(int64_t n);
 
   int64_t get_flops();

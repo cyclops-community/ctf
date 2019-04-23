@@ -308,7 +308,7 @@ namespace CTF_int {
 
   void tensor::init(algstrct const * sr_,
                     int              order_,
-                    int64_t const *  edge_len,
+                    int64_t *        edge_len,
                     int const *      sym_,
                     World *          wrld_,
                     bool             alloc_data,
@@ -360,7 +360,9 @@ namespace CTF_int {
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&this->padding);
     memset(this->padding, 0, order*sizeof(int));
 
-    this->lens = (int64_t*)CTF_int64_t::alloc(order*sizeof(int64_t));
+    //this->lens = (int64_t*)CTF_int64_t::alloc(order*sizeof(int64_t));
+    //memcpy(this->lens, edge_len, order*sizeof(int64_t));
+    this->lens = edge_len;
     memcpy(this->lens, edge_len, order*sizeof(int64_t));
     this->pad_edge_len = (int64_t*)CTF_int64_t::alloc(order*sizeof(int64_t));
     memcpy(this->pad_edge_len, lens, order*sizeof(int64_t));

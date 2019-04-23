@@ -167,6 +167,19 @@ namespace CTF_int {
   template int conv_idx<int>(int, int const *, int **, int, int const *, int **, int, int const *, int **);
   template int conv_idx<char>(int, char const *, int **, int, char const *, int **, int, char const *, int **);
 
+  int64_t * conv_to_int64(int const * arr, int len){
+    int64_t * iarr = (int64_t*)CTF_int::alloc(sizeof(int64_t)*len);
+    for (int i=0; i<len; i++){
+      iarr[i] = arr[i];
+    }
+    return iarr;
+  }
+
+  int64_t * copy_int64(int64_t const * arr, int len){
+    int64_t * iarr = (int64_t*)CTF_int::alloc(sizeof(int64_t)*len);
+    memcpy(iarr, arr, len*sizeof(int64_t));
+    return iarr;
+  }
 
   int64_t total_flop_count = 0;
 
@@ -530,10 +543,10 @@ namespace CTF_int {
     alltoallv_mdl.observe(tps);
   }
 
-  void cvrt_idx(int         order,
-                int const * lens,
-                int64_t     idx,
-                int *       idx_arr){
+  void cvrt_idx(int             order,
+                int64_t const * lens,
+                int64_t         idx,
+                int *           idx_arr){
     int i;
     int64_t cidx = idx;
     for (i=0; i<order; i++){
