@@ -20,10 +20,10 @@ namespace CTF_int {
   void pad_key(int              order,
                int64_t          num_pair,
                int64_t const *  edge_len,
-               int const *      padding,
+               int64_t const *  padding,
                PairIterator     pairs,
                algstrct const * sr,
-               int const *      offsets = NULL);
+               int64_t const *  offsets = NULL);
 
   /**
    * \brief retrieves the unpadded pairs
@@ -42,8 +42,8 @@ namespace CTF_int {
                  int64_t          num_pair,
                  int64_t const *  edge_len,
                  int const *      sym,
-                 int const *      padding,
-                 int const *      prepadding,
+                 int64_t const *  padding,
+                 int64_t const *  prepadding,
                  char const *     pairsb,
                  char *           new_pairsb,
                  int64_t *        new_num_pair,
@@ -98,7 +98,7 @@ namespace CTF_int {
                      int              nvirt,
                      int64_t const *  edge_len,
                      int const *      sym,
-                     int const *      padding,
+                     int64_t const *  padding,
                      int const *      phase,
                      int const *      phys_phase,
                      int const *      virt_phase,
@@ -127,7 +127,7 @@ namespace CTF_int {
                  int              nvirt,
                  int64_t const *  edge_len,
                  int const *      sym,
-                 int const *      padding,
+                 int64_t const *  padding,
                  int const *      phase,
                  int const *      phys_phase,
                  int const *      virt_phase,

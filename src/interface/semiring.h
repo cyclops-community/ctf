@@ -722,7 +722,7 @@ namespace CTF {
           M = CTF_int::CCSR_Matrix(nnz_row*n, nnz_row, m, n, this);
         } else {
           int new_order[2] = {1, 0};
-          int lens[2] = {(int)nnz_row, (int)n};
+          int64_t lens[2] = {(int64_t)nnz_row, (int64_t)n};
           bool use_hptt = CTF_int::hptt_is_applicable(2, new_order, this->el_size);
           if (use_hptt){
             char * data = this->alloc(((int64_t)nnz_row)*n);

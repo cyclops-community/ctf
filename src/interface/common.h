@@ -81,7 +81,7 @@ namespace CTF_int {
    * \param[in] sym tensor symmetries
    * \return size of tensor in packed layout
    */
-  int64_t sy_packed_size(int order, const int* len, const int* sym);
+  int64_t sy_packed_size(int order, const int64_t * len, const int* sym);
 
 
   /**
@@ -91,7 +91,7 @@ namespace CTF_int {
    * \param[in] sym tensor symmetries
    * \return size of tensor in packed layout
    */
-  int64_t packed_size(int order, const int* len, const int* sym);
+  int64_t packed_size(int order, const int64_t * len, const int* sym);
 
 
   enum { SUCCESS, ERROR, NEGATIVE };
@@ -122,6 +122,8 @@ namespace CTF_int {
 
   int64_t * conv_to_int64(int const * arr, int len);
   
+  int * conv_to_int(int64_t const * arr, int len);
+
   int64_t * copy_int64(int64_t const * arr, int len);
 
   void flops_add(int64_t n);
@@ -236,20 +238,20 @@ namespace CTF_int {
   int cdealloc(void * ptr);
 
 
-  void cvrt_idx(int         order,
-                int const * lens,
-                int64_t     idx,
-                int **      idx_arr);
+  void cvrt_idx(int             order,
+                int64_t const * lens,
+                int64_t         idx,
+                int **          idx_arr);
 
-  void cvrt_idx(int         order,
-                int const * lens,
-                int64_t     idx,
-                int *       idx_arr);
+  void cvrt_idx(int             order,
+                int64_t const * lens,
+                int64_t         idx,
+                int *           idx_arr);
 
-  void cvrt_idx(int         order,
-                int const * lens,
-                int const * idx_arr,
-                int64_t *   idx);
+  void cvrt_idx(int             order,
+                int64_t const * lens,
+                int const *     idx_arr,
+                int64_t *       idx);
 
   /**
    * \brief gives a datatype for arbitrary datum_size, errors if exceeding 32-bits

@@ -125,15 +125,15 @@ namespace CTF_int {
    * \return CTF_SUCCESS if mapping successful, CTF_NEGATIVE if not, 
    *     CTF_ERROR if err'ed out
    */
-  int map_tensor(int         num_phys_dims,
-                 int         tsr_order,
-                 int const * tsr_edge_len,
-                 int const * tsr_sym_table,
-                 int *       restricted,
-                 CommData  * phys_comm,
-                 int const * comm_idx,
-                 int         fill,
-                 mapping *   tsr_edge_map);
+  int map_tensor(int             num_phys_dims,
+                 int             tsr_order,
+                 int64_t const * tsr_edge_len,
+                 int const *     tsr_sym_table,
+                 int *           restricted,
+                 CommData  *     phys_comm,
+                 int const *     comm_idx,
+                 int             fill,
+                 mapping *       tsr_edge_map);
 
   /**
    * \brief checks mapping in preparation for tensors scale, summ or contract

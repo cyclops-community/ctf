@@ -33,7 +33,7 @@ namespace CTF_int {
        */
       void init(algstrct const * sr,
                 int              order,
-                int64_t const *  edge_len,
+                int64_t *        edge_len,
                 int const *      sym,
                 CTF::World *     wrld,
                 bool             alloc_data,
@@ -79,7 +79,7 @@ namespace CTF_int {
       /** \brief padded tensor edge lengths */
       int64_t * pad_edge_len;
       /** \brief padding along each edge length (less than distribution phase) */
-      int * padding;
+      int64_t * padding;
       /** \brief name given to tensor */
       char * name;
       /** \brief whether tensor data has additional padding */
@@ -173,7 +173,7 @@ namespace CTF_int {
        */
       tensor(algstrct const * sr,
              int              order,
-             int64_t const *  edge_len,
+             int64_t *        edge_len,
              int const *      sym,
              CTF::World *     wrld,
              bool             alloc_data=true,
@@ -198,7 +198,7 @@ namespace CTF_int {
       tensor(algstrct const *           sr,
              int                        order,
              bool                       is_sparse,
-             int64_t const *            edge_len,
+             int64_t *                  edge_len,
              int const *                sym,
              CTF::World *               wrld,
              char const *               idx,
@@ -450,13 +450,13 @@ namespace CTF_int {
        * \param[in] ends_A top right corner of block of A
        * \param[in] alpha scaling factor of tensor A
        */
-      void slice(int const *  offsets_B,
-                 int const *  ends_B,
-                 char const * beta,
-                 tensor  *    A,
-                 int const *  offsets_A,
-                 int const *  ends_A,
-                 char const * alpha);
+      void slice(int64_t const * offsets_B,
+                 int64_t const * ends_B,
+                 char const *    beta,
+                 tensor  *       A,
+                 int64_t const * offsets_A,
+                 int64_t const * ends_A,
+                 char const *    alpha);
 
       /* Same as above, except tid_B lives on dt_other_B */
 /*      int slice_tensor(int            tid_A,
@@ -706,7 +706,7 @@ namespace CTF_int {
                 int const * fold_idx,
                 int const * idx_map,
                 int *       all_fdim,
-                int **      all_flen);
+                int64_t **  all_flen);
 
       /**
         * \brief pulls data from an tensor with an aliased buffer
@@ -728,9 +728,9 @@ namespace CTF_int {
        * \param[in] new_permutation permutation of rows/cols/...
        */
       int redistribute(distribution const & old_dist,
-                       int const *  old_offsets = NULL,
+                       int64_t const *  old_offsets = NULL,
                        int * const * old_permutation = NULL,
-                       int const *  new_offsets = NULL,
+                       int64_t const *  new_offsets = NULL,
                        int * const * new_permutation = NULL);
 
       double est_redist_time(distribution const & old_dist, double nnz_frac);
@@ -781,7 +781,7 @@ namespace CTF_int {
        * \param[in] csr whether to do csr (1) or coo (0) layout
        * \param[in] ccsr whether to do doubly compressed csr
        */
-      void spmatricize(int m, int n, int nrow_idx, int all_fdim, int const * all_flen, bool csr, bool ccsr=false);
+      void spmatricize(int m, int n, int nrow_idx, int all_fdim, int64_t const * all_flen, bool csr, bool ccsr=false);
 
       /**
        * \brief transposes back local data from sparse matrix format to key-value pair format

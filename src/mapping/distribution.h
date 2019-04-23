@@ -11,22 +11,22 @@ namespace CTF_int {
 
   inline
   int get_distribution_size(int order){
-    return sizeof(int)*2 + sizeof(int64_t) + order*sizeof(int)*7;
+    return sizeof(int)*2 + (sizeof(int64_t)+order*sizeof(int)*2) + order*sizeof(int)*5;
   }
 
   // \brief data distribution object used for redistribution
   class distribution {
     public:
-      int     order;
-      int *   phase;
-      int *   virt_phase;
-      int *   phys_phase;
-      int *   pe_lda;
-      int *   pad_edge_len;
-      int *   padding;
-      int *   perank;
-      int     is_cyclic;
-      int64_t size;
+      int       order;
+      int *     phase;
+      int *     virt_phase;
+      int *     phys_phase;
+      int *     pe_lda;
+      int64_t * pad_edge_len;
+      int64_t * padding;
+      int *     perank;
+      int       is_cyclic;
+      int64_t   size;
 
       distribution();
       ~distribution();
@@ -65,11 +65,11 @@ namespace CTF_int {
    */
   void calc_dim(int             order,
                 int64_t         size,
-                int const *     edge_len,
+                int64_t const * edge_len,
                 mapping const * edge_map,
                 int64_t *       vrt_sz,
-                int *           vrt_edge_len,
-                int *           blk_edge_len);
+                int64_t *       vrt_edge_len,
+                int64_t *       blk_edge_len);
 }
 
 #endif

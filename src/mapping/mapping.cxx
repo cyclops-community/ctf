@@ -241,16 +241,17 @@ namespace CTF_int {
     return CTF_int::SUCCESS;
   }
 
-  int map_tensor(int         num_phys_dims,
-                 int         tsr_order,
-                 int const * tsr_edge_len,
-                 int const * tsr_sym_table,
-                 int *       restricted,
-                 CommData  * phys_comm,
-                 int const * comm_idx,
-                 int         fill,
-                 mapping *   tsr_edge_map){
-    int i,j,max_dim,max_len,phase,ret;
+  int map_tensor(int             num_phys_dims,
+                 int             tsr_order,
+                 int64_t const * tsr_edge_len,
+                 int const *     tsr_sym_table,
+                 int *           restricted,
+                 CommData  *     phys_comm,
+                 int const *     comm_idx,
+                 int             fill,
+                 mapping *       tsr_edge_map){
+    int i,j,max_dim,phase,ret;
+    int64_t max_len
     mapping * map;
 
     /* Make sure the starting mappings are consistent among symmetries */

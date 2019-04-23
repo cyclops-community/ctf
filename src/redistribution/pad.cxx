@@ -6,10 +6,10 @@ namespace CTF_int {
   void pad_key(int              order,
                int64_t          num_pair,
                int64_t const *  edge_len,
-               int const *      padding,
+               int64_t const *  padding,
                PairIterator     pairs,
                algstrct const * sr,
-               int const *      offsets){
+               int64_t const *  offsets){
     int64_t i, j, lda;
     int64_t knew, k;
     TAU_FSTART(pad_key);
@@ -52,8 +52,8 @@ namespace CTF_int {
                  int64_t          num_pair,
                  int64_t const *  edge_len,
                  int const *      sym,
-                 int const *      padding,
-                 int const *      prepadding,
+                 int64_t const *  padding,
+                 int64_t const *  prepadding,
                  char const *     pairsb,
                  char *           new_pairsb,
                  int64_t *        new_num_pair,
@@ -376,7 +376,7 @@ namespace CTF_int {
                     int              nvirt,
                     int64_t const *  edge_len,
                     int const *      sym,
-                    int const *      padding,
+                    int64_t const *  padding,
                     int const *      phase,
                     int const *      phys_phase,
                     int const *      virt_phase,
@@ -408,7 +408,8 @@ namespace CTF_int {
       memcpy(phase_rank, cphase_rank, order*sizeof(int));
       memset(virt_rank, 0, sizeof(int64_t)*order);
 
-      int tid, ntd, vst, vend;
+      int tid, ntd;
+      int64_t vst, vend;
     #ifdef USE_OMP
       tid = omp_get_thread_num();
       ntd = omp_get_num_threads();
@@ -474,9 +475,9 @@ namespace CTF_int {
               ( sym[0] == SY                  && phase_rank[0] >  phase_rank[1]) ) {
             is_sh_pad0 = 1;
           }
-          int pad0 = (padding[0]+phase_rank[0])/phase[0];
-          int len0 = virt_len[0]-pad0;
-          int plen0 = virt_len[0];
+          int64_t pad0 = (padding[0]+phase_rank[0])/phase[0];
+          int64_t len0 = virt_len[0]-pad0;
+          int64_t plen0 = virt_len[0];
           data = vdata + sr->el_size*p*(size/nvirt);
 
           if (p==vst && st_index != 0){
@@ -570,7 +571,7 @@ namespace CTF_int {
                  int              nvirt,
                  int64_t const *  edge_len,
                  int const *      sym,
-                 int const *      padding,
+                 int64_t const *  padding,
                  int const *      phase,
                  int const *      phys_phase,
                  int const *      virt_phase,

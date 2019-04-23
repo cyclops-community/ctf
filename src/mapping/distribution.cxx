@@ -23,8 +23,8 @@ namespace CTF_int {
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&virt_phase);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&phys_phase);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&pe_lda);
-    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&pad_edge_len);
-    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&padding);
+    CTF_int::alloc_ptr(sizeof(int64_t)*order, (void**)&pad_edge_len);
+    CTF_int::alloc_ptr(sizeof(int64_t)*order, (void**)&padding);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&perank);
    
     size = tsr->size;
@@ -41,8 +41,8 @@ namespace CTF_int {
       else
         pe_lda[j] = 0;
     }
-    memcpy(pad_edge_len, tsr->pad_edge_len, sizeof(int)*tsr->order);
-    memcpy(padding, tsr->padding, sizeof(int)*tsr->order);
+    memcpy(pad_edge_len, tsr->pad_edge_len, sizeof(int64_t)*tsr->order);
+    memcpy(padding, tsr->padding, sizeof(int64_t)*tsr->order);
     is_cyclic = tsr->is_cyclic;
   }
 
@@ -56,14 +56,18 @@ namespace CTF_int {
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&virt_phase);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&phys_phase);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&pe_lda);
-    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&pad_edge_len);
-    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&padding);
+    CTF_int::alloc_ptr(sizeof(int64_t)*order, (void**)&pad_edge_len);
+    CTF_int::alloc_ptr(sizeof(int64_t)*order, (void**)&padding);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&perank);
 
     is_cyclic = ((int*)(buffer+buffer_ptr))[0];
     buffer_ptr += sizeof(int);
     size = ((int64_t*)(buffer+buffer_ptr))[0];
     buffer_ptr += sizeof(int64_t);
+    memcpy(pad_edge_len, (int64_t*)(buffer+buffer_ptr), sizeof(int64_t)*order);
+    buffer_ptr += sizeof(int64_t)*order;
+    memcpy(padding, (int64_t*)(buffer+buffer_ptr), sizeof(int64_t)*order);
+    buffer_ptr += sizeof(int64_t)*order;
     memcpy(phase, (int*)(buffer+buffer_ptr), sizeof(int)*order);
     buffer_ptr += sizeof(int)*order;
     memcpy(virt_phase, (int*)(buffer+buffer_ptr), sizeof(int)*order);
@@ -71,10 +75,6 @@ namespace CTF_int {
     memcpy(phys_phase, (int*)(buffer+buffer_ptr), sizeof(int)*order);
     buffer_ptr += sizeof(int)*order;
     memcpy(pe_lda, (int*)(buffer+buffer_ptr), sizeof(int)*order);
-    buffer_ptr += sizeof(int)*order;
-    memcpy(pad_edge_len, (int*)(buffer+buffer_ptr), sizeof(int)*order);
-    buffer_ptr += sizeof(int)*order;
-    memcpy(padding, (int*)(buffer+buffer_ptr), sizeof(int)*order);
     buffer_ptr += sizeof(int)*order;
     memcpy(perank, (int*)(buffer+buffer_ptr), sizeof(int)*order);
     buffer_ptr += sizeof(int)*order;
@@ -104,6 +104,10 @@ namespace CTF_int {
     buffer_ptr += sizeof(int);
     ((int64_t*)(buffer+buffer_ptr))[0] = size;
     buffer_ptr += sizeof(int64_t);
+    memcpy((int64_t*)(buffer+buffer_ptr), pad_edge_len, sizeof(int64_t)*order);
+    buffer_ptr += sizeof(int64_t)*order;
+    memcpy((int64_t*)(buffer+buffer_ptr), padding, sizeof(int64_t)*order);
+    buffer_ptr += sizeof(int64_t)*order;
     memcpy((int*)(buffer+buffer_ptr), phase, sizeof(int)*order);
     buffer_ptr += sizeof(int)*order;
     memcpy((int*)(buffer+buffer_ptr), virt_phase, sizeof(int)*order);
@@ -111,10 +115,6 @@ namespace CTF_int {
     memcpy((int*)(buffer+buffer_ptr), phys_phase, sizeof(int)*order);
     buffer_ptr += sizeof(int)*order;
     memcpy((int*)(buffer+buffer_ptr), pe_lda, sizeof(int)*order);
-    buffer_ptr += sizeof(int)*order;
-    memcpy((int*)(buffer+buffer_ptr), pad_edge_len, sizeof(int)*order);
-    buffer_ptr += sizeof(int)*order;
-    memcpy((int*)(buffer+buffer_ptr), padding, sizeof(int)*order);
     buffer_ptr += sizeof(int)*order;
     memcpy((int*)(buffer+buffer_ptr), perank, sizeof(int)*order);
     buffer_ptr += sizeof(int)*order;
@@ -142,11 +142,11 @@ namespace CTF_int {
 
   void calc_dim(int             order,
                 int64_t         size,
-                int const *     edge_len,
+                int64_t const * edge_len,
                 mapping const * edge_map,
                 int64_t *       vrt_sz,
-                int *           vrt_edge_len,
-                int *           blk_edge_len){
+                int64_t *       vrt_edge_len,
+                int64_t *       blk_edge_len){
     int64_t vsz, i, cont;
     mapping const * map;
     vsz = size;

@@ -147,6 +147,101 @@ namespace CTF {
     return idxtsr;
   }
 
+  template<typename dtype>
+  Tensor<dtype>::Tensor(int                       order,
+                        int64_t const *           len,
+                        int const *               sym,
+                        World &                   world,
+                        char const *              name,
+                        bool                      profile,
+                        CTF_int::algstrct const & sr)
+    : CTF_int::tensor(&sr, order, CTF_int::copy_int64(len, order), sym, &world, 1, name, profile) {
+    IASSERT(sizeof(dtype)==this->sr->el_size);
+  }
+
+  template<typename dtype>
+  Tensor<dtype>::Tensor(int                       order,
+                        int64_t const *           len,
+                        int const *               sym,
+                        World &                   world,
+                        CTF_int::algstrct const & sr,
+                        char const *              name,
+                        bool                      profile)
+    : CTF_int::tensor(&sr, order, CTF_int::copy_int64(len, order), sym, &world, 1, name, profile) {
+    IASSERT(sizeof(dtype)==this->sr->el_size);
+  }
+
+
+  template<typename dtype>
+  Tensor<dtype>::Tensor(int                       order,
+                        bool                      is_sparse,
+                        int64_t const *           len,
+                        int const *               sym,
+                        World &                   world,
+                        CTF_int::algstrct const & sr,
+                        char const *              name,
+                        bool                      profile)
+    : CTF_int::tensor(&sr, order, CTF_int::copy_int64(len, order), sym, &world, 1, name, profile, is_sparse) {
+    IASSERT(sizeof(dtype)==this->sr->el_size);
+  }
+
+  template<typename dtype>
+  Tensor<dtype>::Tensor(int                       order,
+                        bool                      is_sparse,
+                        int64_t const *           len,
+                        World &                   world,
+                        CTF_int::algstrct const & sr,
+                        char const *              name,
+                        bool                      profile)
+    : CTF_int::tensor(&sr, order, CTF_int::copy_int64(len, order), NULL, &world, 1, name, profile, is_sparse) {
+    IASSERT(sizeof(dtype)==this->sr->el_size);
+  }
+
+
+  template<typename dtype>
+  Tensor<dtype>::Tensor(int                       order,
+                        int64_t const *           len,
+                        World &                   world,
+                        CTF_int::algstrct const & sr,
+                        char const *              name,
+                        bool                      profile)
+    : CTF_int::tensor(&sr, order, CTF_int::copy_int64(len, order), NULL, &world, 1, name, profile) {
+    IASSERT(sizeof(dtype)==this->sr->el_size);
+  }
+
+
+  template<typename dtype>
+  Tensor<dtype>::Tensor(int                       order,
+                        int64_t const *           len,
+                        int const *               sym,
+                        World &                   world,
+                        char const *              idx,
+                        Idx_Partition const &     prl,
+                        Idx_Partition const &     blk,
+                        char const *              name,
+                        bool                      profile,
+                        CTF_int::algstrct const & sr_)
+    : CTF_int::tensor(&sr_, order, 0, CTF_int::copy_int64(len, order), sym, &world, idx, prl, blk, name, profile) {
+    IASSERT(sizeof(dtype)==this->sr->el_size);
+  }
+
+  template<typename dtype>
+  Tensor<dtype>::Tensor(int                       order,
+                        bool                      is_sparse_,
+                        int64_t const *           len,
+                        int const *               sym,
+                        World &                   world,
+                        char const *              idx,
+                        Idx_Partition const &     prl,
+                        Idx_Partition const &     blk,
+                        char const *              name,
+                        bool                      profile,
+                        CTF_int::algstrct const & sr_)
+    : CTF_int::tensor(&sr_, order, is_sparse_, CTF_int::copy_int64(len, order), sym, &world, idx, prl, blk, name, profile) {
+    IASSERT(sizeof(dtype)==this->sr->el_size);
+  }
+
+
 
   template<typename dtype>
   Tensor<dtype>::~Tensor(){ }
@@ -468,6 +563,13 @@ namespace CTF {
 
   template<typename dtype>
   Tensor<dtype> Tensor<dtype>::reshape(int order, int const * lens){
+    Tensor<dtype> tsr(order, this->is_sparse, lens, *this->wrld, *this->sr);
+    tsr.reshape(*this);
+    return tsr;
+  }
+
+  template<typename dtype>
+  Tensor<dtype> Tensor<dtype>::reshape(int order, int64_t const * lens){
     Tensor<dtype> tsr(order, this->is_sparse, lens, *this->wrld, *this->sr);
     tsr.reshape(*this);
     return tsr;
@@ -872,7 +974,7 @@ NORM1_INST(double)
     Tensor<dtype> cA(A.order, A.is_sparse, A.lens, *A.wrld, *A.sr);
     cA[inds] += A[inds];
     Transform<dtype>([](dtype & a){ a = a*a; })(cA[inds]);
-    Tensor<dtype> sc(0, NULL, *A.wrld);
+    Tensor<dtype> sc(0, (int64_t*)NULL, *A.wrld);
     sc[""] = cA[inds];
     dtype val = ((dtype*)sc.data)[0];
     MPI_Bcast((char *)&val, sizeof(dtype), MPI_CHAR, 0, A.wrld->comm);
@@ -889,7 +991,7 @@ NORM1_INST(double)
     Tensor<dtype> cA(A.order, A.is_sparse, A.lens, *A.wrld, *A.sr);
     cA[inds] += A[inds];
     Transform<dtype>([](dtype & a){ a = std::abs(a)*std::abs(a); })(cA[inds]);
-    Tensor<dtype> sc(0, NULL, *A.wrld);
+    Tensor<dtype> sc(0, (int64_t*)NULL, *A.wrld);
     sc[""] = cA[inds];
     dtype val = ((dtype*)sc.data)[0];
     MPI_Bcast((char *)&val, sizeof(dtype), MPI_CHAR, 0, A.wrld->comm);

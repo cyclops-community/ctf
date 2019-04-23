@@ -43,7 +43,7 @@ namespace CTF_int {
    * \param[in] rev_order whether index order should be reversed
    */
   template <typename dtype>
-  void parse_sparse_tensor_data(char **lvals, int order, dtype const * pmulid, int * lens, int64_t nvals, CTF::Pair<dtype> * pairs, bool with_vals, bool rev_order){
+  void parse_sparse_tensor_data(char **lvals, int order, dtype const * pmulid, int64_t const * lens, int64_t nvals, CTF::Pair<dtype> * pairs, bool with_vals, bool rev_order){
     int64_t i;
     dtype mulid;
     if (!with_vals) mulid = *pmulid;
@@ -98,7 +98,7 @@ namespace CTF_int {
    * \param[out] length of string output
    */
   template <typename dtype>
-  char * serialize_sparse_tensor_data(int order, int * lens, int64_t nvals, CTF::Pair<dtype> * pairs, bool with_vals, bool rev_order, int64_t & str_len){
+  char * serialize_sparse_tensor_data(int order, int64_t const * lens, int64_t nvals, CTF::Pair<dtype> * pairs, bool with_vals, bool rev_order, int64_t & str_len){
     int64_t i;
 
     int64_t * ind = (int64_t *)malloc(order*sizeof(int64_t));

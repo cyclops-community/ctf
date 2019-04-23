@@ -175,6 +175,16 @@ namespace CTF_int {
     return iarr;
   }
 
+  int * conv_to_int(int64_t const * arr, int len){
+    int * iarr = (int*)CTF_int::alloc(sizeof(int)*len);
+    for (int i=0; i<len; i++){
+      ASSERT(arr[i] <= (int64_t)INT32_MAX);
+      iarr[i] = arr[i];
+    }
+    return iarr;
+
+  }
+
   int64_t * copy_int64(int64_t const * arr, int len){
     int64_t * iarr = (int64_t*)CTF_int::alloc(sizeof(int64_t)*len);
     memcpy(iarr, arr, len*sizeof(int64_t));
@@ -555,18 +565,18 @@ namespace CTF_int {
     }
   }
 
-  void cvrt_idx(int         order,
-                int const * lens,
-                int64_t     idx,
-                int **      idx_arr){
+  void cvrt_idx(int             order,
+                int64_t const * lens,
+                int64_t         idx,
+                int **          idx_arr){
     (*idx_arr) = (int*)CTF_int::alloc(order*sizeof(int));
     cvrt_idx(order, lens, idx, *idx_arr);
   }
 
-  void cvrt_idx(int         order,
-                int const * lens,
-                int const * idx_arr,
-                int64_t *   idx){
+  void cvrt_idx(int             order,
+                int64_t const * lens,
+                int const *     idx_arr,
+                int64_t *       idx){
     int i;
     int64_t lda = 1;
     *idx = 0;
