@@ -23,7 +23,7 @@ namespace CTF_int {
                                 char *               old_data,
                                 char **              new_data,
                                 int                  forward,
-                                int64_t * const *    bucket_offset,
+                                int * const *        bucket_offset,
                                 char const *         alpha,
                                 char const *         beta,
                                 algstrct const *     sr){
@@ -289,7 +289,7 @@ namespace CTF_int {
                  virt_offset[0] < virt_max;
                  virt_offset[0] ++)
             {
-              int64_t bucket = bucket0+bucket_offset[0][virt_offset[0]+idx[0]*old_dist.virt_phase[0]];
+              int bucket = bucket0+bucket_offset[0][virt_offset[0]+idx[0]*old_dist.virt_phase[0]];
   #ifdef USE_OMP
               bucket_store[offset] = bucket;
               count_store[offset]  = count[bucket]++;
@@ -312,7 +312,7 @@ namespace CTF_int {
                  virt_offset[0] < virt_max;
                  virt_offset[0] ++)
             {
-              int64_t bucket = bucket0+bucket_offset[0][virt_offset[0]+idx[0]*old_dist.virt_phase[0]];
+              int bucket = bucket0+bucket_offset[0][virt_offset[0]+idx[0]*old_dist.virt_phase[0]];
   #ifdef USE_OMP
               bucket_store[offset] = bucket;
               count_store[offset]  = count[bucket]++;
@@ -560,7 +560,7 @@ namespace CTF_int {
     mst_alloc_ptr(np*sizeof(int64_t),   (void**)&recv_displs);
     alloc_ptr(order*sizeof(int64_t), (void**)&old_sub_edge_len);
     alloc_ptr(order*sizeof(int64_t), (void**)&new_sub_edge_len);
-    int64_t ** bucket_offset;
+    int ** bucket_offset;
     
     int64_t *real_edge_len; alloc_ptr(sizeof(int64_t)*order, (void**)&real_edge_len);
     for (i=0; i<order; i++) real_edge_len[i] = old_dist.pad_edge_len[i]-old_dist.padding[i];

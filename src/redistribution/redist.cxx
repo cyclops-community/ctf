@@ -109,25 +109,25 @@ namespace CTF_int {
   }
 
 
-  int64_t ** compute_bucket_offsets(distribution const & old_dist,
-                                    distribution const & new_dist,
-                                    int64_t const *      len,
-                                    int64_t const *      old_phys_edge_len,
-                                    int const *          old_virt_lda,
-                                    int64_t const *      old_offsets,
-                                    int * const *        old_permutation,
-                                    int64_t const *      new_phys_edge_len,
-                                    int const *          new_virt_lda,
-                                    int                  forward,
-                                    int                  old_virt_np,
-                                    int                  new_virt_np,
-                                    int64_t const *      old_virt_edge_len){
+  int ** compute_bucket_offsets(distribution const & old_dist,
+                                distribution const & new_dist,
+                                int64_t const *      len,
+                                int64_t const *      old_phys_edge_len,
+                                int const *          old_virt_lda,
+                                int64_t const *      old_offsets,
+                                int * const *        old_permutation,
+                                int64_t const *      new_phys_edge_len,
+                                int const *          new_virt_lda,
+                                int                  forward,
+                                int                  old_virt_np,
+                                int                  new_virt_np,
+                                int64_t const *      old_virt_edge_len){
     TAU_FSTART(compute_bucket_offsets);
 
-    int64_t **bucket_offset; alloc_ptr(sizeof(int64_t*)*old_dist.order, (void**)&bucket_offset);
+    int **bucket_offset; alloc_ptr(sizeof(int*)*old_dist.order, (void**)&bucket_offset);
 
     for (int dim = 0;dim < old_dist.order;dim++){
-      alloc_ptr(sizeof(int64_t)*old_phys_edge_len[dim], (void**)&bucket_offset[dim]);
+      alloc_ptr(sizeof(int)*old_phys_edge_len[dim], (void**)&bucket_offset[dim]);
       int pidx = 0;
       for (int64_t vidx = 0;vidx < old_virt_edge_len[dim];vidx++){
         for (int vr = 0;vr < old_dist.virt_phase[dim];vr++,pidx++){

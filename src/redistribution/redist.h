@@ -42,19 +42,19 @@ namespace CTF_int {
    * \param[in] old_virt_edge_len edge lengths of each block in old_dist
    * \return 2D array with dims [order][old_phys_edge_len[i]] with bucket offsets for each edge length 
    */
-  int64_t ** compute_bucket_offsets(distribution const & old_dist,
-                                    distribution const & new_dist,
-                                    int64_t const *      len,
-                                    int64_t const *      old_phys_edge_len,
-                                    int const *          old_virt_lda,
-                                    int64_t const *      old_offsets,
-                                    int * const *        old_permutation,
-                                    int64_t const *      new_phys_edge_len,
-                                    int const *          new_virt_lda,
-                                    int                  forward,
-                                    int                  old_virt_np,
-                                    int                  new_virt_np,
-                                    int64_t const *      old_virt_edge_len);
+  int ** compute_bucket_offsets(distribution const & old_dist,
+                                distribution const & new_dist,
+                                int64_t const *      len,
+                                int64_t const *      old_phys_edge_len,
+                                int const *          old_virt_lda,
+                                int64_t const *      old_offsets,
+                                int * const *        old_permutation,
+                                int64_t const *      new_phys_edge_len,
+                                int const *          new_virt_lda,
+                                int                  forward,
+                                int                  old_virt_np,
+                                int                  new_virt_np,
+                                int64_t const *      old_virt_edge_len);
 
   /**
    * \brief assigns keys to an array of values
@@ -86,7 +86,7 @@ namespace CTF_int {
                        int64_t *            recv_displs,
                        CommData             ord_glb_comm,
                        int                  idx_lyr,
-                       int64_t * const *    bucket_offset);
+                       int * const *        bucket_offset);
 
 
   /**
