@@ -28,7 +28,7 @@ namespace CTF_int {
                        char *                  B,
                        algstrct const *        sr_B,
                        int                     order_B,
-                       int const *             edge_len_B,
+                       int64_t const *         edge_len_B,
                        int const *             sym_B,
                        univar_function const * func);
 
@@ -55,7 +55,7 @@ namespace CTF_int {
                        char const *            A,
                        algstrct const *        sr_A,
                        int                     order_A,
-                       int const *             edge_len_A,
+                       int64_t const *         edge_len_A,
                        int const *             sym_A,
                        char const *            beta,
                        char const *            B,

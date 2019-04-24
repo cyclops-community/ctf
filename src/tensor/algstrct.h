@@ -437,12 +437,12 @@ namespace CTF_int {
       /**
        * \brief permutes keys of n pairs
        */
-      void permute(int64_t n, int order, int const * old_lens, int64_t const * new_lda, PairIterator wA);
+      void permute(int64_t n, int order, int64_t const * old_lens, int64_t const * new_lda, PairIterator wA);
       
       /**
        * \brief pins keys of n pairs
        */
-      void pin(int64_t n, int order, int const * lens, int const * divisor, PairIterator pi_new);
+      void pin(int64_t n, int order, int64_t const * lens, int const * divisor, PairIterator pi_new);
       
 
   };
@@ -452,7 +452,7 @@ namespace CTF_int {
   /**
    * \brief depins keys of n pairs
    */
-  void depin(algstrct const * sr, int order, int const * lens, int const * divisor, int nvirt, int const * virt_dim, int const * phys_rank, char * X, int64_t & new_nnz_B, int64_t * nnz_blk, char *& new_B, bool check_padding);
+  void depin(algstrct const * sr, int order, int64_t const * lens, int const * divisor, int nvirt, int const * virt_dim, int const * phys_rank, char * X, int64_t & new_nnz_B, int64_t * nnz_blk, char *& new_B, bool check_padding);
 
   class PairIterator {
     public:

@@ -13,14 +13,14 @@ namespace CTF_int{
                             algstrct const *        sr_B,
                             int                     order_B,
                             int64_t                 idx_B,
-                            int const *             edge_len_B,
+                            int64_t const *         edge_len_B,
                             int64_t const *         lda_B,
                             int const *             sym_B,
                             univar_function const * func){
-    int imax = edge_len_B[idim];
+    int64_t imax = edge_len_B[idim];
     if (sym_B[idim] != NS) imax = ((idx_B/lda_B[idim+1])%edge_len_B[idim+1])+1;
 
-    for (int i=0; i<imax; i++){
+    for (int64_t i=0; i<imax; i++){
       //int nidx_B[order_B];
       //memcpy(nidx_B, idx_B, order_B*sizeof(int));
       spA_dnB_seq_sum_loop<idim-1>(alpha,A,size_A,sr_A,beta,B,sr_B,order_B,
@@ -39,15 +39,15 @@ namespace CTF_int{
                                algstrct const *        sr_B,
                                int                     order_B,
                                int64_t                 idx_B,
-                               int const *             edge_len_B,
+                               int64_t const *         edge_len_B,
                                int64_t const *         lda_B,
                                int const *             sym_B,
                                univar_function const * func){
     
-    int imax = edge_len_B[0];
+    int64_t imax = edge_len_B[0];
     if (sym_B[0] != NS) imax = ((idx_B/lda_B[0+1])%edge_len_B[0+1])+1;
 
-    for (int i=0; i<imax; i++){
+    for (int64_t i=0; i<imax; i++){
       while (size_A > 0 && idx_B == A.k()){
         if (func == NULL){
           if (sr_A->isequal(alpha, sr_A->mulid()) || alpha == NULL){
@@ -85,7 +85,7 @@ namespace CTF_int{
                                   algstrct const *        sr_B,
                                   int                     order_B,
                                   int64_t                 idx_B,
-                                  int const *             edge_len_B,
+                                  int64_t const *         edge_len_B,
                                   int64_t const *         lda_B,
                                   int const *             sym_B,
                                   univar_function const * func);
@@ -100,7 +100,7 @@ namespace CTF_int{
                        char *                  B,
                        algstrct const *        sr_B,
                        int                     order_B,
-                       int const *             edge_len_B,
+                       int64_t const *         edge_len_B,
                        int const *             sym_B,
                        univar_function const * func){
     TAU_FSTART(spA_dnB_seq_sum);
@@ -150,7 +150,7 @@ namespace CTF_int{
                        char const *            A,
                        algstrct const *        sr_A,
                        int                     order_A,
-                       int const *             edge_len_A,
+                       int64_t const *         edge_len_A,
                        int const *             sym_A,
                        char const *            beta,
                        char const *            B,

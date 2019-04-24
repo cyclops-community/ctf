@@ -15,7 +15,7 @@ namespace CTF_int {
   int64_t calc_cnt(int const *     sym,
                    int const *     rep_phase,
                    int const *     sphase,
-                   int const *     gidx_off,
+                   int64_t const * gidx_off,
                    int64_t const * edge_len,
                    int64_t const * loc_edge_len);
 
@@ -26,7 +26,7 @@ namespace CTF_int {
   int64_t * calc_sy_pfx(int const *     sym,
                         int const *     rep_phase,
                         int const *     sphase,
-                        int const *     gidx_off,
+                        int64_t const * gidx_off,
                         int64_t const * edge_len,
                         int64_t const * loc_edge_len);
 
@@ -38,7 +38,7 @@ namespace CTF_int {
                      int const *     rep_phase_lda,
                      int const *     sphase,
                      int const *     phys_phase,
-                     int       *     gidx_off,
+                     int64_t   *     gidx_off,
                      int64_t const * edge_len,
                      int64_t const * loc_edge_len);
 
@@ -50,22 +50,22 @@ namespace CTF_int {
                        int                  idx_lyr);
 
   template <int idim>
-  void calc_cnt_from_rep_cnt(int const *     rep_phase,
-                             int * const *   pe_offset,
-                             int * const *   bucket_offset,
-                             int64_t const * old_counts,
-                             int64_t *       counts,
-                             int             bucket_off,
-                             int             pe_off,
-                             int             dir);
+  void calc_cnt_from_rep_cnt(int const *       rep_phase,
+                             int * const *     pe_offset,
+                             int * const *     bucket_offset,
+                             int64_t const *   old_counts,
+                             int64_t *         counts,
+                             int               bucket_off,
+                             int               pe_off,
+                             int               dir);
 
   void precompute_offsets(distribution const & old_dist,
                           distribution const & new_dist,
                           int const *          sym,
-                          int const *          len,
+                          int64_t const *      len,
                           int const *          rep_phase,
-                          int const *          phys_edge_len,
-                          int const *          virt_edge_len,
+                          int64_t const *      phys_edge_len,
+                          int64_t const *      virt_edge_len,
                           int const *          virt_dim,
                           int const *          virt_lda,
                           int64_t              virt_nelem,

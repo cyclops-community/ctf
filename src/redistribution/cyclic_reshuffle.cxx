@@ -8,22 +8,22 @@ namespace CTF_int {
   void pad_cyclic_pup_virt_buff(int const *          sym,
                                 distribution const & old_dist,
                                 distribution const & new_dist,
-                                int const *          len,
+                                int64_t const *      len,
                                 int const *          old_phys_dim,
-                                int const *          old_phys_edge_len,
-                                int const *          old_virt_edge_len,
+                                int64_t const *      old_phys_edge_len,
+                                int64_t const *      old_virt_edge_len,
                                 int64_t              old_virt_nelem,
-                                int const *          old_offsets,
+                                int64_t const *      old_offsets,
                                 int * const *        old_permutation,
                                 int                  total_np,
                                 int const *          new_phys_dim,
-                                int const *          new_phys_edge_len,
-                                int const *          new_virt_edge_len,
+                                int64_t const *      new_phys_edge_len,
+                                int64_t const *      new_virt_edge_len,
                                 int64_t              new_virt_nelem,
                                 char *               old_data,
                                 char **              new_data,
                                 int                  forward,
-                                int * const *        bucket_offset,
+                                int64_t * const *    bucket_offset,
                                 char const *         alpha,
                                 char const *         beta,
                                 algstrct const *     sr){
@@ -88,13 +88,13 @@ namespace CTF_int {
     {
   #endif
 
-    int *offs; alloc_ptr(sizeof(int)*old_dist.order, (void**)&offs);
+    int64_t *offs; alloc_ptr(sizeof(int64_t)*old_dist.order, (void**)&offs);
     if (old_offsets == NULL)
       for (int dim = 0;dim < old_dist.order;dim++) offs[dim] = 0;
     else 
       for (int dim = 0;dim < old_dist.order;dim++) offs[dim] = old_offsets[dim];
 
-    int *ends; alloc_ptr(sizeof(int)*old_dist.order, (void**)&ends);
+    int64_t *ends; alloc_ptr(sizeof(int64_t)*old_dist.order, (void**)&ends);
     for (int dim = 0;dim < old_dist.order;dim++) ends[dim] = len[dim];
 
   #ifdef USE_OMP
@@ -102,8 +102,8 @@ namespace CTF_int {
     int ntd = omp_get_num_threads();
     //partition the global tensor among threads, to preserve 
     //global ordering and load balance in partitioning
-    int gidx_st[old_dist.order];
-    int gidx_end[old_dist.order];
+    int64_t gidx_st[old_dist.order];
+    int64_t gidx_end[old_dist.order];
     if (old_dist.order > 1){
       int64_t all_size = packed_size(old_dist.order, len, sym);
       int64_t chnk = all_size/ntd;
@@ -151,8 +151,8 @@ namespace CTF_int {
     memset(count, 0, sizeof(int64_t)*nbucket);
   #endif
 
-    int *gidx; alloc_ptr(sizeof(int)*old_dist.order, (void**)&gidx);
-    memset(gidx, 0, sizeof(int)*old_dist.order);
+    int64_t *gidx; alloc_ptr(sizeof(int64_t)*old_dist.order, (void**)&gidx);
+    memset(gidx, 0, sizeof(int64_t)*old_dist.order);
     for (int dim = 0;dim < old_dist.order;dim++){
       gidx[dim] = old_dist.perank[dim];
     }
@@ -160,8 +160,8 @@ namespace CTF_int {
     int64_t *virt_offset; alloc_ptr(sizeof(int64_t)*old_dist.order, (void**)&virt_offset);
     memset(virt_offset, 0, sizeof(int64_t)*old_dist.order);
 
-    int *idx; alloc_ptr(sizeof(int)*old_dist.order, (void**)&idx);
-    memset(idx, 0, sizeof(int)*old_dist.order);
+    int64_t *idx; alloc_ptr(sizeof(int64_t)*old_dist.order, (void**)&idx);
+    memset(idx, 0, sizeof(int64_t)*old_dist.order);
 
     int64_t *virt_acc; alloc_ptr(sizeof(int64_t)*old_dist.order, (void**)&virt_acc);
     memset(virt_acc, 0, sizeof(int64_t)*old_dist.order);
@@ -184,8 +184,8 @@ namespace CTF_int {
       int64_t iist = MAX(0,(gidx_st[dim]-old_dist.perank[dim]));
       int64_t ist = iist/old_dist.phase[dim];//(old_phys_dim[dim]*old_dist.virt_phase[dim]);
       if (sym[dim] != NS) ist = MIN(ist,idx[dim+1]);
-      int plen[old_dist.order];
-      memcpy(plen,old_virt_edge_len,old_dist.order*sizeof(int));
+      int64_t plen[old_dist.order];
+      memcpy(plen,old_virt_edge_len,old_dist.order*sizeof(int64_t));
       int idim = dim;
       do {
         plen[idim] = ist;
@@ -217,7 +217,7 @@ namespace CTF_int {
     for (;!done;){
       int64_t bucket0 = 0;
       bool outside0 = false;
-      int len_zero_max = ends[0];
+      int64_t len_zero_max = ends[0];
   #ifdef USE_OMP
       bool is_at_end = true;
       bool is_at_start = true;
@@ -270,12 +270,12 @@ namespace CTF_int {
         }
       }
 
-      int idx_max = (sym[0] == NS ? old_virt_edge_len[0] : idx[1]+1);
-      int idx_st = 0;
+      int64_t idx_max = (sym[0] == NS ? old_virt_edge_len[0] : idx[1]+1);
+      int64_t idx_st = 0;
 
       if (!outside0){
-        int gidx_min = MAX(zero_len_toff,offs[0]);
-        int gidx_max = (sym[0] == NS ? ends[0] : (sym[0] == SY ? gidx[1]+1 : gidx[1]));
+        int64_t gidx_min = MAX(zero_len_toff,offs[0]);
+        int64_t gidx_max = (sym[0] == NS ? ends[0] : (sym[0] == SY ? gidx[1]+1 : gidx[1]));
         gidx_max = MIN(gidx_max, len_zero_max);
         for (idx[0] = idx_st;idx[0] < idx_max;idx[0]++){
           int virt_min = MAX(0,MIN(old_dist.virt_phase[0],(gidx_min-gidx[0])/old_dist.phys_phase[0]));
@@ -476,10 +476,10 @@ namespace CTF_int {
 
   void cyclic_reshuffle(int const *          sym,
                         distribution const & old_dist,
-                        int const *          old_offsets,
+                        int64_t const *      old_offsets,
                         int * const *        old_permutation,
                         distribution const & new_dist,
-                        int const *          new_offsets,
+                        int64_t const *      new_offsets,
                         int * const *        new_permutation,
                         char **              ptr_tsr_data,
                         char **              ptr_tsr_cyclic_data,
@@ -493,12 +493,12 @@ namespace CTF_int {
     int64_t swp_nval;
     int * hsym;
     int64_t * send_counts, * recv_counts;
-    int * idx;
+    int64_t * idx;
     int64_t * idx_offs;
     int64_t  * send_displs;
     int64_t * recv_displs;
     int * new_virt_lda, * old_virt_lda;
-    int * old_sub_edge_len, * new_sub_edge_len;
+    int64_t * old_sub_edge_len, * new_sub_edge_len;
     int order = old_dist.order; 
 
     char * tsr_data = *ptr_tsr_data;
@@ -526,7 +526,7 @@ namespace CTF_int {
       np = ord_glb_comm.np;
 
     alloc_ptr(order*sizeof(int),     (void**)&hsym);
-    alloc_ptr(order*sizeof(int),     (void**)&idx);
+    alloc_ptr(order*sizeof(int64_t), (void**)&idx);
     alloc_ptr(order*sizeof(int64_t), (void**)&idx_offs);
     alloc_ptr(order*sizeof(int),     (void**)&old_virt_lda);
     alloc_ptr(order*sizeof(int),     (void**)&new_virt_lda);
@@ -558,11 +558,11 @@ namespace CTF_int {
     mst_alloc_ptr(np*sizeof(int64_t),   (void**)&send_counts);
     mst_alloc_ptr(np*sizeof(int64_t),   (void**)&send_displs);
     mst_alloc_ptr(np*sizeof(int64_t),   (void**)&recv_displs);
-    alloc_ptr(order*sizeof(int), (void**)&old_sub_edge_len);
-    alloc_ptr(order*sizeof(int), (void**)&new_sub_edge_len);
-    int ** bucket_offset;
+    alloc_ptr(order*sizeof(int64_t), (void**)&old_sub_edge_len);
+    alloc_ptr(order*sizeof(int64_t), (void**)&new_sub_edge_len);
+    int64_t ** bucket_offset;
     
-    int *real_edge_len; alloc_ptr(sizeof(int)*order, (void**)&real_edge_len);
+    int64_t *real_edge_len; alloc_ptr(sizeof(int64_t)*order, (void**)&real_edge_len);
     for (i=0; i<order; i++) real_edge_len[i] = old_dist.pad_edge_len[i]-old_dist.padding[i];
     
     int *old_phys_dim; alloc_ptr(sizeof(int)*order, (void**)&old_phys_dim);
@@ -571,16 +571,16 @@ namespace CTF_int {
     int *new_phys_dim; alloc_ptr(sizeof(int)*order, (void**)&new_phys_dim);
     for (i=0; i<order; i++) new_phys_dim[i] = new_dist.phase[i]/new_dist.virt_phase[i];
     
-    int *old_phys_edge_len; alloc_ptr(sizeof(int)*order, (void**)&old_phys_edge_len);
+    int64_t *old_phys_edge_len; alloc_ptr(sizeof(int64_t)*order, (void**)&old_phys_edge_len);
     for (int dim = 0;dim < order;dim++) old_phys_edge_len[dim] = (real_edge_len[dim]+old_dist.padding[dim])/old_phys_dim[dim];
 
-    int *new_phys_edge_len; alloc_ptr(sizeof(int)*order, (void**)&new_phys_edge_len);
+    int64_t *new_phys_edge_len; alloc_ptr(sizeof(int64_t)*order, (void**)&new_phys_edge_len);
     for (int dim = 0;dim < order;dim++) new_phys_edge_len[dim] = (real_edge_len[dim]+new_dist.padding[dim])/new_phys_dim[dim];
 
-    int *old_virt_edge_len; alloc_ptr(sizeof(int)*order, (void**)&old_virt_edge_len);
+    int64_t *old_virt_edge_len; alloc_ptr(sizeof(int64_t)*order, (void**)&old_virt_edge_len);
     for (int dim = 0;dim < order;dim++) old_virt_edge_len[dim] = old_phys_edge_len[dim]/old_dist.virt_phase[dim];
 
-    int *new_virt_edge_len; alloc_ptr(sizeof(int)*order, (void**)&new_virt_edge_len);
+    int64_t *new_virt_edge_len; alloc_ptr(sizeof(int64_t)*order, (void**)&new_virt_edge_len);
     for (int dim = 0;dim < order;dim++) new_virt_edge_len[dim] = new_phys_edge_len[dim]/new_dist.virt_phase[dim];
     
 

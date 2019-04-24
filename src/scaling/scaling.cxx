@@ -66,7 +66,7 @@ namespace CTF_int {
     int64_t blk_sz, vrt_sz;
     distribution * old_dst = NULL;
     int * virt_dim, * idx_arr;
-    int * virt_blk_len, * blk_len;
+    int64_t * virt_blk_len, * blk_len;
     int64_t nvirt;
     int64_t memuse, bmemuse;
     mapping * map;
@@ -125,8 +125,8 @@ namespace CTF_int {
     inv_idx(ntsr->order, idx_map, 
             &order_tot, &idx_arr);
 
-    CTF_int::alloc_ptr(sizeof(int)*ntsr->order, (void**)&blk_len);
-    CTF_int::alloc_ptr(sizeof(int)*ntsr->order, (void**)&virt_blk_len);
+    CTF_int::alloc_ptr(sizeof(int64_t)*ntsr->order, (void**)&blk_len);
+    CTF_int::alloc_ptr(sizeof(int64_t)*ntsr->order, (void**)&virt_blk_len);
     CTF_int::alloc_ptr(sizeof(int)*order_tot, (void**)&virt_dim);
 
     btopo = -1;

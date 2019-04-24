@@ -241,16 +241,16 @@ namespace CTF_int {
   void cvrt_idx(int             order,
                 int64_t const * lens,
                 int64_t         idx,
-                int **          idx_arr);
+                int64_t **      idx_arr);
 
   void cvrt_idx(int             order,
                 int64_t const * lens,
                 int64_t         idx,
-                int *           idx_arr);
+                int64_t *       idx_arr);
 
   void cvrt_idx(int             order,
                 int64_t const * lens,
-                int const *     idx_arr,
+                int64_t const * idx_arr,
                 int64_t *       idx);
 
   /**

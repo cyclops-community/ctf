@@ -556,7 +556,7 @@ namespace CTF_int {
   void cvrt_idx(int             order,
                 int64_t const * lens,
                 int64_t         idx,
-                int *           idx_arr){
+                int64_t *       idx_arr){
     int i;
     int64_t cidx = idx;
     for (i=0; i<order; i++){
@@ -568,14 +568,14 @@ namespace CTF_int {
   void cvrt_idx(int             order,
                 int64_t const * lens,
                 int64_t         idx,
-                int **          idx_arr){
-    (*idx_arr) = (int*)CTF_int::alloc(order*sizeof(int));
+                int64_t **      idx_arr){
+    (*idx_arr) = (int64_t*)CTF_int::alloc(order*sizeof(int64_t));
     cvrt_idx(order, lens, idx, *idx_arr);
   }
 
   void cvrt_idx(int             order,
                 int64_t const * lens,
-                int const *     idx_arr,
+                int64_t const * idx_arr,
                 int64_t *       idx){
     int i;
     int64_t lda = 1;

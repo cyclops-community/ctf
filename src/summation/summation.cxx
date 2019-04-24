@@ -242,8 +242,8 @@ namespace CTF_int {
   void summation::get_fold_sum(summation *& fold_sum,
                                int &        all_fdim_A,
                                int &        all_fdim_B,
-                               int *&       all_flen_A,
-                               int *&       all_flen_B){
+                               int64_t *&   all_flen_A,
+                               int64_t *&   all_flen_B){
     int i, j, nfold, nf;
     int * fold_idx, * fidx_map_A, * fidx_map_B;
     tensor * ftsr_A, * ftsr_B;
@@ -302,7 +302,7 @@ namespace CTF_int {
   int summation::map_fold(){
     int i, all_fdim_A, all_fdim_B;
     int * fnew_ord_A, * fnew_ord_B;
-    int * all_flen_A, * all_flen_B;
+    int64_t * all_flen_A, * all_flen_B;
     int inr_stride;
 
     summation * fold_sum;
@@ -349,7 +349,7 @@ namespace CTF_int {
   double summation::est_time_fold(){
     int all_fdim_A, all_fdim_B;
     int * fnew_ord_A, * fnew_ord_B;
-    int * all_flen_A, * all_flen_B;
+    int64_t * all_flen_A, * all_flen_B;
     int * tAiord, * tBiord;
 
     summation * fold_sum;
@@ -424,8 +424,8 @@ namespace CTF_int {
     int nphys_dim;
     int * virt_dim;
     int * idx_arr;
-    int * virt_blk_len_A, * virt_blk_len_B;
-    int * blk_len_A, * blk_len_B;
+    int64_t * virt_blk_len_A, * virt_blk_len_B;
+    int64_t * blk_len_A, * blk_len_B;
     mapping * map;
     tspsum * htsum = NULL , ** rec_tsum = NULL;
 
@@ -437,10 +437,10 @@ namespace CTF_int {
     nphys_dim = A->topo->order;
 
     CTF_int::alloc_ptr(sizeof(int)*order_tot,   (void**)&virt_dim);
-    CTF_int::alloc_ptr(sizeof(int)*A->order,    (void**)&blk_len_A);
-    CTF_int::alloc_ptr(sizeof(int)*B->order,    (void**)&blk_len_B);
-    CTF_int::alloc_ptr(sizeof(int)*A->order,    (void**)&virt_blk_len_A);
-    CTF_int::alloc_ptr(sizeof(int)*B->order,    (void**)&virt_blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int64_t)*A->order,    (void**)&blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int64_t)*B->order,    (void**)&blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int64_t)*A->order,    (void**)&virt_blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int64_t)*B->order,    (void**)&virt_blk_len_B);
 
     /* Determine the block dimensions of each local subtensor */
     blk_sz_A = A->size;
@@ -617,8 +617,8 @@ namespace CTF_int {
     int64_t blk_sz_A, blk_sz_B, vrt_sz_A, vrt_sz_B;
     int nphys_dim, nvirt;
     int * idx_arr, * virt_dim;
-    int * virt_blk_len_A, * virt_blk_len_B;
-    int * blk_len_A, * blk_len_B;
+    int64_t * virt_blk_len_A, * virt_blk_len_B;
+    int64_t * blk_len_A, * blk_len_B;
     tsum * htsum = NULL , ** rec_tsum = NULL;
     mapping * map;
     strp_tsr * str_A, * str_B;
@@ -631,10 +631,10 @@ namespace CTF_int {
     nphys_dim = A->topo->order;
 
     CTF_int::alloc_ptr(sizeof(int)*order_tot,   (void**)&virt_dim);
-    CTF_int::alloc_ptr(sizeof(int)*A->order,    (void**)&blk_len_A);
-    CTF_int::alloc_ptr(sizeof(int)*B->order,    (void**)&blk_len_B);
-    CTF_int::alloc_ptr(sizeof(int)*A->order,    (void**)&virt_blk_len_A);
-    CTF_int::alloc_ptr(sizeof(int)*B->order,    (void**)&virt_blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int64_t)*A->order,    (void**)&blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int64_t)*B->order,    (void**)&blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int64_t)*A->order,    (void**)&virt_blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int64_t)*B->order,    (void**)&virt_blk_len_B);
 
     /* Determine the block dimensions of each local subtensor */
     blk_sz_A = A->size;
@@ -1875,7 +1875,7 @@ namespace CTF_int {
         if (A->wrld->cdt.rank == 0){
           printf("i = %d Error in sum call: The %dth edge length (%d) of tensor %s does not",
                   i, iA, len, A->name);
-          printf("match the %dth edge length (%d) of tensor %s.\n",
+          printf("match the %dth edge length (%ld) of tensor %s.\n",
                   iB, B->lens[iB], B->name);
         }
         return false;
@@ -2001,7 +2001,8 @@ namespace CTF_int {
 
   int summation::map_sum_indices(topology const * topo){
     int tsr_order, isum, iA, iB, i, j, jsum, jX, stat;
-    int * tsr_edge_len, * tsr_sym_table, * restricted;
+    int64_t * tsr_edge_len;
+    int * tsr_sym_table, * restricted;
     int * idx_arr, * idx_sum;
     int num_sum, num_tot, idx_num;
     idx_num = 2;
@@ -2027,7 +2028,7 @@ namespace CTF_int {
 
 
     CTF_int::alloc_ptr(tsr_order*sizeof(int),           (void**)&restricted);
-    CTF_int::alloc_ptr(tsr_order*sizeof(int),           (void**)&tsr_edge_len);
+    CTF_int::alloc_ptr(tsr_order*sizeof(int64_t),       (void**)&tsr_edge_len);
     CTF_int::alloc_ptr(tsr_order*tsr_order*sizeof(int), (void**)&tsr_sym_table);
     CTF_int::alloc_ptr(tsr_order*sizeof(mapping),       (void**)&sum_map);
 

@@ -12,22 +12,22 @@ namespace CTF_int {
                         char const *            A,
                         algstrct const *        sr_A,
                         int                     order_A,
-                        int const *             edge_len_A,
+                        int64_t const *         edge_len_A,
                         int const *             sym_A,
                         int const *             idx_map_A,
                         uint64_t *const*        offsets_A,
                         char *                  B,
                         algstrct const *        sr_B,
                         int                     order_B,
-                        int const *             edge_len_B,
+                        int64_t const *         edge_len_B,
                         int const *             sym_B,
                         int const *             idx_map_B,
                         uint64_t *const*        offsets_B,
                         univar_function const * func,
-                        int const *             idx,
+                        int64_t const *         idx,
                         int const *             rev_idx_map,
                         int                     idx_max){
-    int imax=0;
+    int64_t imax=0;
     int rA = rev_idx_map[2*idim+0];
     int rB = rev_idx_map[2*idim+1];
   
@@ -54,7 +54,7 @@ namespace CTF_int {
       } while (sym_B[rrB] != NS && idx_map_B[rrB] < idim);
     }
 
-    int imin = 0;
+    int64_t imin = 0;
 
     if (rA > 0 && sym_A[rA-1] != NS){
       int rrA = rA;
@@ -78,21 +78,21 @@ namespace CTF_int {
 #ifdef USE_OMP    
       #pragma omp for
 #endif
-      for (int i=imin; i<imax; i++){
+      for (int64_t i=imin; i<imax; i++){
 #ifdef USE_OMP    
         #pragma omp parallel 
 #endif
         {
-          int nidx[idx_max];
-          memcpy(nidx, idx, idx_max*sizeof(int));
+          int64_t nidx[idx_max];
+          memcpy(nidx, idx, idx_max*sizeof(int64_t));
           nidx[idim] = i;
           sym_seq_sum_loop<idim-1>(alpha, A+offsets_A[idim][nidx[idim]], sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B+offsets_B[idim][nidx[idim]], sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, func, nidx, rev_idx_map, idx_max);
         }
       }
     } else {
-      for (int i=imin; i<imax; i++){
-        int nidx[idx_max];
-        memcpy(nidx, idx, idx_max*sizeof(int));
+      for (int64_t i=imin; i<imax; i++){
+        int64_t nidx[idx_max];
+        memcpy(nidx, idx, idx_max*sizeof(int64_t));
         nidx[idim] = i;
         sym_seq_sum_loop<idim-1>(alpha, A+offsets_A[idim][nidx[idim]], sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B+offsets_B[idim][nidx[idim]], sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, func, nidx, rev_idx_map, idx_max);
       }
@@ -108,22 +108,22 @@ namespace CTF_int {
                         char const *            A,
                         algstrct const *        sr_A,
                         int                     order_A,
-                        int const *             edge_len_A,
+                        int64_t const *         edge_len_A,
                         int const *             sym_A,
                         int const *             idx_map_A,
                         uint64_t *const*        offsets_A,
                         char *                  B,
                         algstrct const *        sr_B,
                         int                     order_B,
-                        int const *             edge_len_B,
+                        int64_t const *         edge_len_B,
                         int const *             sym_B,
                         int const *             idx_map_B,
                         uint64_t *const*        offsets_B,
                         univar_function const * func,
-                        int const *             idx,
+                        int64_t const *         idx,
                         int const *             rev_idx_map,
                         int                     idx_max){
-    int imax=0;
+    int64_t imax=0;
     int rA = rev_idx_map[0];
     int rB = rev_idx_map[1];
   
@@ -137,7 +137,7 @@ namespace CTF_int {
     if (rB != -1 && sym_B[rB] != NS)
       imax = std::min(imax,idx[idx_map_B[rB+1]]+1);
 
-    int imin = 0;
+    int64_t imin = 0;
     char * tmp = (char*)malloc(sr_A->el_size);
 
     if (rA > 0 && sym_A[rA-1] != NS)
@@ -147,14 +147,14 @@ namespace CTF_int {
 
     if (func == NULL){
       if (alpha == NULL){
-        for (int i=imin; i<imax; i++){
+        for (int64_t i=imin; i<imax; i++){
           sr_B->add(A+offsets_A[0][i],
                     B+offsets_B[0][i], 
                     B+offsets_B[0][i]);
         }
         CTF_FLOPS_ADD(imax-imin);
       } else {
-        for (int i=imin; i<imax; i++){
+        for (int64_t i=imin; i<imax; i++){
           sr_A->mul(A+offsets_A[0][i], 
                     alpha,
                     tmp);
@@ -174,31 +174,31 @@ namespace CTF_int {
                         char const *            A,
                         algstrct const *        sr_A,
                         int                     order_A,
-                        int const *             edge_len_A,
+                        int64_t const *         edge_len_A,
                         int const *             sym_A,
                         int const *             idx_map_A,
                         uint64_t *const*        offsets_A,
                         char *                  B,
                         algstrct const *        sr_B,
                         int                     order_B,
-                        int const *             edge_len_B,
+                        int64_t const *         edge_len_B,
                         int const *             sym_B,
                         int const *             idx_map_B,
                         uint64_t *const*        offsets_B,
                         univar_function const * func,
-                        int const *             idx,
-                        int const *       rev_idx_map,
-                        int               idx_max);
+                        int64_t const *         idx,
+                        int const *             rev_idx_map,
+                        int                     idx_max);
 
 
   void compute_syoffs(algstrct const * sr_A,
                       int              order_A,
-                      int const *      edge_len_A,
+                      int64_t const *  edge_len_A,
                       int const *      sym_A,
                       int const *      idx_map_A,
                       algstrct const * sr_B,
                       int              order_B,
-                      int const *      edge_len_B,
+                      int64_t const *  edge_len_B,
                       int const *      sym_B,
                       int const *      idx_map_B,
                       int              tot_order,
@@ -231,7 +231,7 @@ namespace CTF_int {
 
   #define SCAL_B do {                                                      \
     if (!sr_B->isequal(beta, sr_B->mulid())){                                 \
-      memset(idx_glb, 0, sizeof(int)*idx_max);                             \
+      memset(idx_glb, 0, sizeof(int64_t)*idx_max);                             \
       idx_A = 0, idx_B = 0;                                                \
       sym_pass = 1;                                                        \
       for (;;){                                                            \
@@ -262,7 +262,7 @@ namespace CTF_int {
 
   #define SCAL_B_inr do {                                                  \
     if (!sr_B->isequal(beta, sr_B->mulid())){                                 \
-      memset(idx_glb, 0, sizeof(int)*idx_max);                             \
+      memset(idx_glb, 0, sizeof(int64_t)*idx_max);                             \
       idx_A = 0, idx_B = 0;                                                \
       sym_pass = 1;                                                        \
       for (;;){                                                            \
@@ -294,21 +294,21 @@ namespace CTF_int {
                        char const *     A,
                        algstrct const * sr_A,
                        int              order_A,
-                       int const *      edge_len_A,
+                       int64_t const *  edge_len_A,
                        int const *      sym_A,
                        int const *      idx_map_A,
                        char const *     beta,
                        char *           B,
                        algstrct const * sr_B,
                        int              order_B,
-                       int const *      edge_len_B,
+                       int64_t const *  edge_len_B,
                        int const *      sym_B,
                        int const *      idx_map_B){
     TAU_FSTART(sym_seq_sum_ref);
     int idx, i, idx_max, imin, imax, iA, iB, j, k;
     int off_idx, sym_pass;
     int * rev_idx_map;
-    int * dlen_A, * dlen_B;
+    int64_t * dlen_A, * dlen_B;
     int64_t idx_A, idx_B, off_lda;
 
     inv_idx(order_A,       idx_map_A,
@@ -327,13 +327,13 @@ namespace CTF_int {
       }
     }
 
-    dlen_A = (int*)CTF_int::alloc(sizeof(int)*order_A);
-    dlen_B = (int*)CTF_int::alloc(sizeof(int)*order_B);
-    memcpy(dlen_A, edge_len_A, sizeof(int)*order_A);
-    memcpy(dlen_B, edge_len_B, sizeof(int)*order_B);
+    dlen_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order_A);
+    dlen_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order_B);
+    memcpy(dlen_A, edge_len_A, sizeof(int64_t)*order_A);
+    memcpy(dlen_B, edge_len_B, sizeof(int64_t)*order_B);
 
-    int * idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
-    memset(idx_glb, 0, sizeof(int)*idx_max);
+    int64_t * idx_glb = (int64_t*)CTF_int::alloc(sizeof(int64_t)*idx_max);
+    memset(idx_glb, 0, sizeof(int64_t)*idx_max);
     //FIXME do via scal()
     TAU_FSTART(SCAL_B);
     if (rep_idx)
@@ -359,8 +359,8 @@ namespace CTF_int {
         #pragma omp parallel
 #endif
         {
-          int * nidx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
-          memset(nidx_glb, 0, sizeof(int)*idx_max);
+          int64_t * nidx_glb = (int64_t*)CTF_int::alloc(sizeof(int64_t)*idx_max);
+          memset(nidx_glb, 0, sizeof(int64_t)*idx_max);
 
           SWITCH_ORD_CALL(sym_seq_sum_loop, idx_max-1, alpha, A, sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B, sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, NULL, nidx_glb, rev_idx_map, idx_max);
           cdealloc(nidx_glb);
@@ -436,38 +436,39 @@ namespace CTF_int {
                        char const *     A,
                        algstrct const * sr_A,
                        int              order_A,
-                       int const *      edge_len_A,
+                       int64_t const *  edge_len_A,
                        int const *      sym_A,
                        int const *      idx_map_A,
                        char const *     beta,
                        char *           B,
                        algstrct const * sr_B,
                        int              order_B,
-                       int const *      edge_len_B,
+                       int64_t const *  edge_len_B,
                        int const *      sym_B,
                        int const *      idx_map_B,
                        int              inr_stride){
     TAU_FSTART(sym_seq_sum_inr);
     int idx, i, idx_max, imin, imax, iA, iB, j, k;
     int off_idx, sym_pass;
-    int * idx_glb, * rev_idx_map;
-    int * dlen_A, * dlen_B;
+    int64_t * idx_glb;
+    int * rev_idx_map;
+    int64_t * dlen_A, * dlen_B;
     int64_t idx_A, idx_B, off_lda;
 
     inv_idx(order_A,       idx_map_A,
             order_B,       idx_map_B,
             &idx_max,     &rev_idx_map);
 
-    dlen_A = (int*)CTF_int::alloc(sizeof(int)*order_A);
-    dlen_B = (int*)CTF_int::alloc(sizeof(int)*order_B);
-    memcpy(dlen_A, edge_len_A, sizeof(int)*order_A);
-    memcpy(dlen_B, edge_len_B, sizeof(int)*order_B);
+    dlen_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order_A);
+    dlen_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order_B);
+    memcpy(dlen_A, edge_len_A, sizeof(int64_t)*order_A);
+    memcpy(dlen_B, edge_len_B, sizeof(int64_t)*order_B);
 
-    idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
+    idx_glb = (int64_t*)CTF_int::alloc(sizeof(int64_t)*idx_max);
 
     SCAL_B_inr;
 
-    memset(idx_glb, 0, sizeof(int)*idx_max);
+    memset(idx_glb, 0, sizeof(int64_t)*idx_max);
    
     idx_A = 0, idx_B = 0;
     sym_pass = 1;
@@ -526,35 +527,36 @@ namespace CTF_int {
                        char const *            A,
                        algstrct const *        sr_A,
                        int                     order_A,
-                       int const *             edge_len_A,
+                       int64_t const *         edge_len_A,
                        int const *             sym_A,
                        int const *             idx_map_A,
                        char const *            beta,
                        char *                  B,
                        algstrct const *        sr_B,
                        int                     order_B,
-                       int const *             edge_len_B,
+                       int64_t const *         edge_len_B,
                        int const *             sym_B,
                        int const *             idx_map_B,
                        univar_function const * func){
     TAU_FSTART(sym_seq_sum_cust);
     int idx, i, idx_max, imin, imax, iA, iB, j, k;
     int off_idx, sym_pass;
-    int * idx_glb, * rev_idx_map;
-    int * dlen_A, * dlen_B;
+    int64_t * idx_glb;
+    int * rev_idx_map;
+    int64_t * dlen_A, * dlen_B;
     int64_t idx_A, idx_B, off_lda;
 
     inv_idx(order_A,       idx_map_A,
             order_B,       idx_map_B,
             &idx_max,     &rev_idx_map);
 
-    dlen_A = (int*)CTF_int::alloc(sizeof(int)*order_A);
-    dlen_B = (int*)CTF_int::alloc(sizeof(int)*order_B);
-    memcpy(dlen_A, edge_len_A, sizeof(int)*order_A);
-    memcpy(dlen_B, edge_len_B, sizeof(int)*order_B);
+    dlen_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order_A);
+    dlen_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order_B);
+    memcpy(dlen_A, edge_len_A, sizeof(int64_t)*order_A);
+    memcpy(dlen_B, edge_len_B, sizeof(int64_t)*order_B);
 
-    idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
-    memset(idx_glb, 0, sizeof(int)*idx_max);
+    idx_glb = (int64_t*)CTF_int::alloc(sizeof(int64_t)*idx_max);
+    memset(idx_glb, 0, sizeof(int64_t)*idx_max);
 
     SCAL_B;
 

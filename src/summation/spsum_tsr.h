@@ -93,11 +93,11 @@ namespace CTF_int {
   class seq_tsr_spsum : public tspsum {
     public:
       int         order_A;
-      int *       edge_len_A;
+      int64_t *   edge_len_A;
       int const * idx_map_A;
       int *       sym_A;
       int         order_B;
-      int *       edge_len_B;
+      int64_t *   edge_len_B;
       int const * idx_map_B;
       int *       sym_B;
       //fseq_tsr_sum func_ptr;
@@ -158,8 +158,8 @@ namespace CTF_int {
       tspsum * rec_tsum;
       bool A_or_B; //if false perm_B
       int order;
-      int * lens_new;
-      int * lens_old; // FIXME = lens_new?
+      int64_t * lens_new;
+      int64_t * lens_old; // FIXME = lens_new?
       int * p;
       bool skip;
 
@@ -174,7 +174,7 @@ namespace CTF_int {
 
       tspsum_permute(tspsum * other);
       ~tspsum_permute();
-      tspsum_permute(summation const * s, bool A_or_B, int const * lens);
+      tspsum_permute(summation const * s, bool A_or_B, int64_t const * lens);
   };
 
   class tspsum_pin_keys : public tspsum {
@@ -182,7 +182,7 @@ namespace CTF_int {
       tspsum * rec_tsum;
       bool A_or_B;
       int order;
-      int const * lens;
+      int64_t const * lens;
       int * divisor;
       int * virt_dim;
       int * phys_rank;

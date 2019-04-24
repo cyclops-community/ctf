@@ -16,9 +16,9 @@ namespace CTF_int {
       int              alloced;
       int              order;
       int64_t          blk_sz;
-      int *            edge_len;
-      int *            strip_dim;
-      int *            strip_idx;
+      int64_t *        edge_len;
+      int64_t *        strip_dim;
+      int64_t *        strip_idx;
       char *           A;
       char *           buffer;
       algstrct const * sr_A;
@@ -190,7 +190,7 @@ namespace CTF_int {
                  mapping const *  edge_map,
                  topology const * topo,
                  algstrct const * sr,
-                 int *            blk_edge_len,
+                 int64_t *        blk_edge_len,
                  int64_t *        blk_sz,
                  strp_tsr **      stpr);
 

@@ -6,14 +6,14 @@
 
 namespace CTF_int {
   //correct for SY
-  inline int get_glb(int i, int s, int t){
+  inline int64_t get_glb(int64_t i, int s, int64_t t){
     return i*s+t;
   }
   //correct for SH/AS, but can treat everything as SY
   /*inline int get_glb(int i, int s, int t){
     return i*s+t-1;
   }*/
-  inline int get_loc(int g, int s, int t){
+  inline int64_t get_loc(int64_t g, int s, int64_t t){
     //round down, dowwwwwn
     if (t>g) return -1;
     else return (g-t)/s;
@@ -23,7 +23,7 @@ namespace CTF_int {
   int64_t calc_cnt(int const *     sym,
                    int const *     rep_phase,
                    int const *     sphase,
-                   int const *     gidx_off,
+                   int64_t const * gidx_off,
                    int64_t const * edge_len,
                    int64_t const * loc_edge_len){
     assert(sym[idim] == NS); //otherwise should be in calc_sy_pfx
@@ -44,7 +44,7 @@ namespace CTF_int {
   int64_t calc_cnt<0>(int const *     sym,
                       int const *     rep_phase,
                       int const *     sphase,
-                      int const *     gidx_off,
+                      int64_t const * gidx_off,
                       int64_t const * edge_len,
                       int64_t const * loc_edge_len){
     assert(sym[0] == NS);
@@ -52,22 +52,22 @@ namespace CTF_int {
   }
 
   template <int idim>
-  int64_t * calc_sy_pfx(int const * sym,
-                        int const * rep_phase,
-                        int const * sphase,
-                        int const * gidx_off,
-                        int const * edge_len,
-                        int const * loc_edge_len){
+  int64_t * calc_sy_pfx(int const *     sym,
+                        int const *     rep_phase,
+                        int const *     sphase,
+                        int64_t const * gidx_off,
+                        int64_t const * edge_len,
+                        int64_t const * loc_edge_len){
     int64_t * pfx = (int64_t*)alloc(sizeof(int64_t)*loc_edge_len[idim]);
     if (sym[idim-1] == NS){
       int64_t ns_size = calc_cnt<idim-1>(sym,rep_phase,sphase,gidx_off,edge_len,loc_edge_len);
-      for (int i=0; i<loc_edge_len[idim]; i++){
+      for (int64_t i=0; i<loc_edge_len[idim]; i++){
         pfx[i] = ns_size;
       }
     } else {
       int64_t * pfx_m1 = calc_sy_pfx<idim-1>(sym, rep_phase, sphase, gidx_off, edge_len, loc_edge_len);
-      for (int i=0; i<loc_edge_len[idim]; i++){
-        int jst;
+      for (int64_t i=0; i<loc_edge_len[idim]; i++){
+        int64_t jst;
         if (i>0){
           pfx[i] = pfx[i-1];
           if (sym[idim-1] == SY)
@@ -78,7 +78,7 @@ namespace CTF_int {
           pfx[i] = 0;
           jst = 0;
         }
-        int jed;
+        int64_t jed;
         if (sym[idim-1] == SY)
           jed = get_loc(std::min(edge_len[idim]-1,get_glb(i,sphase[idim],gidx_off[idim])),sphase[idim-1],gidx_off[idim-1]);
         else
@@ -97,7 +97,7 @@ namespace CTF_int {
   int64_t * calc_sy_pfx<1>(int const *     sym,
                            int const *     rep_phase,
                            int const *     sphase,
-                           int const *     gidx_off,
+                           int64_t const * gidx_off,
                            int64_t const * edge_len,
                            int64_t const * loc_edge_len){
     int64_t * pfx= (int64_t*)alloc(sizeof(int64_t)*loc_edge_len[1]);
@@ -124,7 +124,7 @@ namespace CTF_int {
                      int const *     rep_phase_lda,
                      int const *     sphase,
                      int const *     phys_phase,
-                     int       *     gidx_off,
+                     int64_t   *     gidx_off,
                      int64_t const * edge_len,
                      int64_t const * loc_edge_len){
     for (int i=0; i<rep_phase[idim]; i++, gidx_off[idim]+=phys_phase[idim]){
@@ -142,7 +142,7 @@ namespace CTF_int {
                         int const *     rep_phase_lda,
                         int const *     sphase,
                         int const *     phys_phase,
-                        int       *     gidx_off,
+                        int64_t   *     gidx_off,
                         int64_t const * edge_len,
                         int64_t const * loc_edge_len){
     for (int i=0; i<rep_phase[0]; i++, gidx_off[0]+=phys_phase[0]){
@@ -224,7 +224,8 @@ namespace CTF_int {
                        int64_t *            counts,
                        int                  idx_lyr){
     TAU_FSTART(calc_drv_displs);
-    int * rep_phase, * gidx_off, * sphase;
+    int * rep_phase, * sphase;
+    int64_t  * gidx_off;
     int * rep_phase_lda;
     int64_t * new_loc_edge_len;
     if (idx_lyr == 0){
@@ -232,7 +233,7 @@ namespace CTF_int {
       rep_phase     = (int*)alloc(order*sizeof(int));
       rep_phase_lda = (int*)alloc(order*sizeof(int));
       sphase        = (int*)alloc(order*sizeof(int));
-      gidx_off      = (int*)alloc(order*sizeof(int));
+      gidx_off      = (int64_t*)alloc(order*sizeof(int64_t));
       new_loc_edge_len = (int64_t*)alloc(order*sizeof(int64_t));
       int nrep = 1;
       for (int i=0; i<order; i++){
@@ -279,11 +280,11 @@ namespace CTF_int {
     ivmax_pre[old_dist.order-1][0] = get_loc(len[old_dist.order-1]-1, old_dist.phys_phase[old_dist.order-1], old_dist.perank[old_dist.order-1]);
 
     for (int dim = 0;dim < old_dist.order;dim++){
-      alloc_ptr(sizeof(int)*std::max(rep_phase[dim],phys_edge_len[dim]), (void**)&pe_offset[dim]);
-      alloc_ptr(sizeof(int)*std::max(rep_phase[dim],phys_edge_len[dim]), (void**)&bucket_offset[dim]);
-      alloc_ptr(sizeof(int64_t)*std::max(rep_phase[dim],phys_edge_len[dim]), (void**)&data_offset[dim]);
+      alloc_ptr(sizeof(int)*std::max((int64_t)rep_phase[dim],phys_edge_len[dim]), (void**)&pe_offset[dim]);
+      alloc_ptr(sizeof(int)*std::max((int64_t)rep_phase[dim],phys_edge_len[dim]), (void**)&bucket_offset[dim]);
+      alloc_ptr(sizeof(int64_t)*std::max((int64_t)rep_phase[dim],phys_edge_len[dim]), (void**)&data_offset[dim]);
       if (dim > 0)
-        alloc_ptr(sizeof(int64_t)*std::max(rep_phase[dim],phys_edge_len[dim]), (void**)&ivmax_pre[dim-1]);
+        alloc_ptr(sizeof(int64_t)*std::max((int64_t)rep_phase[dim],phys_edge_len[dim]), (void**)&ivmax_pre[dim-1]);
 
       int nsym;
       int pidx = 0;
@@ -311,7 +312,7 @@ namespace CTF_int {
       int64_t data_off =0; 
 
       for (int vidx = 0;
-           vidx < std::max((rep_phase[dim]+old_dist.virt_phase[dim]-1)/old_dist.virt_phase[dim],virt_edge_len[dim]);
+           vidx < std::max(((int64_t)rep_phase[dim]+old_dist.virt_phase[dim]-1)/old_dist.virt_phase[dim],virt_edge_len[dim]);
            vidx++){
 
         int64_t rec_data_off = data_off;
@@ -322,7 +323,7 @@ namespace CTF_int {
           }
         }
         data_off += data_stride;
-        for (int vr = 0;vr < old_dist.virt_phase[dim] && pidx<std::max(rep_phase[dim],phys_edge_len[dim]) ;vr++,pidx++){
+        for (int vr = 0;vr < old_dist.virt_phase[dim] && pidx<std::max((int64_t)rep_phase[dim],phys_edge_len[dim]) ;vr++,pidx++){
 
           if (dim>0){ 
             if (sym[dim-1] == NS){

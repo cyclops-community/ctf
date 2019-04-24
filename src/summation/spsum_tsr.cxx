@@ -412,14 +412,14 @@ namespace CTF_int {
     order_A    = o->order_A;
     idx_map_A  = o->idx_map_A;
     sym_A      = o->sym_A;
-    edge_len_A = (int*)alloc(sizeof(int)*order_A);
-    memcpy(edge_len_A, o->edge_len_A, sizeof(int)*order_A);
+    edge_len_A = (int64_t*)alloc(sizeof(int64_t)*order_A);
+    memcpy(edge_len_A, o->edge_len_A, sizeof(int64_t)*order_A);
 
     order_B    = o->order_B;
     idx_map_B  = o->idx_map_B;
     sym_B      = o->sym_B;
-    edge_len_B = (int*)alloc(sizeof(int)*order_B);
-    memcpy(edge_len_B, o->edge_len_B, sizeof(int)*order_B);
+    edge_len_B = (int64_t*)alloc(sizeof(int64_t)*order_B);
+    memcpy(edge_len_B, o->edge_len_B, sizeof(int64_t)*order_B);
     
     is_inner   = o->is_inner;
     inr_stride = o->inr_stride;
@@ -460,10 +460,10 @@ namespace CTF_int {
     int i;
     printf("seq_tsr_spsum:\n");
     for (i=0; i<order_A; i++){
-      printf("edge_len_A[%d]=%d\n",i,edge_len_A[i]);
+      printf("edge_len_A[%d]=%ld\n",i,edge_len_A[i]);
     }
     for (i=0; i<order_B; i++){
-      printf("edge_len_B[%d]=%d\n",i,edge_len_B[i]);
+      printf("edge_len_B[%d]=%ld\n",i,edge_len_B[i]);
     }
     printf("is inner = %d\n", is_inner);
     if (is_inner) printf("inner stride = %d\n", inr_stride);
@@ -668,14 +668,14 @@ namespace CTF_int {
     order    = o->order;
     skip     = o->skip;
     p        = (int*)alloc(sizeof(int)*order);
-    lens_old = (int*)alloc(sizeof(int)*order);
-    lens_new = (int*)alloc(sizeof(int)*order);
+    lens_old = (int64_t*)alloc(sizeof(int64_t)*order);
+    lens_new = (int64_t*)alloc(sizeof(int64_t)*order);
     memcpy(p, o->p, sizeof(int)*order);
-    memcpy(lens_old, o->lens_old, sizeof(int)*order);
-    memcpy(lens_new, o->lens_new, sizeof(int)*order);
+    memcpy(lens_old, o->lens_old, sizeof(int64_t)*order);
+    memcpy(lens_new, o->lens_new, sizeof(int64_t)*order);
   }
 
-  tspsum_permute::tspsum_permute(summation const * s, bool A_or_B_, int const * lens) : tspsum(s) {
+  tspsum_permute::tspsum_permute(summation const * s, bool A_or_B_, int64_t const * lens) : tspsum(s) {
     tensor * X, * Y;
     int const * idx_X, * idx_Y;
     A_or_B = A_or_B_;
@@ -693,11 +693,11 @@ namespace CTF_int {
     order = X->order;
 
     p           = (int*)alloc(sizeof(int)*order);
-    lens_old    = (int*)alloc(sizeof(int)*order);
-    lens_new    = (int*)alloc(sizeof(int)*order);
+    lens_old    = (int64_t*)alloc(sizeof(int64_t)*order);
+    lens_new    = (int64_t*)alloc(sizeof(int64_t)*order);
 
-    memcpy(lens_old, lens, sizeof(int)*this->order);
-    memcpy(lens_new, lens, sizeof(int)*this->order);
+    memcpy(lens_old, lens, sizeof(int64_t)*this->order);
+    memcpy(lens_new, lens, sizeof(int64_t)*this->order);
 /*    for (int i=0; i<this->order; i++){
       memcpy(lens_new, lens, sizeof(int)*this->order);
     }

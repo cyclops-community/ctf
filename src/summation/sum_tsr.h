@@ -147,11 +147,11 @@ namespace CTF_int {
   class seq_tsr_sum : public tsum {
     public:
       int         order_A;
-      int *       edge_len_A;
+      int64_t *   edge_len_A;
       int const * idx_map_A;
       int *       sym_A;
       int         order_B;
-      int *       edge_len_B;
+      int64_t *   edge_len_B;
       int const * idx_map_B;
       int *       sym_B;
       //fseq_tsr_sum func_ptr;

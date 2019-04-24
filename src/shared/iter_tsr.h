@@ -8,7 +8,7 @@ namespace CTF_int{
   void compute_syoff(int              r,
                      int              len,
                      algstrct const * sr,
-                     int const *      edge_len,
+                     int64_t const *  edge_len,
                      int const *      sym,
                      uint64_t *       offsets);
 }

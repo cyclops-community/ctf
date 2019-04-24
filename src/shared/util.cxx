@@ -236,6 +236,40 @@ namespace CTF_int {
     CTF_int::cdealloc(swap);
   }
 
+  void permute(int          order,
+               int const *  perm,
+               int64_t *    arr){
+    int i;
+    int64_t * swap;
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&swap);
+
+    for (i=0; i<order; i++){
+      swap[i] = arr[perm[i]];
+    }
+    for (i=0; i<order; i++){
+      arr[i] = swap[i];
+    }
+
+    CTF_int::cdealloc(swap);
+  }
+
+  void permute_target(int         order,
+                      int const * perm,
+                      int64_t *   arr){
+    int i;
+    int64_t * swap;
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&swap);
+
+    for (i=0; i<order; i++){
+      swap[i] = arr[perm[i]];
+    }
+    for (i=0; i<order; i++){
+      arr[i] = swap[i];
+    }
+
+    CTF_int::cdealloc(swap);
+  }
+
 
   void socopy(int64_t         m,
               int64_t         n,
@@ -286,13 +320,13 @@ namespace CTF_int {
     return fact(n)/(fact(k)*fact(n-k));
   }
 
-  void get_choice(int64_t n, int64_t k, int64_t ch, int * chs){
+  void get_choice(int64_t n, int64_t k, int64_t ch, int64_t * chs){
     if (k==0) return;
     if (k==1){
       chs[0] = ch;
       return;
     }
-    int lens[k];
+    int64_t lens[k];
     std::fill(lens, lens+k, n);
     int sym[k];
     std::fill(sym, sym+k-1, SH);

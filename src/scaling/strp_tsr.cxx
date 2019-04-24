@@ -32,8 +32,9 @@ namespace CTF_int {
 
   void strp_tsr::run(int const dir){
     TAU_FSTART(strp_tsr);
-    int i, ilda, toff, boff, ret;
-    int * idx_arr, * lda;
+    int i, toff, boff, ret;
+    int64_t ilda;
+    int64_t * idx_arr, * lda;
    
     if (dir == 0)  {
       if (buffer != NULL){        
@@ -44,9 +45,9 @@ namespace CTF_int {
         ASSERT(ret==0);
       }
     } 
-    idx_arr = (int*)CTF_int::alloc(sizeof(int)*order);
-    lda = (int*)CTF_int::alloc(sizeof(int)*order);
-    memset(idx_arr, 0, sizeof(int)*order);
+    idx_arr = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order);
+    lda = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order);
+    memset(idx_arr, 0, sizeof(int64_t)*order);
 
     ilda = 1, toff = 0;
     for (i=0; i<order; i++){
@@ -277,12 +278,13 @@ namespace CTF_int {
                  mapping const *  edge_map,
                  topology const * topo,
                  algstrct const * sr,
-                 int *            blk_edge_len,
+                 int64_t *        blk_edge_len,
                  int64_t *        blk_sz,
                  strp_tsr **      stpr){
     int64_t i;
     int need_strip;
-    int * pmap, * edge_len, * sdim, * sidx;
+    int * pmap;
+    int64_t * edge_len, * sdim, * sidx;
     strp_tsr * stripper;
 
     CTF_int::alloc_ptr(order_tot*sizeof(int), (void**)&pmap);
@@ -306,9 +308,9 @@ namespace CTF_int {
       return 0;
     }
 
-    CTF_int::alloc_ptr(order*sizeof(int), (void**)&edge_len);
-    CTF_int::alloc_ptr(order*sizeof(int), (void**)&sdim);
-    CTF_int::alloc_ptr(order*sizeof(int), (void**)&sidx);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&edge_len);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&sdim);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&sidx);
     stripper = new strp_tsr;
 
     std::fill(sdim, sdim+order, 1);

@@ -742,7 +742,7 @@ namespace CTF {
                             int64_t                 corner_off_A,
                             int64_t                 corner_end_A,
                             dtype                   alpha){
-    int * offsets, * ends, * offsets_A, * ends_A;
+    int64_t * offsets, * ends, * offsets_A, * ends_A;
 
     CTF_int::cvrt_idx(this->order, this->lens, corner_off, &offsets);
     CTF_int::cvrt_idx(this->order, this->lens, corner_end, &ends);

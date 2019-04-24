@@ -393,14 +393,15 @@ namespace CTF_int {
       int i, act_lda, act_max, curr_idx, sym_idx;
       int is_outside;
       int64_t p, buf_offset;
-      int * virt_rank, * phase_rank, * virt_len;
+      int * virt_rank, * phase_rank;
+      int64_t * virt_len;
       int64_t * idx;
       char * data;
 
       CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&idx);
       CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_rank);
       CTF_int::alloc_ptr(order*sizeof(int), (void**)&phase_rank);
-      CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_len);
+      CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&virt_len);
       for (int dim=0; dim<order; dim++){
         virt_len[dim] = edge_len[dim]/phase[dim];
       }
@@ -634,8 +635,8 @@ namespace CTF_int {
         st_index = st_chunk-vst*vrt_sz;
         end_index = end_chunk-(vend-1)*vrt_sz;
       
-        CTF_int64_t::alloc_ptr(order*sizeof(int64_t), (void**)&st_idx);
-        CTF_int64_t::alloc_ptr(order*sizeof(int64_t), (void**)&end_idx);
+        CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&st_idx);
+        CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&end_idx);
 
         int * ssym;
         CTF_int::alloc_ptr(order*sizeof(int), (void**)&ssym);

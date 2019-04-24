@@ -48,7 +48,7 @@ namespace CTF_int {
   class seq_tsr_scl : public scl {
     public:
       int order;
-      int * edge_len;
+      int64_t * edge_len;
       int const * idx_map;
       int const * sym;
       //fseq_tsr_scl func_ptr;

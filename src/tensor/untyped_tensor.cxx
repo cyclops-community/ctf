@@ -12,7 +12,6 @@
 #include "../redistribution/nosym_transp.h"
 #include "../redistribution/redist.h"
 #include "../redistribution/cyclic_reshuffle.h"
-#include "../redistribution/glb_cyclic_reshuffle.h"
 #include "../redistribution/dgtog_redist.h"
 #include "../sparse_formats/ccsr.h"
 

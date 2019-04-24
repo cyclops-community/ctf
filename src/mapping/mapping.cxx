@@ -251,7 +251,7 @@ namespace CTF_int {
                  int             fill,
                  mapping *       tsr_edge_map){
     int i,j,max_dim,phase,ret;
-    int64_t max_len
+    int64_t max_len;
     mapping * map;
 
     /* Make sure the starting mappings are consistent among symmetries */

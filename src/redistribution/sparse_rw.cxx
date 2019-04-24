@@ -898,7 +898,7 @@ namespace CTF_int {
                        int              num_virt,
                        int const *      sym,
                        int64_t const *  edge_len,
-                       int const *      padding,
+                       int64_t const *  padding,
                        int const *      phase,
                        int const *      phys_phase,
                        int const *      virt_phase,
@@ -1257,7 +1257,7 @@ namespace CTF_int {
                       int              num_virt,
                       int const *      sym,
                       int64_t const *  edge_len,
-                      int const *      padding,
+                      int64_t const *  padding,
                       int const *      phase,
                       int const *      phys_phase,
                       int const *      virt_phase,
@@ -1267,11 +1267,11 @@ namespace CTF_int {
                       char **          pairs,
                       algstrct const * sr){
     int64_t i;
-    int * prepadding;
+    int64_t * prepadding;
     char * dpairsb;
     dpairsb = sr->pair_alloc(nval);
-    CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&prepadding);
-    memset(prepadding, 0, sizeof(int)*order);
+    CTF_int::alloc_ptr(sizeof(int64_t)*order,   (void**)&prepadding);
+    memset(prepadding, 0, sizeof(int64_t)*order);
     /* Iterate through packed layout and form key value pairs */
     assign_keys(order,
                 nval,
@@ -1292,15 +1292,15 @@ namespace CTF_int {
 */
     /* If we need to unpad */
     int64_t new_num_pair;
-    int * depadding;
+    int64_t * depadding;
     int64_t * pad_len;
     char * new_pairsb;
     new_pairsb = sr->pair_alloc(nval);
    
     PairIterator new_pairs = PairIterator(sr, new_pairsb); 
 
-    CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&depadding);
-    CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&pad_len);
+    CTF_int::alloc_ptr(sizeof(int64_t)*order,   (void**)&depadding);
+    CTF_int::alloc_ptr(sizeof(int64_t)*order,   (void**)&pad_len);
 
     for (i=0; i<order; i++){
       pad_len[i] = edge_len[i]-padding[i];
