@@ -20,7 +20,7 @@ namespace CTF_int {
    */
   void nosym_transpose(int              order,
                        int const *      new_order,
-                       int const *      edge_len,
+                       int64_t const *  edge_len,
                        char *           data,
                        int              dir,
                        algstrct const * sr);
@@ -36,15 +36,15 @@ namespace CTF_int {
    */
   double est_time_transp(int              order,
                          int const *      new_order,
-                         int const *      edge_len,
+                         int64_t const *  edge_len,
                          int              dir,
                          algstrct const * sr);
 
-  void nosym_transpose(tensor *    A,
-                       int         all_fdim_A,
-                       int const * all_flen_A,
-                       int const * new_order,
-                       int         dir);
+  void nosym_transpose(tensor *        A,
+                       int             all_fdim_A,
+                       int64_t const * all_flen_A,
+                       int const *     new_order,
+                       int             dir);
   /**
    * \brief transposes a non-symmetric (folded) tensor internal kernel
    *
@@ -60,7 +60,7 @@ namespace CTF_int {
    */
   void nosym_transpose(int              order,
                        int const *      new_order,
-                       int const *      edge_len,
+                       int64_t const *  edge_len,
                        char const *     data,
                        int              dir,
                        int              max_ntd,
@@ -90,7 +90,7 @@ namespace CTF_int {
 
   void nosym_transpose_hptt(int              order,
                             int const *      st_new_order,
-                            int const *      st_edge_len,
+                            int64_t const *  st_edge_len,
                             int              dir,
                             char const *     st_buffer,
                             char *           new_buffer,

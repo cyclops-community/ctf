@@ -302,7 +302,7 @@ void redist_bucket_isr<0>
 #endif
 
 void dgtog_reshuffle(int const *          sym,
-                     int const *          edge_len,
+                     int64_t const *      edge_len,
                      distribution const & old_dist,
                      distribution const & new_dist,
                      char **              ptr_tsr_data,
@@ -352,19 +352,19 @@ void dgtog_reshuffle(int const *          sym,
   int64_t old_virt_nelem = old_dist.size/old_nvirt;
   int64_t new_virt_nelem = new_dist.size/new_nvirt;
 
-  int *old_phys_edge_len; alloc_ptr(sizeof(int)*order, (void**)&old_phys_edge_len);
+  int64_t *old_phys_edge_len; alloc_ptr(sizeof(int64_t)*order, (void**)&old_phys_edge_len);
   for (int dim = 0;dim < order;dim++)
     old_phys_edge_len[dim] = old_dist.pad_edge_len[dim]/old_dist.phys_phase[dim];
 
-  int *new_phys_edge_len; alloc_ptr(sizeof(int)*order, (void**)&new_phys_edge_len);
+  int64_t *new_phys_edge_len; alloc_ptr(sizeof(int64_t)*order, (void**)&new_phys_edge_len);
   for (int dim = 0;dim < order;dim++)
     new_phys_edge_len[dim] = new_dist.pad_edge_len[dim]/new_dist.phys_phase[dim];
 
-  int *old_virt_edge_len; alloc_ptr(sizeof(int)*order, (void**)&old_virt_edge_len);
+  int64_t *old_virt_edge_len; alloc_ptr(sizeof(int64_t)*order, (void**)&old_virt_edge_len);
   for (int dim = 0;dim < order;dim++)
     old_virt_edge_len[dim] = old_phys_edge_len[dim]/old_dist.virt_phase[dim];
 
-  int *new_virt_edge_len; alloc_ptr(sizeof(int)*order, (void**)&new_virt_edge_len);
+  int64_t *new_virt_edge_len; alloc_ptr(sizeof(int64_t)*order, (void**)&new_virt_edge_len);
   for (int dim = 0;dim < order;dim++)
     new_virt_edge_len[dim] = new_phys_edge_len[dim]/new_dist.virt_phase[dim];
 

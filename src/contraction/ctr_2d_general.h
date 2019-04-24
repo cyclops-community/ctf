@@ -10,7 +10,7 @@ namespace CTF_int{
                         CommData                   global_comm,
                         int                        i,
                         int *                      virt_dim,
-                        int &                      cg_edge_len,
+                        int64_t &                  cg_edge_len,
                         int &                      total_iter,
                         tensor *                   A,
                         int                        i_A,
@@ -18,9 +18,9 @@ namespace CTF_int{
                         int64_t &                  cg_ctr_lda_A,
                         int64_t &                  cg_ctr_sub_lda_A,
                         bool &                     cg_move_A,
-                        int *                      blk_len_A,
+                        int64_t *                  blk_len_A,
                         int64_t &                  blk_sz_A,
-                        int const *                virt_blk_len_A,
+                        int64_t const *            virt_blk_len_A,
                         int &                      load_phase_A,
                         tensor *                   B,
                         int                        i_B,
@@ -28,9 +28,9 @@ namespace CTF_int{
                         int64_t &                  cg_ctr_lda_B,
                         int64_t &                  cg_ctr_sub_lda_B,
                         bool &                     cg_move_B,
-                        int *                      blk_len_B,
+                        int64_t *                  blk_len_B,
                         int64_t &                  blk_sz_B,
-                        int const *                virt_blk_len_B,
+                        int64_t const *            virt_blk_len_B,
                         int &                      load_phase_B,
                         tensor *                   C,
                         int                        i_C,
@@ -38,15 +38,15 @@ namespace CTF_int{
                         int64_t &                  cg_ctr_lda_C,
                         int64_t &                  cg_ctr_sub_lda_C,
                         bool &                     cg_move_C,
-                        int *                      blk_len_C,
+                        int64_t *                  blk_len_C,
                         int64_t &                  blk_sz_C,
-                        int const *                virt_blk_len_C,
+                        int64_t const *            virt_blk_len_C,
                         int &                      load_phase_C);
 
 
   class ctr_2d_general : public ctr {
     public: 
-      int edge_len;
+      int64_t edge_len;
 
       int64_t ctr_lda_A; /* local lda_A of contraction dimension 'k' */
       int64_t ctr_sub_lda_A; /* elements per local lda_A 

@@ -703,26 +703,26 @@ namespace CTF {
       }
 
       void gen_ccsrmm
-                     (int64_t       m,
-                      int64_t       n,
-                      int64_t       k,
-                      int64_t       nnz_row,
-                      dtype         alpha,
-                      dtype const * A,
-                      int const *   JA,
-                      int const *   IA,
-                      int const *   row_enc,
-                      int64_t       nnz_A,
-                      dtype const * B,
-                      dtype         beta,
-                      char *&       C_CCSR) const {
+                     (int64_t         m,
+                      int64_t         n,
+                      int64_t         k,
+                      int64_t         nnz_row,
+                      dtype           alpha,
+                      dtype const *   A,
+                      int const *     JA,
+                      int const *     IA,
+                      int64_t const * row_enc,
+                      int64_t         nnz_A,
+                      dtype const *   B,
+                      dtype           beta,
+                      char *&         C_CCSR) const {
         //printf("Doing ccsrmm with %d nonzeros and %d/%d nonzero rows\n",nnz_A,nnz_row,m);
         CTF_int::CCSR_Matrix M;
         if (nnz_row == 0){
           M = CTF_int::CCSR_Matrix(nnz_row*n, nnz_row, m, n, this);
         } else {
           int new_order[2] = {1, 0};
-          int lens[2] = {(int)nnz_row, (int)n};
+          int64_t lens[2] = {(int64_t)nnz_row, (int64_t)n};
           bool use_hptt = CTF_int::hptt_is_applicable(2, new_order, this->el_size);
           if (use_hptt){
             char * data = this->alloc(((int64_t)nnz_row)*n);
@@ -737,7 +737,7 @@ namespace CTF {
             CTF_int::nosym_transpose(2,new_order,lens,M.vals(),1,this);
           }
         }
-        memcpy(M.nnz_row_encoding(), row_enc, nnz_row*sizeof(int));
+        memcpy(M.nnz_row_encoding(), row_enc, nnz_row*sizeof(int64_t));
         int * C_IA = M.IA();
         C_IA[0] = 1;
         for (int64_t row_A=1; row_A<nnz_row+1; row_A++){
@@ -768,37 +768,37 @@ namespace CTF {
       }
 
       void default_ccsrmm
-                     (int64_t       m,
-                      int64_t       n,
-                      int64_t       k,
-                      int64_t       nnz_row,
-                      dtype         alpha,
-                      dtype const * A,
-                      int const *   JA,
-                      int const *   IA,
-                      int const *   row_enc,
-                      int64_t       nnz_A,
-                      dtype const * B,
-                      dtype         beta,
-                      char *&       C) const {
+                     (int64_t         m,
+                      int64_t         n,
+                      int64_t         k,
+                      int64_t         nnz_row,
+                      dtype           alpha,
+                      dtype const *   A,
+                      int const *     JA,
+                      int const *     IA,
+                      int64_t const * row_enc,
+                      int64_t         nnz_A,
+                      dtype const *   B,
+                      dtype           beta,
+                      char *&         C) const {
         gen_ccsrmm(m,n,k,nnz_row,alpha,A,JA,IA,row_enc,nnz_A,B,beta,C);
       }
 //      void (*fccsrmultd)(int,int,int,dtype const*,int const*,int const*,dtype const*,int const*, int const*,dtype*,int);
 
       /** \brief sparse version of gemm using CSR format for A */
-      void ccsrmm(int64_t      m,
-                  int64_t      n,
-                  int64_t      k,
-                  int64_t      nnz_row,
-                  char const * alpha,
-                  char const * A,
-                  int const *  JA,
-                  int const *  IA,
-                  int const *  row_enc,
-                  int64_t      nnz_A,
-                  char const * B,
-                  char const * beta,
-                  char *&      C,
+      void ccsrmm(int64_t         m,
+                  int64_t         n,
+                  int64_t         k,
+                  int64_t         nnz_row,
+                  char const *    alpha,
+                  char const *    A,
+                  int const *     JA,
+                  int const *     IA,
+                  int64_t const * row_enc,
+                  int64_t         nnz_A,
+                  char const *    B,
+                  char const *    beta,
+                  char *&         C,
                   CTF_int::bivar_function const * func) const {
         assert(!this->has_coo_ker);
         assert(func == NULL);

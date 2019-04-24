@@ -182,8 +182,8 @@ namespace CTF_int {
       int64_t len_ctr = 1;
       for (int i=0; i<num_tot; i++){
         if (idx_arr[3*i+2]==-1){
-          int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
-                                              : B->lens[idx_arr[3*i+1]];
+          int64_t edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
+                                                  : B->lens[idx_arr[3*i+1]];
           len_ctr *= edge_len;
         }
       }
@@ -623,9 +623,9 @@ namespace CTF_int {
                                  int &          all_fdim_A,
                                  int &          all_fdim_B,
                                  int &          all_fdim_C,
-                                 int *&         all_flen_A,
-                                 int *&         all_flen_B,
-                                 int *&         all_flen_C){
+                                 int64_t *&     all_flen_A,
+                                 int64_t *&     all_flen_B,
+                                 int64_t *&     all_flen_C){
     int i, j, nfold, nf;
     int * fold_idx, * fidx_A, * fidx_B, * fidx_C;
     tensor * fA, * fB, * fC;
@@ -703,16 +703,16 @@ namespace CTF_int {
                                     int                 all_fdim_A,
                                     int                 all_fdim_B,
                                     int                 all_fdim_C,
-                                    int const *         all_flen_A,
-                                    int const *         all_flen_B,
-                                    int const *         all_flen_C,
+                                    int64_t const *     all_flen_A,
+                                    int64_t const *     all_flen_B,
+                                    int64_t const *     all_flen_C,
                                     int &               bperm_order,
                                     double &            btime,
                                     iparam &            iprm){
     bperm_order = -1;
     btime = DBL_MAX;
     int tall_fdim_A, tall_fdim_B, tall_fdim_C;
-    int const * tall_flen_A, * tall_flen_B, * tall_flen_C;
+    int64_t const * tall_flen_A, * tall_flen_B, * tall_flen_C;
     tensor * tA, * tB, * tC;
     tensor * tfA, * tfB, * tfC;
     int * tidx_A, * tidx_B, * tidx_C;
@@ -731,8 +731,8 @@ namespace CTF_int {
                        tfA, tfB, tfC);
       get_perm<int*>(iord, fold_ctr->idx_A, fold_ctr->idx_B, fold_ctr->idx_C,
                            tidx_A, tidx_B, tidx_C);
-      get_perm<int const*>(iord, all_flen_A, all_flen_B, all_flen_C,
-                           tall_flen_A, tall_flen_B, tall_flen_C);
+      get_perm<int64_t const*>(iord, all_flen_A, all_flen_B, all_flen_C,
+                               tall_flen_A, tall_flen_B, tall_flen_C);
       get_perm<int>(iord, all_fdim_A, all_fdim_B, all_fdim_C,
                           tall_fdim_A, tall_fdim_B, tall_fdim_C);
       get_len_ordering(tfA, tfB, tfC, tidx_A, tidx_B, tidx_C, 
@@ -842,7 +842,7 @@ namespace CTF_int {
   iparam contraction::map_fold(bool do_transp){
     int all_fdim_A, all_fdim_B, all_fdim_C;
     int * fnew_ord_A, * fnew_ord_B, * fnew_ord_C;
-    int * all_flen_A, * all_flen_B, * all_flen_C;
+    int64_t * all_flen_A, * all_flen_B, * all_flen_C;
     iparam iprm;
     contraction * fold_ctr;
     int bperm_order = -1;
@@ -958,7 +958,7 @@ namespace CTF_int {
 
   double contraction::est_time_fold(){
     int all_fdim_A, all_fdim_B, all_fdim_C;
-    int * all_flen_A, * all_flen_B, * all_flen_C;
+    int64_t * all_flen_A, * all_flen_B, * all_flen_C;
     iparam iprm;
     contraction * fold_ctr;
     int bperm_order = -1;
@@ -1199,7 +1199,8 @@ namespace CTF_int {
   }
 
   bool contraction::check_consistency(){
-    int i, num_tot, len;
+    int i, num_tot;
+    int64_t len;
     int iA, iB, iC;
     int * idx_arr;
        
@@ -1227,9 +1228,9 @@ namespace CTF_int {
       }
       if (len != -1 && iC != -1 && len != C->lens[iC]){
         if (A->wrld->cdt.rank == 0){
-          printf("Error in contraction call: The %dth edge length of tensor %s (%d) does not",
+          printf("Error in contraction call: The %dth edge length of tensor %s (%ld) does not",
                   iA, A->name, len);
-          printf("match the %dth edge length of tensor %s (%d).\n",
+          printf("match the %dth edge length of tensor %s (%ld).\n",
                   iC, C->name, C->lens[iC]);
         }
         return false;
@@ -1508,7 +1509,8 @@ namespace CTF_int {
                         tensor *         B,
                         tensor *         C){
     int tsr_order, iweigh, iA, iB, iC, i, j, k, jX, stat, num_sub_phys_dims;
-    int * tsr_edge_len, * tsr_sym_table, * restricted, * comm_idx;
+    int64_t * tsr_edge_len;
+    int * tsr_sym_table, * restricted, * comm_idx;
     CommData  * sub_phys_comm;
     mapping * weigh_map;
 
@@ -1528,10 +1530,10 @@ namespace CTF_int {
           C->edge_map[iC].type == PHYSICAL_MAP)
         return NEGATIVE; 
     }  
-    CTF_int::alloc_ptr(tsr_order*sizeof(int),                (void**)&restricted);
-    CTF_int::alloc_ptr(tsr_order*sizeof(int),                (void**)&tsr_edge_len);
-    CTF_int::alloc_ptr(tsr_order*tsr_order*sizeof(int),       (void**)&tsr_sym_table);
-    CTF_int::alloc_ptr(tsr_order*sizeof(mapping),            (void**)&weigh_map);
+    CTF_int::alloc_ptr(tsr_order*sizeof(int),           (void**)&restricted);
+    CTF_int::alloc_ptr(tsr_order*sizeof(int64_t),       (void**)&tsr_edge_len);
+    CTF_int::alloc_ptr(tsr_order*tsr_order*sizeof(int), (void**)&tsr_sym_table);
+    CTF_int::alloc_ptr(tsr_order*sizeof(mapping),       (void**)&weigh_map);
 
     memset(tsr_sym_table, 0, tsr_order*tsr_order*sizeof(int));
     memset(restricted, 0, tsr_order*sizeof(int));
@@ -1648,7 +1650,8 @@ namespace CTF_int {
                   tensor *         A,
                   tensor *         B){
     int tsr_order, ictr, iA, iB, i, j, jctr, jX, stat, num_sub_phys_dims;
-    int * tsr_edge_len, * tsr_sym_table, * restricted, * comm_idx;
+    int64_t * tsr_edge_len;
+    int * tsr_sym_table, * restricted, * comm_idx;
     CommData  * sub_phys_comm;
     mapping * ctr_map;
 
@@ -1656,10 +1659,10 @@ namespace CTF_int {
 
     tsr_order = num_ctr*2;
 
-    CTF_int::alloc_ptr(tsr_order*sizeof(int),                (void**)&restricted);
-    CTF_int::alloc_ptr(tsr_order*sizeof(int),                (void**)&tsr_edge_len);
-    CTF_int::alloc_ptr(tsr_order*tsr_order*sizeof(int),       (void**)&tsr_sym_table);
-    CTF_int::alloc_ptr(tsr_order*sizeof(mapping),            (void**)&ctr_map);
+    CTF_int::alloc_ptr(tsr_order*sizeof(int),           (void**)&restricted);
+    CTF_int::alloc_ptr(tsr_order*sizeof(int64_t),       (void**)&tsr_edge_len);
+    CTF_int::alloc_ptr(tsr_order*tsr_order*sizeof(int), (void**)&tsr_sym_table);
+    CTF_int::alloc_ptr(tsr_order*sizeof(mapping),       (void**)&ctr_map);
 
     memset(tsr_sym_table, 0, tsr_order*tsr_order*sizeof(int));
     memset(restricted, 0, tsr_order*sizeof(int));
@@ -2013,7 +2016,7 @@ namespace CTF_int {
         il++;
       }
     }
-    int new_lens[topo->order];
+    int64_t new_lens[topo->order];
     for (int i=0; i<topo->order; i++){
       new_lens[new_order[i]] = topo->lens[i];
 //      printf("new_order[%d/%d] = %d, new_lens[%d] = %d\n", i, topo->order, new_order[i], new_order[i], new_lens[new_order[i]]);
@@ -2088,7 +2091,7 @@ namespace CTF_int {
         int v = variant - nv0;
         int rep_choices = choose(num_tot,topo->order-2*nctr_2d);
         int rep_ch = v%rep_choices;
-        int rep_inds[topo->order-2*nctr_2d];
+        int64_t rep_inds[topo->order-2*nctr_2d];
         get_choice(num_tot,topo->order-2*nctr_2d,rep_ch,rep_inds);
         for (int i=2*nctr_2d; i<topo->order; i++){
           int r = rep_inds[i-2*nctr_2d];
@@ -2099,9 +2102,9 @@ namespace CTF_int {
           if (idx_arr[3*r+2] != -1)
             C->edge_map[idx_arr[3*r+2]].aug_phys(topo, i);
         }
-        int iAB[nctr_2d];
-        int iAC[nctr_2d];
-        int iBC[nctr_2d];
+        int64_t iAB[nctr_2d];
+        int64_t iAC[nctr_2d];
+        int64_t iBC[nctr_2d];
         int ord[nctr_2d];
         v = v/rep_choices;
         for (int i=0; i<nctr_2d; i++){
@@ -3018,9 +3021,9 @@ namespace CTF_int {
     
     TAU_FSTART(init_select_ctr_map);
   #if BEST_VOL
-    CTF_int::alloc_ptr(sizeof(int)*A->order,     (void**)&virt_blk_len_A);
-    CTF_int::alloc_ptr(sizeof(int)*B->order,     (void**)&virt_blk_len_B);
-    CTF_int::alloc_ptr(sizeof(int)*C->order,     (void**)&virt_blk_len_C);
+    CTF_int::alloc_ptr(sizeof(int64_t)*A->order, (void**)&virt_blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int64_t)*B->order, (void**)&virt_blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int64_t)*C->order, (void**)&virt_blk_len_C);
   #endif
     
     ASSERT(A->is_mapped);
@@ -3200,8 +3203,8 @@ namespace CTF_int {
           int64_t len_ctr = 1;
           for (int i=0; i<num_tot; i++){
             if (idx_arr[3*i+2]==-1){
-              int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
-                                                  : B->lens[idx_arr[3*i+1]];
+              int64_t edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
+                                                      : B->lens[idx_arr[3*i+1]];
               len_ctr *= edge_len;
             }
           }
@@ -3297,8 +3300,8 @@ namespace CTF_int {
     int64_t vrt_sz_A, vrt_sz_B, vrt_sz_C;
     //int sA, sB, sC, 
     bool need_rep;
-    int * blk_len_A, * virt_blk_len_A, * blk_len_B;
-    int * virt_blk_len_B, * blk_len_C, * virt_blk_len_C;
+    int64_t * blk_len_A, * virt_blk_len_A, * blk_len_B;
+    int64_t * virt_blk_len_B, * blk_len_C, * virt_blk_len_C;
     int * idx_arr, * virt_dim;
     //strp_tsr * str_A, * str_B, * str_C;
     mapping * map;
@@ -3317,13 +3320,13 @@ namespace CTF_int {
             &num_tot, &idx_arr);
 
 
-    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&virt_blk_len_A);
-    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&virt_blk_len_B);
-    CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&virt_blk_len_C);
+    CTF_int::alloc_ptr(sizeof(int64_t)*A->order, (void**)&virt_blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int64_t)*B->order, (void**)&virt_blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int64_t)*C->order, (void**)&virt_blk_len_C);
 
-    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&blk_len_A);
-    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&blk_len_B);
-    CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&blk_len_C);
+    CTF_int::alloc_ptr(sizeof(int64_t)*A->order, (void**)&blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int64_t)*B->order, (void**)&blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int64_t)*C->order, (void**)&blk_len_C);
     CTF_int::alloc_ptr(sizeof(int)*num_tot, (void**)&virt_dim);
 
     /* Determine the block dimensions of each local subtensor */
@@ -3689,8 +3692,8 @@ namespace CTF_int {
     int * idx_arr, * virt_dim;
     int64_t blk_sz_A, blk_sz_B, blk_sz_C;
     int64_t vrt_sz_A, vrt_sz_B, vrt_sz_C;
-    int * blk_len_A, * virt_blk_len_A, * blk_len_B;
-    int * virt_blk_len_B, * blk_len_C, * virt_blk_len_C;
+    int64_t * blk_len_A, * virt_blk_len_A, * blk_len_B;
+    int64_t * virt_blk_len_B, * blk_len_C, * virt_blk_len_C;
     mapping * map;
     spctr * hctr = NULL;
     spctr ** rec_ctr = NULL;
@@ -3709,13 +3712,13 @@ namespace CTF_int {
 
     nphys_dim = A->topo->order;
 
-    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&virt_blk_len_A);
-    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&virt_blk_len_B);
-    CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&virt_blk_len_C);
+    CTF_int::alloc_ptr(sizeof(int64_t)*A->order, (void**)&virt_blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int64_t)*B->order, (void**)&virt_blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int64_t)*C->order, (void**)&virt_blk_len_C);
 
-    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&blk_len_A);
-    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&blk_len_B);
-    CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&blk_len_C);
+    CTF_int::alloc_ptr(sizeof(int64_t)*A->order, (void**)&blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int64_t)*B->order, (void**)&blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int64_t)*C->order, (void**)&blk_len_C);
     CTF_int::alloc_ptr(sizeof(int)*num_tot, (void**)&virt_dim);
 
     /* Determine the block dimensions of each local subtensor */
@@ -3803,7 +3806,7 @@ namespace CTF_int {
 
     spctr_2d_general * bottom_ctr_gen = NULL;
 
-    int spvirt_blk_len_A[A->order];
+    int64_t spvirt_blk_len_A[A->order];
     if (A->is_sparse){
       blk_sz_A = A->calc_nvirt();
       for (int a=0; a<A->order; a++){
@@ -3811,8 +3814,8 @@ namespace CTF_int {
       }
       std::fill(spvirt_blk_len_A, spvirt_blk_len_A+A->order, 1);
     } else 
-      memcpy(spvirt_blk_len_A, virt_blk_len_A, sizeof(int)*A->order);
-    int spvirt_blk_len_B[B->order];
+      memcpy(spvirt_blk_len_A, virt_blk_len_A, sizeof(int64_t)*A->order);
+    int64_t spvirt_blk_len_B[B->order];
     if (B->is_sparse){
       blk_sz_B = B->calc_nvirt();
       for (int a=0; a<B->order; a++){
@@ -3820,8 +3823,8 @@ namespace CTF_int {
       }
       std::fill(spvirt_blk_len_B, spvirt_blk_len_B+B->order, 1);
     } else 
-      memcpy(spvirt_blk_len_B, virt_blk_len_B, sizeof(int)*B->order);
-    int spvirt_blk_len_C[C->order];
+      memcpy(spvirt_blk_len_B, virt_blk_len_B, sizeof(int64_t)*B->order);
+    int64_t spvirt_blk_len_C[C->order];
     if (C->is_sparse){
       blk_sz_C = C->calc_nvirt();
       for (int a=0; a<C->order; a++){
@@ -3829,7 +3832,7 @@ namespace CTF_int {
       }
       std::fill(spvirt_blk_len_C, spvirt_blk_len_C+C->order, 1);
     } else 
-      memcpy(spvirt_blk_len_C, virt_blk_len_C, sizeof(int)*C->order);
+      memcpy(spvirt_blk_len_C, virt_blk_len_C, sizeof(int64_t)*C->order);
 
     for (i=0; i<num_tot; i++){
       virt_dim[i] = 1;
@@ -4961,6 +4964,7 @@ namespace CTF_int {
         bool do_densify = !C->sr->isequal(tmp, C->sr->addid());
         this->func->apply_f(A->sr->addid(), B->sr->addid(), tmp);
         do_densify = do_densify || !C->sr->isequal(tmp, C->sr->addid());
+        C->sr->dealloc(tmp);
         if (do_densify){
 
           contraction pre_new_ctr = contraction(*this);
@@ -4978,6 +4982,7 @@ namespace CTF_int {
         bool do_densify = !C->sr->isequal(tmp, C->sr->addid());
         this->func->apply_f(A->sr->addid(), B->sr->addid(), tmp);
         do_densify = do_densify || !C->sr->isequal(tmp, C->sr->addid());
+        C->sr->dealloc(tmp);
         if (do_densify){
           contraction pre_new_ctr = contraction(*this);
           pre_new_ctr.B = new tensor(B, 1, 1);
@@ -5088,7 +5093,7 @@ namespace CTF_int {
           X = B;
           idx_X = idx_B;
         }
-        int * lensX = (int*)alloc(sizeof(int)*(X->order+1));
+        int64_t * lensX = (int64_t*)alloc(sizeof(int64_t)*(X->order+1));
         int * symX = (int*)alloc(sizeof(int)*(X->order+1));
         int * nidxX = (int*)alloc(sizeof(int)*(X->order));
         int * sidxX = (int*)alloc(sizeof(int)*(X->order+1));
@@ -5132,8 +5137,8 @@ namespace CTF_int {
         nc->execute();  
         delete nc;
         delete X2;
-        free(lensX);
         free(symX);
+        free(lensX);
         free(sidxX);
         free(nidxX);
         free(cidxX);

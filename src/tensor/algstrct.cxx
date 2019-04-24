@@ -352,7 +352,7 @@ namespace CTF_int {
     printf("CTF ERROR: cannot convert elements of this algebraic structure to CSR\n");
     ASSERT(0);
   }
-  void algstrct::coo_to_ccsr(int64_t nz, int64_t nnz_row, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
+  void algstrct::coo_to_ccsr(int64_t nz, int64_t nnz_row, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int64_t const * coo_rs, int64_t const * coo_cs) const {
     printf("CTF ERROR: cannot convert elements of this algebraic structure to CCSR\n");
     ASSERT(0);
   }
@@ -363,7 +363,7 @@ namespace CTF_int {
     ASSERT(0);
   }
 
-  void algstrct::ccsr_to_coo(int64_t nz, int64_t nnz_row, char const * csr_vs, int const * csr_ja, int const * csr_ia, int const * row_enc, char * coo_vs, int * coo_rs, int * coo_cs) const {
+  void algstrct::ccsr_to_coo(int64_t nz, int64_t nnz_row, char const * csr_vs, int const * csr_ja, int const * csr_ia, int64_t const * row_enc, char * coo_vs, int64_t * coo_rs, int64_t * coo_cs) const {
     printf("CTF ERROR: cannot convert elements of this algebraic structure to CCSR\n");
     ASSERT(0);
   }
@@ -740,19 +740,19 @@ namespace CTF_int {
     printf("CTF ERROR: csrmm not present for this algebraic structure\n");
     ASSERT(0);
   }
-  void algstrct::ccsrmm(int64_t      m,
-                        int64_t      n,
-                        int64_t      k,
-                        int64_t      nnz_row,
-                        char const * alpha,
-                        char const * A,
-                        int const *  JA,
-                        int const *  IA,
-                        int const *  row_enc,
-                        int64_t      nnz_A,
-                        char const * B,
-                        char const * beta,
-                        char *&      C,
+  void algstrct::ccsrmm(int64_t         m,
+                        int64_t         n,
+                        int64_t         k,
+                        int64_t         nnz_row,
+                        char const *    alpha,
+                        char const *    A,
+                        int const *     JA,
+                        int const *     IA,
+                        int64_t const * row_enc,
+                        int64_t         nnz_A,
+                        char const *    B,
+                        char const *    beta,
+                        char *&         C,
                         CTF_int::bivar_function const * func) const {
     ASSERT(0);
   }
@@ -872,7 +872,7 @@ namespace CTF_int {
     sr->sort(n, ptr);
   }
 
-  void ConstPairIterator::permute(int64_t n, int order, int const * old_lens, int64_t const * new_lda, PairIterator wA){
+  void ConstPairIterator::permute(int64_t n, int order, int64_t const * old_lens, int64_t const * new_lda, PairIterator wA){
     ConstPairIterator rA = * this;
 #ifdef USE_OMP
     #pragma omp parallel for
@@ -892,7 +892,7 @@ namespace CTF_int {
 
   }
 
-  void ConstPairIterator::pin(int64_t n, int order, int const * lens, int const * divisor, PairIterator pi_new){
+  void ConstPairIterator::pin(int64_t n, int order, int64_t const * lens, int const * divisor, PairIterator pi_new){
     TAU_FSTART(pin);
     ConstPairIterator pi = *this;
     int * div_lens;
@@ -926,7 +926,7 @@ namespace CTF_int {
 
   }
 
-  void depin(algstrct const * sr, int order, int const * lens, int const * divisor, int nvirt, int const * virt_dim, int const * phys_rank, char * X, int64_t & new_nnz_B, int64_t * nnz_blk, char *& new_B, bool check_padding){
+  void depin(algstrct const * sr, int order, int64_t const * lens, int const * divisor, int nvirt, int const * virt_dim, int const * phys_rank, char * X, int64_t & new_nnz_B, int64_t * nnz_blk, char *& new_B, bool check_padding){
 
     TAU_FSTART(depin);
 

@@ -10,7 +10,7 @@ namespace CTF_int {
   double dgtog_est_time(int64_t tot_sz, int np);
 
   void dgtog_reshuffle(int const *          sym,
-                       int const *          edge_len,
+                       int64_t const *      edge_len,
                        distribution const & old_dist,
                        distribution const & new_dist,
                        char **              ptr_tsr_data,

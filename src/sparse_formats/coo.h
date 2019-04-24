@@ -9,10 +9,11 @@ namespace CTF_int {
   class CCSR_Matrix;
   class bivar_function;
 
-  int64_t get_coo_size(int64_t nnz, int val_size);
+  int64_t get_coo_size(int64_t nnz, int val_size, bool is_int64=false);
 
   /** \brief serialized matrix in coordinate format, meaning three arrays of dimension nnz are stored, one of values, and two of row and column indices */
-  class COO_Matrix{
+  template <typename int_type>
+  class tCOO_Matrix{
     public:
       /** \brief serialized buffer containing info and data */
       char * all_data;
@@ -22,27 +23,27 @@ namespace CTF_int {
        * \param[in] nnz number of nonzeros
        * \param[in] sr algebraic structure
        */
-      COO_Matrix(int64_t nnz, algstrct const * sr);
+      tCOO_Matrix(int64_t nnz, algstrct const * sr);
 
       /** 
        * \brief constructor that acccepts data buffer
        * \param[in] all_data preallocated serialized COO Matrix buffer
        */
-      COO_Matrix(char * all_data);
+      tCOO_Matrix(char * all_data);
 
       /** 
        * \brief constructor that constructs serialized COO Matrix from a CSR_Matrix
        * \param[in] csr a matrix in CSR format
        * \param[in] sr algebraic structure
        */
-      COO_Matrix(CSR_Matrix const & csr, algstrct const * sr);
+      tCOO_Matrix(CSR_Matrix const & csr, algstrct const * sr);
 
       /** 
        * \brief constructor that constructs serialized COO Matrix from a CCSR_Matrix
        * \param[in] csr a matrix in CCSR format
        * \param[in] sr algebraic structure
        */
-      COO_Matrix(CCSR_Matrix const & csr, algstrct const * sr);
+      tCOO_Matrix(CCSR_Matrix const & csr, algstrct const * sr);
 
       /** \brief retrieves number of nonzeros out of all_data */
       int64_t nnz() const;
@@ -51,10 +52,10 @@ namespace CTF_int {
       int64_t size() const;
 
       /** \brief retrieves number of rows out of all_data */
-      int nrow() const;
+      int_type nrow() const;
       
       /** \brief retrieves number of columns out of all_data */
-      int ncol() const;
+      int_type ncol() const;
       
       /** \brief retrieves matrix entry size out of all_data */
       int val_size() const;
@@ -62,11 +63,11 @@ namespace CTF_int {
       /** \brief retrieves pointer to array of values out of all_data */
       char * vals() const;
 
-      /** \brief retrieves pointer to array row indices of each value */
-      int * rows() const;
+      /** \brief retrieves point_typeer to array row indices of each value */
+      int_type * rows() const;
 
-      /** \brief retrieves pointer to array of column indices for each value */
-      int * cols() const;
+      /** \brief retrieves point_typeer to array of column indices for each value */
+      int_type * cols() const;
 
       /**
        * \brief folds tensor data into COO format based on prespecification of row and column modes
@@ -83,7 +84,7 @@ namespace CTF_int {
        * \param[in] sr algebraic structure
        * \param[in] phase dimensions of the blocking grid
        */
-      void set_data(int64_t nz, int order, int const * sym, int const * lens, int const * pad_edge_len, int all_fdim, int const * all_flen, int const * ordering, int nrow_idx, char const * tsr_data, algstrct const * sr, int const * phase);
+      void set_data(int64_t nz, int order, int const * sym, int_type const * lens, int_type const * pad_edge_len, int all_fdim, int_type const * all_flen, int const * ordering, int nrow_idx, char const * tsr_data, algstrct const * sr, int const * phase);
 
       /**
        * \brief unfolds tensor data from COO format based on prespecification of row and column modes
@@ -97,14 +98,19 @@ namespace CTF_int {
        * \param[in] phase dimensions of the blocking grid
        * \param[in] phase_rank index of this block in grid
        */
-      void get_data(int64_t nz, int order, int const * lens, int const * rev_ordering, int nrow_idx, char * tsr_data, algstrct const * sr, int const * phase, int const * phase_rank);
+      void get_data(int64_t nz, int order, int_type const * lens, int const * rev_ordering, int nrow_idx, char * tsr_data, algstrct const * sr, int const * phase, int const * phase_rank);
 
       /**
-       * \brief computes C = beta*C + func(alpha*A*B) where A is a COO_Matrix, while B and C are dense
+       * \brief computes C = beta*C + func(alpha*A*B) where A is a tCOO_Matrix, while B and C are dense
        */
-      static void coomm(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func);
+      static void coomm(char const * A, algstrct const * sr_A, int_type m, int_type n, int_type k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func);
 
   };
+
+  typedef tCOO_Matrix<int> COO_Matrix;
+
+  /** \brief retrieves whether 64-bit integer type used for CSR_Matrix stored in all_data*/
+  bool is_COO_int64(char const * all_data);
 }
 
 #endif

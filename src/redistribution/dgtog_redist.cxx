@@ -72,7 +72,7 @@ namespace CTF_int {
 
 
   void dgtog_reshuffle(int const *          sym,
-                       int const *          edge_len,
+                       int64_t const *      edge_len,
                        distribution const & old_dist,
                        distribution const & new_dist,
                        char **              ptr_tsr_data,

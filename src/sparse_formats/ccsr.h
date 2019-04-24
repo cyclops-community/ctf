@@ -33,7 +33,7 @@ namespace CTF_int {
       CCSR_Matrix(CCSR_Matrix const & other){ all_data=other.all_data; }
       
       /** \brief constructor given coordinate format (COO) matrix */
-      CCSR_Matrix(COO_Matrix const & coom, int64_t nrow, int64_t ncol, algstrct const * sr, char * data=NULL, bool init_data=true);
+      CCSR_Matrix(tCOO_Matrix<int64_t> const & coom, int64_t nrow, int64_t ncol, algstrct const * sr, char * data=NULL, bool init_data=true);
 
       /** \brief retrieves number of nonzeros out of all_data */
       int64_t nnz() const;
@@ -64,7 +64,7 @@ namespace CTF_int {
 
       /** \brief retrieves encoding of nonzero rows (each element of array gives true (local) index of row corresponding to each subsequent nonzero row)
       */
-      int * nnz_row_encoding() const;
+      int64_t * nnz_row_encoding() const;
 
       /**
        * \brief splits CCSR matrix into s submatrices (returned) corresponding to subsets of rows, all parts allocated in one contiguous buffer (passed back in parts_buffer)

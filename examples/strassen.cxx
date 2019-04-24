@@ -94,7 +94,7 @@ int strassen(int const     n,
     Matrix<> cB(n/2, n/2, NS, cdw);
     Matrix<> cC(n/2, n/2, NS, cdw);
 
-    Tensor<> dummy(0, 0, NULL, NULL, cdw);
+    Tensor<> dummy(0, 0, (int64_t*)NULL, NULL, cdw);
 
     switch (rank/cnum_pes){
       case 0: //M1

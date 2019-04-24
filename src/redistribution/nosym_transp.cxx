@@ -35,7 +35,7 @@ namespace CTF_int {
    */
 
   template <int idim>
-  void nosym_transpose_tmp(int const *      edge_len,
+  void nosym_transpose_tmp(int64_t const *  edge_len,
                            char const *     data,
                            char *           swap_data,
                            int64_t const *  lda,
@@ -49,7 +49,7 @@ namespace CTF_int {
   }
 
   template <>
-  inline void nosym_transpose_tmp<0>(int const *      edge_len,
+  inline void nosym_transpose_tmp<0>(int64_t const *  edge_len,
                                      char const *     data,
                                      char *           swap_data,
                                      int64_t const *  lda,
@@ -61,7 +61,7 @@ namespace CTF_int {
   }
 
   template
-  void nosym_transpose_tmp<8>(int const *      edge_len,
+  void nosym_transpose_tmp<8>(int64_t const *  edge_len,
                               char const *     data,
                               char *           swap_data,
                               int64_t const *  lda,
@@ -74,7 +74,7 @@ namespace CTF_int {
 #else
   #define CACHELINE 8
   template <typename dtyp, bool dir>
-  void nosym_transpose_inr(int const *             edge_len,
+  void nosym_transpose_inr(int64_t const *         edge_len,
                            dtyp const * __restrict data,
                            dtyp * __restrict       swap_data,
                            int                     idim_new_lda1,
@@ -86,7 +86,7 @@ namespace CTF_int {
     //int new_lda1_n = MIN(edge_len[idim_new_lda1]-i_new_lda1,CACHELINE);
     if (edge_len[idim_new_lda1] - i_new_lda1 >= CACHELINE){
       #pragma ivdep
-      for (int i=0; i<edge_len[0]-CACHELINE+1; i+=CACHELINE){
+      for (int64_t i=0; i<edge_len[0]-CACHELINE+1; i+=CACHELINE){
         #pragma unroll
         #pragma vector always nontemporal
         for (int j=0; j<CACHELINE; j++){
@@ -102,8 +102,8 @@ namespace CTF_int {
         }
       }
       {
-        int m=edge_len[0]%CACHELINE;
-        int i=edge_len[0]-m;
+        int64_t m=edge_len[0]%CACHELINE;
+        int64_t i=edge_len[0]-m;
         #pragma unroll
         #pragma vector always nontemporal
         for (int j=0; j<CACHELINE; j++){
@@ -119,12 +119,12 @@ namespace CTF_int {
         }
       }
     } else {
-      int n = edge_len[idim_new_lda1] - i_new_lda1;
+      int64_t n = edge_len[idim_new_lda1] - i_new_lda1;
       #pragma ivdep
-      for (int i=0; i<edge_len[0]-CACHELINE+1; i+=CACHELINE){
+      for (int64_t i=0; i<edge_len[0]-CACHELINE+1; i+=CACHELINE){
         #pragma unroll
         #pragma vector always nontemporal
-        for (int j=0; j<n; j++){
+        for (int64_t j=0; j<n; j++){
           #pragma unroll
           #pragma vector always nontemporal
           for (int k=0; k<CACHELINE; k++){
@@ -137,14 +137,14 @@ namespace CTF_int {
         }
       }
       {
-        int m=edge_len[0]%CACHELINE;
-        int i=edge_len[0]-m;
+        int64_t m=edge_len[0]%CACHELINE;
+        int64_t i=edge_len[0]-m;
         #pragma unroll
         #pragma vector always nontemporal
-        for (int j=0; j<n; j++){
+        for (int64_t j=0; j<n; j++){
           #pragma unroll
           #pragma vector always nontemporal
-          for (int k=0; k<m; k++){
+          for (int64_t k=0; k<m; k++){
             if (dir){
               swap_data[off_new+(i+k)*new_lda[0]+j] = data[off_old+j*lda[idim_new_lda1]+i+k];
             } else {
@@ -158,7 +158,7 @@ namespace CTF_int {
 
   template
   void nosym_transpose_inr<double,true>
-                          (int const *               edge_len,
+                          (int64_t const *           edge_len,
                            double const * __restrict data,
                            double * __restrict       swap_data,
                            int                       idim_new_lda1,
@@ -170,7 +170,7 @@ namespace CTF_int {
 
   template
   void nosym_transpose_inr<double,false>
-                          (int const *               edge_len,
+                          (int64_t const *           edge_len,
                            double const * __restrict data,
                            double * __restrict       swap_data,
                            int                       idim_new_lda1,
@@ -181,7 +181,7 @@ namespace CTF_int {
                            int                       i_new_lda1);
 
   template <int idim>
-  void nosym_transpose_opt(int const *      edge_len,
+  void nosym_transpose_opt(int64_t const *  edge_len,
                            char const *     data,
                            char *           swap_data,
                            int              dir,
@@ -193,7 +193,7 @@ namespace CTF_int {
                            int              i_new_lda1,
                            algstrct const * sr){
     if (idim == idim_new_lda1){
-      for (int i=0; i<edge_len[idim]; i+=CACHELINE){
+      for (int64_t i=0; i<edge_len[idim]; i+=CACHELINE){
         nosym_transpose_opt<idim-1>(edge_len, data, swap_data, dir, idim_new_lda1, lda, new_lda, off_old+i*lda[idim], off_new+i, i, sr);
       }
     } else {
@@ -207,7 +207,7 @@ namespace CTF_int {
 
 
   template <>
-  inline void nosym_transpose_opt<0>(int const *      edge_len,
+  inline void nosym_transpose_opt<0>(int64_t const *  edge_len,
                                      char const *     data,
                                      char *           swap_data,
                                      int              dir,
@@ -257,10 +257,10 @@ namespace CTF_int {
       //FIXME: prealloc?
       char buf[sr->el_size*CACHELINE*CACHELINE];
 
-      int new_lda1_n = MIN(edge_len[idim_new_lda1]-i_new_lda1,CACHELINE);
+      int64_t new_lda1_n = MIN(edge_len[idim_new_lda1]-i_new_lda1,CACHELINE);
       if (dir) {
-        for (int i=0; i<edge_len[0]-CACHELINE+1; i+=CACHELINE){
-          for (int j=0; j<new_lda1_n; j++){
+        for (int64_t i=0; i<edge_len[0]-CACHELINE+1; i+=CACHELINE){
+          for (int64_t j=0; j<new_lda1_n; j++){
             //printf("reading CLINE data from %ld stride 1 to %d stride %d\n",off_old+j*lda[idim_new_lda1]+i, j, new_lda1_n);
             sr->copy(CACHELINE, data+sr->el_size*(off_old+j*lda[idim_new_lda1]+i), 1, buf+sr->el_size*j, new_lda1_n);
           }
@@ -269,29 +269,29 @@ namespace CTF_int {
             sr->copy(new_lda1_n, buf+sr->el_size*j*new_lda1_n, 1, swap_data+sr->el_size*(off_new+(i+j)*new_lda[0]), 1);
           }
         }
-        int lda1_n = edge_len[0]%CACHELINE;
-        for (int j=0; j<new_lda1_n; j++){
+        int64_t lda1_n = edge_len[0]%CACHELINE;
+        for (int64_t j=0; j<new_lda1_n; j++){
           sr->copy(lda1_n, data+sr->el_size*(off_old+j*lda[idim_new_lda1]+edge_len[0]-lda1_n), 1, buf+sr->el_size*j, new_lda1_n);
         }
-        for (int j=0; j<lda1_n; j++){
+        for (int64_t j=0; j<lda1_n; j++){
           sr->copy(new_lda1_n, buf+sr->el_size*j*new_lda1_n, 1, swap_data+sr->el_size*(off_new+(edge_len[0]-lda1_n+j)*new_lda[0]), 1);
         }
       } else {
-        for (int i=0; i<edge_len[0]-CACHELINE+1; i+=CACHELINE){
+        for (int64_t i=0; i<edge_len[0]-CACHELINE+1; i+=CACHELINE){
           for (int j=0; j<CACHELINE; j++){
             //printf("reading %d data[%d] to buf[%d]\n",new_lda1_n,off_new+(i+j)*new_lda[0], j);
             sr->copy(new_lda1_n, data+sr->el_size*(off_new+(i+j)*new_lda[0]), 1, buf+sr->el_size*j, CACHELINE);
           }
-          for (int j=0; j<new_lda1_n; j++){
+          for (int64_t j=0; j<new_lda1_n; j++){
             //printf("writing %d buf[%d] to swap[%d]\n",CACHELINE,j*CACHELINE,off_old+j*lda[idim_new_lda1]+i);
             sr->copy(CACHELINE, buf+sr->el_size*j*CACHELINE, 1, swap_data+sr->el_size*(off_old+j*lda[idim_new_lda1]+i), 1);
           }
         }
-        int lda1_n = edge_len[0]%CACHELINE;
-        for (int j=0; j<lda1_n; j++){
+        int64_t lda1_n = edge_len[0]%CACHELINE;
+        for (int64_t j=0; j<lda1_n; j++){
           sr->copy(new_lda1_n, data+sr->el_size*(off_new+(edge_len[0]-lda1_n+j)*new_lda[0]), 1, buf+sr->el_size*j, lda1_n);
         }
-        for (int j=0; j<new_lda1_n; j++){
+        for (int64_t j=0; j<new_lda1_n; j++){
           sr->copy(lda1_n, buf+sr->el_size*j*lda1_n, 1, swap_data+sr->el_size*(off_old+j*lda[idim_new_lda1]+edge_len[0]-lda1_n), 1);
         }
 
@@ -301,7 +301,7 @@ namespace CTF_int {
 
 
   template
-  void nosym_transpose_opt<8>(int const *      edge_len,
+  void nosym_transpose_opt<8>(int64_t const *  edge_len,
                               char const *     data,
                               char *           swap_data,
                               int              dir,
@@ -331,7 +331,7 @@ namespace CTF_int {
 
   void nosym_transpose_hptt(int              order,
                             int const *      st_new_order,
-                            int const *      st_edge_len,
+                            int64_t const *  st_edge_len,
                             int              dir,
                             char const *     st_buffer,
                             char *           new_buffer,
@@ -341,11 +341,15 @@ namespace CTF_int {
     int edge_len[order];
     if (dir){
       memcpy(new_order, st_new_order, order*sizeof(int));
-      memcpy(edge_len, st_edge_len, order*sizeof(int));
+      for (int i=0; i<order; i++){
+        edge_len[i] = st_edge_len[i];
+        ASSERT(edge_len[i] == st_edge_len[i]);
+      }
     } else {
       for (int i=0; i<order; i++){
         new_order[st_new_order[i]] = i;
         edge_len[i] = st_edge_len[st_new_order[i]];
+        ASSERT(edge_len[i] == st_edge_len[st_new_order[i]]);
       }
     }
 #ifdef USE_OMP
@@ -400,11 +404,11 @@ namespace CTF_int {
 #endif
   }
 
-  void nosym_transpose(tensor *    A,
-                       int         all_fdim_A,
-                       int const * all_flen_A,
-                       int const * new_order,
-                       int         dir){
+  void nosym_transpose(tensor *        A,
+                       int             all_fdim_A,
+                       int64_t const * all_flen_A,
+                       int const *     new_order,
+                       int             dir){
 
     bool is_diff = false;
     for (int i=0; i<all_fdim_A; i++){
@@ -518,7 +522,7 @@ namespace CTF_int {
 
   void nosym_transpose(int              order,
                        int const *      new_order,
-                       int const *      edge_len,
+                       int64_t const *  edge_len,
                        char *           data,
                        int              dir,
                        algstrct const * sr){
@@ -585,7 +589,7 @@ namespace CTF_int {
 
   void nosym_transpose(int              order,
                        int const *      new_order,
-                       int const *      edge_len,
+                       int64_t const *  edge_len,
                        char const *     data,
                        int              dir,
                        int              max_ntd,
@@ -756,7 +760,7 @@ namespace CTF_int {
 
   double est_time_transp(int              order,
                          int const *      new_order,
-                         int const *      edge_len,
+                         int64_t const *  edge_len,
                          int              dir,
                          algstrct const * sr){
     if (order == 0) return 0.0;

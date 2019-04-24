@@ -230,19 +230,19 @@ namespace CTF_int {
                          bivar_function const * func) const;
 
       /** \brief sparse version of gemm using CCSR format for A */
-      virtual void ccsrmm(int64_t      m,
-                          int64_t      n,
-                          int64_t      k,
-                          int64_t      nnz_row,
-                          char const * alpha,
-                          char const * A,
-                          int const *  JA,
-                          int const *  IA,
-                          int const *  row_enc,
-                          int64_t      nnz_A,
-                          char const * B,
-                          char const * beta,
-                          char *&      C,
+      virtual void ccsrmm(int64_t         m,
+                          int64_t         n,
+                          int64_t         k,
+                          int64_t         nnz_row,
+                          char const *    alpha,
+                          char const *    A,
+                          int const *     JA,
+                          int const *     IA,
+                          int64_t const * row_enc,
+                          int64_t         nnz_A,
+                          char const *    B,
+                          char const *    beta,
+                          char *&         C,
                           CTF_int::bivar_function const * func) const;
 
 
@@ -285,13 +285,13 @@ namespace CTF_int {
       virtual void coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const;
       
       /** \brief converts coordinate sparse matrix layout to CSR layout */
-      virtual void coo_to_ccsr(int64_t nz, int64_t nnz_row, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const;
+      virtual void coo_to_ccsr(int64_t nz, int64_t nnz_row, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int64_t const * coo_rs, int64_t const * coo_cs) const;
 
       /** \brief converts CSR sparse matrix layout to coordinate (COO) layout */
       virtual void csr_to_coo(int64_t nz, int nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, char * coo_vs, int * coo_rs, int * coo_cs) const;
 
       /** \brief converts CCSR sparse matrix layout to coordinate (COO) layout */
-      virtual void ccsr_to_coo(int64_t nz, int64_t nnz_row, char const * csr_vs, int const * csr_ja, int const * csr_ia, int const * row_enc, char * coo_vs, int * coo_rs, int * coo_cs) const;
+      virtual void ccsr_to_coo(int64_t nz, int64_t nnz_row, char const * csr_vs, int const * csr_ja, int const * csr_ia, int64_t const * row_enc, char * coo_vs, int64_t * coo_rs, int64_t * coo_cs) const;
 
       /** \brief adds CSR matrices A (stored in cA) and B (stored in cB) to create matric C (pointer to all_data returned), C data allocated internally */
       virtual char * csr_add(char * cA, char * cB, bool is_ccsr) const;
@@ -437,12 +437,12 @@ namespace CTF_int {
       /**
        * \brief permutes keys of n pairs
        */
-      void permute(int64_t n, int order, int const * old_lens, int64_t const * new_lda, PairIterator wA);
+      void permute(int64_t n, int order, int64_t const * old_lens, int64_t const * new_lda, PairIterator wA);
       
       /**
        * \brief pins keys of n pairs
        */
-      void pin(int64_t n, int order, int const * lens, int const * divisor, PairIterator pi_new);
+      void pin(int64_t n, int order, int64_t const * lens, int const * divisor, PairIterator pi_new);
       
 
   };
@@ -452,7 +452,7 @@ namespace CTF_int {
   /**
    * \brief depins keys of n pairs
    */
-  void depin(algstrct const * sr, int order, int const * lens, int const * divisor, int nvirt, int const * virt_dim, int const * phys_rank, char * X, int64_t & new_nnz_B, int64_t * nnz_blk, char *& new_B, bool check_padding);
+  void depin(algstrct const * sr, int order, int64_t const * lens, int const * divisor, int nvirt, int const * virt_dim, int const * phys_rank, char * X, int64_t & new_nnz_B, int64_t * nnz_blk, char *& new_B, bool check_padding);
 
   class PairIterator {
     public:

@@ -170,6 +170,98 @@ namespace CTF {
              bool                      profile=0);
 
       /**
+       * \brief defines tensor filled with zeros on the default algstrct
+       * \param[in] order number of dimensions of tensor
+       * \param[in] len edge lengths of tensor
+       * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+       * \param[in] wrld a world for the tensor to live in
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       */
+      Tensor(int                       order,
+             int64_t const *           len,
+             int const *               sym,
+             World &                   wrld=get_universe(),
+             char const *              name=NULL,
+             bool                      profile=0,
+             CTF_int::algstrct const & sr=Ring<dtype>());
+
+      /**
+       * \brief defines a tensor filled with zeros on a specified algstrct
+       * \param[in] order number of dimensions of tensor
+       * \param[in] len edge lengths of tensor
+       * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+       * \param[in] wrld a world for the tensor to live in
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       */
+      Tensor(int                       order,
+             int64_t const *           len,
+             int const *               sym,
+             World &                   wrld,
+             CTF_int::algstrct const & sr,
+             char const *              name=NULL,
+             bool                      profile=0);
+
+      /**
+       * \brief defines a nonsymmetric tensor filled with zeros on a specified algstrct
+       * \param[in] order number of dimensions of tensor
+       * \param[in] len edge lengths of tensor
+       * \param[in] wrld a world for the tensor to live in
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       */
+      Tensor(int                       order,
+             int64_t const *           len,
+             World &                   wrld=get_universe(),
+             CTF_int::algstrct const & sr=Ring<dtype>(),
+             char const *              name=NULL,
+             bool                      profile=0);
+
+      /**
+       * \brief defines a (sparse) tensor on a specified algstrct
+       * \param[in] order number of dimensions of tensor
+       * \param[in] is_sparse if 1 then tensor will be sparse and non-trivial elements won't be stored
+       * \param[in] len edge lengths of tensor
+       * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+       * \param[in] wrld a world for the tensor to live in
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       */
+      Tensor(int                       order,
+             bool                      is_sparse,
+             int64_t const *           len,
+             int const *               sym,
+             World &                   wrld=get_universe(),
+             CTF_int::algstrct const & sr=Ring<dtype>(),
+             char const *              name=NULL,
+             bool                      profile=0);
+
+
+      /**
+       * \brief defines a nonsymmetric tensor filled with zeros on a specified algstrct
+       * \param[in] order number of dimensions of tensor
+       * \param[in] is_sparse if 1 then tensor will be sparse and non-trivial elements won't be stored
+       * \param[in] len edge lengths of tensor
+       * \param[in] wrld a world for the tensor to live in
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       */
+      Tensor(int                       order,
+             bool                      is_sparse,
+             int64_t const *           len,
+             World &                   wrld=get_universe(),
+             CTF_int::algstrct const & sr=Ring<dtype>(),
+             char const *              name=NULL,
+             bool                      profile=0);
+
+
+      /**
        * \brief copies a tensor, copying the data of A
        * \param[in] A tensor to copy
        */
@@ -260,6 +352,60 @@ namespace CTF {
              char const *              name=NULL,
              bool                      profile=0,
              CTF_int::algstrct const & sr=Ring<dtype>());
+
+
+
+      /**
+       * \brief defines tensor filled with zeros on the default algstrct on a user-specified distributed layout
+       * \param[in] order number of dimensions of tensor
+       * \param[in] len edge lengths of tensor
+       * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+       * \param[in] wrld a world for the tensor to live in
+       * \param[in] idx assignment of characters to each dim
+       * \param[in] prl mesh processor topology with character labels
+       * \param[in] blk local blocking with processor labels
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       */
+      Tensor(int                       order,
+             int64_t const *           len,
+             int const *               sym,
+             World &                   wrld,
+             char const *              idx,
+             Idx_Partition const &     prl,
+             Idx_Partition const &     blk=Idx_Partition(),
+             char const *              name=NULL,
+             bool                      profile=0,
+             CTF_int::algstrct const & sr=Ring<dtype>());
+
+
+      /**
+       * \brief defines tensor filled with zeros on the default algstrct on a user-specified distributed layout
+       * \param[in] order number of dimensions of tensor
+       * \param[in] is_sparse whether tensor is sparse
+       * \param[in] len edge lengths of tensor
+       * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+       * \param[in] wrld a world for the tensor to live in
+       * \param[in] idx assignment of characters to each dim
+       * \param[in] prl mesh processor topology with character labels
+       * \param[in] blk local blocking with processor labels
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       */
+      Tensor(int                       order,
+             bool                      is_sparse,
+             int64_t const *           len,
+             int const *               sym,
+             World &                   wrld,
+             char const *              idx,
+             Idx_Partition const &     prl,
+             Idx_Partition const &     blk=Idx_Partition(),
+             char const *              name=NULL,
+             bool                      profile=0,
+             CTF_int::algstrct const & sr=Ring<dtype>());
+
 
 
       /**
@@ -599,6 +745,16 @@ namespace CTF {
                           int const * ends) const;
 
       /**
+       * \brief cuts out a slice (block) of this tensor A[offsets,ends)
+       *        result will always be fully nonsymmetric
+       * \param[in] offsets bottom left corner of block
+       * \param[in] ends top right corner of block
+       * \return new tensor corresponding to requested slice
+       */
+      Tensor<dtype> slice(int64_t const * offsets,
+                          int64_t const * ends) const;
+
+      /**
        * \brief cuts out a slice (block) of this tensor with corners specified by global index
        *        result will always be fully nonsymmetric
        * \param[in] corner_off top left corner of block
@@ -620,6 +776,20 @@ namespace CTF {
       Tensor<dtype> slice(int const * offsets,
                           int const * ends,
                           World *     oworld) const;
+
+      /**
+       * \brief cuts out a slice (block) of this tensor A[offsets,ends)
+       *        result will always be fully nonsymmetric
+       * \param[in] offsets bottom left corner of block
+       * \param[in] ends top right corner of block
+       * \param[in] oworld the world in which the new tensor should be defined
+       * \return new tensor corresponding to requested slice which lives on
+       *          oworld
+       */
+      Tensor<dtype> slice(int64_t const * offsets,
+                          int64_t const * ends,
+                          World *     oworld) const;
+
 
       /**
        * \brief cuts out a slice (block) of this tensor with corners specified by global index
@@ -653,6 +823,25 @@ namespace CTF {
                  CTF_int::tensor const & A,
                  int const *             offsets_A,
                  int const *             ends_A,
+                 dtype                   alpha);
+
+      /**
+       * \brief adds to a slice (block) of this tensor = B
+       *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
+       * \param[in] offsets bottom left corner of block
+       * \param[in] ends top right corner of block
+       * \param[in] beta scaling factor of this tensor
+       * \param[in] A tensor who owns pure-operand slice
+       * \param[in] offsets_A bottom left corner of block of A
+       * \param[in] ends_A top right corner of block of A
+       * \param[in] alpha scaling factor of tensor A
+       */
+      void slice(int64_t const *         offsets,
+                 int64_t const *         ends,
+                 dtype                   beta,
+                 CTF_int::tensor const & A,
+                 int64_t const *         offsets_A,
+                 int64_t const *         ends_A,
                  dtype                   alpha);
 
       /**
@@ -743,6 +932,14 @@ namespace CTF {
        * \return tensor with data in same order but new mode lengths
        */
       Tensor<dtype> reshape(int order, int const * lens);
+
+      /**
+       * \brief reshape tensors into dimensions given by lens, keeps sparsity if this tensor has it, sheds any symmetries
+       * \param[in] order number of modes in new tensor
+       * \param[in] lens new mode lengths
+       * \return tensor with data in same order but new mode lengths
+       */
+      Tensor<dtype> reshape(int order, int64_t const * lens);
 
       /**
        * \brief reshape tensors into dimensions given by lens, keeps sparsity if this tensor has it, sheds any symmetries

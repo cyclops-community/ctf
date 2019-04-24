@@ -7,9 +7,9 @@
 #include "util.h"
 
 namespace CTF_int {
-  int64_t sy_packed_size(const int order, const int* len, const int* sym){
-    int i, k, mp;
-    int64_t size, tmp;
+  int64_t sy_packed_size(int order, const int64_t * len, const int* sym){
+    int i, k;
+    int64_t size, mp, tmp;
 
     if (order == 0) return 1;
 
@@ -35,10 +35,10 @@ namespace CTF_int {
   }
 
 
-  int64_t packed_size(const int order, const int* len, const int* sym){
+  int64_t packed_size(int order, const int64_t * len, const int* sym){
 
-    int i, k, mp;
-    int64_t size, tmp;
+    int i, k;
+    int64_t size, mp, tmp;
 
     if (order == 0) return 1;
 
@@ -69,13 +69,13 @@ namespace CTF_int {
     return size;
   }
 
-  void calc_idx_arr(int         order,
-                    int const * lens,
-                    int const * sym,
-                    int64_t     idx,
-                    int *       idx_arr){
+  void calc_idx_arr(int             order,
+                    int64_t const * lens,
+                    int const *     sym,
+                    int64_t         idx,
+                    int64_t *       idx_arr){
     int64_t idx_rem = idx;
-    memset(idx_arr, 0, order*sizeof(int));
+    memset(idx_arr, 0, order*sizeof(int64_t));
     for (int dim=order-1; dim>=0; dim--){
       if (idx_rem == 0) break;
       if (dim == 0 || sym[dim-1] == NS){
@@ -83,17 +83,17 @@ namespace CTF_int {
         idx_arr[dim] = idx_rem/lda;
         idx_rem -= idx_arr[dim]*lda;
       } else {
-        int plen[dim+1];
-        memcpy(plen, lens, (dim+1)*sizeof(int));
+        int64_t plen[dim+1];
+        memcpy(plen, lens, (dim+1)*sizeof(int64_t));
         int sg = 2;
-        int fsg = 2;
+        int64_t fsg = 2;
         while (dim >= sg && sym[dim-sg] != NS) { sg++; fsg*=sg; }
         int64_t lda = packed_size(dim-sg+1, lens, sym);
         double fsg_idx = (((double)idx_rem)*fsg)/lda;
-        int kidx = (int)pow(fsg_idx,1./sg);
+        int64_t kidx = (int64_t)pow(fsg_idx,1./sg);
         //if (sym[dim-1] != SY) 
         kidx += sg+1;
-        int mkidx = kidx;
+        int64_t mkidx = kidx;
   #if DEBUG >= 1
         for (int idim=dim-sg+1; idim<=dim; idim++){
           plen[idim] = mkidx+1;
@@ -118,13 +118,13 @@ namespace CTF_int {
   }
 
 
-  void sy_calc_idx_arr(int         order,
-                       int const * lens,
-                       int const * sym,
-                       int64_t     idx,
-                       int *       idx_arr){
+  void sy_calc_idx_arr(int             order,
+                       int64_t const * lens,
+                       int const *     sym,
+                       int64_t         idx,
+                       int64_t *       idx_arr){
     int64_t idx_rem = idx;
-    memset(idx_arr, 0, order*sizeof(int));
+    memset(idx_arr, 0, order*sizeof(int64_t));
     for (int dim=order-1; dim>=0; dim--){
       if (idx_rem == 0) break;
       if (dim == 0 || sym[dim-1] == NS){
@@ -132,17 +132,17 @@ namespace CTF_int {
         idx_arr[dim] = idx_rem/lda;
         idx_rem -= idx_arr[dim]*lda;
       } else {
-        int plen[dim+1];
+        int64_t plen[dim+1];
         memcpy(plen, lens, (dim+1)*sizeof(int));
         int sg = 2;
-        int fsg = 2;
+        int64_t fsg = 2;
         while (dim >= sg && sym[dim-sg] != NS) { sg++; fsg*=sg; }
         int64_t lda = sy_packed_size(dim-sg+1, lens, sym);
         double fsg_idx = (((double)idx_rem)*fsg)/lda;
-        int kidx = (int)pow(fsg_idx,1./sg);
+        int64_t kidx = (int64_t)pow(fsg_idx,1./sg);
         //if (sym[dim-1] != SY) 
         kidx += sg+1;
-        int mkidx = kidx;
+        int64_t mkidx = kidx;
   #if DEBUG >= 1
         for (int idim=dim-sg+1; idim<=dim; idim++){
           plen[idim] = mkidx+1;
@@ -236,6 +236,40 @@ namespace CTF_int {
     CTF_int::cdealloc(swap);
   }
 
+  void permute(int          order,
+               int const *  perm,
+               int64_t *    arr){
+    int i;
+    int64_t * swap;
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&swap);
+
+    for (i=0; i<order; i++){
+      swap[i] = arr[perm[i]];
+    }
+    for (i=0; i<order; i++){
+      arr[i] = swap[i];
+    }
+
+    CTF_int::cdealloc(swap);
+  }
+
+  void permute_target(int         order,
+                      int const * perm,
+                      int64_t *   arr){
+    int i;
+    int64_t * swap;
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&swap);
+
+    for (i=0; i<order; i++){
+      swap[i] = arr[perm[i]];
+    }
+    for (i=0; i<order; i++){
+      arr[i] = swap[i];
+    }
+
+    CTF_int::cdealloc(swap);
+  }
+
 
   void socopy(int64_t         m,
               int64_t         n,
@@ -286,13 +320,13 @@ namespace CTF_int {
     return fact(n)/(fact(k)*fact(n-k));
   }
 
-  void get_choice(int64_t n, int64_t k, int64_t ch, int * chs){
+  void get_choice(int n, int k, int ch, int64_t * chs){
     if (k==0) return;
     if (k==1){
       chs[0] = ch;
       return;
     }
-    int lens[k];
+    int64_t lens[k];
     std::fill(lens, lens+k, n);
     int sym[k];
     std::fill(sym, sym+k-1, SH);

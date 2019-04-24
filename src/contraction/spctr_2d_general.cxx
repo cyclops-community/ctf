@@ -43,7 +43,7 @@ namespace CTF_int {
   }
 
   void spctr_2d_general::print() {
-    printf("spctr_2d_general: edge_len = %d\n", edge_len);
+    printf("spctr_2d_general: edge_len = %ld\n", edge_len);
     printf("move_A = %d, ctr_lda_A = %ld, ctr_sub_lda_A = %ld\n",
             move_A, ctr_lda_A, ctr_sub_lda_A);
     if (move_A) printf("cdt_A length = %d\n",cdt_A->np);
@@ -136,7 +136,7 @@ namespace CTF_int {
     return rec_ctr->spmem_rec(nnz_frac_A, nnz_frac_B, nnz_frac_C) + spmem_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
-  char * bcast_step(int edge_len, char * A, bool is_sparse_A, bool move_A, algstrct const * sr_A, int64_t b_A, int64_t s_A, char * buf_A, CommData * cdt_A, int64_t ctr_sub_lda_A, int64_t ctr_lda_A, int nblk_A, int64_t const * size_blk_A, int & new_nblk_A, int64_t *& new_size_blk_A, int64_t * offsets_A, int ib){
+  char * bcast_step(int64_t edge_len, char * A, bool is_sparse_A, bool move_A, algstrct const * sr_A, int64_t b_A, int64_t s_A, char * buf_A, CommData * cdt_A, int64_t ctr_sub_lda_A, int64_t ctr_lda_A, int nblk_A, int64_t const * size_blk_A, int & new_nblk_A, int64_t *& new_size_blk_A, int64_t * offsets_A, int ib){
     int ret;
     char * op_A = NULL;
     new_size_blk_A = (int64_t*)size_blk_A;
@@ -242,7 +242,7 @@ namespace CTF_int {
   }
 
 
-  char * reduce_step_pre(int edge_len, char * C, bool is_sparse_C, bool move_C, algstrct const * sr_C, int64_t b_C, int64_t s_C, char * buf_C, CommData * cdt_C, int64_t ctr_sub_lda_C, int64_t ctr_lda_C, int nblk_C, int64_t const * size_blk_C, int & new_nblk_C, int64_t *& new_size_blk_C, int64_t * offsets_C, int ib, char const *& rec_beta){
+  char * reduce_step_pre(int64_t edge_len, char * C, bool is_sparse_C, bool move_C, algstrct const * sr_C, int64_t b_C, int64_t s_C, char * buf_C, CommData * cdt_C, int64_t ctr_sub_lda_C, int64_t ctr_lda_C, int nblk_C, int64_t const * size_blk_C, int & new_nblk_C, int64_t *& new_size_blk_C, int64_t * offsets_C, int ib, char const *& rec_beta){
     char * op_C;
     new_size_blk_C = (int64_t*)size_blk_C;
     if (move_C){
@@ -279,7 +279,7 @@ namespace CTF_int {
   }
 
 
-  void reduce_step_post(int edge_len, char * C, bool is_sparse_C, bool move_C, algstrct const * sr_C, int64_t b_C, int64_t s_C, char * buf_C, CommData * cdt_C, int64_t ctr_sub_lda_C, int64_t ctr_lda_C, int nblk_C, int64_t * size_blk_C, int & new_nblk_C, int64_t *& new_size_blk_C, int64_t * offsets_C, int ib, char const *& rec_beta, char const * beta, char *& up_C, char *& new_C, int n_new_C_grps, int & i_new_C_grp, char ** new_C_grps, bool is_ccsr_C){
+  void reduce_step_post(int64_t edge_len, char * C, bool is_sparse_C, bool move_C, algstrct const * sr_C, int64_t b_C, int64_t s_C, char * buf_C, CommData * cdt_C, int64_t ctr_sub_lda_C, int64_t ctr_lda_C, int nblk_C, int64_t * size_blk_C, int & new_nblk_C, int64_t *& new_size_blk_C, int64_t * offsets_C, int ib, char const *& rec_beta, char const * beta, char *& up_C, char *& new_C, int n_new_C_grps, int & i_new_C_grp, char ** new_C_grps, bool is_ccsr_C){
     if (move_C){
 #ifdef PROFILE
       TAU_FSTART(spctr_2d_general_barrier);

@@ -5,11 +5,11 @@
 namespace CTF_int {
   void pad_key(int              order,
                int64_t          num_pair,
-               int const *      edge_len,
-               int const *      padding,
+               int64_t const *  edge_len,
+               int64_t const *  padding,
                PairIterator     pairs,
                algstrct const * sr,
-               int const *      offsets){
+               int64_t const *  offsets){
     int64_t i, j, lda;
     int64_t knew, k;
     TAU_FSTART(pad_key);
@@ -50,10 +50,10 @@ namespace CTF_int {
 
   void depad_tsr(int              order,
                  int64_t          num_pair,
-                 int const *      edge_len,
+                 int64_t const *  edge_len,
                  int const *      sym,
-                 int const *      padding,
-                 int const *      prepadding,
+                 int64_t const *  padding,
+                 int64_t const *  prepadding,
                  char const *     pairsb,
                  char *           new_pairsb,
                  int64_t *        new_num_pair,
@@ -374,9 +374,9 @@ namespace CTF_int {
   void zero_padding(int              order,
                     int64_t          size,
                     int              nvirt,
-                    int const *      edge_len,
+                    int64_t const *  edge_len,
                     int const *      sym,
-                    int const *      padding,
+                    int64_t const *  padding,
                     int const *      phase,
                     int const *      phys_phase,
                     int const *      virt_phase,
@@ -393,13 +393,15 @@ namespace CTF_int {
       int i, act_lda, act_max, curr_idx, sym_idx;
       int is_outside;
       int64_t p, buf_offset;
-      int * idx, * virt_rank, * phase_rank, * virt_len;
+      int * virt_rank, * phase_rank;
+      int64_t * virt_len;
+      int64_t * idx;
       char * data;
 
-      CTF_int::alloc_ptr(order*sizeof(int), (void**)&idx);
+      CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&idx);
       CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_rank);
       CTF_int::alloc_ptr(order*sizeof(int), (void**)&phase_rank);
-      CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_len);
+      CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&virt_len);
       for (int dim=0; dim<order; dim++){
         virt_len[dim] = edge_len[dim]/phase[dim];
       }
@@ -407,7 +409,8 @@ namespace CTF_int {
       memcpy(phase_rank, cphase_rank, order*sizeof(int));
       memset(virt_rank, 0, sizeof(int)*order);
 
-      int tid, ntd, vst, vend;
+      int tid, ntd;
+      int64_t vst, vend;
     #ifdef USE_OMP
       tid = omp_get_thread_num();
       ntd = omp_get_num_threads();
@@ -416,7 +419,7 @@ namespace CTF_int {
       ntd = 1;
     #endif
 
-      int * st_idx=NULL, * end_idx; 
+      int64_t * st_idx=NULL, * end_idx; 
       int64_t st_index = 0;
       int64_t end_index = size/nvirt;
 
@@ -439,8 +442,8 @@ namespace CTF_int {
         st_index = st_chunk-vst*vrt_sz;
         end_index = end_chunk-(vend-1)*vrt_sz;
       
-        CTF_int::alloc_ptr(order*sizeof(int), (void**)&st_idx);
-        CTF_int::alloc_ptr(order*sizeof(int), (void**)&end_idx);
+        CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&st_idx);
+        CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&end_idx);
 
         int * ssym;
         CTF_int::alloc_ptr(order*sizeof(int), (void**)&ssym);
@@ -473,18 +476,18 @@ namespace CTF_int {
               ( sym[0] == SY                  && phase_rank[0] >  phase_rank[1]) ) {
             is_sh_pad0 = 1;
           }
-          int pad0 = (padding[0]+phase_rank[0])/phase[0];
-          int len0 = virt_len[0]-pad0;
-          int plen0 = virt_len[0];
+          int64_t pad0 = (padding[0]+phase_rank[0])/phase[0];
+          int64_t len0 = virt_len[0]-pad0;
+          int64_t plen0 = virt_len[0];
           data = vdata + sr->el_size*p*(size/nvirt);
 
           if (p==vst && st_index != 0){
             idx[0] = 0;
-            memcpy(idx+1,st_idx+1,(order-1)*sizeof(int));
+            memcpy(idx+1,st_idx+1,(order-1)*sizeof(int64_t));
             buf_offset = st_index;
           } else {
             buf_offset = 0;
-            memset(idx, 0, order*sizeof(int));
+            memset(idx, 0, order*sizeof(int64_t));
           }
           
           for (;;){
@@ -517,7 +520,7 @@ namespace CTF_int {
               //}
               sr->set(data+buf_offset*sr->el_size, sr->addid(), plen0);
             } else {
-              int s1 = MIN(plen0-is_sh_pad0,len0);
+              int64_t s1 = MIN(plen0-is_sh_pad0,len0);
     /*          if (sym[0] == SH) s1 = MIN(s1, len0-1);*/
     //          std::fill(data+buf_offset+s1, data+buf_offset+plen0, 0.0);
               //for (int64_t j=buf_offset+s1; j<buf_offset+plen0; j++){
@@ -567,9 +570,9 @@ namespace CTF_int {
   void scal_diag(int              order,
                  int64_t          size,
                  int              nvirt,
-                 int const *      edge_len,
+                 int64_t const *  edge_len,
                  int const *      sym,
-                 int const *      padding,
+                 int64_t const *  padding,
                  int const *      phase,
                  int const *      phys_phase,
                  int const *      virt_phase,
@@ -585,13 +588,14 @@ namespace CTF_int {
       int i, act_lda, act_max;
       int perm_factor;
       int64_t p, buf_offset;
-      int * idx, * virt_rank, * phase_rank, * virt_len;
+      int * virt_rank, * phase_rank;
+      int64_t * idx, * virt_len;
       char * data;
 
-      CTF_int::alloc_ptr(order*sizeof(int), (void**)&idx);
+      CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&idx);
       CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_rank);
       CTF_int::alloc_ptr(order*sizeof(int), (void**)&phase_rank);
-      CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_len);
+      CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&virt_len);
       for (int dim=0; dim<order; dim++){
         virt_len[dim] = edge_len[dim]/phase[dim];
       }
@@ -608,7 +612,7 @@ namespace CTF_int {
       ntd = 1;
     #endif
 
-      int * st_idx=NULL, * end_idx; 
+      int64_t * st_idx=NULL, * end_idx; 
       int64_t st_index = 0;
       int64_t end_index = size/nvirt;
 
@@ -631,8 +635,8 @@ namespace CTF_int {
         st_index = st_chunk-vst*vrt_sz;
         end_index = end_chunk-(vend-1)*vrt_sz;
       
-        CTF_int::alloc_ptr(order*sizeof(int), (void**)&st_idx);
-        CTF_int::alloc_ptr(order*sizeof(int), (void**)&end_idx);
+        CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&st_idx);
+        CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&end_idx);
 
         int * ssym;
         CTF_int::alloc_ptr(order*sizeof(int), (void**)&ssym);
@@ -669,16 +673,16 @@ namespace CTF_int {
           }
           int len0 = virt_len[0]-pad0;
           int pad0 = (padding[0]+phase_rank[0])/phase[0];*/
-          int plen0 = virt_len[0];
+          int64_t plen0 = virt_len[0];
           data = vdata + sr->el_size*p*(size/nvirt);
 
           if (p==vst && st_index != 0){
             idx[0] = 0;
-            memcpy(idx+1,st_idx+1,(order-1)*sizeof(int));
+            memcpy(idx+1,st_idx+1,(order-1)*sizeof(int64_t));
             buf_offset = st_index;
           } else {
             buf_offset = 0;
-            memset(idx, 0, order*sizeof(int));
+            memset(idx, 0, order*sizeof(int64_t));
           }
           
           for (;;){
@@ -686,11 +690,11 @@ namespace CTF_int {
             perm_factor = 1;
             for (i=1; i<order; i++){
               if (sym_mask[i] == 1){
-                int curr_idx_i = idx[i]*phase[i]+phase_rank[i];
+                int64_t curr_idx_i = idx[i]*phase[i]+phase_rank[i];
                 int iperm = 1;
                 for (int j=i+1; j<order; j++){
                   if (sym_mask[j] == 1){
-                    int curr_idx_j = idx[j]*phase[j]+phase_rank[j];
+                    int64_t curr_idx_j = idx[j]*phase[j]+phase_rank[j];
                     if (curr_idx_i == curr_idx_j) iperm++;
                   }
                 }
@@ -710,11 +714,11 @@ namespace CTF_int {
                 sr->cast_double(1./perm_factor, scal_fact);
                 sr->scal(idx[1]+1, scal_fact,data+buf_offset*sr->el_size, 1);
               }
-              int curr_idx_0 = idx[1]*phase[0]+phase_rank[0];
+              int64_t curr_idx_0 = idx[1]*phase[0]+phase_rank[0];
               int iperm = 1;
               for (int j=1; j<order; j++){
                 if (sym_mask[j] == 1){
-                  int curr_idx_j = idx[j]*phase[j]+phase_rank[j];
+                  int64_t curr_idx_j = idx[j]*phase[j]+phase_rank[j];
                   if (curr_idx_0 == curr_idx_j) iperm++;
                 }
               }
@@ -762,7 +766,7 @@ namespace CTF_int {
   }
 
   void sp_scal_diag(int              order,
-                    int const *      lens,
+                    int64_t const *  lens,
                     int const *      sym,
                     int64_t          nnz_loc,
                     char *           vdata,
@@ -774,7 +778,7 @@ namespace CTF_int {
     #pragma omp parallel
 #endif
     {
-      int * kparts = (int*)CTF_int::alloc(sizeof(int)*order);
+      int64_t * kparts = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order);
       char * scal_fact = (char*)CTF_int::alloc(sizeof(char)*sr->el_size);
 
 #ifdef USE_OMP

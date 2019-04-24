@@ -12,7 +12,6 @@
 #include "../redistribution/nosym_transp.h"
 #include "../redistribution/redist.h"
 #include "../redistribution/cyclic_reshuffle.h"
-#include "../redistribution/glb_cyclic_reshuffle.h"
 #include "../redistribution/dgtog_redist.h"
 #include "../sparse_formats/ccsr.h"
 
@@ -91,9 +90,39 @@ namespace CTF_int {
                  char const *     name,
                  bool             profile,
                  bool             is_sparse){
+    int64_t * lens = CTF_int::conv_to_int64(edge_len, order);
+    this->init(sr, order,lens,sym,wrld,alloc_data,name,profile,is_sparse);
+    CTF_int::cdealloc(lens);
+  }
+
+  tensor::tensor(algstrct const * sr,
+                 int              order,
+                 int64_t const *  edge_len,
+                 int const *      sym,
+                 World *          wrld,
+                 bool             alloc_data,
+                 char const *     name,
+                 bool             profile,
+                 bool             is_sparse){
     this->init(sr, order,edge_len,sym,wrld,alloc_data,name,profile,is_sparse);
   }
 
+  tensor::tensor(algstrct const *           sr,
+                 int                        order,
+                 bool                       is_sparse,
+                 int64_t const *            edge_len,
+                 int const *                sym,
+                 CTF::World *               wrld,
+                 char const *               idx,
+                 CTF::Idx_Partition const & prl,
+                 CTF::Idx_Partition const & blk,
+                 char const *               name,
+                 bool                       profile){
+    this->init(sr, order,edge_len,sym,wrld,0,name,profile,is_sparse);
+    set_distribution(idx, prl, blk);
+    init_distribution();
+  }
+ 
   tensor::tensor(algstrct const *           sr,
                  int                        order,
                  bool                       is_sparse,
@@ -105,8 +134,14 @@ namespace CTF_int {
                  CTF::Idx_Partition const & blk,
                  char const *               name,
                  bool                       profile){
-    this->init(sr, order,edge_len,sym,wrld,0,name,profile,is_sparse);
+    int64_t * lens = CTF_int::conv_to_int64(edge_len, order);
+    this->init(sr, order,lens,sym,wrld,0,name,profile,is_sparse);
+    CTF_int::cdealloc(lens);
     set_distribution(idx, prl, blk);
+    init_distribution();
+  }
+ 
+  void tensor::init_distribution(){
     if (is_sparse){
       nnz_blk = (int64_t*)alloc(sizeof(int64_t)*calc_nvirt());
       std::fill(nnz_blk, nnz_blk+calc_nvirt(), 0);
@@ -283,8 +318,8 @@ namespace CTF_int {
     }
 
     this->order = other->order;
-    memcpy(this->pad_edge_len, other->pad_edge_len, sizeof(int)*other->order);
-    memcpy(this->padding, other->padding, sizeof(int)*other->order);
+    memcpy(this->pad_edge_len, other->pad_edge_len, sizeof(int64_t)*other->order);
+    memcpy(this->padding, other->padding, sizeof(int64_t)*other->order);
     this->is_mapped = other->is_mapped;
     this->is_cyclic = other->is_cyclic;
     this->topo      = other->topo;
@@ -308,7 +343,7 @@ namespace CTF_int {
 
   void tensor::init(algstrct const * sr_,
                     int              order_,
-                    int const *      edge_len,
+                    int64_t const *  edge_len,
                     int const *      sym_,
                     World *          wrld_,
                     bool             alloc_data,
@@ -357,13 +392,13 @@ namespace CTF_int {
     if (wrld->rank == 0)
       DPRINTF(3,"Created order %d tensor %s, is_sparse = %d, allocated = %d\n",order,name,is_sparse,alloc_data);
 
-    CTF_int::alloc_ptr(order*sizeof(int), (void**)&this->padding);
-    memset(this->padding, 0, order*sizeof(int));
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&this->padding);
+    memset(this->padding, 0, order*sizeof(int64_t));
 
-    this->lens = (int*)CTF_int::alloc(order*sizeof(int));
-    memcpy(this->lens, edge_len, order*sizeof(int));
-    this->pad_edge_len = (int*)CTF_int::alloc(order*sizeof(int));
-    memcpy(this->pad_edge_len, lens, order*sizeof(int));
+    this->lens = (int64_t*)CTF_int::alloc(order*sizeof(int64_t));
+    memcpy(this->lens, edge_len, order*sizeof(int64_t));
+    this->pad_edge_len = (int64_t*)CTF_int::alloc(order*sizeof(int64_t));
+    memcpy(this->pad_edge_len, lens, order*sizeof(int64_t));
     this->sym      = (int*)CTF_int::alloc(order*sizeof(int));
     sym_table = (int*)CTF_int::alloc(order*order*sizeof(int));
     this->set_sym (sym_);
@@ -460,12 +495,13 @@ namespace CTF_int {
 
   void tensor::set_padding(){
     int j, pad, i;
-    int * new_phase, * sub_edge_len;
+    int * new_phase;
+    int64_t * sub_edge_len;
     mapping * map;
     //if (!is_mapped) return;
 
     CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&new_phase);
-    CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&sub_edge_len);
+    CTF_int::alloc_ptr(sizeof(int64_t)*this->order, (void**)&sub_edge_len);
 
 /*
     for (i=0; i<this->order; i++){
@@ -708,7 +744,7 @@ namespace CTF_int {
       else
         printf("printing lens of dense tensor %s:",name);
       for (int dim=0; dim<this->order; dim++){
-        printf(" %d",this->lens[dim]);
+        printf(" %ld",this->lens[dim]);
       }
       printf("\n");
     }
@@ -879,13 +915,13 @@ namespace CTF_int {
 
   }
 
-  void tensor::slice(int const *  offsets_B,
-                     int const *  ends_B,
-                     char const * beta,
-                     tensor *     A,
-                     int const *  offsets_A,
-                     int const *  ends_A,
-                     char const * alpha){
+  void tensor::slice(int64_t const * offsets_B,
+                     int64_t const * ends_B,
+                     char const *    beta,
+                     tensor *        A,
+                     int64_t const * offsets_A,
+                     int64_t const * ends_A,
+                     char const *    alpha){
     TAU_FSTART(slice);
     int64_t i, j, sz_A, blk_sz_A, sz_B, blk_sz_B;
     char * all_data_A, * blk_data_A;
@@ -895,10 +931,10 @@ namespace CTF_int {
     tsr_A = A;
     tsr_B = this;
 
-    int * padding_A = (int*)CTF_int::alloc(sizeof(int)*tsr_A->order);
-    int * toffset_A = (int*)CTF_int::alloc(sizeof(int)*tsr_A->order);
-    int * padding_B = (int*)CTF_int::alloc(sizeof(int)*tsr_B->order);
-    int * toffset_B = (int*)CTF_int::alloc(sizeof(int)*tsr_B->order);
+    int64_t * padding_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_A->order);
+    int64_t * toffset_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_A->order);
+    int64_t * padding_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_B->order);
+    int64_t * toffset_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_B->order);
     for (i=0,j=0; i<this->order && j<A->order; i++, j++){
       if (ends_A[j] - offsets_A[j] != ends_B[i] - offsets_B[i]){
         if (ends_B[i] - offsets_B[i] == 1){ j--; continue; } // continue with i+1,j
@@ -1024,7 +1060,7 @@ namespace CTF_int {
     // (CommData*)CTF_int::alloc(sizeof(CommData));
     //  SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
       World dt_self = World(MPI_COMM_SELF);
-      tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self, 0);
+      tensor stsr = tensor(sr, 0, (int64_t*)NULL, NULL, &dt_self, 0);
       stsr.slice(NULL, NULL, beta, this, offsets, offsets, alpha);
     } else {
       tsr_sub->slice(offsets, lens, beta, this, offsets, lens, alpha);
@@ -1067,7 +1103,7 @@ namespace CTF_int {
     memset(offsets, 0, this->order*sizeof(int));
     if (tsr_sub->order <= -1){ // == NULL){
       World dt_self = World(MPI_COMM_SELF);
-      tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self, 0);
+      tensor stsr = tensor(sr, 0, (int64_t*)NULL, NULL, &dt_self, 0);
       slice(offsets, offsets, beta, &stsr, NULL, NULL, alpha);
     } else {
       slice(offsets, lens, alpha, tsr_sub, offsets, lens, beta);
@@ -1471,16 +1507,16 @@ namespace CTF_int {
         } else {*/
         //printf("sparsifying with padding handling\n");
         // if zero passes filter, then padding may be included, so get rid of it
-        int * depadding;
-        CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&depadding);
+        int64_t * depadding;
+        CTF_int::alloc_ptr(sizeof(int64_t)*order,   (void**)&depadding);
         for (int i=0; i<this->order; i++){
           if (i == 0) edge_lda[0] = 1;
           else edge_lda[i] = edge_lda[i-1]*this->pad_edge_len[i-1];
           depadding[i] = -padding[i];
         }
-        int * prepadding;
-        CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&prepadding);
-        memset(prepadding, 0, sizeof(int)*order);
+        int64_t * prepadding;
+        CTF_int::alloc_ptr(sizeof(int64_t)*order,   (void**)&prepadding);
+        memset(prepadding, 0, sizeof(int64_t)*order);
         spsfy_tsr(this->order, this->size, nvirt,
                   this->pad_edge_len, this->sym, phase,
                   phys_phase, virt_phase, virt_phys_rank,
@@ -1886,7 +1922,7 @@ namespace CTF_int {
 
   int tensor::reduce_sum(char * result, algstrct const * sr_other) {
     ASSERT(is_mapped && !is_folded);
-    tensor sc = tensor(sr_other, 0, NULL, NULL, wrld, 1);
+    tensor sc = tensor(sr_other, 0, (int64_t*)NULL, NULL, wrld, 1);
     int idx_A[order];
     for (int i=0; i<order; i++){
        idx_A[i] = i;
@@ -1905,7 +1941,7 @@ namespace CTF_int {
   int tensor::reduce_sumabs(char * result, algstrct const * sr_other){
     ASSERT(is_mapped && !is_folded);
     univar_function func = univar_function(sr_other->abs);
-    tensor sc = tensor(sr_other, 0, NULL, NULL, wrld, 1);
+    tensor sc = tensor(sr_other, 0, (int64_t*)NULL, NULL, wrld, 1);
     int idx_A[order];
     for (int i=0; i<order; i++){
        idx_A[i] = i;
@@ -1919,7 +1955,7 @@ namespace CTF_int {
 
   int tensor::reduce_sumsq(char * result) {
     ASSERT(is_mapped && !is_folded);
-    tensor sc = tensor(sr, 0, NULL, NULL, wrld, 1);
+    tensor sc = tensor(sr, 0, (int64_t*)NULL, NULL, wrld, 1);
     int idx_A[order];
     for (int i=0; i<order; i++){
       idx_A[i] = i;
@@ -2140,10 +2176,10 @@ namespace CTF_int {
 
   void tensor::unfold(bool was_mod){
     int i, j, allfold_dim;
-    int * all_edge_len, * sub_edge_len;
+    int64_t * all_edge_len, * sub_edge_len;
     if (this->is_folded){
-      CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&all_edge_len);
-      CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&sub_edge_len);
+      CTF_int::alloc_ptr(this->order*sizeof(int64_t), (void**)&all_edge_len);
+      CTF_int::alloc_ptr(this->order*sizeof(int64_t), (void**)&sub_edge_len);
       calc_dim(this->order, this->size, this->pad_edge_len, this->edge_map,
                NULL, sub_edge_len, NULL);
       allfold_dim = 0;
@@ -2186,11 +2222,11 @@ namespace CTF_int {
 
   double tensor::est_time_unfold(){
     int i, j, allfold_dim;
-    int * all_edge_len, * sub_edge_len;
+    int64_t * all_edge_len, * sub_edge_len;
     if (!this->is_folded) return 0.0;
     double est_time;
-    CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&all_edge_len);
-    CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&sub_edge_len);
+    CTF_int::alloc_ptr(this->order*sizeof(int64_t), (void**)&all_edge_len);
+    CTF_int::alloc_ptr(this->order*sizeof(int64_t), (void**)&sub_edge_len);
     calc_dim(this->order, this->size, this->pad_edge_len, this->edge_map,
              NULL, sub_edge_len, NULL);
     allfold_dim = 0;
@@ -2214,15 +2250,16 @@ namespace CTF_int {
                     int const * fold_idx,
                     int const * idx_map,
                     int *       all_fdim,
-                    int **      all_flen){
+                    int64_t **  all_flen){
     int i, j, k, fdim, allfold_dim, is_fold, fold_dim;
-    int * sub_edge_len, * fold_edge_len, * all_edge_len, * dim_order;
+    int64_t * sub_edge_len, * fold_edge_len, * all_edge_len;
+    int * dim_order;
     int * fold_sym;
     tensor * fold_tsr;
 
     if (this->is_folded != 0) this->unfold();
 
-    CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&sub_edge_len);
+    CTF_int::alloc_ptr(this->order*sizeof(int64_t), (void**)&sub_edge_len);
 
     allfold_dim = 0, fold_dim = 0;
     for (j=0; j<this->order; j++){
@@ -2234,9 +2271,9 @@ namespace CTF_int {
         }
       }
     }
-    CTF_int::alloc_ptr(allfold_dim*sizeof(int), (void**)&all_edge_len);
+    CTF_int::alloc_ptr(allfold_dim*sizeof(int64_t), (void**)&all_edge_len);
     CTF_int::alloc_ptr(allfold_dim*sizeof(int), (void**)&dim_order);
-    CTF_int::alloc_ptr(fold_dim*sizeof(int), (void**)&fold_edge_len);
+    CTF_int::alloc_ptr(fold_dim*sizeof(int64_t), (void**)&fold_edge_len);
     CTF_int::alloc_ptr(fold_dim*sizeof(int), (void**)&fold_sym);
 
     calc_dim(this->order, this->size, this->pad_edge_len, this->edge_map,
@@ -2278,9 +2315,8 @@ namespace CTF_int {
     *all_fdim = allfold_dim;
     *all_flen = all_edge_len;
 
-    CTF_int::cdealloc(fold_edge_len);
     CTF_int::cdealloc(fold_sym);
-
+    CTF_int::cdealloc(fold_edge_len);
     CTF_int::cdealloc(sub_edge_len);
 
   }
@@ -2311,9 +2347,9 @@ namespace CTF_int {
   }
 
   int tensor::redistribute(distribution const & old_dist,
-                           int const *  old_offsets,
+                           int64_t const *  old_offsets,
                            int * const * old_permutation,
-                           int const *  new_offsets,
+                           int64_t const *  new_offsets,
                            int * const * new_permutation){
 
     int can_block_shuffle;
@@ -2569,11 +2605,12 @@ namespace CTF_int {
                            int         rw,
                            tensor *&   new_tsr,
                            int **      idx_map_new){
-    int i, j, k, * edge_len, * nsym, * ex_idx_map, * diag_idx_map;
+    int i, j, k, * nsym, * ex_idx_map, * diag_idx_map;
+    int64_t * edge_len;
     for (i=0; i<this->order; i++){
       for (j=i+1; j<this->order; j++){
         if (idx_map[i] == idx_map[j]){
-          CTF_int::alloc_ptr(sizeof(int)*this->order-1, (void**)&edge_len);
+          CTF_int::alloc_ptr(sizeof(int64_t)*this->order-1, (void**)&edge_len);
           CTF_int::alloc_ptr(sizeof(int)*this->order-1, (void**)&nsym);
           CTF_int::alloc_ptr(sizeof(int)*this->order,   (void**)idx_map_new);
           CTF_int::alloc_ptr(sizeof(int)*this->order,   (void**)&ex_idx_map);
@@ -2809,8 +2846,8 @@ namespace CTF_int {
 #endif
     for (int64_t i=0; i<nnz_loc; i++){
       int64_t k = pi[i].k();
-      int kpart1 = (k/lda_sm)%this->lens[diag];
-      int kpart2 = (k/lda_lrg)%this->lens[diag+1];
+      int64_t kpart1 = (k/lda_sm)%this->lens[diag];
+      int64_t kpart2 = (k/lda_lrg)%this->lens[diag+1];
       if (kpart1 == kpart2)
         sr->copy(pi[i].d(),sr->addid());
     }
@@ -2872,7 +2909,7 @@ namespace CTF_int {
     }
   }
 
-  void tensor::spmatricize(int m, int n, int nrow_idx, int all_fdim, int const * all_flen, bool csr, bool ccsr){
+  void tensor::spmatricize(int m, int n, int nrow_idx, int all_fdim, int64_t const * all_flen, bool csr, bool ccsr){
 
     ASSERT(is_sparse);
 
@@ -2895,7 +2932,7 @@ namespace CTF_int {
       CCSR_Matrix * mat_list = new CCSR_Matrix[nvirt_A];
 
       for (int i=0; i<nvirt_A; i++){
-        COO_Matrix cm(this->nnz_blk[i], this->sr);
+        tCOO_Matrix<int64_t> cm(this->nnz_blk[i], this->sr);
         cm.set_data(this->nnz_blk[i], this->order, this->sym, this->lens, this->pad_edge_len, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
         mat_list[i] = CCSR_Matrix(cm, m, n, this->sr);
         cdealloc(cm.all_data);
@@ -2923,17 +2960,24 @@ namespace CTF_int {
       char * data_ptr_out = this->rec_tsr->data;
 
       for (int i=0; i<nvirt_A; i++){
+        int * ilens, * ipad_edge_len, * iall_flen;
+        ilens = conv_to_int(this->lens, this->order);
+        ipad_edge_len = conv_to_int(this->pad_edge_len, this->order);
+        iall_flen = conv_to_int(all_flen, all_fdim);
         if (csr){
           COO_Matrix cm(this->nnz_blk[i], this->sr);
-          cm.set_data(this->nnz_blk[i], this->order, this->sym, this->lens, this->pad_edge_len, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
+          cm.set_data(this->nnz_blk[i], this->order, this->sym, ilens, ipad_edge_len, all_fdim, iall_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
           CSR_Matrix cs(cm, m, n, this->sr, data_ptr_out);
           cdealloc(cm.all_data);
         } else {
           COO_Matrix cm(data_ptr_out);
-          cm.set_data(this->nnz_blk[i], this->order, this->sym, this->lens, this->pad_edge_len, all_fdim, all_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
+          cm.set_data(this->nnz_blk[i], this->order, this->sym, ilens, ipad_edge_len, all_fdim, iall_flen, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
         }
         data_ptr_in += this->nnz_blk[i]*this->sr->pair_size();
         data_ptr_out += this->rec_tsr->nnz_blk[i];
+        cdealloc(ilens);
+        cdealloc(iall_flen);
+        cdealloc(ipad_edge_len);
       }
     }
     this->is_csr = csr;
@@ -3001,20 +3045,25 @@ namespace CTF_int {
       if (this->rec_tsr->nnz_blk[i]>0){
         if (ccsr){
           CCSR_Matrix cs((char*)data_ptr_in);
-          COO_Matrix cm(cs, this->sr);
-          cm.get_data(cs.nnz(), this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_out, this->sr, phase, phase_rank);
-          this->nnz_blk[i] = cm.nnz();
-          cdealloc(cm.all_data);
-        } else if (csr){
-          CSR_Matrix cs((char*)data_ptr_in);
-          COO_Matrix cm(cs, this->sr);
+          tCOO_Matrix<int64_t> cm(cs, this->sr);
           cm.get_data(cs.nnz(), this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_out, this->sr, phase, phase_rank);
           this->nnz_blk[i] = cm.nnz();
           cdealloc(cm.all_data);
         } else {
-          COO_Matrix cm((char*)data_ptr_in);
-          cm.get_data(cm.nnz(), this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_out, this->sr, phase, phase_rank);
-          this->nnz_blk[i] = cm.nnz();
+          int * ilens;
+          ilens = conv_to_int(this->lens, this->order);
+          if (csr){
+            CSR_Matrix cs((char*)data_ptr_in);
+            COO_Matrix cm(cs, this->sr);
+            cm.get_data(cs.nnz(), this->order, ilens, this->inner_ordering, nrow_idx, data_ptr_out, this->sr, phase, phase_rank);
+            this->nnz_blk[i] = cm.nnz();
+            cdealloc(cm.all_data);
+          } else {
+            COO_Matrix cm((char*)data_ptr_in);
+            cm.get_data(cm.nnz(), this->order, ilens, this->inner_ordering, nrow_idx, data_ptr_out, this->sr, phase, phase_rank);
+            this->nnz_blk[i] = cm.nnz();
+          }
+          CTF_int::cdealloc(ilens);
         }
       } else this->nnz_blk[i] = 0;
       data_ptr_out += this->nnz_blk[i]*this->sr->pair_size();
@@ -3208,7 +3257,7 @@ namespace CTF_int {
       }
       //reduce/contract any unmatched index
       if (!has_match){
-        int new_len[this->order-1];
+        int64_t * new_len = (int64_t*)CTF_int::alloc(sizeof(int64_t)*(this->order-1));
         int new_sym[this->order-1];
         int sum_A_idx[this->order];
         int sum_B_idx[this->order-1];
@@ -3270,6 +3319,7 @@ namespace CTF_int {
         tensor * new_tsr = new tensor(this->sr, this->order-1, new_len, new_sym, this->wrld, 1, this->name, 1, this->is_sparse);
         summation s(this, sum_A_idx, this->sr->mulid(), new_tsr, sum_B_idx, this->sr->mulid());
         s.execute();
+        CTF_int::cdealloc(new_len);
         return new_tsr;
       }
     }

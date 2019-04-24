@@ -309,18 +309,18 @@ namespace CTF_int {
    * \param[in] idx index in the global tensor, in packed format
    * \param[out] idx_arr preallocated to size order, computed to correspond to idx
    */
-  void calc_idx_arr(int         order,
-                    int const * lens,
-                    int const * sym,
-                    int64_t     idx,
-                    int *       idx_arr);
+  void calc_idx_arr(int             order,
+                    int64_t const * lens,
+                    int const *     sym,
+                    int64_t         idx,
+                    int64_t *       idx_arr);
 
   /** \brief same as above except assumes sym only NS or SY **/
-  void sy_calc_idx_arr(int         order,
-                       int const * lens,
-                       int const * sym,
-                       int64_t     idx,
-                       int *       idx_arr);
+  void sy_calc_idx_arr(int             order,
+                       int64_t const * lens,
+                       int const *     sym,
+                       int64_t         idx,
+                       int64_t *       idx_arr);
 
   /**
    * \brief computes the size of a tensor in packed symmetric layout
@@ -438,6 +438,29 @@ namespace CTF_int {
                       int const * perm,
                       int *       arr);
 
+ 
+  /**
+   * \brief permute an array
+   *
+   * \param order number of elements
+   * \param perm permutation array
+   * \param arr array to permute
+   */
+  void permute(int         order,
+               int const * perm,
+               int64_t *   arr);
+
+  /**
+   * \brief permutes a permutation array 
+   *
+   * \param order number of elements in perm
+   * \param perm permutation array
+   * \param arr permutation array to permute
+   */
+  void permute_target(int         order,
+                      int const * perm,
+                      int64_t *   arr);
+
 
   void socopy(int64_t         m,
               int64_t         n,
@@ -461,7 +484,7 @@ namespace CTF_int {
 
   int64_t fact(int64_t n);  
   int64_t choose(int64_t n, int64_t k);  
-  void get_choice(int64_t n, int64_t k, int64_t ch, int * chs);
+  void get_choice(int n, int k, int ch, int64_t * chs);
   int64_t chchoose(int64_t n, int64_t k);
 }
 #endif

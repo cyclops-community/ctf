@@ -154,8 +154,8 @@ namespace CTF_int {
       void get_fold_sum(summation *& fold_sum,
                         int &        all_fdim_A,
                         int &        all_fdim_B,
-                        int *&       all_flen_A,
-                        int *&       all_flen_B);
+                        int64_t *&   all_flen_A,
+                        int64_t *&   all_flen_B);
 
 
       /**

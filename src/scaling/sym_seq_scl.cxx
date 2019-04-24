@@ -41,24 +41,25 @@ namespace CTF_int {
                       char *           A,
                       algstrct const * sr_A,
                       int              order_A,
-                      int const *      edge_len_A,
+                      int64_t const *  edge_len_A,
                       int const *      sym_A,
                       int const *      idx_map_A){
     TAU_FSTART(sym_seq_sum_ref);
     int idx, i, idx_max, imin, imax, iA, j, k;
     int off_idx, sym_pass;
-    int * idx_glb, * rev_idx_map;
-    int * dlen_A;
+    int64_t * idx_glb;
+    int * rev_idx_map;
+    int64_t * dlen_A;
     int64_t idx_A, off_lda;
 
     inv_idx(order_A,       idx_map_A,
             &idx_max,     &rev_idx_map);
 
-    dlen_A = (int*)CTF_int::alloc(sizeof(int)*order_A);
-    memcpy(dlen_A, edge_len_A, sizeof(int)*order_A);
+    dlen_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order_A);
+    memcpy(dlen_A, edge_len_A, sizeof(int64_t)*order_A);
 
-    idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
-    memset(idx_glb, 0, sizeof(int)*idx_max);
+    idx_glb = (int64_t*)CTF_int::alloc(sizeof(int64_t)*idx_max);
+    memset(idx_glb, 0, sizeof(int64_t)*idx_max);
 
 
     idx_A = 0;
@@ -106,25 +107,25 @@ namespace CTF_int {
                        char *               A,
                        algstrct const *     sr_A,
                        int const            order_A,
-                       int const *          edge_len_A,
+                       int64_t const *      edge_len_A,
                        int const *          sym_A,
                        int const *          idx_map_A,
                        endomorphism const * func){
     TAU_FSTART(sym_seq_sum_cust)
-    int idx, i, idx_max, imin, imax, iA, j, k;
-    int off_idx, sym_pass;
-    int * idx_glb, * rev_idx_map;
-    int * dlen_A;
-    int64_t idx_A, off_lda;
+    int imin, iA, j, k;
+    int idx, idx_max, off_idx, sym_pass;
+    int * rev_idx_map;
+    int64_t * idx_glb, * dlen_A;
+    int64_t idx_A, off_lda, i, imax;
 
     inv_idx(order_A,       idx_map_A,
             &idx_max,     &rev_idx_map);
 
-    dlen_A = (int*)CTF_int::alloc(sizeof(int)*order_A);
-    memcpy(dlen_A, edge_len_A, sizeof(int)*order_A);
+    dlen_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order_A);
+    memcpy(dlen_A, edge_len_A, sizeof(int64_t)*order_A);
 
-    idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
-    memset(idx_glb, 0, sizeof(int)*idx_max);
+    idx_glb = (int64_t*)CTF_int::alloc(sizeof(int64_t)*idx_max);
+    memset(idx_glb, 0, sizeof(int64_t)*idx_max);
 
 
     idx_A = 0;

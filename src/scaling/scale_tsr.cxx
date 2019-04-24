@@ -129,8 +129,8 @@ namespace CTF_int {
     order           = o->order;
     idx_map         = o->idx_map;
     sym             = o->sym;
-    edge_len        = (int*)CTF_int::alloc(sizeof(int)*order);
-    memcpy(edge_len, o->edge_len, sizeof(int)*order);
+    edge_len        = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order);
+    memcpy(edge_len, o->edge_len, sizeof(int64_t)*order);
     is_custom       = o->is_custom;
     func            = o->func;
   }
@@ -166,7 +166,7 @@ namespace CTF_int {
     printf("seq_tsr_scl:\n");
     printf("is_custom = %d\n",is_custom);
     for (i=0; i<order; i++){
-      printf("edge_len[%d]=%d\n",i,edge_len[i]);
+      printf("edge_len[%d]=%ld\n",i,edge_len[i]);
     }
   }
 

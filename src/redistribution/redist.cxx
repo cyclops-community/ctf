@@ -15,7 +15,8 @@ namespace CTF_int {
     int old_num_virt, new_num_virt, numPes;
     int64_t new_nval, swp_nval;
     int idx_lyr;
-    int * virt_phase_rank, * old_virt_phase_rank, * sub_edge_len;
+    int * virt_phase_rank, * old_virt_phase_rank;
+    int64_t * sub_edge_len;
     char * pairs, * tsr_new_data;
     DEBUG_PRINTF("Performing padded reshuffle\n");
 
@@ -25,7 +26,7 @@ namespace CTF_int {
 
     alloc_ptr(old_dist.order*sizeof(int), (void**)&virt_phase_rank);
     alloc_ptr(old_dist.order*sizeof(int), (void**)&old_virt_phase_rank);
-    alloc_ptr(old_dist.order*sizeof(int), (void**)&sub_edge_len);
+    alloc_ptr(old_dist.order*sizeof(int64_t), (void**)&sub_edge_len);
 
     new_num_virt = 1;
     old_num_virt = 1;
@@ -110,17 +111,17 @@ namespace CTF_int {
 
   int ** compute_bucket_offsets(distribution const & old_dist,
                                 distribution const & new_dist,
-                                int const *          len,
-                                int const *          old_phys_edge_len,
+                                int64_t const *      len,
+                                int64_t const *      old_phys_edge_len,
                                 int const *          old_virt_lda,
-                                int const *          old_offsets,
+                                int64_t const *      old_offsets,
                                 int * const *        old_permutation,
-                                int const *          new_phys_edge_len,
+                                int64_t const *      new_phys_edge_len,
                                 int const *          new_virt_lda,
                                 int                  forward,
                                 int                  old_virt_np,
                                 int                  new_virt_np,
-                                int const *          old_virt_edge_len){
+                                int64_t const *      old_virt_edge_len){
     TAU_FSTART(compute_bucket_offsets);
 
     int **bucket_offset; alloc_ptr(sizeof(int*)*old_dist.order, (void**)&bucket_offset);
@@ -128,7 +129,7 @@ namespace CTF_int {
     for (int dim = 0;dim < old_dist.order;dim++){
       alloc_ptr(sizeof(int)*old_phys_edge_len[dim], (void**)&bucket_offset[dim]);
       int pidx = 0;
-      for (int vidx = 0;vidx < old_virt_edge_len[dim];vidx++){
+      for (int64_t vidx = 0;vidx < old_virt_edge_len[dim];vidx++){
         for (int vr = 0;vr < old_dist.virt_phase[dim];vr++,pidx++){
           int64_t _gidx = (int64_t)vidx*old_dist.phase[dim]+old_dist.perank[dim]+(int64_t)vr*old_dist.phys_phase[dim];
           int64_t gidx;
@@ -172,7 +173,7 @@ namespace CTF_int {
                        distribution const & new_dist,
                        int                  new_nvirt,
                        int                  np,
-                       int const *          old_virt_edge_len,
+                       int64_t const *      old_virt_edge_len,
                        int const *          new_virt_lda,
                        int64_t *            send_counts,
                        int64_t *            recv_counts,
@@ -209,11 +210,11 @@ namespace CTF_int {
         int i_st, vc, dim;
         int64_t *  virt_counts;
         int * old_virt_idx, * virt_rank;
-        int * idx;
+        int64_t * idx;
         int64_t idx_offset;
         int64_t *  idx_offs;
         int * spad;
-        int last_len = old_dist.pad_edge_len[old_dist.order-1]/old_dist.phase[old_dist.order-1]+1;
+        int64_t last_len = old_dist.pad_edge_len[old_dist.order-1]/old_dist.phase[old_dist.order-1]+1;
         int ntd, tid;
         ntd = omp_get_num_threads();
         tid = omp_get_thread_num();

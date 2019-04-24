@@ -44,17 +44,17 @@ namespace CTF_int {
    */
   int ** compute_bucket_offsets(distribution const & old_dist,
                                 distribution const & new_dist,
-                                int const *          len,
-                                int const *          old_phys_edge_len,
+                                int64_t const *      len,
+                                int64_t const *      old_phys_edge_len,
                                 int const *          old_virt_lda,
-                                int const *          old_offsets,
+                                int64_t const *      old_offsets,
                                 int * const *        old_permutation,
-                                int const *          new_phys_edge_len,
+                                int64_t const *      new_phys_edge_len,
                                 int const *          new_virt_lda,
                                 int                  forward,
                                 int                  old_virt_np,
                                 int                  new_virt_np,
-                                int const *          old_virt_edge_len);
+                                int64_t const *      old_virt_edge_len);
 
   /**
    * \brief assigns keys to an array of values
@@ -78,7 +78,7 @@ namespace CTF_int {
                        distribution const & new_dist,
                        int                  new_nvirt,
                        int                  np,
-                       int const *          old_virt_edge_len,
+                       int64_t const *      old_virt_edge_len,
                        int const *          new_virt_lda,
                        int64_t *            send_counts,
                        int64_t *            recv_counts,

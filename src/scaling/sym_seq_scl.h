@@ -34,7 +34,7 @@ namespace CTF_int {
                        char *               A,
                        algstrct const *     sr_A,
                        int const            order_A,
-                       int const *          edge_len_A,
+                       int64_t const *      edge_len_A,
                        int const *          sym_A,
                        int const *          idx_map_A,
                        endomorphism const * func);
@@ -45,7 +45,7 @@ namespace CTF_int {
                       char *           A,
                       algstrct const * sr_A,
                       int              order_A,
-                      int const *      edge_len_A,
+                      int64_t const *  edge_len_A,
                       int const *      sym_A,
                       int const *      idx_map_A);
   /**

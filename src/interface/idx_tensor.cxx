@@ -277,7 +277,7 @@ namespace CTF {
   void Idx_Tensor::execute(Idx_Tensor output) const {
     if (parent == NULL){
 //      output.sr->safemul(output.scale, scale, output.scale);
-      CTF_int::tensor ts(output.sr, 0, NULL, NULL, output.where_am_i(), true, NULL, 0);
+      CTF_int::tensor ts(output.sr, 0, (int64_t*)NULL, NULL, output.where_am_i(), true, NULL, 0);
       char * data;
       int64_t sz;
       ts.get_raw_data(&data, &sz);
@@ -300,7 +300,7 @@ namespace CTF {
 
   double Idx_Tensor::estimate_time(Idx_Tensor output) const {
     if (parent == NULL){
-      CTF_int::tensor ts(output.sr, 0, NULL, NULL, output.where_am_i(), true, NULL, 0);
+      CTF_int::tensor ts(output.sr, 0, (int64_t*)NULL, NULL, output.where_am_i(), true, NULL, 0);
       summation s(&ts, NULL, output.sr->mulid(), 
                   output.parent, output.idx_map, output.scale);
       return s.estimate_time();

@@ -33,9 +33,9 @@ namespace CTF_int {
   seq_tsr_spctr::seq_tsr_spctr(contraction const * c,
                                int                 krnl_type_,
                                iparam const *      inner_params_,
-                               int *               virt_blk_len_A,
-                               int *               virt_blk_len_B,
-                               int *               virt_blk_len_C,
+                               int64_t *           virt_blk_len_A,
+                               int64_t *           virt_blk_len_B,
+                               int64_t *           virt_blk_len_C,
                                int64_t             vrt_sz_C)
         : spctr(c) {
 
@@ -142,13 +142,13 @@ namespace CTF_int {
     int i;
     printf("seq_tsr_spctr:\n");
     for (i=0; i<order_A; i++){
-      printf("edge_len_A[%d]=%d\n",i,edge_len_A[i]);
+      printf("edge_len_A[%d]=%ld\n",i,edge_len_A[i]);
     }
     for (i=0; i<order_B; i++){
-      printf("edge_len_B[%d]=%d\n",i,edge_len_B[i]);
+      printf("edge_len_B[%d]=%ld\n",i,edge_len_B[i]);
     }
     for (i=0; i<order_C; i++){
-      printf("edge_len_C[%d]=%d\n",i,edge_len_C[i]);
+      printf("edge_len_C[%d]=%ld\n",i,edge_len_C[i]);
     }
     printf("kernel type is %d\n", krnl_type);
     if (krnl_type>0) printf("inner n = %ld m= %ld k = %ld sz_C=%ld\n",
@@ -163,22 +163,22 @@ namespace CTF_int {
     idx_map_A     = o->idx_map_A;
     sym_A         = (int*)CTF_int::alloc(sizeof(int)*order_A);
     memcpy(sym_A, o->sym_A, sizeof(int)*order_A);
-    edge_len_A    = (int*)CTF_int::alloc(sizeof(int)*order_A);
-    memcpy(edge_len_A, o->edge_len_A, sizeof(int)*order_A);
+    edge_len_A    = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order_A);
+    memcpy(edge_len_A, o->edge_len_A, sizeof(int64_t)*order_A);
 
     order_B       = o->order_B;
     idx_map_B     = o->idx_map_B;
     sym_B         = (int*)CTF_int::alloc(sizeof(int)*order_B);
     memcpy(sym_B, o->sym_B, sizeof(int)*order_B);
-    edge_len_B    = (int*)CTF_int::alloc(sizeof(int)*order_B);
-    memcpy(edge_len_B, o->edge_len_B, sizeof(int)*order_B);
+    edge_len_B    = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order_B);
+    memcpy(edge_len_B, o->edge_len_B, sizeof(int64_t)*order_B);
 
     order_C      = o->order_C;
     idx_map_C    = o->idx_map_C;
     sym_C        = (int*)CTF_int::alloc(sizeof(int)*order_C);
     memcpy(sym_C, o->sym_C, sizeof(int)*order_C);
-    edge_len_C   = (int*)CTF_int::alloc(sizeof(int)*order_C);
-    memcpy(edge_len_C, o->edge_len_C, sizeof(int)*order_C);
+    edge_len_C   = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order_C);
+    memcpy(edge_len_C, o->edge_len_C, sizeof(int64_t)*order_C);
 
     krnl_type    = o->krnl_type;
     inner_params = o->inner_params;

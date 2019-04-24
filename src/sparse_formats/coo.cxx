@@ -5,24 +5,31 @@
 #include "../contraction/ctr_comm.h"
 
 namespace CTF_int {
-  int64_t get_coo_size(int64_t nnz, int val_size){
+  int64_t get_coo_size(int64_t nnz, int val_size, bool is_int64){
     val_size = std::max(val_size,64*((val_size + 63)/64));
-    return nnz*(val_size+sizeof(int)*2)+2*sizeof(int64_t);
+    if (is_int64)
+      return nnz*(val_size+sizeof(int64_t)*2)+3*sizeof(int64_t);
+    else
+      return nnz*(val_size+sizeof(int)*2)+3*sizeof(int64_t);
   }
 
-  COO_Matrix::COO_Matrix(int64_t nnz, algstrct const * sr){
+  template <typename int_type>
+  tCOO_Matrix<int_type>::tCOO_Matrix(int64_t nnz, algstrct const * sr){
     int64_t size = get_coo_size(nnz, sr->el_size);
     all_data = (char*)alloc(size);
-    ((int64_t*)all_data)[0] = nnz;
-    ((int64_t*)all_data)[1] = sr->el_size;
+    ((int64_t*)all_data)[0] = typeid(int_type)==typeid(int64_t);
+    ((int64_t*)all_data)[1] = nnz;
+    ((int64_t*)all_data)[2] = sr->el_size;
     //printf("all_data %p vals %p\n",all_data,this->vals());
   }
 
-  COO_Matrix::COO_Matrix(char * all_data_){
+  template <typename int_type>
+  tCOO_Matrix<int_type>::tCOO_Matrix(char * all_data_){
     all_data = all_data_;
   }
  
-  COO_Matrix::COO_Matrix(CSR_Matrix const & csr, algstrct const * sr){
+  template <typename int_type>
+  tCOO_Matrix<int_type>::tCOO_Matrix(CSR_Matrix const & csr, algstrct const * sr){
     int64_t nnz = csr.nnz(); 
     int64_t v_sz = csr.val_size(); 
     int const * csr_ja = csr.JA();
@@ -31,76 +38,89 @@ namespace CTF_int {
 
     int64_t size = get_coo_size(nnz, v_sz);
     all_data = (char*)alloc(size);
-    ((int64_t*)all_data)[0] = nnz;
-    ((int64_t*)all_data)[1] = v_sz;
+    ((int64_t*)all_data)[0] = typeid(int_type)==typeid(int64_t);
+    ((int64_t*)all_data)[1] = nnz;
+    ((int64_t*)all_data)[2] = v_sz;
     
     char * vs = vals();
-    int * coo_rs = rows();
-    int * coo_cs = cols();
+    int_type * coo_rs = rows();
+    int_type * coo_cs = cols();
 
     sr->init_shell(nnz, vs);
   
-    sr->csr_to_coo(nnz, csr.nrow(), csr_vs, csr_ja, csr_ia, vs, coo_rs, coo_cs);
+    ASSERT(typeid(int_type) == typeid(int));
+    sr->csr_to_coo(nnz, csr.nrow(), csr_vs, csr_ja, csr_ia, vs, (int*)coo_rs, (int*)coo_cs);
   }
  
-  COO_Matrix::COO_Matrix(CCSR_Matrix const & csr, algstrct const * sr){
+  template <typename int_type>
+  tCOO_Matrix<int_type>::tCOO_Matrix(CCSR_Matrix const & csr, algstrct const * sr){
     int64_t nnz = csr.nnz(); 
     int64_t nnz_row = csr.nnz_row(); 
     int64_t v_sz = csr.val_size(); 
     int const * csr_ja = csr.JA();
     int const * csr_ia = csr.IA();
-    int const * row_enc = csr.nnz_row_encoding();
+    int64_t const * row_enc = csr.nnz_row_encoding();
     char const * csr_vs = csr.vals();
 
     int64_t size = get_coo_size(nnz, v_sz);
     all_data = (char*)alloc(size);
-    ((int64_t*)all_data)[0] = nnz;
-    ((int64_t*)all_data)[1] = v_sz;
+    ((int64_t*)all_data)[0] = typeid(int_type)==typeid(int64_t);
+    ((int64_t*)all_data)[1] = nnz;
+    ((int64_t*)all_data)[2] = v_sz;
     
     char * vs = vals();
-    int * coo_rs = rows();
-    int * coo_cs = cols();
+    int_type * coo_rs = rows();
+    int_type * coo_cs = cols();
 
     sr->init_shell(nnz, vs);
   
-    sr->ccsr_to_coo(nnz, nnz_row, csr_vs, csr_ja, csr_ia, row_enc, vs, coo_rs, coo_cs);
+    ASSERT(typeid(int_type) == typeid(int64_t));
+    sr->ccsr_to_coo(nnz, nnz_row, csr_vs, csr_ja, csr_ia, row_enc, vs, (int64_t*)coo_rs, (int64_t*)coo_cs);
   }
 
 
-  int64_t COO_Matrix::nnz() const {
-    return ((int64_t*)all_data)[0];
-  }
-
-  int COO_Matrix::val_size() const {
+  template <typename int_type>
+  int64_t tCOO_Matrix<int_type>::nnz() const {
     return ((int64_t*)all_data)[1];
   }
 
-  int64_t COO_Matrix::size() const {
+  template <typename int_type>
+  int tCOO_Matrix<int_type>::val_size() const {
+    return ((int64_t*)all_data)[2];
+  }
+
+  template <typename int_type>
+  int64_t tCOO_Matrix<int_type>::size() const {
     return get_coo_size(nnz(),val_size());
   }
   
-  char * COO_Matrix::vals() const {
-    return all_data + 2*sizeof(int64_t);
+  template <typename int_type>
+  char * tCOO_Matrix<int_type>::vals() const {
+    return all_data + 3*sizeof(int64_t);
   }
 
-  int * COO_Matrix::rows() const {
+  template <typename int_type>
+  int_type * tCOO_Matrix<int_type>::rows() const {
     int64_t n = this->nnz();
     int v_sz = this->val_size();
 
-    return (int*)(all_data + n*v_sz+2*sizeof(int64_t));
+    return (int_type*)(all_data + n*v_sz+3*sizeof(int64_t));
   } 
 
-  int * COO_Matrix::cols() const {
+  template <typename int_type>
+  int_type * tCOO_Matrix<int_type>::cols() const {
     int64_t n = this->nnz();
-    int v_sz = ((int64_t*)all_data)[1];
+    int v_sz = ((int64_t*)all_data)[2];
 
-    return (int*)(all_data + n*(v_sz+sizeof(int))+2*sizeof(int64_t));
+    return (int_type*)(all_data + n*(v_sz+sizeof(int_type))+3*sizeof(int64_t));
   } 
 
-  void COO_Matrix::set_data(int64_t nz, int order, int const * sym, int const * lens, int const * pad_edge_len, int all_fdim, int const * all_flen, int const * rev_ordering, int nrow_idx, char const * tsr_data, algstrct const * sr, int const * phase){
+  template <typename int_type>
+  void tCOO_Matrix<int_type>::set_data(int64_t nz, int order, int const * sym, int_type const * lens, int_type const * pad_edge_len, int all_fdim, int_type const * all_flen, int const * rev_ordering, int nrow_idx, char const * tsr_data, algstrct const * sr, int const * phase){
     TAU_FSTART(convert_to_COO);
-    ((int64_t*)all_data)[0] = nz;
-    ((int64_t*)all_data)[1] = sr->el_size;
+    ((int64_t*)all_data)[0] = typeid(int_type)==typeid(int64_t);
+    ((int64_t*)all_data)[1] = nz;
+    ((int64_t*)all_data)[2] = sr->el_size;
     int v_sz = sr->el_size;
 
     int * rev_ord_lens = (int*)alloc(sizeof(int)*all_fdim);
@@ -137,8 +157,8 @@ namespace CTF_int {
       //printf("nrow_idx = %d, all_fdim = %d order = %d\n",nrow_idx,all_fdim,order);
     }
  
-    int * rs = rows();
-    int * cs = cols();
+    int_type * rs = rows();
+    int_type * cs = cols();
     char * vs = vals();
 
     //printf("nz=%ld\n",nz);
@@ -231,10 +251,12 @@ namespace CTF_int {
     TAU_FSTOP(convert_to_COO);
   }
 
-  void COO_Matrix::get_data(int64_t nz, int order, int const * lens, int const * rev_ordering, int nrow_idx, char * tsr_data, algstrct const * sr, int const * phase, int const * phase_rank){
+  template <typename int_type>
+  void tCOO_Matrix<int_type>::get_data(int64_t nz, int order, int_type const * lens, int const * rev_ordering, int nrow_idx, char * tsr_data, algstrct const * sr, int const * phase, int const * phase_rank){
     TAU_FSTART(convert_to_COO);
-    ASSERT(((int64_t*)all_data)[0] == nz);
-    ASSERT(((int64_t*)all_data)[1] == sr->el_size);
+    ASSERT(((int64_t*)all_data)[0] == (typeid(int_type)==typeid(int64_t)));
+    ASSERT(((int64_t*)all_data)[1] == nz);
+    ASSERT(((int64_t*)all_data)[2] == sr->el_size);
     int v_sz = sr->el_size;
 
     int * rev_ord_lens = (int*)alloc(sizeof(int)*order);
@@ -268,8 +290,8 @@ namespace CTF_int {
       }
     }
  
-    int * rs = rows();
-    int * cs = cols();
+    int_type * rs = rows();
+    int_type * cs = cols();
     char * vs = vals();
 
 #ifdef USE_OMP
@@ -316,8 +338,15 @@ namespace CTF_int {
   }
 
 
-  void COO_Matrix::coomm(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func){
-    COO_Matrix cA((char*)A);
+  template <typename int_type>
+  void tCOO_Matrix<int_type>::coomm(char const * A, algstrct const * sr_A, int_type m, int_type n, int_type k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func){
+    ASSERT(0);
+    assert(0); // COOMM not available for this int_type
+  }
+
+  template <>
+  void tCOO_Matrix<int>::coomm(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func){
+    tCOO_Matrix cA((char*)A);
     int64_t nz = cA.nnz(); 
     int const * rs = cA.rows();
     int const * cs = cA.cols();
@@ -332,4 +361,11 @@ namespace CTF_int {
       sr_A->coomm(m,n,k,alpha,vs,rs,cs,nz,B,beta,C,func);
     }
   }
+
+  bool is_COO_int64(char const * all_data){
+    return (bool)((int64_t*)all_data)[0];
+  }
+
+  template class tCOO_Matrix<int>;
+  template class tCOO_Matrix<int64_t>;
 }
