@@ -33,7 +33,7 @@ namespace CTF_int {
        */
       void init(algstrct const * sr,
                 int              order,
-                int64_t *        edge_len,
+                int64_t const *  edge_len,
                 int const *      sym,
                 CTF::World *     wrld,
                 bool             alloc_data,
@@ -63,6 +63,11 @@ namespace CTF_int {
       void set_distribution(char const *               idx,
                             CTF::Idx_Partition const & prl,
                             CTF::Idx_Partition const & blk);
+
+      /**
+       * \brief initialize empty data after setting distribution
+       */
+      void init_distribution();
 
     public:
 
@@ -173,7 +178,7 @@ namespace CTF_int {
        */
       tensor(algstrct const * sr,
              int              order,
-             int64_t *        edge_len,
+             int64_t const *  edge_len,
              int const *      sym,
              CTF::World *     wrld,
              bool             alloc_data=true,
@@ -198,7 +203,7 @@ namespace CTF_int {
       tensor(algstrct const *           sr,
              int                        order,
              bool                       is_sparse,
-             int64_t *                  edge_len,
+             int64_t const *            edge_len,
              int const *                sym,
              CTF::World *               wrld,
              char const *               idx,
@@ -206,6 +211,55 @@ namespace CTF_int {
              CTF::Idx_Partition const & blk,
              char const *               name=NULL,
              bool                       profile=1);
+
+      /**
+       * \brief defines a tensor object with some mapping (if alloc_data)
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       * \param[in] order number of dimensions of tensor
+       * \param[in] edge_len edge lengths of tensor
+       * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+       * \param[in] wrld a distributed context for the tensor to live in
+       * \param[in] alloc_data whether to allocate and set data to zero immediately
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       * \param[in] is_sparse set to 1 to store only nontrivial tensor elements
+       */
+      tensor(algstrct const * sr,
+             int              order,
+             int const *      edge_len,
+             int const *      sym,
+             CTF::World *     wrld,
+             bool             alloc_data=true,
+             char const *     name=NULL,
+             bool             profile=1,
+             bool             is_sparse=0);
+
+      /**
+       * \brief defines a tensor object with some mapping (if alloc_data)
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       * \param[in] order number of dimensions of tensor
+       * \param[in] is_sparse whether to make tensor sparse
+       * \param[in] edge_len edge lengths of tensor
+       * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+       * \param[in] wrld a distributed context for the tensor to live in
+       * \param[in] idx assignment of characters to each dim
+       * \param[in] prl mesh processor topology with character labels
+       * \param[in] blk local blocking with processor labels
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       */
+      tensor(algstrct const *           sr,
+             int                        order,
+             bool                       is_sparse,
+             int const *                edge_len,
+             int const *                sym,
+             CTF::World *               wrld,
+             char const *               idx,
+             CTF::Idx_Partition const & prl,
+             CTF::Idx_Partition const & blk,
+             char const *               name=NULL,
+             bool                       profile=1);
+
 
       /**
        * \brief creates tensor copy, unfolds other if other is folded

@@ -197,8 +197,8 @@ namespace CTF_int {
     }
     Idx_Tensor * out = new Idx_Tensor(tsr_C, idx_C);
     out->is_intm = 1;
-    cdealloc(sym_C);
     cdealloc(len_C);
+    cdealloc(sym_C);
     cdealloc(idx_C);
     return out;
   }
@@ -312,7 +312,7 @@ namespace CTF_int {
   }
 
   Term::operator float () const {
-    CTF_int::tensor ts(get_float_ring(), 0, NULL, NULL, this->where_am_i(), true, NULL, 0);
+    CTF_int::tensor ts(get_float_ring(), 0, (int64_t*)NULL, NULL, this->where_am_i(), true, NULL, 0);
     ts[""] += *this;
     float dbl = ((float*)ts.data)[0];
     ts.wrld->cdt.bcast(&dbl, 1, MPI_DOUBLE, 0);
@@ -322,7 +322,7 @@ namespace CTF_int {
 
   Term::operator double () const {
     //return 0.0 += *this;
-    CTF_int::tensor ts(get_double_ring(), 0, NULL, NULL, this->where_am_i(), true, NULL, 0);
+    CTF_int::tensor ts(get_double_ring(), 0, (int64_t*)NULL, NULL, this->where_am_i(), true, NULL, 0);
     ts[""] += *this;
     double dbl = ((double*)ts.data)[0];
     ts.wrld->cdt.bcast(&dbl, 1, MPI_DOUBLE, 0);
@@ -340,7 +340,7 @@ namespace CTF_int {
   }
 
   Term::operator int () const {
-    CTF_int::tensor ts(get_int_ring(), 0, NULL, NULL, this->where_am_i(), true, NULL, 0);
+    CTF_int::tensor ts(get_int_ring(), 0, (int64_t*)NULL, NULL, this->where_am_i(), true, NULL, 0);
     ts[""] += *this;
     int dbl = ((int*)ts.data)[0];
     ts.wrld->cdt.bcast(&dbl, 1, MPI_INT64_T, 0);
@@ -349,7 +349,7 @@ namespace CTF_int {
   }
 
   Term::operator int64_t () const {
-    CTF_int::tensor ts(get_int64_t_ring(), 0, NULL, NULL, this->where_am_i(), true, NULL, 0);
+    CTF_int::tensor ts(get_int64_t_ring(), 0, (int64_t*)NULL, NULL, this->where_am_i(), true, NULL, 0);
     ts[""] += *this;
     int64_t dbl = ((int64_t*)ts.data)[0];
     ts.wrld->cdt.bcast(&dbl, 1, MPI_INT64_T, 0);

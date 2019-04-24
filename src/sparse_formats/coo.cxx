@@ -17,7 +17,6 @@ namespace CTF_int {
   tCOO_Matrix<int_type>::tCOO_Matrix(int64_t nnz, algstrct const * sr){
     int64_t size = get_coo_size(nnz, sr->el_size);
     all_data = (char*)alloc(size);
-    all_data = (char*)alloc(size);
     ((int64_t*)all_data)[0] = typeid(int_type)==typeid(int64_t);
     ((int64_t*)all_data)[1] = nnz;
     ((int64_t*)all_data)[2] = sr->el_size;

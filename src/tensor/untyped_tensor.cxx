@@ -83,7 +83,21 @@ namespace CTF_int {
 
   tensor::tensor(algstrct const * sr,
                  int              order,
-                 int64_t *        edge_len,
+                 int const *      edge_len,
+                 int const *      sym,
+                 World *          wrld,
+                 bool             alloc_data,
+                 char const *     name,
+                 bool             profile,
+                 bool             is_sparse){
+    int64_t * lens = CTF_int::conv_to_int64(edge_len, order);
+    this->init(sr, order,lens,sym,wrld,alloc_data,name,profile,is_sparse);
+    CTF_int::cdealloc(lens);
+  }
+
+  tensor::tensor(algstrct const * sr,
+                 int              order,
+                 int64_t const *  edge_len,
                  int const *      sym,
                  World *          wrld,
                  bool             alloc_data,
@@ -96,7 +110,7 @@ namespace CTF_int {
   tensor::tensor(algstrct const *           sr,
                  int                        order,
                  bool                       is_sparse,
-                 int64_t *                  edge_len,
+                 int64_t const *            edge_len,
                  int const *                sym,
                  CTF::World *               wrld,
                  char const *               idx,
@@ -106,6 +120,28 @@ namespace CTF_int {
                  bool                       profile){
     this->init(sr, order,edge_len,sym,wrld,0,name,profile,is_sparse);
     set_distribution(idx, prl, blk);
+    init_distribution();
+  }
+ 
+  tensor::tensor(algstrct const *           sr,
+                 int                        order,
+                 bool                       is_sparse,
+                 int const *                edge_len,
+                 int const *                sym,
+                 CTF::World *               wrld,
+                 char const *               idx,
+                 CTF::Idx_Partition const & prl,
+                 CTF::Idx_Partition const & blk,
+                 char const *               name,
+                 bool                       profile){
+    int64_t * lens = CTF_int::conv_to_int64(edge_len, order);
+    this->init(sr, order,lens,sym,wrld,0,name,profile,is_sparse);
+    CTF_int::cdealloc(lens);
+    set_distribution(idx, prl, blk);
+    init_distribution();
+  }
+ 
+  void tensor::init_distribution(){
     if (is_sparse){
       nnz_blk = (int64_t*)alloc(sizeof(int64_t)*calc_nvirt());
       std::fill(nnz_blk, nnz_blk+calc_nvirt(), 0);
@@ -307,7 +343,7 @@ namespace CTF_int {
 
   void tensor::init(algstrct const * sr_,
                     int              order_,
-                    int64_t *        edge_len,
+                    int64_t const *  edge_len,
                     int const *      sym_,
                     World *          wrld_,
                     bool             alloc_data,
@@ -356,12 +392,10 @@ namespace CTF_int {
     if (wrld->rank == 0)
       DPRINTF(3,"Created order %d tensor %s, is_sparse = %d, allocated = %d\n",order,name,is_sparse,alloc_data);
 
-    CTF_int::alloc_ptr(order*sizeof(int), (void**)&this->padding);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&this->padding);
     memset(this->padding, 0, order*sizeof(int64_t));
 
-    //this->lens = (int64_t*)CTF_int::alloc(order*sizeof(int64_t));
-    //memcpy(this->lens, edge_len, order*sizeof(int64_t));
-    this->lens = edge_len;
+    this->lens = (int64_t*)CTF_int::alloc(order*sizeof(int64_t));
     memcpy(this->lens, edge_len, order*sizeof(int64_t));
     this->pad_edge_len = (int64_t*)CTF_int::alloc(order*sizeof(int64_t));
     memcpy(this->pad_edge_len, lens, order*sizeof(int64_t));
@@ -1026,7 +1060,7 @@ namespace CTF_int {
     // (CommData*)CTF_int::alloc(sizeof(CommData));
     //  SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
       World dt_self = World(MPI_COMM_SELF);
-      tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self, 0);
+      tensor stsr = tensor(sr, 0, (int64_t*)NULL, NULL, &dt_self, 0);
       stsr.slice(NULL, NULL, beta, this, offsets, offsets, alpha);
     } else {
       tsr_sub->slice(offsets, lens, beta, this, offsets, lens, alpha);
@@ -1069,7 +1103,7 @@ namespace CTF_int {
     memset(offsets, 0, this->order*sizeof(int));
     if (tsr_sub->order <= -1){ // == NULL){
       World dt_self = World(MPI_COMM_SELF);
-      tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self, 0);
+      tensor stsr = tensor(sr, 0, (int64_t*)NULL, NULL, &dt_self, 0);
       slice(offsets, offsets, beta, &stsr, NULL, NULL, alpha);
     } else {
       slice(offsets, lens, alpha, tsr_sub, offsets, lens, beta);
@@ -1888,7 +1922,7 @@ namespace CTF_int {
 
   int tensor::reduce_sum(char * result, algstrct const * sr_other) {
     ASSERT(is_mapped && !is_folded);
-    tensor sc = tensor(sr_other, 0, NULL, NULL, wrld, 1);
+    tensor sc = tensor(sr_other, 0, (int64_t*)NULL, NULL, wrld, 1);
     int idx_A[order];
     for (int i=0; i<order; i++){
        idx_A[i] = i;
@@ -1907,7 +1941,7 @@ namespace CTF_int {
   int tensor::reduce_sumabs(char * result, algstrct const * sr_other){
     ASSERT(is_mapped && !is_folded);
     univar_function func = univar_function(sr_other->abs);
-    tensor sc = tensor(sr_other, 0, NULL, NULL, wrld, 1);
+    tensor sc = tensor(sr_other, 0, (int64_t*)NULL, NULL, wrld, 1);
     int idx_A[order];
     for (int i=0; i<order; i++){
        idx_A[i] = i;
@@ -1921,7 +1955,7 @@ namespace CTF_int {
 
   int tensor::reduce_sumsq(char * result) {
     ASSERT(is_mapped && !is_folded);
-    tensor sc = tensor(sr, 0, NULL, NULL, wrld, 1);
+    tensor sc = tensor(sr, 0, (int64_t*)NULL, NULL, wrld, 1);
     int idx_A[order];
     for (int i=0; i<order; i++){
       idx_A[i] = i;
@@ -2281,9 +2315,8 @@ namespace CTF_int {
     *all_fdim = allfold_dim;
     *all_flen = all_edge_len;
 
-    CTF_int::cdealloc(fold_edge_len);
     CTF_int::cdealloc(fold_sym);
-
+    CTF_int::cdealloc(fold_edge_len);
     CTF_int::cdealloc(sub_edge_len);
 
   }
@@ -2943,6 +2976,7 @@ namespace CTF_int {
         data_ptr_in += this->nnz_blk[i]*this->sr->pair_size();
         data_ptr_out += this->rec_tsr->nnz_blk[i];
         cdealloc(ilens);
+        cdealloc(iall_flen);
         cdealloc(ipad_edge_len);
       }
     }
@@ -3285,6 +3319,7 @@ namespace CTF_int {
         tensor * new_tsr = new tensor(this->sr, this->order-1, new_len, new_sym, this->wrld, 1, this->name, 1, this->is_sparse);
         summation s(this, sum_A_idx, this->sr->mulid(), new_tsr, sum_B_idx, this->sr->mulid());
         s.execute();
+        CTF_int::cdealloc(new_len);
         return new_tsr;
       }
     }

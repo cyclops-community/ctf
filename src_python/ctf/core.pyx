@@ -68,7 +68,7 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
     cdef cppclass ctensor "CTF_int::tensor":
         World * wrld
         algstrct * sr
-        int * lens
+        int64_t * lens
         bool is_sparse
         int64_t nnz_tot
         int order
@@ -112,7 +112,7 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
 
         void reshape(ctensor * tsr, char * alpha, char * beta)
         void allread(int64_t * num_pair, char * data, bool unpack)
-        void slice(int *, int *, char *, ctensor *, int *, int *, char *)
+        void slice(int64_t *, int64_t *, char *, ctensor *, int64_t *, int64_t *, char *)
         int64_t get_tot_size(bool packed)
         void get_raw_data(char **, int64_t * size)
         int permute(ctensor * A, int ** permutation_A, char * alpha, int ** permutation_B, char * beta)
@@ -226,7 +226,7 @@ cdef extern from "ctf.hpp" namespace "CTF":
         void operator=(Idx_Tensor B)
 
     cdef cppclass Tensor[dtype](ctensor):
-        Tensor(int, bint, int *, int *)
+        Tensor(int, bint, int64_t *, int *)
         Tensor(bool , ctensor)
         void fill_random(dtype, dtype)
         void fill_sp_random(dtype, dtype, double)
@@ -1009,8 +1009,8 @@ cdef class tensor:
                 rsym = _rev_array(rsym)
                 rsym[0:-1] = rsym[1:]
                 rsym[-1] = SYM.NS
-        cdef int * clens
-        clens = int_arr_py_to_c(rlens)
+        cdef int64_t * clens
+        clens = int64_t_arr_py_to_c(rlens)
         cdef int * csym
         csym = int_arr_py_to_c(rsym)
         if copy is None:
@@ -2466,19 +2466,19 @@ cdef class tensor:
         alpha = <char*>self.dt.sr.mulid()
         beta = <char*>self.dt.sr.addid()
         A = tensor(np.asarray(ends)-np.asarray(offsets), dtype=self.dtype, sp=self.sp)
-        cdef int * clens
-        cdef int * coffs
-        cdef int * cends
+        cdef int64_t * clens
+        cdef int64_t * coffs
+        cdef int64_t * cends
         if _ord_comp(self.order, 'F'):
-            clens = int_arr_py_to_c(_rev_array(A.shape))
-            coffs = int_arr_py_to_c(_rev_array(offsets))
-            cends = int_arr_py_to_c(_rev_array(ends))
-            czeros = int_arr_py_to_c(np.zeros(len(self.shape), dtype=np.int32))
+            clens = int64_t_arr_py_to_c(_rev_array(A.shape))
+            coffs = int64_t_arr_py_to_c(_rev_array(offsets))
+            cends = int64_t_arr_py_to_c(_rev_array(ends))
+            czeros = int64_t_arr_py_to_c(np.zeros(len(self.shape), dtype=np.int32))
         else:
-            clens = int_arr_py_to_c(A.shape)
-            coffs = int_arr_py_to_c(offsets)
-            cends = int_arr_py_to_c(ends)
-            czeros = int_arr_py_to_c(np.zeros(len(self.shape), dtype=np.int32))
+            clens = int64_t_arr_py_to_c(A.shape)
+            coffs = int64_t_arr_py_to_c(offsets)
+            cends = int64_t_arr_py_to_c(ends)
+            czeros = int64_t_arr_py_to_c(np.zeros(len(self.shape), dtype=np.int32))
         A.dt.slice(czeros, clens, beta, self.dt, coffs, cends, alpha)
         free(czeros)
         free(cends)
@@ -2505,33 +2505,33 @@ cdef class tensor:
             nb = np.array([b])
             for j in range(0,st):
                 beta[j] = nb.view(dtype=np.int8)[j]
-        cdef int * caoffs
-        cdef int * caends
+        cdef int64_t * caoffs
+        cdef int64_t * caends
 
-        cdef int * coffs
-        cdef int * cends
+        cdef int64_t * coffs
+        cdef int64_t * cends
         if _ord_comp(self.order, 'F'):
             if A_offsets is None:
-                caoffs = int_arr_py_to_c(_rev_array(np.zeros(len(self.shape), dtype=np.int32)))
+                caoffs = int64_t_arr_py_to_c(_rev_array(np.zeros(len(self.shape), dtype=np.int32)))
             else:
-                caoffs = int_arr_py_to_c(_rev_array(A_offsets))
+                caoffs = int64_t_arr_py_to_c(_rev_array(A_offsets))
             if A_ends is None:
-                caends = int_arr_py_to_c(_rev_array(A.shape))
+                caends = int64_t_arr_py_to_c(_rev_array(A.shape))
             else:
-                caends = int_arr_py_to_c(_rev_array(A_ends))
-            coffs = int_arr_py_to_c(_rev_array(offsets))
-            cends = int_arr_py_to_c(_rev_array(ends))
+                caends = int64_t_arr_py_to_c(_rev_array(A_ends))
+            coffs = int64_t_arr_py_to_c(_rev_array(offsets))
+            cends = int64_t_arr_py_to_c(_rev_array(ends))
         else:
             if A_offsets is None:
-                caoffs = int_arr_py_to_c(np.zeros(len(self.shape), dtype=np.int32))
+                caoffs = int64_t_arr_py_to_c(np.zeros(len(self.shape), dtype=np.int32))
             else:
-                caoffs = int_arr_py_to_c(A_offsets)
+                caoffs = int64_t_arr_py_to_c(A_offsets)
             if A_ends is None:
-                caends = int_arr_py_to_c(A.shape)
+                caends = int64_t_arr_py_to_c(A.shape)
             else:
-                caends = int_arr_py_to_c(A_ends)
-            coffs = int_arr_py_to_c(offsets)
-            cends = int_arr_py_to_c(ends)
+                caends = int64_t_arr_py_to_c(A_ends)
+            coffs = int64_t_arr_py_to_c(offsets)
+            cends = int64_t_arr_py_to_c(ends)
         #coffs = int_arr_py_to_c(offsets)
         #cends = int_arr_py_to_c(ends)
         self.dt.slice(coffs, cends, beta, (<tensor>A).dt, caoffs, caends, alpha)

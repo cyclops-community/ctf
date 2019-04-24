@@ -4964,6 +4964,7 @@ namespace CTF_int {
         bool do_densify = !C->sr->isequal(tmp, C->sr->addid());
         this->func->apply_f(A->sr->addid(), B->sr->addid(), tmp);
         do_densify = do_densify || !C->sr->isequal(tmp, C->sr->addid());
+        C->sr->dealloc(tmp);
         if (do_densify){
 
           contraction pre_new_ctr = contraction(*this);
@@ -4981,6 +4982,7 @@ namespace CTF_int {
         bool do_densify = !C->sr->isequal(tmp, C->sr->addid());
         this->func->apply_f(A->sr->addid(), B->sr->addid(), tmp);
         do_densify = do_densify || !C->sr->isequal(tmp, C->sr->addid());
+        C->sr->dealloc(tmp);
         if (do_densify){
           contraction pre_new_ctr = contraction(*this);
           pre_new_ctr.B = new tensor(B, 1, 1);
@@ -5136,6 +5138,7 @@ namespace CTF_int {
         delete nc;
         delete X2;
         free(symX);
+        free(lensX);
         free(sidxX);
         free(nidxX);
         free(cidxX);

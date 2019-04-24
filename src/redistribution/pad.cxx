@@ -407,7 +407,7 @@ namespace CTF_int {
       }
 
       memcpy(phase_rank, cphase_rank, order*sizeof(int));
-      memset(virt_rank, 0, sizeof(int64_t)*order);
+      memset(virt_rank, 0, sizeof(int)*order);
 
       int tid, ntd;
       int64_t vst, vend;
