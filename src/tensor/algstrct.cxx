@@ -363,7 +363,7 @@ namespace CTF_int {
     ASSERT(0);
   }
 
-  void algstrct::ccsr_to_coo(int64_t nz, int64_t nnz_row, char const * csr_vs, int const * csr_ja, int const * csr_ia, int const * row_enc, char * coo_vs, int64_t * coo_rs, int64_t * coo_cs) const {
+  void algstrct::ccsr_to_coo(int64_t nz, int64_t nnz_row, char const * csr_vs, int const * csr_ja, int const * csr_ia, int64_t const * row_enc, char * coo_vs, int64_t * coo_rs, int64_t * coo_cs) const {
     printf("CTF ERROR: cannot convert elements of this algebraic structure to CCSR\n");
     ASSERT(0);
   }

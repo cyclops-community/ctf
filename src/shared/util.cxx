@@ -320,7 +320,7 @@ namespace CTF_int {
     return fact(n)/(fact(k)*fact(n-k));
   }
 
-  void get_choice(int64_t n, int64_t k, int64_t ch, int64_t * chs){
+  void get_choice(int n, int k, int ch, int64_t * chs){
     if (k==0) return;
     if (k==1){
       chs[0] = ch;

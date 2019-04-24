@@ -13,7 +13,7 @@ namespace CTF_int {
                         CommData                   global_comm,
                         int                        i,
                         int *                      virt_dim,
-                        int &                      cg_edge_len,
+                        int64_t &                  cg_edge_len,
                         int &                      total_iter,
                         tensor *                   A,
                         int                        i_A,
@@ -21,9 +21,9 @@ namespace CTF_int {
                         int64_t &                  cg_ctr_lda_A,
                         int64_t &                  cg_ctr_sub_lda_A,
                         bool &                     cg_move_A,
-                        int *                      blk_len_A,
+                        int64_t *                  blk_len_A,
                         int64_t &                  blk_sz_A,
-                        int const *                virt_blk_len_A,
+                        int64_t const *            virt_blk_len_A,
                         int &                      load_phase_A,
                         tensor *                   B,
                         int                        i_B,
@@ -31,9 +31,9 @@ namespace CTF_int {
                         int64_t &                  cg_ctr_lda_B,
                         int64_t &                  cg_ctr_sub_lda_B,
                         bool &                     cg_move_B,
-                        int *                      blk_len_B,
+                        int64_t *                  blk_len_B,
                         int64_t &                  blk_sz_B,
-                        int const *                virt_blk_len_B,
+                        int64_t const *            virt_blk_len_B,
                         int &                      load_phase_B,
                         tensor *                   C,
                         int                        i_C,
@@ -41,9 +41,9 @@ namespace CTF_int {
                         int64_t &                  cg_ctr_lda_C,
                         int64_t &                  cg_ctr_sub_lda_C,
                         bool &                     cg_move_C,
-                        int *                      blk_len_C,
+                        int64_t *                  blk_len_C,
                         int64_t &                  blk_sz_C,
-                        int const *                virt_blk_len_C,
+                        int64_t const *            virt_blk_len_C,
                         int &                      load_phase_C){
     mapping * map;
     int j;
@@ -112,23 +112,23 @@ namespace CTF_int {
         }
         if (B->edge_map[i_B].type != PHYSICAL_MAP){
           if (blk_sz_B / nstep == 0) 
-            printf("blk_len_B[%d] = %d, nstep = %ld blk_sz_B = %ld\n",i_B,blk_len_B[i_B],nstep,blk_sz_B);
+            printf("blk_len_B[%d] = %ld, nstep = %ld blk_sz_B = %ld\n",i_B,blk_len_B[i_B],nstep,blk_sz_B);
           blk_sz_B  = blk_sz_B / nstep;
           blk_len_B[i_B] = blk_len_B[i_B] / nstep;
         } else {
           if (blk_sz_B  * B->edge_map[i_B].np/ nstep == 0) 
-            printf("blk_len_B[%d] = %d  B->edge_map[%d].np = %d, nstep = %ld blk_sz_B = %ld\n",i_B,blk_len_B[i_B],i_B,B->edge_map[i_B].np,nstep,blk_sz_B);
+            printf("blk_len_B[%d] = %ld  B->edge_map[%d].np = %d, nstep = %ld blk_sz_B = %ld\n",i_B,blk_len_B[i_B],i_B,B->edge_map[i_B].np,nstep,blk_sz_B);
           blk_sz_B  = blk_sz_B * B->edge_map[i_B].np / nstep;
           blk_len_B[i_B] = blk_len_B[i_B] * B->edge_map[i_B].np / nstep;
         }
         if (C->edge_map[i_C].type != PHYSICAL_MAP){
           if (blk_sz_C / nstep == 0) 
-            printf("blk_len_C[%d] = %d, nstep = %ld blk_sz_C = %ld\n",i_C,blk_len_C[i_C],nstep,blk_sz_C);
+            printf("blk_len_C[%d] = %ld, nstep = %ld blk_sz_C = %ld\n",i_C,blk_len_C[i_C],nstep,blk_sz_C);
           blk_sz_C  = blk_sz_C / nstep;
           blk_len_C[i_C] = blk_len_C[i_C] / nstep;
         } else {
           if (blk_sz_C  * C->edge_map[i_C].np/ nstep == 0) 
-            printf("blk_len_C[%d] = %d  C->edge_map[%d].np = %d, nstep = %ld blk_sz_C = %ld\n",i_C,blk_len_C[i_C],i_C,C->edge_map[i_C].np,nstep,blk_sz_C);
+            printf("blk_len_C[%d] = %ld  C->edge_map[%d].np = %d, nstep = %ld blk_sz_C = %ld\n",i_C,blk_len_C[i_C],i_C,C->edge_map[i_C].np,nstep,blk_sz_C);
           blk_sz_C  = blk_sz_C * C->edge_map[i_C].np / nstep;
           blk_len_C[i_C] = blk_len_C[i_C] * C->edge_map[i_C].np / nstep;
         }
@@ -198,7 +198,7 @@ namespace CTF_int {
   }
 
   void ctr_2d_general::print() {
-    printf("ctr_2d_general: edge_len = %d\n", edge_len);
+    printf("ctr_2d_general: edge_len = %ld\n", edge_len);
     printf("move_A = %d, ctr_lda_A = %ld, ctr_sub_lda_A = %ld\n",
             move_A, ctr_lda_A, ctr_sub_lda_A);
     if (move_A) printf("cdt_A length = %d\n",cdt_A->np);

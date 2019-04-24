@@ -120,7 +120,7 @@ namespace CTF_int {
       if (ntd == 1){
         if (gidx_end[old_dist.order-1] != len[old_dist.order-1]){
           for (int dim=0; dim<old_dist.order; dim++){
-            printf("glb_idx_end = %ld, gidx_end[%d]= %d, len[%d] = %d\n", 
+            printf("glb_idx_end = %ld, gidx_end[%d]= %ld, len[%d] = %ld\n", 
                    glb_idx_end, dim, gidx_end[dim], dim, len[dim]);
           }
           ABORT;

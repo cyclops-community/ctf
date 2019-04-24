@@ -88,15 +88,15 @@ namespace CTF_int {
     public:
       char const * alpha;
       int order_A;
-      int * edge_len_A;
+      int64_t * edge_len_A;
       int const * idx_map_A;
       int * sym_A;
       int order_B;
-      int * edge_len_B;
+      int64_t * edge_len_B;
       int const * idx_map_B;
       int * sym_B;
       int order_C;
-      int * edge_len_C;
+      int64_t * edge_len_C;
       int const * idx_map_C;
       int * sym_C;
       //fseq_tsr_ctr func_ptr;
@@ -129,9 +129,9 @@ namespace CTF_int {
       seq_tsr_ctr(contraction const * c,
                   bool                is_inner,
                   iparam const *      inner_params,
-                  int *               virt_blk_len_A,
-                  int *               virt_blk_len_B,
-                  int *               virt_blk_len_C,
+                  int64_t *           virt_blk_len_A,
+                  int64_t *           virt_blk_len_B,
+                  int64_t *           virt_blk_len_C,
                   int64_t             vrt_sz_C);
   };
 

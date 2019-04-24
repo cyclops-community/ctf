@@ -60,7 +60,7 @@ namespace CTF_int {
     int64_t v_sz = csr.val_size(); 
     int const * csr_ja = csr.JA();
     int const * csr_ia = csr.IA();
-    int const * row_enc = csr.nnz_row_encoding();
+    int64_t const * row_enc = csr.nnz_row_encoding();
     char const * csr_vs = csr.vals();
 
     int64_t size = get_coo_size(nnz, v_sz);
@@ -341,10 +341,16 @@ namespace CTF_int {
 
   template <typename int_type>
   void tCOO_Matrix<int_type>::coomm(char const * A, algstrct const * sr_A, int_type m, int_type n, int_type k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func){
+    ASSERT(0);
+    assert(0); // COOMM not available for this int_type
+  }
+
+  template <>
+  void tCOO_Matrix<int>::coomm(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func){
     tCOO_Matrix cA((char*)A);
     int64_t nz = cA.nnz(); 
-    int_type const * rs = cA.rows();
-    int_type const * cs = cA.cols();
+    int const * rs = cA.rows();
+    int const * cs = cA.cols();
     char const * vs = cA.vals();
     if (func != NULL){
       assert(sr_C->isequal(beta, sr_C->mulid()));
@@ -360,4 +366,7 @@ namespace CTF_int {
   bool is_COO_int64(char const * all_data){
     return (bool)((int64_t*)all_data)[0];
   }
+
+  template class tCOO_Matrix<int>;
+  template class tCOO_Matrix<int64_t>;
 }

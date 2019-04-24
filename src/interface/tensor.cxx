@@ -714,6 +714,27 @@ namespace CTF {
                             int const *             offsets_A,
                             int const *             ends_A,
                             dtype                   alpha){
+    int64_t * ioffsets, * iends, * ioffsets_A, * iends_A;
+    ioffsets = CTF_int::conv_to_int64(offsets,this->order);
+    iends    = CTF_int::conv_to_int64(ends,this->order);
+    ioffsets_A = CTF_int::conv_to_int64(offsets_A,A.order);
+    iends_A    = CTF_int::conv_to_int64(ends_A,A.order);
+    slice(ioffsets, iends, beta, A, ioffsets_A, iends_A, alpha);
+
+    CTF_int::cdealloc(ioffsets);
+    CTF_int::cdealloc(iends);
+    CTF_int::cdealloc(ioffsets_A);
+    CTF_int::cdealloc(iends_A);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::slice(int64_t const *         offsets,
+                            int64_t const *         ends,
+                            dtype                   beta,
+                            CTF_int::tensor const & A,
+                            int64_t const *         offsets_A,
+                            int64_t const *         ends_A,
+                            dtype                   alpha){
     int np_A, np_B;
     if (A.wrld->comm != wrld->comm){
       MPI_Comm_size(A.wrld->comm, &np_A);
@@ -771,6 +792,14 @@ namespace CTF {
   }
 
   template<typename dtype>
+  Tensor<dtype> Tensor<dtype>::slice(int64_t const * offsets,
+                                     int64_t const * ends) const {
+
+    return slice(offsets, ends, wrld);
+  }
+
+
+  template<typename dtype>
   Tensor<dtype> Tensor<dtype>::slice(int64_t corner_off,
                                      int64_t corner_end) const {
 
@@ -781,10 +810,26 @@ namespace CTF {
   Tensor<dtype> Tensor<dtype>::slice(int const *  offsets,
                                      int const *  ends,
                                      World *      owrld) const {
+
+    int64_t * ioffsets, * iends;
+    ioffsets = CTF_int::conv_to_int64(offsets,this->order);
+    iends    = CTF_int::conv_to_int64(ends,this->order);
+    Tensor<dtype> T = slice(ioffsets, iends, owrld);
+    CTF_int::cdealloc(ioffsets);
+    CTF_int::cdealloc(iends);
+    return T;
+  }
+
+  template<typename dtype>
+  Tensor<dtype> Tensor<dtype>::slice(int64_t const *  offsets,
+                                     int64_t const *  ends,
+                                     World *          owrld) const {
     int i;
-    int * new_lens = (int*)CTF_int::alloc(sizeof(int)*order);
+    int64_t * new_lens = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order);
+    int64_t * zeros = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order);
     int * new_sym = (int*)CTF_int::alloc(sizeof(int)*order);
     for (i=0; i<order; i++){
+      zeros[i] = 0;
       if (!(ends[i] - offsets[i] > 0 &&
                   offsets[i] >= 0 &&
                   ends[i] <= lens[i])){
@@ -810,12 +855,13 @@ namespace CTF {
     Tensor<dtype> new_tsr(order, is_sparse, new_lens, new_sym, *owrld, *sr);
 //   Tensor<dtype> new_tsr = tensor(sr, order, new_lens, new_sym, owrld, 1);
     std::fill(new_sym, new_sym+order, 0);
-    new_tsr.slice(new_sym, new_lens, *(dtype*)sr->addid(), *this, offsets, ends, *(dtype*)sr->mulid());
+    new_tsr.slice(zeros, new_lens, *(dtype*)sr->addid(), *this, offsets, ends, *(dtype*)sr->mulid());
 /*    new_tsr.slice(
         new_sym, new_lens, sr->addid(), this,
         offsets, ends, sr->mulid());*/
     CTF_int::cdealloc(new_lens);
     CTF_int::cdealloc(new_sym);
+    CTF_int::cdealloc(zeros);
     return new_tsr;
   }
 
@@ -824,7 +870,7 @@ namespace CTF {
                                      int64_t  corner_end,
                                      World *  owrld) const {
 
-    int * offsets, * ends;
+    int64_t * offsets, * ends;
 
     CTF_int::cvrt_idx(this->order, this->lens, corner_off, &offsets);
     CTF_int::cvrt_idx(this->order, this->lens, corner_end, &ends);

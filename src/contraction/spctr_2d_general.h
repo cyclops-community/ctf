@@ -6,47 +6,10 @@
 
 namespace CTF_int{
   class tensor;
-  int  spctr_2d_gen_build(int                        is_used,
-                          CommData                   global_comm,
-                          int                        i,
-                          int *                      virt_dim,
-                          int &                      cg_edge_len,
-                          int &                      total_iter,
-                          tensor *                   A,
-                          int                        i_A,
-                          CommData *&                cg_cdt_A,
-                          int64_t &                  cg_spctr_lda_A,
-                          int64_t &                  cg_spctr_sub_lda_A,
-                          bool &                     cg_move_A,
-                          int *                      blk_len_A,
-                          int64_t &                  blk_sz_A,
-                          int const *                virt_blk_len_A,
-                          int &                      load_phase_A,
-                          tensor *                   B,
-                          int                        i_B,
-                          CommData *&                cg_cdt_B,
-                          int64_t &                  cg_spctr_lda_B,
-                          int64_t &                  cg_spctr_sub_lda_B,
-                          bool &                     cg_move_B,
-                          int *                      blk_len_B,
-                          int64_t &                  blk_sz_B,
-                          int const *                virt_blk_len_B,
-                          int &                      load_phase_B,
-                          tensor *                   C,
-                          int                        i_C,
-                          CommData *&                cg_cdt_C,
-                          int64_t &                  cg_spctr_lda_C,
-                          int64_t &                  cg_spctr_sub_lda_C,
-                          bool &                     cg_move_C,
-                          int *                      blk_len_C,
-                          int64_t &                  blk_sz_C,
-                          int const *                virt_blk_len_C,
-                          int &                      load_phase_C);
-
 
   class spctr_2d_general : public spctr {
     public: 
-      int edge_len;
+      int64_t edge_len;
 
       int64_t ctr_lda_A; /* local lda_A of contraction dimension 'k' */
       int64_t ctr_sub_lda_A; /* elements per local lda_A 

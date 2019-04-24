@@ -6,7 +6,7 @@ namespace CTF_int{
   class algstrct;
   //lives in contraction/sym_seq_ctr
   void compute_syoff(int              r,
-                     int              len,
+                     int64_t          len,
                      algstrct const * sr,
                      int64_t const *  edge_len,
                      int const *      sym,

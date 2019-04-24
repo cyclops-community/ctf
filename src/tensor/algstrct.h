@@ -291,7 +291,7 @@ namespace CTF_int {
       virtual void csr_to_coo(int64_t nz, int nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, char * coo_vs, int * coo_rs, int * coo_cs) const;
 
       /** \brief converts CCSR sparse matrix layout to coordinate (COO) layout */
-      virtual void ccsr_to_coo(int64_t nz, int64_t nnz_row, char const * csr_vs, int const * csr_ja, int const * csr_ia, int const * row_enc, char * coo_vs, int64_t * coo_rs, int64_t * coo_cs) const;
+      virtual void ccsr_to_coo(int64_t nz, int64_t nnz_row, char const * csr_vs, int const * csr_ja, int const * csr_ia, int64_t const * row_enc, char * coo_vs, int64_t * coo_rs, int64_t * coo_cs) const;
 
       /** \brief adds CSR matrices A (stored in cA) and B (stored in cB) to create matric C (pointer to all_data returned), C data allocated internally */
       virtual char * csr_add(char * cA, char * cB, bool is_ccsr) const;

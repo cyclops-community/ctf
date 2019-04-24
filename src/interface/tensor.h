@@ -745,6 +745,16 @@ namespace CTF {
                           int const * ends) const;
 
       /**
+       * \brief cuts out a slice (block) of this tensor A[offsets,ends)
+       *        result will always be fully nonsymmetric
+       * \param[in] offsets bottom left corner of block
+       * \param[in] ends top right corner of block
+       * \return new tensor corresponding to requested slice
+       */
+      Tensor<dtype> slice(int64_t const * offsets,
+                          int64_t const * ends) const;
+
+      /**
        * \brief cuts out a slice (block) of this tensor with corners specified by global index
        *        result will always be fully nonsymmetric
        * \param[in] corner_off top left corner of block
@@ -766,6 +776,20 @@ namespace CTF {
       Tensor<dtype> slice(int const * offsets,
                           int const * ends,
                           World *     oworld) const;
+
+      /**
+       * \brief cuts out a slice (block) of this tensor A[offsets,ends)
+       *        result will always be fully nonsymmetric
+       * \param[in] offsets bottom left corner of block
+       * \param[in] ends top right corner of block
+       * \param[in] oworld the world in which the new tensor should be defined
+       * \return new tensor corresponding to requested slice which lives on
+       *          oworld
+       */
+      Tensor<dtype> slice(int64_t const * offsets,
+                          int64_t const * ends,
+                          World *     oworld) const;
+
 
       /**
        * \brief cuts out a slice (block) of this tensor with corners specified by global index
@@ -799,6 +823,25 @@ namespace CTF {
                  CTF_int::tensor const & A,
                  int const *             offsets_A,
                  int const *             ends_A,
+                 dtype                   alpha);
+
+      /**
+       * \brief adds to a slice (block) of this tensor = B
+       *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
+       * \param[in] offsets bottom left corner of block
+       * \param[in] ends top right corner of block
+       * \param[in] beta scaling factor of this tensor
+       * \param[in] A tensor who owns pure-operand slice
+       * \param[in] offsets_A bottom left corner of block of A
+       * \param[in] ends_A top right corner of block of A
+       * \param[in] alpha scaling factor of tensor A
+       */
+      void slice(int64_t const *         offsets,
+                 int64_t const *         ends,
+                 dtype                   beta,
+                 CTF_int::tensor const & A,
+                 int64_t const *         offsets_A,
+                 int64_t const *         ends_A,
                  dtype                   alpha);
 
       /**
