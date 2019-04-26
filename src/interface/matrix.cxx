@@ -751,10 +751,15 @@ namespace CTF {
     dtype * work = (dtype*)CTF_int::alloc(sizeof(dtype)*((int64_t)lwork));
     CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
     if (threshold > 0.0){
-      rank = std::upper_bound(s, s+k, (dtype)threshold, [](const dtype a, const dtype b){ return std::abs(a) > std::abs(b); }) - s;
+      int rankt = std::upper_bound(s, s+k, (dtype)threshold, [](const dtype a, const dtype b){ return std::abs(a) > std::abs(b); }) - s;
+      if (rank > 0){
+        rank = std::min(rankt, rank);
+      } else {
+        rank = rankt;
+      }
       //printf("truncated value ");
       //this->sr->print((char*)(s+rank));
-      //printf(", threshold was %lf\n",threshold);
+      //printf(", threshold was %lf, rank is %d rankt is %d\n",threshold, rank, rankt);
     }
     int phase = S.edge_map[0].calc_phase();
     if ((int)(this->wrld->rank) < phase){

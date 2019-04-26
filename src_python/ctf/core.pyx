@@ -521,7 +521,7 @@ cdef class itensor(term):
             Indices indexing right singular vectors, should be subset of the string of this itensor, plus same auxiliary index as in U
     
         threshold: real double precision or None, optional
-            threshold for truncation of singular values. Either rank or threshold must be set to None.
+           threshold for truncating singular values of the SVD, determines rank, if threshold ia also used, rank will be set to minimum of rank and number of singular values above threshold
 
         niter: int or None, optional, default 1
             number of orthogonal iterations to perform (higher gives better accuracy)

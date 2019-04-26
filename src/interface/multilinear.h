@@ -31,6 +31,7 @@ namespace CTF {
    * \param[out] VT right singular vectors of matrix
    * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns)
    * \param[in] threshold for truncating singular values of the SVD, determines rank, if used, must set previous paramter rank=0
+   * \param[in] threshold for truncating singular values of the SVD, determines rank, if threshold ia also used, rank will be set to minimum of rank and number of singular values above threshold
    * \param[in] use_svd_rand if true, use randomized SVD, in which case rank must be prespecified as opposed to threshold
    * \param[in] iter number of orthogonal iterations to perform (higher gives better accuracy) for randomized SVD
    * \param[in] oversamp oversampling parameter for randomized SVD

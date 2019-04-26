@@ -10,10 +10,10 @@ from ctf import random
 import numpy.linalg as la
 
 def allclose(a, b):
-    if abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() > 1e-3:
-        print(ctf.to_nparray(a))
-        print(ctf.to_nparray(b))
-    return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() <= 1e-3
+    #if abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() > 1e-3:
+    #    print(ctf.to_nparray(a))
+    #    print(ctf.to_nparray(b))
+    return  (ctf.to_nparray(a).shape == ctf.to_nparray(b).shape) and abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() <= 1e-3
 
 
 class KnowValues(unittest.TestCase):
@@ -118,8 +118,16 @@ class KnowValues(unittest.TestCase):
             self.assertTrue(ctf.vecnorm(A)/A.tot_size()<1.e-6)
 
             A = ctf.tensor(lens,dtype=dt)
+            A.fill_random()
+            [U,S,VT]=A.i("ijkl").svd("ika","ajl")
             [U,S1,VT]=A.i("ijkl").svd("ika","ajl",4)
-            [U,S2,VT]=A.i("ijkl").svd("ika","ajl",numpy.abs(S[4]))
+            [U,S2,VT]=A.i("ijkl").svd("ika","ajl",4,numpy.abs(S[3])*(1.-1.e-5))
+            self.assertTrue(allclose(S1,S2))
+
+            [U,S2,VT]=A.i("ijkl").svd("ika","ajl",4,numpy.abs(S[2]))
+            self.assertTrue(not allclose(S1.shape,S2.shape))
+
+            [U,S2,VT]=A.i("ijkl").svd("ika","ajl",4,numpy.abs(S[5]))
             self.assertTrue(allclose(S1,S2))
       
             [U,S,VT]=A.i("ijkl").svd("iakj","la")

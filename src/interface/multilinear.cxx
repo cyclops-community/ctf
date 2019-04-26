@@ -283,7 +283,6 @@ namespace CTF {
     bool need_transpose_A  = false;
     bool need_transpose_U  = false;
     bool need_transpose_VT = false;
-    IASSERT(rank == 0 || threshold == 0.); // cannot set both rank and threhsold
     IASSERT(strlen(S.idx_map) == 1);
     int ndim_U = strlen(U.idx_map);
     int ndim_VT = strlen(VT.idx_map);

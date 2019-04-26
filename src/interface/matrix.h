@@ -308,7 +308,7 @@ namespace CTF {
        * \param[out] S singular values of matrix
        * \param[out] VT right singular vectors of matrix
        * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns)
-       * \param[in] threshold for truncating singular values of the SVD, determines rank, if used, must set previous paramter rank=0
+       * \param[in] threshold for truncating singular values of the SVD, determines rank, if threshold ia also used, rank will be set to minimum of rank and number of singular values above threshold
        */
       void svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank = 0, double threshold=0.);
 
