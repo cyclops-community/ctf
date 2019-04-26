@@ -269,8 +269,73 @@ namespace CTF {
     *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
     *data = (dtype*)sr->alloc((*npair));
     CTF_int::PairIterator pairs(sr, cpairs);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (i=0; i<(*npair); i++){
       (*global_idx)[i] = pairs[i].k();
+      pairs[i].read_val((char*)((*data)+i));
+    }
+    if (cpairs != NULL) sr->pair_dealloc(cpairs);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::get_local_data_aos_idx(int64_t *  npair,
+                                             int64_t ** inds,
+                                             dtype **   data,
+                                             bool       nonzeros_only,
+                                             bool       unpack_sym) const {
+    char * cpairs;
+    int ret;
+    int64_t i;
+    if (nonzeros_only)
+      ret = CTF_int::tensor::read_local_nnz(npair,&cpairs,unpack_sym);
+    else
+      ret = CTF_int::tensor::read_local(npair,&cpairs,unpack_sym);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
+    *inds = (int64_t*)CTF_int::alloc(this->order*(*npair)*sizeof(int64_t));
+    *data = (dtype*)sr->alloc((*npair));
+    CTF_int::PairIterator pairs(sr, cpairs);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (i=0; i<(*npair); i++){
+      int64_t k = pairs[i].k();
+      for (int j=0; j<this->order; j++){
+        (*inds)[i*this->order + j] = k % this->lens[j];
+        k = k/this->lens[j];
+      }
+      pairs[i].read_val((char*)((*data)+i));
+    }
+    if (cpairs != NULL) sr->pair_dealloc(cpairs);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::get_local_data_aos_idx(int64_t *  npair,
+                                             int **     inds,
+                                             dtype **   data,
+                                             bool       nonzeros_only,
+                                             bool       unpack_sym) const {
+    char * cpairs;
+    int ret;
+    int64_t i;
+    if (nonzeros_only)
+      ret = CTF_int::tensor::read_local_nnz(npair,&cpairs,unpack_sym);
+    else
+      ret = CTF_int::tensor::read_local(npair,&cpairs,unpack_sym);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
+    *inds = (int*)CTF_int::alloc(this->order*(*npair)*sizeof(int));
+    *data = (dtype*)sr->alloc((*npair));
+    CTF_int::PairIterator pairs(sr, cpairs);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (i=0; i<(*npair); i++){
+      int64_t k = pairs[i].k();
+      for (int j=0; j<this->order; j++){
+        (*inds)[i*this->order + j] = k % this->lens[j];
+        k = k/this->lens[j];
+      }
       pairs[i].read_val((char*)((*data)+i));
     }
     if (cpairs != NULL) sr->pair_dealloc(cpairs);
@@ -288,6 +353,10 @@ namespace CTF {
     *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
     *data = (dtype*)CTF_int::alloc((*npair)*sizeof(dtype));
     CTF_int::PairIterator pairs(sr, cpairs);
+
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (i=0; i<(*npair); i++){
       (*global_idx)[i] = pairs[i].k();
       pairs[i].read_val((char*)((*data)+i));
@@ -328,6 +397,9 @@ namespace CTF {
     int64_t i;
     char * cpairs = sr->pair_alloc(npair);
     Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (i=0; i<npair; i++){
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
@@ -362,9 +434,13 @@ namespace CTF {
   void Tensor<dtype>::write(int64_t         npair,
                             int64_t const * global_idx,
                             dtype const *   data) {
-    int ret, i;
+    int ret;
+    int64_t i;
     char * cpairs = sr->pair_alloc(npair);
     Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (i=0; i<npair; i++){
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
@@ -379,6 +455,122 @@ namespace CTF {
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function write\n"); IASSERT(0); return; }
     sr->pair_dealloc(cpairs);
   }
+
+  template<typename dtype>
+  void Tensor<dtype>::read_aos_idx(int64_t         npair,
+                                   int64_t const * inds,
+                                   dtype *         data){
+    int ret, j;
+    int64_t i;
+    char * cpairs = sr->pair_alloc(npair);
+    Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (i=0; i<npair; i++){
+      int64_t k = 0;
+      int64_t lda = 1;
+      for (j=0; j<this->order; j++){
+        k += inds[i*this->order+j] * lda;
+        lda *= this->lens[j];
+      }
+      pairs[i].k = k;
+      pairs[i].d = data[i];
+    }
+    ret = CTF_int::tensor::read(npair, cpairs);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read\n"); IASSERT(0); return; }
+    for (i=0; i<npair; i++){
+      data[i] = pairs[i].d;
+    }
+    sr->pair_dealloc(cpairs);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::read_aos_idx(int64_t         npair,
+                                   dtype           alpha,
+                                   dtype           beta,
+                                   int64_t const * inds,
+                                   dtype *         data){
+    int ret, j;
+    int64_t i;
+    char * cpairs = sr->pair_alloc(npair);
+    Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
+    for (i=0; i<npair; i++){
+      int64_t k = 0;
+      int64_t lda = 1;
+      for (j=0; j<this->order; j++){
+        k += inds[i*this->order+j] * lda;
+        lda *= this->lens[j];
+      }
+      pairs[i].k = k;
+      pairs[i].d = data[i];
+    }
+    ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, cpairs);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read\n"); IASSERT(0); return; }
+    for (i=0; i<npair; i++){
+      data[i] = pairs[i].d;
+    }
+    sr->pair_dealloc(cpairs);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::read_aos_idx(int64_t     npair,
+                                   int const * inds,
+                                   dtype *     data){
+    int ret, j;
+    int64_t i;
+    char * cpairs = sr->pair_alloc(npair);
+    Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (i=0; i<npair; i++){
+      int64_t k = 0;
+      int64_t lda = 1;
+      for (j=0; j<this->order; j++){
+        k += inds[i*this->order+j] * lda;
+        lda *= this->lens[j];
+      }
+      pairs[i].k = k;
+      pairs[i].d = data[i];
+    }
+    ret = CTF_int::tensor::read(npair, cpairs);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read\n"); IASSERT(0); return; }
+    for (i=0; i<npair; i++){
+      data[i] = pairs[i].d;
+    }
+    sr->pair_dealloc(cpairs);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::read_aos_idx(int64_t     npair,
+                                   dtype       alpha,
+                                   dtype       beta,
+                                   int const * inds,
+                                   dtype *     data){
+    int ret, j;
+    int64_t i;
+    char * cpairs = sr->pair_alloc(npair);
+    Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
+    for (i=0; i<npair; i++){
+      int64_t k = 0;
+      int64_t lda = 1;
+      for (j=0; j<this->order; j++){
+        k += inds[i*this->order+j] * lda;
+        lda *= this->lens[j];
+      }
+      pairs[i].k = k;
+      pairs[i].d = data[i];
+    }
+    ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, cpairs);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read\n"); IASSERT(0); return; }
+    for (i=0; i<npair; i++){
+      data[i] = pairs[i].d;
+    }
+    sr->pair_dealloc(cpairs);
+  }
+
+
 
   template<typename dtype>
   void Tensor<dtype>::write(int64_t             npair,
@@ -398,10 +590,14 @@ namespace CTF {
                             dtype           beta,
                             int64_t const * global_idx,
                             dtype const *   data) {
-    int ret, i;
+    int ret;
+    int64_t i;
     char * cpairs = sr->pair_alloc(npair);
     Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
 
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (i=0; i<npair; i++){
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
@@ -431,12 +627,70 @@ namespace CTF {
   }
 
   template<typename dtype>
+  void Tensor<dtype>::write_aos_idx(int64_t         npair,
+                                    dtype           alpha,
+                                    dtype           beta,
+                                    int64_t const * inds,
+                                    dtype const *   data) {
+    int ret, j;
+    int64_t i;
+    char * cpairs = sr->pair_alloc(npair);
+    Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
+
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (i=0; i<npair; i++){
+      int64_t k = 0;
+      int64_t lda = 1;
+      for (j=0; j<this->order; j++){
+        k += inds[i*this->order+j] * lda;
+        lda *= this->lens[j];
+      }
+      pairs[i].k = k;
+      pairs[i].d = data[i];
+    }
+    ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, cpairs);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function write\n"); IASSERT(0); return; }
+    sr->pair_dealloc(cpairs);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::write_aos_idx(int64_t         npair,
+                                    int64_t const * inds,
+                                    dtype const *   data) {
+    int ret, j;
+    int64_t i;
+    char * cpairs = sr->pair_alloc(npair);
+    Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
+
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (i=0; i<npair; i++){
+      int64_t k = 0;
+      int64_t lda = 1;
+      for (j=0; j<this->order; j++){
+        k += inds[i*this->order+j] * lda;
+        lda *= this->lens[j];
+      }
+      pairs[i].k = k;
+      pairs[i].d = data[i];
+    }
+    ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), cpairs);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function write\n"); IASSERT(0); return; }
+    sr->pair_dealloc(cpairs);
+  }
+
+
+  template<typename dtype>
   void Tensor<dtype>::read(int64_t         npair,
                            dtype           alpha,
                            dtype           beta,
                            int64_t const * global_idx,
                            dtype *         data){
-    int ret, i;
+    int ret;
+    int64_t i;
     char * cpairs = sr->pair_alloc(npair);
     Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
     for (i=0; i<npair; i++){
@@ -448,6 +702,61 @@ namespace CTF {
     for (i=0; i<npair; i++){
       data[i] = pairs[i].d;
     }
+    sr->pair_dealloc(cpairs);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::write_aos_idx(int64_t         npair,
+                                    dtype           alpha,
+                                    dtype           beta,
+                                    int const *     inds,
+                                    dtype const *   data) {
+    int64_t i, j;
+    int ret;
+    char * cpairs = sr->pair_alloc(npair);
+    Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
+
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (i=0; i<npair; i++){
+      int64_t k = 0;
+      int64_t lda = 1;
+      for (j=0; j<this->order; j++){
+        k += inds[i*this->order+j] * lda;
+        lda *= this->lens[j];
+      }
+      pairs[i].k = k;
+      pairs[i].d = data[i];
+    }
+    ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, cpairs);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function write\n"); IASSERT(0); return; }
+    sr->pair_dealloc(cpairs);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::write_aos_idx(int64_t         npair,
+                                    int const *     inds,
+                                    dtype const *   data) {
+    int ret, i, j;
+    char * cpairs = sr->pair_alloc(npair);
+    Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
+
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (i=0; i<npair; i++){
+      int64_t k = 0;
+      int64_t lda = 1;
+      for (j=0; j<this->order; j++){
+        k += inds[i*this->order+j] * lda;
+        lda *= this->lens[j];
+      }
+      pairs[i].k = k;
+      pairs[i].d = data[i];
+    }
+    ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), cpairs);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function write\n"); IASSERT(0); return; }
     sr->pair_dealloc(cpairs);
   }
 

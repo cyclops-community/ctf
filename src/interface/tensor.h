@@ -437,7 +437,7 @@ namespace CTF {
                 dtype *          data);
 
       /**
-       * \brief sparse read with accumulation: pairs[i].d = alpha*A[pairs[i].k]+beta*pairs[i].d
+       * \brief sparse read: pairs[i].d = alpha*A[pairs[i].k]+beta*pairs[i].d
        * \param[in] npair number of values to read into tensor
        * \param[in] alpha scaling factor on read data
        * \param[in] beta scaling factor on value in initial pairs vector
@@ -450,7 +450,7 @@ namespace CTF {
 
 
       /**
-       * \brief sparse read with accumulation: data[i] = alpha*A[global_idx[i]]+beta*data[i]
+       * \brief sparse read: data[i] = alpha*A[global_idx[i]]+beta*data[i]
        * \param[in] npair number of values to read into tensor
        * \param[in] alpha scaling factor on read data
        * \param[in] beta scaling factor on value in initial values vector
@@ -462,6 +462,63 @@ namespace CTF {
                 dtype            beta,
                 int64_t  const * global_idx,
                 dtype *          data);
+
+      /**
+       * \brief  Gives the values associated with any set of indices The sparse data is defined in coordinate format.
+       * The tensor index (i,j,k,l) of a tensor with edge lengths
+       * {m,n,p,q} is associated with the global index g via the formula g=i+j*m+k*m*n+l*m*n*p. The row index is first
+       * and the column index is second for matrices, which means they are column major.
+       * \param[in] npair number of values to fetch
+       * \param[in] beta scaling factor on value in initial values vector
+       * \param[in] inds index within global tensor of each data value stored as array of structs with each index iterating along a mode of the tensor
+       * \param[in,out] data a prealloced pointer to the data with the specified indices
+       */
+      void read_aos_idx(int64_t          npair,
+                        int64_t const *  global_idx,
+                        dtype *          data);
+
+      /**
+       * \brief sparse read: data[i] = alpha*A[A[inds[A.order*i+0],[A.order*i+1],...]]+beta*data[i]
+       * \param[in] npair number of values to read into tensor
+       * \param[in] alpha scaling factor on read data
+       * \param[in] beta scaling factor on value in initial values vector
+       * \param[in] inds index within global tensor of each data value stored as array of structs with each index iterating along a mode of the tensor
+       * \param[in] data values to which tensor values should be accumulated
+       */
+      void read_aos_idx(int64_t         npair,
+                        dtype           alpha,
+                        dtype           beta,
+                        int64_t const * inds,
+                        dtype *         data);
+
+      /**
+       * \brief  Gives the values associated with any set of indices The sparse data is defined in coordinate format.
+       * The tensor index (i,j,k,l) of a tensor with edge lengths
+       * {m,n,p,q} is associated with the global index g via the formula g=i+j*m+k*m*n+l*m*n*p. The row index is first
+       * and the column index is second for matrices, which means they are column major.
+       * \param[in] npair number of values to fetch
+       * \param[in] beta scaling factor on value in initial values vector
+       * \param[in] inds index within global tensor of each data value stored as array of structs with each index iterating along a mode of the tensor
+       * \param[in,out] data a prealloced pointer to the data with the specified indices
+       */
+      void read_aos_idx(int64_t     npair,
+                        int const * global_idx,
+                        dtype *     data);
+
+      /**
+       * \brief sparse read: data[i] = alpha*A[A[inds[A.order*i+0],[A.order*i+1],...]]+beta*data[i]
+       * \param[in] npair number of values to read into tensor
+       * \param[in] alpha scaling factor on read data
+       * \param[in] beta scaling factor on value in initial values vector
+       * \param[in] inds index within global tensor of each data value stored as array of structs with each index iterating along a mode of the tensor
+       * \param[in] data values to which tensor values should be accumulated
+       */
+      void read_aos_idx(int64_t     npair,
+                        dtype       alpha,
+                        dtype       beta,
+                        int const * inds,
+                        dtype *     data);
+
 
       /**
        * \brief Gives the global indices and values associated with the local data
@@ -476,6 +533,36 @@ namespace CTF {
                           dtype **    data,
                           bool        nonzeros_only=false,
                           bool        unpack_sym=false) const;
+
+      /**
+       * \brief Gives the global indices and values associated with the local data with indices stored in array of structs format (modewise)
+       * \param[out] npair number of local values
+       * \param[out] inds index within global tensor of each data value stored as array of structs with each index iterating along a mode of the tensor
+       * \param[out] data pointer to local values in the order of the indices, should be released with delete []
+       * \param[in] nonzeros_only if true, outputs all tensor elements, if false ignores those equivalent to the additive identity (zero)
+       * \param[in] unpack_sym if true, outputs all tensor elements, if false only those unique with respect to symmetry
+       */
+      void get_local_data_aos_idx(int64_t  *  npair,
+                                  int64_t  ** inds,
+                                  dtype **    data,
+                                  bool        nonzeros_only=false,
+                                  bool        unpack_sym=false) const;
+
+
+      /**
+       * \brief Gives the global indices and values associated with the local data with indices stored in array of structs format (modewise)
+       * \param[out] npair number of local values
+       * \param[out] inds index within global tensor of each data value stored as array of structs with each index iterating along a mode of the tensor
+       * \param[out] data pointer to local values in the order of the indices, should be released with delete []
+       * \param[in] nonzeros_only if true, outputs all tensor elements, if false ignores those equivalent to the additive identity (zero)
+       * \param[in] unpack_sym if true, outputs all tensor elements, if false only those unique with respect to symmetry
+       */
+      void get_local_data_aos_idx(int64_t * npair,
+                                  int **    inds,
+                                  dtype **  data,
+                                  bool      nonzeros_only=false,
+                                  bool      unpack_sym=false) const;
+
 
       /**
        * \brief Using get_local_data(), which returns an array that must be freed with delete [], is more efficient,
@@ -554,9 +641,9 @@ namespace CTF {
        * \param[in] global_idx global index within tensor of value to write
        * \param[in] data values to  write to the indices
        */
-      void write(int64_t          npair,
-                 int64_t  const * global_idx,
-                 dtype const    * data);
+      void write(int64_t         npair,
+                 int64_t const * global_idx,
+                 dtype const   * data);
 
       /**
        * \brief writes in values associated with any set of indices
@@ -574,11 +661,60 @@ namespace CTF {
        * \param[in] global_idx global index within tensor of value to add
        * \param[in] data values to add to the tensor
        */
-      void write(int64_t          npair,
-                 dtype            alpha,
-                 dtype            beta,
-                 int64_t  const * global_idx,
-                 dtype const *    data);
+      void write(int64_t         npair,
+                 dtype           alpha,
+                 dtype           beta,
+                 int64_t const * global_idx,
+                 dtype const *   data);
+
+      /**
+       * \brief sparse add: A[global_idx[i]] = beta*A[inds[A.order*i+0],[A.order*i+1],...]+alpha*data[i]
+       * \param[in] npair number of values to write into tensor
+       * \param[in] alpha scaling factor on value to add
+       * \param[in] beta scaling factor on original data
+       * \param[in] inds indices along each mode stored as array of structs, where each struct contains as many elements as number of modes in this tensor, with corresponding indices for the ith data element
+       * \param[in] data values to add to the tensor
+       */
+      void write_aos_idx(int64_t       npair,
+                         dtype         alpha,
+                         dtype         beta,
+                         int const *   inds,
+                         dtype const * data);
+
+      /**
+       * \brief sparse add: A[global_idx[i]] = 0*A[inds[A.order*i+0],[A.order*i+1],...]+1*data[i]
+       * \param[in] npair number of values to write into tensor
+       * \param[in] inds indices along each mode stored as array of structs, where each struct contains as many elements as number of modes in this tensor, with corresponding indices for the ith data element
+       * \param[in] data values to add to the tensor
+       */
+      void write_aos_idx(int64_t       npair,
+                         int const *   inds,
+                         dtype const * data);
+
+      /**
+       * \brief sparse add: A[global_idx[i]] = beta*A[inds[A.order*i+0],[A.order*i+1],...]+alpha*data[i]
+       * \param[in] npair number of values to write into tensor
+       * \param[in] alpha scaling factor on value to add
+       * \param[in] beta scaling factor on original data
+       * \param[in] inds indices along each mode stored as array of structs, where each struct contains as many elements as number of modes in this tensor, with corresponding indices for the ith data element
+       * \param[in] data values to add to the tensor
+       */
+      void write_aos_idx(int64_t         npair,
+                         dtype           alpha,
+                         dtype           beta,
+                         int64_t const * inds,
+                         dtype const *   data);
+
+      /**
+       * \brief sparse add: A[global_idx[i]] = 0*A[inds[A.order*i+0],[A.order*i+1],...]+1*data[i]
+       * \param[in] npair number of values to write into tensor
+       * \param[in] inds indices along each mode stored as array of structs, where each struct contains as many elements as number of modes in this tensor, with corresponding indices for the ith data element
+       * \param[in] data values to add to the tensor
+       */
+      void write_aos_idx(int64_t         npair,
+                         int64_t const * inds,
+                         dtype const *   data);
+
 
       /**
        * \brief sparse add: A[pairs[i].k] = alpha*A[pairs[i].k]+beta*pairs[i].d
@@ -591,8 +727,6 @@ namespace CTF {
                  dtype               alpha,
                  dtype               beta,
                  Pair<dtype> const * pairs);
-
-
 
       /**
        * \brief contracts C[idx_C] = beta*C[idx_C] + alpha*A[idx_A]*B[idx_B]
