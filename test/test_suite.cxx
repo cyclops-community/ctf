@@ -213,8 +213,12 @@ int main(int argc, char ** argv){
       pass.push_back(test_recursive_matmul(16, 32, 8, dw));
     }
     if (rank == 0)
-      printf("Testing 1D DFT with n = %d:\n",n*n);
-    pass.push_back(test_dft(n*n, dw));
+      printf("Testing 1D DFT with n = %d and int index type:\n",n*n);
+    pass.push_back(test_dft<int>(n*n, dw));
+
+    if (rank == 0)
+      printf("Testing 1D DFT with n = %d and int64_t index type:\n",n*n);
+    pass.push_back(test_dft<int64_t>(n*n, dw));
 //#ifdef __clang__
     //if (rank == 0)
     //  printf("WARNING: Skipping dft_3D test, due to known issue with Clang and optimizations -Ox for x>0\n");
