@@ -117,6 +117,21 @@ namespace CTF {
    * @}
    */
   };
+
+  /**
+   * \brief generate sequence of n numbers from start in interval step, stored as CTF vector
+   * \param[in] start zeroth element of vector
+   * \param[in] n number of elements
+   * \param[in] step gap between element values in vector
+   * \param[in] world communicator on which to distribute vector
+   * \param[in] sr algebraic structure to use for output vector
+   */
+  template <typename dtype>
+  Vector<dtype> arange(dtype start,
+                       int64_t n,
+                       dtype step,
+                       World & world=get_universe(),
+                       CTF_int::algstrct const & sr=Ring<dtype>());
 }
 #include "vector.cxx"
 #endif

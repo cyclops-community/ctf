@@ -549,6 +549,11 @@ namespace CTF_int{
     }
   }
 
+  template <typename dtype>
+  void vec_arange(tensor * t, dtype start, dtype stop, dtype step){
+    CTF::Vector<dtype> v = CTF::arange<dtype>(start, t->lens[0], step);
+    t->operator[]("i") = v["i"];
+  }
 
 /*  template <>
   void tensor::conv_type<bool, std::complex<float>>(tensor * B){
@@ -799,6 +804,15 @@ CONV_FCOMPLEX_INST(double,double)
   template void tensor::true_divide<int8_t>(tensor* A);
   template void tensor::true_divide<bool>(tensor* A);
 
+	template void vec_arange<int64_t>(tensor * t, int64_t start, int64_t stop, int64_t step);
+	template void vec_arange<int32_t>(tensor * t, int32_t start, int32_t stop, int32_t step);
+	template void vec_arange<int16_t>(tensor * t, int16_t start, int16_t stop, int16_t step);
+	template void vec_arange<int8_t>(tensor * t, int8_t start, int8_t stop, int8_t step);
+	template void vec_arange<bool>(tensor * t, bool start, bool stop, bool step);
+	template void vec_arange<float>(tensor * t, float start, float stop, float step);
+	template void vec_arange<double>(tensor * t, double start, double stop, double step);
+	template void vec_arange<std::complex<float>>(tensor * t, std::complex<float> start, std::complex<float> stop, std::complex<float> step);
+	template void vec_arange<std::complex<double>>(tensor * t, std::complex<double> start, std::complex<double> stop, std::complex<double> step);
   //template void tensor::pow_helper_int<int64_t>(tensor* A, int p);
   //template void tensor::pow_helper_int<double>(tensor* A, int p);
 }

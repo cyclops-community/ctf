@@ -196,6 +196,7 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void conv_type(int type_idx1, int type_idx2, ctensor * A, ctensor * B)
     cdef void delete_arr(ctensor * A, char * arr)
     cdef void delete_pairs(ctensor * A, char * pairs)
+    cdef void vec_arange[dtype](ctensor * t, dtype start, dtype stop, dtype step);
 
 cdef extern from "ctf.hpp" namespace "CTF":
     cdef cppclass Timer:
@@ -6084,3 +6085,53 @@ def _setgetitem_helper(obj, key_init):
         one_shape.append(obj.shape[i])
     return [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape]
 
+def arange(start, stop, step=1, dtype=None):
+    """
+    arange(start, stop, step)
+    Generate CTF vector with values from start to stop (inclusive) in increments of step
+
+    Parameters
+    ----------
+    start: scalar
+           first element value
+
+    stop: scalar
+           bound on last element value
+
+    step: scalar
+           increment between values (default 1)
+
+    dtype: type
+           datatype (default None, uses type of start)
+    Returns
+    -------
+    output: tensor (CTF vector)
+        A vector of length ceil((stop-start)/step) containing values start, start+step, start+2*step, etc.
+
+    References
+    ----------
+    numpy.arange
+    """
+    if dtype is None:
+        dtype = np.asarray([start]).dtype
+    n = int(np.ceil((np.float64(stop)-np.float64(start))/np.float64(step)))
+    if n<0:
+        n = 0
+    t = tensor(n,dtype=dtype)
+    if dtype == np.float64:
+        vec_arange[double](<ctensor*>(t.dt), start, stop, step)
+    elif dtype == np.float32:
+        vec_arange[float](<ctensor*>(t.dt), start, stop, step)
+    elif dtype == np.int64:
+        vec_arange[int64_t](<ctensor*>(t.dt), start, stop, step)
+    elif dtype == np.int32:
+        vec_arange[int32_t](<ctensor*>(t.dt), start, stop, step)
+    elif dtype == np.int16:
+        vec_arange[int16_t](<ctensor*>(t.dt), start, stop, step)
+    elif dtype == np.int8:
+        vec_arange[int8_t](<ctensor*>(t.dt), start, stop, step)
+    elif dtype == np.bool:
+        vec_arange[bool](<ctensor*>(t.dt), start, stop, step)
+    else: 
+        raise ValueError('CTF PYTHON ERROR: unsupported starting value type for numpy arange')
+    return t

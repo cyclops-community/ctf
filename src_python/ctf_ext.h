@@ -109,4 +109,7 @@ namespace CTF_int{
 
   void delete_arr(tensor const * dt, char * arr);
   void delete_pairs(tensor const * dt, char * pairs);
+
+  template <typename dtype>
+  void vec_arange(tensor * t, dtype start, dtype stop, dtype step);
 }

@@ -109,5 +109,25 @@ namespace CTF {
   //}
 
 
+  template <typename dtype>
+  Vector<dtype> arange(dtype start,
+                       int64_t n,
+                       dtype step,
+                       World & world,
+                       CTF_int::algstrct const & sr){
+    Vector<dtype> v(n, world, sr);
+    int64_t * inds;
+    dtype * vals;
+    int64_t m;
+    v.get_local_data(&m, &inds, &vals);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<m; i++){
+      vals[i] = start + ((dtype)inds[i])*step;
+    }
+    v.write(m, inds, vals);
+    return v;
+  }
 
 }
