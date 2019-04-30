@@ -65,14 +65,16 @@ bool test_qr(int m, int n, World dw){
   BB.fill_random(0.,1.);
   pass = pass & qr<double>(B,m,n,dw);
 
+#ifndef USE_MKL
   Matrix<std::complex<float>> cA(m,n,dw);
   cA["ij"] = Function<float,float,std::complex<float>>([](float a, float b){ return std::complex<float>(a,b); })(A["ij"],AA["ij"]);
   pass = pass & qr<std::complex<float>>(cA,m,n,dw);
 
-
   Matrix<std::complex<double>> cB(m,n,dw);
   cB["ij"] = Function<double,double,std::complex<double>>([](double a, double b){ return std::complex<double>(a,b); })(B["ij"],BB["ij"]);
   pass = pass & qr<std::complex<double>>(cB,m,n,dw);
+#endif
+
   if (dw.rank == 0){
     if (pass){
       printf("{ A = QR and Q^TQ = I } passed\n");

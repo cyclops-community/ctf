@@ -523,12 +523,12 @@ namespace CTF {
       if (alpha != this->tmulid) \
         CTF_int::default_scal<dtype>(m*n, alpha, C, 1); \
     } else { \
-      dtype * tmp_C_buf = (dtype*)alloc(sizeof(dtype)*m*n); \
+      dtype * tmp_C_buf = (dtype*)this->alloc(m*n); \
       CTF_BLAS::MKL_name(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, tmp_C_buf, &m); \
       if (beta != this->tmulid) \
         CTF_int::default_scal<dtype>(m*n, beta, C, 1); \
       CTF_int::default_axpy<dtype>(m*n, alpha, tmp_C_buf, 1, C, 1); \
-      cdealloc(tmp_C_buf); \
+      this->dealloc((char*)tmp_C_buf); \
     } \
   }
 #else 
@@ -591,7 +591,7 @@ namespace CTF {
     char transa = 'N'; \
     CSR_Matrix C_in(C_CSR); \
  \
-    int * new_ic = (int*)alloc(sizeof(int)*(m+1)); \
+    int * new_ic = (int*)CTF_int::alloc(sizeof(int)*(m+1)); \
   \
     int sort = 1;  \
     int req = 1; \
@@ -600,7 +600,7 @@ namespace CTF {
  \
     CSR_Matrix C_add(new_ic[m]-1, m, n, this); \
     memcpy(C_add.IA(), new_ic, (m+1)*sizeof(int)); \
-    cdealloc(new_ic); \
+    cdealloc((char*)new_ic); \
     req = 2; \
     CTF_BLAS::MKL_name(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, (dtype*)C_add.vals(), C_add.JA(), C_add.IA(), &req, &info); \
  \
@@ -616,8 +616,8 @@ namespace CTF {
       if (C_CSR == NULL){ \
         C_CSR = C_add.all_data; \
       } else { \
-        char * C_ret = csr_add(C_CSR, C_add.all_data, true); \
-        cdealloc(C_add.all_data); \
+        char * C_ret = csr_add(C_CSR, C_add.all_data, false); \
+        cdealloc((char*)C_add.all_data); \
         C_CSR = C_ret; \
       } \
     } \
