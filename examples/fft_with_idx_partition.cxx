@@ -73,7 +73,7 @@ int fft_with_idx_partition(int64_t n,
   int pc = numPes/pr;
   while (pr*pc != numPes){
     pr++;
-    pc = np/pr;
+    pc = numPes/pr;
   }
   int plens[2] = {pr, pc};
   Partition part(2, plens);
