@@ -60,7 +60,7 @@ namespace CTF_int {
           if (data != NULL){
             //if (order == 0) sr->dealloc(data);
             if (!is_sparse) sr->dealloc(data);
-            else sr->pair_dealloc(data); 
+            else sr->pair_dealloc(data);
           }
         }
         if (has_home && !is_home){
@@ -122,7 +122,7 @@ namespace CTF_int {
     set_distribution(idx, prl, blk);
     init_distribution();
   }
- 
+
   tensor::tensor(algstrct const *           sr,
                  int                        order,
                  bool                       is_sparse,
@@ -140,7 +140,7 @@ namespace CTF_int {
     set_distribution(idx, prl, blk);
     init_distribution();
   }
- 
+
   void tensor::init_distribution(){
     if (is_sparse){
       nnz_blk = (int64_t*)alloc(sizeof(int64_t)*calc_nvirt());
@@ -607,11 +607,11 @@ namespace CTF_int {
   //          bnvirt = nvirt;
             btopo = i;
             bmemuse = memuse;
-            fully_distributed = prod_phys_phases == wrld->np; 
+            fully_distributed = prod_phys_phases == wrld->np;
           } else if ((memuse < bmemuse && !fully_distributed) || (memuse < bmemuse && prod_phys_phases == wrld->np)){
             btopo = i;
             bmemuse = memuse;
-            fully_distributed = prod_phys_phases == wrld->np; 
+            fully_distributed = prod_phys_phases == wrld->np;
           }
         } else
           DPRINTF(1,"Unsuccessful in map_tensor() in set_zero()\n");
@@ -960,7 +960,7 @@ namespace CTF_int {
       TAU_FSTOP(slice);
       return;
     }
-   // bool tsr_A_has_sym = false; 
+   // bool tsr_A_has_sym = false;
 
     if (tsr_B->wrld->np <= tsr_A->wrld->np && !tsr_A->is_sparse){
       //usually 'read' elements of B from A, since B may be smalelr than A
@@ -1578,7 +1578,7 @@ namespace CTF_int {
     if (is_sparse){
       this->is_sparse = false;
       cdealloc(this->nnz_blk);
-      ASSERT(!is_data_aliased); 
+      ASSERT(!is_data_aliased);
       ASSERT(!(has_home && !is_home));
       char * old_data = this->data;
       deregister_size();
@@ -1652,7 +1652,7 @@ namespace CTF_int {
   int tensor::reshape(tensor const * old_tsr, char const * alpha, char const * beta){
     char * pairs;
     int64_t n;
-    
+
     if (beta == NULL || this->sr->isequal(beta,this->sr->addid())){
       bool did_lens_change = this->order != old_tsr->order;
       if (!did_lens_change){
@@ -1791,7 +1791,7 @@ namespace CTF_int {
     }
   }
 
-  PairIterator tensor::read_all_pairs(int64_t * num_pair, bool unpack){
+  char * tensor::read_all_pairs(int64_t * num_pair, bool unpack, bool nonzero_only){
     int numPes;
     int * nXs;
     int nval, n, i;
@@ -1801,7 +1801,7 @@ namespace CTF_int {
     numPes = wrld->np;
     if (has_zero_edge_len){
       *num_pair = 0;
-      return PairIterator(sr, NULL);
+      return NULL;
     }
     //unpack symmetry
     /*if (unpack){
@@ -1831,7 +1831,10 @@ namespace CTF_int {
 
     int64_t ntt = 0;
     my_pairs = NULL;
-    read_local(&ntt, &my_pairs, unpack);
+    if (nonzero_only)
+      read_local_nnz(&ntt, &my_pairs, unpack);
+    else
+      read_local(&ntt, &my_pairs, unpack);
     n = (int)ntt;
     n*=sr->pair_size();
     MPI_Allgather(&n, 1, MPI_INT, nXs, 1, MPI_INT, wrld->comm);
@@ -1852,7 +1855,7 @@ namespace CTF_int {
       sr->pair_dealloc(my_pairs);
     }
     *num_pair = nval;
-    return ipr;
+    return ipr.ptr;
   }
 
   int64_t tensor::get_tot_size(bool packed=false){
@@ -1870,7 +1873,8 @@ namespace CTF_int {
   int tensor::allread(int64_t * num_pair,
                       char **   all_data,
                       bool      unpack){
-    PairIterator ipr = read_all_pairs(num_pair, unpack);
+    char * prs = read_all_pairs(num_pair, unpack);
+    PairIterator ipr(sr, prs);
     char * ball_data = sr->alloc((*num_pair));
     for (int64_t i=0; i<*num_pair; i++){
       ipr[i].read_val(ball_data+i*sr->el_size);
@@ -1884,7 +1888,8 @@ namespace CTF_int {
   int tensor::allread(int64_t * num_pair,
                       char *    all_data,
                       bool      unpack){
-    PairIterator ipr = read_all_pairs(num_pair, unpack);
+    char * prs = read_all_pairs(num_pair, unpack);
+    PairIterator ipr(sr, prs);
     for (int64_t i=0; i<*num_pair; i++){
       ipr[i].read_val(all_data+i*sr->el_size);
     }
@@ -2854,7 +2859,7 @@ namespace CTF_int {
     ASSERT(is_sparse);
     assert(is_sparse);
 
-    
+
 
     TAU_FSTOP(zero_out_padding);
 
@@ -3215,7 +3220,7 @@ namespace CTF_int {
     MPI_File_close(&file);
 
   }
-  
+
   tensor * tensor::self_reduce(int const * idx_A,
                                int **      new_idx_A,
                                int         order_B,
@@ -3243,7 +3248,7 @@ namespace CTF_int {
     }
 
     //look for unmatched indices
-    for (int i=0; i<this->order; i++){    
+    for (int i=0; i<this->order; i++){
       int iA = idx_A[i];
       bool has_match = false;
       for (int j=0; j<this->order; j++){
@@ -3324,5 +3329,6 @@ namespace CTF_int {
       }
     }
     return this;
-  } 
+  }
 }
+

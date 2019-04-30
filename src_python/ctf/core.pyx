@@ -112,6 +112,7 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
 
         void reshape(ctensor * tsr, char * alpha, char * beta)
         void allread(int64_t * num_pair, char * data, bool unpack)
+        char * read_all_pairs(int64_t * num_pair, bool unpack, bool nonzeros_only)
         void slice(int64_t *, int64_t *, char *, ctensor *, int64_t *, int64_t *, char *)
         int64_t get_tot_size(bool packed)
         void get_raw_data(char **, int64_t * size)
@@ -2295,7 +2296,18 @@ cdef class tensor:
     def read_all(self, arr=None, unpack=True):
         """
         read_all(arr=None, unpack=True)
-        Helper function on reading a tensor.
+        reads all values in the tensor
+
+        Parameters
+        ----------
+        arr: array (optional, default: None)
+            preallocated storage for data, of size equal to number of elements in tensor
+        unpack: bool (default: True)
+            whether to read symmetrically-equivallent values or only unique values
+        Returns
+        -------
+        output: tensor if arr is None, otherwise nothing
+        ----------
         """
         cdef char * cvals
         cdef int64_t sz
@@ -2310,6 +2322,37 @@ cdef class tensor:
             return buf
         else:
             arr[:] = buf[:]
+
+    def read_all_nnz(self, unpack=True):
+        """
+        read_all_nnz(arr=None, unpack=True)
+        reads all nonzero values in the tensor as key-value pairs where key is the global index
+
+        Parameters
+        ----------
+        unpack: bool (default: True)
+            whether to read symmetrically-equivallent values or only unique values
+
+        Returns
+        -------
+        inds: global indices of each nonzero values
+        vals: the nonzero values
+        """
+        cdef int64_t * cinds
+        cdef char * cdata
+        cdef int64_t n
+        cdata = self.dt.read_all_pairs(&n, unpack, True)
+        inds = np.empty(n, dtype=np.int64)
+        vals = np.empty(n, dtype=self.dtype)
+        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=_use_align_for_pair(self.dtype)))
+        d = buf.data
+        buf.data = cdata
+        vals[:] = buf['b'][:]
+        inds[:] = buf['a'][:]
+        buf.data = d
+        delete_arr(self.dt, cdata)
+        return inds, vals
+
     def write_all(self, arr):
         """
         write_all(arr)

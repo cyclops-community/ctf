@@ -40,13 +40,6 @@ namespace CTF_int {
                 char const *     name,
                 bool             profile,
                 bool             is_sparse);
-      /**
-       * \brief read all pairs with each processor (packed)
-       * \param[out] num_pair number of values read
-       * \param[in] unpack whether to read all or unique pairs
-       * return pair iterator with allocated all pairs read
-       */
-      PairIterator read_all_pairs(int64_t * num_pair, bool unpack);
 
       /**
        * \brief copies all tensor data from other
@@ -492,6 +485,15 @@ namespace CTF_int {
       int allread(int64_t * num_pair,
                   char *    all_data,
                   bool      unpack=true);
+
+      /**
+       * \brief read all pairs with each processor (packed)
+       * \param[out] num_pair number of values read
+       * \param[in] unpack whether to read all or unique pairs up to symmetry
+       * \param[in] nonzero_only whether to read only nonzeros
+       * return char * containing allocated pairs
+       */
+      char * read_all_pairs(int64_t * num_pair, bool unpack, bool nonzero_only=false);
 
        /**
        * \brief accumulates out a slice (block) of this tensor = B
