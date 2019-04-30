@@ -14,7 +14,7 @@ using namespace CTF;
 
 int test_dft_3D(int     n,
                 World & wrld){
-  int myRank, numPes;
+  int myRank;
   int i, j;
   int64_t  np;
   int64_t * idx;
@@ -24,8 +24,7 @@ int test_dft_3D(int     n,
   int len[] = {n,n,n};
   int sym[] = {NS,NS,NS};
   
-  MPI_Comm_size(MPI_COMM_WORLD, &numPes);
-  MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+  MPI_Comm_rank(wrld.comm, &myRank);
 
   CTF::Ring< std::complex<long double> > ldr;
 

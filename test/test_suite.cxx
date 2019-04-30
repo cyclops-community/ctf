@@ -27,6 +27,7 @@
 #include "bivar_transform.cxx"
 
 #include "../examples/trace.cxx"
+#include "../examples/fft_with_idx_partition.cxx"
 #include "../examples/dft_3D.cxx"
 #include "../examples/strassen.cxx"
 #include "../examples/recursive_matmul.cxx"
@@ -219,6 +220,11 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing 1D DFT with n = %d and int64_t index type:\n",n*n);
     pass.push_back(test_dft<int64_t>(n*n, dw));
+
+    if (rank == 0)
+      printf("Testing FFT with Idx_partition with n = %d: m = %d\n",n,1<<(n/2));
+    pass.push_back(fft_with_idx_partition(n, 1<<(n/2), dw));
+
 //#ifdef __clang__
     //if (rank == 0)
     //  printf("WARNING: Skipping dft_3D test, due to known issue with Clang and optimizations -Ox for x>0\n");
