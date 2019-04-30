@@ -1195,12 +1195,6 @@ namespace CTF {
       dtype * get_raw_data(int64_t * size) const;
 
       /**
-       * \brief gives a read-only copy of the raw current local data with padding included
-       * \param[out] size of local data chunk
-       * \return pointer to read-only copy of local data
-       */
-      const dtype * raw_data(int64_t * size) const;
-      /**
        * \brief obtains a small number of the biggest elements of the
        *        tensor in sorted order (e.g. eigenvalues)
        * \param[in] n number of elements to collect
