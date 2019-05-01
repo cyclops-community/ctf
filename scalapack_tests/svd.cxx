@@ -81,7 +81,6 @@ bool test_svd(int m, int n, int k, World dw){
   BB.fill_random(0.,1.);
   pass = pass & svd<double>(B,m,n,k,dw);
 
-#ifndef USE_MKL
   Matrix<std::complex<float>> cA(m,n,dw);
   cA["ij"] = Function<float,float,std::complex<float>>([](float a, float b){ return std::complex<float>(a,b); })(A["ij"],AA["ij"]);
   pass = pass & svd<std::complex<float>>(cA,m,n,k,dw);
@@ -89,7 +88,6 @@ bool test_svd(int m, int n, int k, World dw){
   Matrix<std::complex<double>> cB(m,n,dw);
   cB["ij"] = Function<double,double,std::complex<double>>([](double a, double b){ return std::complex<double>(a,b); })(B["ij"],BB["ij"]);
   pass = pass & svd<std::complex<double>>(cB,m,n,k,dw);
-#endif
 
   if (dw.rank == 0){
     if (pass){
