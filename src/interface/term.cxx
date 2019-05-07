@@ -627,13 +627,14 @@ namespace CTF_int {
   int64_t get_sym_idx(std::vector<int> idx, int order){
     int64_t ii = 0;
     int64_t lda = 1;
+    int pidx = -1;
     for (int kk=0; kk<order; kk++){
-      ii += idx[kk]*lda;
       lda = 1;
-      for (int ikk=0; ikk<kk; ikk++){
-        assert(idx[kk] >= ikk);
-        lda *= (idx[kk]-ikk)/(ikk+1);
+      for (int ikk=pidx+1; ikk<idx[kk]; ikk++){
+        ii += lda;
+        lda *= kk/(ikk-pidx);
       }
+      pidx = idx[kk];
     }
     return ii;
   }
