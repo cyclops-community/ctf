@@ -125,6 +125,9 @@ namespace CTF_int {
        */
       int is_equal(contraction const & os);
 
+      /** \brief print contraction details */
+      void print();
+
     private:
       /**
        * \brief returns true if one of the tensors is sparse 
@@ -343,9 +346,6 @@ namespace CTF_int {
        * \brief returns true if prescale_operands has real work to do
        */
       bool need_prescale_operands();
-
-      /** \brief print contraction details */
-      void print();
   };
 
 

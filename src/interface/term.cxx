@@ -625,16 +625,14 @@ namespace CTF_int {
   };
 
   int64_t get_sym_idx(std::vector<int> idx, int order){
-    int64_t ii = 0;
     int64_t lda = 1;
-    int pidx = -1;
-    for (int kk=0; kk<order; kk++){
+    int64_t ii = idx[0];
+    for (int kk=1; kk<order; kk++){
       lda = 1;
-      for (int ikk=pidx+1; ikk<idx[kk]; ikk++){
-        ii += lda;
-        lda *= kk/(ikk-pidx);
+      for (int ikk=kk+1; ikk<idx[kk]; ikk++){
+        lda *= ikk+1;
       }
-      pidx = idx[kk];
+      ii += lda;
     }
     return ii;
   }
@@ -646,7 +644,7 @@ namespace CTF_int {
       char const * new_scale = node->intm->parent->sr->mulid();
       Idx_Tensor * left = contract_tree(node->left, operands, new_scale);
       Idx_Tensor * right = contract_tree(node->right, operands, new_scale);
-      Idx_Tensor * intm = get_full_intm(*left, *right, node->out_inds, true);
+      Idx_Tensor * intm = get_full_intm(*left, *right, node->out_inds);
       contraction c(left->parent, left->idx_map,
                     right->parent, right->idx_map, tscale,
                     intm->parent, intm->idx_map, intm->scale);
@@ -687,8 +685,13 @@ namespace CTF_int {
     std::vector< Idx_Tensor* > operands;
     bool finish_loop = true;
     std::vector< Idx_Tensor * > out_vec;
+    int snum_ops = soperands.size();
+    if (snum_ops == 1  || (snum_ops == 2 && terms_to_leave == 2)){
+      out_vec = soperands;
+      return out_vec;
+    }
     do {
-      int snum_ops = soperands.size();
+      snum_ops = soperands.size();
       assert(snum_ops >= 2);
       int num_ops = soperands.size();
       if (snum_ops > _MAX_NUM_OPERANDS_TO_REORDER){
@@ -732,24 +735,25 @@ namespace CTF_int {
           }
           std::vector<char> sout_inds = det_uniq_inds_idx(sub_ops, out_inds);
           subproblems[i][isub].out_inds = sout_inds;
-          int64_t jnperm = i+1;
-          for (int j=1; j<=i; j++){
-            jnperm = jnperm*(i-j+1)/(j+1);
-            int * idx = (int*)malloc(sizeof(int*)*j);
-            for (int k=0; k<j; k++){
+          int64_t jnperm = 1;
+          for (int j=0; j<i; j++){
+            jnperm = jnperm*(i-j)/(j+1);
+            int * idx = (int*)malloc(sizeof(int*)*(j+1));
+            for (int k=0; k<=j; k++){
               idx[k] = k;
             }
             int ii = 0;
             do {
-              for (int k=0; k<j; k++){
+              printf("ii=%d jnperm = %d\n",ii,jnperm);
+              for (int k=0; k<=j; k++){
                 printf("idx[%d] = %d\n",k,idx[k]);
               }
-              std::vector<int> left(j);
-              std::vector<int> right(i-j+1);
+              std::vector<int> left(j+1);
+              std::vector<int> right(i-j);
               int jj = 0;
               int jk = 0;
               for (int k=0; k<=i; k++){
-                if (jj < j && idx[jj] == k){
+                if (jj <= j && idx[jj] == k){
                   left[jj] = sub_idx[k];
                   jj++;
                 } else {
@@ -757,17 +761,34 @@ namespace CTF_int {
                   jk++;
                 }
               }
-              int64_t ileft = get_sym_idx(left, j);
-              ctr_tree_node * tleft = &subproblems[j-1][ileft];
+              for (int k=0; k<=j; k++){
+                printf("left[%d] = %d\n", k,left[k]);
+              }
+              for (int k=0; k<i-j; k++){
+                printf("right[%d] = %d\n", k,right[k]);
+              }
+              int64_t ileft = get_sym_idx(left, j+1);
+              ctr_tree_node * tleft = &subproblems[j][ileft];
   
-              int64_t iright = get_sym_idx(right, i-j+1);
-              printf("iright = %ld, ileft = %ld\n",ileft,iright);
-              ctr_tree_node * tright = &subproblems[i-j][iright];
-  
+              int64_t iright = get_sym_idx(right, i-j);
+              ctr_tree_node * tright = &subproblems[i-j-1][iright];
+
               Idx_Tensor * intm = get_full_intm(*tleft->intm, *tright->intm, sout_inds, true);
+
+              printf("ileft = %ld, iright = %ld\n",ileft,iright);
+              for (int k=0; k<tleft->intm->parent->order; k++){
+                printf("left idx[%d] = %c\n", k, tleft->intm->idx_map[k]);
+              } 
+              for (int k=0; k<tright->intm->parent->order; k++){
+                printf("right idx[%d] = %c\n", k, tright->intm->idx_map[k]);
+              } 
+              for (int k=0; k<intm->parent->order; k++){
+                printf("intm idx[%d] = %c\n", k, intm->idx_map[k]);
+              } 
               contraction c(tleft->intm->parent, tleft->intm->idx_map,
                             tright->intm->parent, tright->intm->idx_map, tscale,
                             intm->parent, intm->idx_map, intm->scale);
+              c.print();
               double tcost = c.estimate_time() + tleft->cost + tright->cost;
               if (subproblems[i][isub].cost > tcost){
                 subproblems[i][isub].cost = tcost;
@@ -776,12 +797,13 @@ namespace CTF_int {
                 subproblems[i][isub].intm = intm;
                 subproblems[i][isub].left = tleft;
                 subproblems[i][isub].right = tright;
-              }
+              } else 
+                delete intm;
               ii++;
               if (ii == jnperm) break;
               else {
                 int kk = 0;
-                while (kk < j-1 && idx[kk] == idx[kk+1]-1){
+                while (kk < j && idx[kk] == idx[kk+1]-1){
                   kk++;
                 }
                 idx[kk]++;
