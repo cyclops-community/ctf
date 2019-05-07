@@ -640,7 +640,7 @@ namespace CTF_int {
 
   Idx_Tensor * contract_tree(ctr_tree_node * node, std::vector<Idx_Tensor*> operands, char const * tscale){
     if (node->idx.size() == 1)
-      return node->intm;
+      return new Idx_Tensor(*node->intm);
     else {
       char const * new_scale = node->intm->parent->sr->mulid();
       Idx_Tensor * left = contract_tree(node->left, operands, new_scale);
@@ -650,6 +650,8 @@ namespace CTF_int {
                     right->parent, right->idx_map, tscale,
                     intm->parent, intm->idx_map, intm->scale);
       c.execute();
+      delete left;
+      delete right;
       return intm;
     }
   }
@@ -682,6 +684,7 @@ namespace CTF_int {
     #endif
     std::vector< Idx_Tensor* > operands;
     bool finish_loop = true;
+    std::vector< Idx_Tensor * > out_vec;
     do {
       int snum_ops = soperands.size();
       assert(snum_ops >= 2);
@@ -708,24 +711,26 @@ namespace CTF_int {
       }
       for (int i=1; i<num_ops; i++){
         nperm = nperm*(num_ops-i)/(i+1);
+        printf("nperm = %ld i =%d\n",nperm,i);
         subproblems[i] = new ctr_tree_node[nperm];
         int isub = 0;
-        std::vector<int> sub_idx(i);
-        for (int k=0; k<i; k++){
+        std::vector<int> sub_idx(i+1);
+        for (int k=0; k<=i; k++){
           sub_idx[k] = k;
         }
         do {
           subproblems[i][isub].idx = sub_idx;
           subproblems[i][isub].cost = std::numeric_limits<double>::max();
           std::vector<Idx_Tensor*> sub_ops = operands;
-          for (int64_t j=0; j<i; j++){
-            sub_ops.erase(sub_ops.begin()+sub_idx[i-1-j]);
+          for (int64_t j=0; j<=i; j++){
+            sub_ops.erase(sub_ops.begin()+sub_idx[i-j]);
           }
           std::vector<char> sout_inds = det_uniq_inds_idx(sub_ops, out_inds);
           subproblems[i][isub].out_inds = sout_inds;
-          int jnperm = i;
-          for (int j=1; j<i; j++){
-            jnperm = jnperm*(i-j)/(j+1);
+          int jnperm = i+1;
+          for (int j=1; j<=i; j++){
+            jnperm = jnperm*(i-j+1)/(j+1);
+            printf("jnperm = %ld j =%d\n",jnperm,j);
             int * idx = (int*)malloc(sizeof(int*)*j);
             for (int k=0; k<j; k++){
               idx[k] = k;
@@ -733,9 +738,9 @@ namespace CTF_int {
             int ii = 0;
             do {
               std::vector<int> left(j);
-              std::vector<int> right(i-j);
+              std::vector<int> right(i-j+1);
               int jj = 0;
-              for (int k=0; k<i; k++){
+              for (int k=0; k<j; k++){
                 if (idx[jj] == k){
                   left[jj] = sub_idx[k];
                   jj++;
@@ -744,7 +749,7 @@ namespace CTF_int {
                 }
               }
               int64_t ileft = get_sym_idx(left, j);
-              ctr_tree_node * tleft = &subproblems[j][ileft];
+              ctr_tree_node * tleft = &subproblems[j-1][ileft];
   
               int64_t iright = get_sym_idx(right, i-j);
               ctr_tree_node * tright = &subproblems[i-j][iright];
@@ -766,7 +771,7 @@ namespace CTF_int {
               if (ii == jnperm) break;
               else {
                 int kk = 0;
-                while (kk < i-1 && idx[kk] == idx[kk+1]-1){
+                while (kk < j-1 && idx[kk] == idx[kk+1]-1){
                   kk++;
                 }
                 idx[kk]++;
@@ -780,7 +785,7 @@ namespace CTF_int {
           if (isub == nperm) break;
           else {
             int kk = 0;
-            while (kk < i-1 && sub_idx[kk] == sub_idx[kk+1]-1){
+            while (kk < i && sub_idx[kk] == sub_idx[kk+1]-1){
               kk++;
             }
             sub_idx[kk]++;
@@ -791,7 +796,6 @@ namespace CTF_int {
         } while(true);
       }
       if (finish_loop){
-        std::vector< Idx_Tensor * > out_vec;
         if (est_time){
           if (terms_to_leave == 1){
             out_vec.push_back(subproblems[num_ops-1][0].intm);
@@ -810,7 +814,6 @@ namespace CTF_int {
             out_vec.push_back(contract_tree(subproblems[num_ops-1][0].right, operands, subproblems[num_ops-1][0].right->intm->sr->mulid()));
           }
         }
-        return out_vec;
       } else {
         ctr_tree_node * cheap_node = get_cheapeast_node(&subproblems[num_ops-1][0]);
         if (est_time){
@@ -823,14 +826,15 @@ namespace CTF_int {
           assert(cheap_node->right->idx[0] > cheap_node->left->idx[0]);
           soperands.erase(soperands.begin() + cheap_node->right->idx[0]);
           soperands.erase(soperands.begin() + cheap_node->left->idx[0]);
-          soperands.push_back(cheap_node->intm);
+          soperands.push_back(new Idx_Tensor(*cheap_node->intm));
         }
       }
       for (int i=0; i<num_ops; i++){
-        delete subproblems[i];
+        delete [] subproblems[i];
       }
       free(subproblems);
     } while(!finish_loop);
+    return out_vec;
   }
 
   std::vector<Term*> Contract_Term::get_ops_rec() const {
@@ -942,52 +946,43 @@ namespace CTF_int {
 
 
   double Contract_Term::estimate_time(Idx_Tensor output)const {
-    std::vector<Term*> new_operands = get_ops_rec();
+    std::vector<Term*> new_op_terms = get_ops_rec();
     double cost = 0.0;
     std::vector<char> out_inds = output.get_uniq_inds();
-    std::vector<Idx_Tensor*> new_operands = expand_terms(new_operands, out_inds, NULL, true, &cost);
+    std::vector<Idx_Tensor*> new_operands = expand_terms(new_op_terms, out_inds, NULL, true, &cost);
     std::vector<Idx_Tensor*> tmp_ops = contract_down_terms(sr, scale, new_operands, out_inds, 2, &output, true, &cost);
     {
       assert(tmp_ops.size() == 2);
-      Term * pop_B = tmp_ops.back();
-      tmp_ops.pop_back();
-      //include all terms except the one to execute to determine out_inds for executing that term
-      std::vector<char> out_inds_B = det_uniq_inds(tmp_ops, out_inds);
-      Term * pop_A = tmp_ops.back();
-      tmp_ops.pop_back();
-      tmp_ops.push_back(pop_B);
-      std::vector<char> out_inds_A = det_uniq_inds(tmp_ops, out_inds);
-      tmp_ops.pop_back();
-      Idx_Tensor op_A = pop_A->estimate_time(cost,out_inds);
-      Idx_Tensor op_B = pop_B->estimate_time(cost,out_inds);
+      Idx_Tensor * op_B = tmp_ops.back();
+      Idx_Tensor * op_A = tmp_ops.back();
 
-      if (op_A.parent == NULL && op_B.parent == NULL){
+      if (op_A->parent == NULL && op_B->parent == NULL){
         assert(0); //FIXME write scalar to whole tensor
-      } else if (op_A.parent == NULL){
-        summation s(op_B.parent, op_B.idx_map, this->scale,
+      } else if (op_A->parent == NULL){
+        summation s(op_B->parent, op_B->idx_map, this->scale,
                     output.parent, output.idx_map, output.scale);
         cost += s.estimate_time();
-      } else if (op_B.parent == NULL){
-        summation s(op_A.parent, op_A.idx_map, this->scale,
+      } else if (op_B->parent == NULL){
+        summation s(op_A->parent, op_A->idx_map, this->scale,
                     output.parent, output.idx_map, output.scale);
         cost += s.estimate_time();
       } else {
-        contraction c(op_A.parent, op_A.idx_map,
-                      op_B.parent, op_B.idx_map, this->scale,
+        contraction c(op_A->parent, op_A->idx_map,
+                      op_B->parent, op_B->idx_map, this->scale,
                       output.parent, output.idx_map, output.scale);
         cost += c.estimate_time();
       }
-      delete pop_A;
-      delete pop_B;
+      delete op_A;
+      delete op_B;
     }
     return cost;
   }
 
 
   Idx_Tensor Contract_Term::estimate_time(double & cost, std::vector<char> out_inds) const {
-    std::vector<Term*> new_operands = get_ops_rec();
-    new_operands = expand_terms(new_operands, out_inds, tscale, true, &cost);
-    std::vector< Term* > tmp_ops = contract_down_terms(sr, scale, new_operands, out_inds, 1, NULL, true, &cost);
+    std::vector<Term*> new_op_terms = get_ops_rec();
+    std::vector<Idx_Tensor*> new_operands = expand_terms(new_op_terms, out_inds, NULL, true, &cost);
+    std::vector<Idx_Tensor*> tmp_ops = contract_down_terms(sr, scale, new_operands, out_inds, 1, NULL, true, &cost);
     Idx_Tensor tsr = tmp_ops[0]->estimate_time(cost, out_inds);
     for (int i=0; i<(int)tmp_ops.size(); i++){
       delete tmp_ops[i];
