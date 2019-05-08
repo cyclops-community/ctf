@@ -240,10 +240,31 @@ namespace CTF_int {
     return flops;
   }
 
+  double contraction::estimate_bw(){
+    double bw = 0.;
+
+    //scale by probability of nonzero flop
+    if (A->is_sparse)
+      bw += 2.*((double)A->nnz_tot)*A->sr->pair_size();
+    else
+      bw += ((double)A->size)*A->wrld->np*A->sr->el_size;
+    if (B->is_sparse)
+      bw += 2.*((double)B->nnz_tot)*B->sr->pair_size();
+    else
+      bw += ((double)B->size)*B->wrld->np*B->sr->el_size;
+    if (C->is_sparse)
+      bw += 3.*((double)C->nnz_tot)*C->sr->pair_size();
+    else
+      bw += 1.5*((double)C->size)*C->wrld->np*C->sr->el_size;
+
+    return bw;
+  }
+
   double contraction::estimate_time(){
     int np = std::max(A->wrld->np,B->wrld->np);
     double flop_rate = 1.E9*np;
-    return this->estimate_num_flops()/flop_rate;
+    double bw_rate = 1.E6*np;
+    return this->estimate_num_flops()/flop_rate + this->estimate_bw()/bw_rate;
   }
 
   int contraction::is_equal(contraction const & os){

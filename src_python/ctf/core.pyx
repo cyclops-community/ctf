@@ -2055,6 +2055,20 @@ cdef class tensor:
         if vals is None:
             return gvals
 
+    def item(self):
+        """
+        item()
+        get value of scalar stored in size 1 tensor
+
+        Returns
+        -------
+        output: scalar
+        """
+        if self.dt.get_tot_size(False) != 1:
+            raise ValueError("item() must be called on array of size 0")
+        arr = self.read_all()
+        return arr.item()
+
     def astype(self, dtype, order='F', casting='unsafe'):
         """
         astype(dtype, order='F', casting='unsafe')
@@ -2849,7 +2863,7 @@ cdef class tensor:
         output: scalar np.float64
             2-norm of the tensor.
 
-        xamples
+        Examples
         --------
         >>> import ctf
         >>> a = ctf.ones([3,4], dtype=np.float64)
@@ -5543,6 +5557,9 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     for i in range(1,numop):
         operand = operand * operands[i].i(inds[i])
     out_scale*output.i(out_inds) << operand
+    if out is None:
+        if len(out_inds) == 0:
+            output = output.item()
     t_einsum.stop()
     return output
 

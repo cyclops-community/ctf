@@ -116,6 +116,10 @@ namespace CTF_int {
       /** \brief predicts number of flops assuming random distribution of nonzeros in sparse tensors */
       double estimate_num_flops();
 
+      /** \brief predicts amount of data movement */
+      double estimate_bw();
+
+
       /** \brief predicts execution time in seconds using performance models */
       double estimate_time();
 

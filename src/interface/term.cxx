@@ -638,12 +638,12 @@ namespace CTF_int {
     return ii;
   }
 
-  Idx_Tensor * contract_tree(ctr_tree_node * node, std::vector<Idx_Tensor*> operands){
+  Idx_Tensor * contract_tree(ctr_tree_node * node){
     if (node->idx.size() == 1)
       return new Idx_Tensor(*node->intm);
     else {
-      Idx_Tensor * left = contract_tree(node->left, operands);
-      Idx_Tensor * right = contract_tree(node->right, operands);
+      Idx_Tensor * left = contract_tree(node->left);
+      Idx_Tensor * right = contract_tree(node->right);
       Idx_Tensor * intm = get_full_intm(*left, *right, node->out_inds);
       contraction c(left->parent, left->idx_map,
                     right->parent, right->idx_map, right->parent->sr->mulid(),
@@ -691,16 +691,24 @@ namespace CTF_int {
       }
       return out_vec;
     }
+    std::vector< Idx_Tensor* > * toperands = &soperands;
+    if (snum_ops > _MAX_NUM_OPERANDS_TO_REORDER){
+      toperands = new std::vector< Idx_Tensor* >();
+      for (int i=0; i<snum_ops; i++){
+        toperands->push_back(new Idx_Tensor(*soperands[i]));
+      }
+    }
     do {
-      snum_ops = soperands.size();
+      snum_ops = toperands->size();
       assert(snum_ops >= 2);
-      int num_ops = soperands.size();
+      int num_ops = toperands->size();
       if (snum_ops > _MAX_NUM_OPERANDS_TO_REORDER){
         num_ops = _MAX_NUM_OPERANDS_TO_REORDER;
-        operands = std::vector<Idx_Tensor*>(soperands.begin(), soperands.begin() + num_ops);
+        operands = std::vector<Idx_Tensor*>(toperands->begin(), toperands->begin() + num_ops);
         finish_loop = false;
       } else {
-        operands = soperands;
+        operands = *toperands;
+        finish_loop = true;
       }
       ctr_tree_node ** subproblems;
       subproblems = (ctr_tree_node**)malloc(sizeof(ctr_tree_node*)*num_ops);
@@ -836,11 +844,11 @@ namespace CTF_int {
           } 
         } else {
           if (terms_to_leave == 1){
-            out_vec.push_back(contract_tree(&subproblems[num_ops-1][0], operands));
+            out_vec.push_back(contract_tree(&subproblems[num_ops-1][0]));
           } else {
             assert(terms_to_leave == 2);
-            out_vec.push_back(contract_tree(subproblems[num_ops-1][0].left, operands));
-            out_vec.push_back(contract_tree(subproblems[num_ops-1][0].right, operands));
+            out_vec.push_back(contract_tree(subproblems[num_ops-1][0].left));
+            out_vec.push_back(contract_tree(subproblems[num_ops-1][0].right));
           }
         }
       } else {
@@ -848,14 +856,14 @@ namespace CTF_int {
         if (est_time){
           *cost += cheap_node->cost;
         } else {
-          contraction c(cheap_node->left->intm->parent, cheap_node->left->intm->idx_map,
-                        cheap_node->right->intm->parent, cheap_node->right->intm->idx_map, cheap_node->right->intm->parent->sr->mulid(),
-                        cheap_node->intm->parent, cheap_node->intm->idx_map, cheap_node->intm->scale);
-          c.execute();
+          Idx_Tensor * new_node = contract_tree(cheap_node);
           assert(cheap_node->right->idx[0] > cheap_node->left->idx[0]);
-          soperands.erase(soperands.begin() + cheap_node->right->idx[0]);
-          soperands.erase(soperands.begin() + cheap_node->left->idx[0]);
-          soperands.push_back(new Idx_Tensor(*cheap_node->intm));
+          delete toperands->operator[](cheap_node->left->idx[0]);
+          delete toperands->operator[](cheap_node->right->idx[0]);
+          toperands->erase(toperands->begin() + cheap_node->right->idx[0]);
+          toperands->erase(toperands->begin() + cheap_node->left->idx[0]);
+
+          toperands->push_back(new_node);
         }
       }
       for (int i=0; i<num_ops; i++){
@@ -863,6 +871,12 @@ namespace CTF_int {
       }
       free(subproblems);
     } while(!finish_loop);
+    if (toperands != &soperands){
+      for (int i=0; i<(int)toperands->size(); i++){
+        delete toperands->operator[](i);
+      }
+      delete toperands;
+    }
     return out_vec;
   }
 
@@ -977,7 +991,7 @@ namespace CTF_int {
     std::vector<Term*> new_op_terms = get_ops_rec();
     std::vector<Idx_Tensor*> new_operands = expand_terms(new_op_terms, out_inds, scale);
     std::vector<Idx_Tensor*> tmp_ops = contract_down_terms(sr, new_operands, out_inds, 1);
-    for (int i=0; i<new_operands.size(); i++){
+    for (int i=0; i<(int)new_operands.size(); i++){
       delete new_operands[i];
     }
     //Idx_Tensor rtsr = tmp_ops[0]->execute(out_inds);
@@ -998,7 +1012,7 @@ namespace CTF_int {
     std::vector<char> out_inds = output.get_uniq_inds();
     std::vector<Idx_Tensor*> new_operands = expand_terms(new_op_terms, out_inds, NULL, true, &cost);
     std::vector<Idx_Tensor*> tmp_ops = contract_down_terms(sr, new_operands, out_inds, 2, &output, true, &cost);
-    for (int i=0; i<new_operands.size(); i++){
+    for (int i=0; i<(int)new_operands.size(); i++){
       delete new_operands[i];
     }
     {
@@ -1033,7 +1047,7 @@ namespace CTF_int {
     std::vector<Term*> new_op_terms = get_ops_rec();
     std::vector<Idx_Tensor*> new_operands = expand_terms(new_op_terms, out_inds, NULL, true, &cost);
     std::vector<Idx_Tensor*> tmp_ops = contract_down_terms(sr, new_operands, out_inds, 1, NULL, true, &cost);
-    for (int i=0; i<new_operands.size(); i++){
+    for (int i=0; i<(int)new_operands.size(); i++){
       delete new_operands[i];
     }
     Idx_Tensor tsr = tmp_ops[0]->estimate_time(cost, out_inds);
