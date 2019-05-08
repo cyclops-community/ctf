@@ -628,9 +628,9 @@ namespace CTF_int {
     int64_t ii = idx[0];
     for (int kk=1; kk<order; kk++){
       if (kk<idx[kk]){
-        int64_t lda = 1;
-        for (int ikk=kk+1; ikk<idx[kk]; ikk++){
-          lda *= ikk+1;
+        int64_t lda = idx[kk];
+        for (int ikk=1; ikk<kk+1; ikk++){
+          lda = (lda*(idx[kk]-ikk))/(ikk+1);
         }
         ii += lda;
       }
@@ -777,7 +777,7 @@ namespace CTF_int {
               } 
               for (int k=0; k<intm->parent->order; k++){
                 printf("intm idx[%d] = %c\n", k, intm->idx_map[k]);
-              } */
+              }*/
               contraction c(tleft->intm->parent, tleft->intm->idx_map,
                             tright->intm->parent, tright->intm->idx_map, tright->intm->sr->mulid(),
                             intm->parent, intm->idx_map, intm->scale);
@@ -915,6 +915,15 @@ namespace CTF_int {
     char * tscale = NULL;
     sr->safecopy(tscale, scale);
     std::vector<Idx_Tensor*> new_operands = expand_terms(new_op_terms, out_inds, tscale);
+    assert(new_operands.size() >= 1);
+    if (new_operands.size() == 1){
+      sr->safemul(new_operands[0]->scale, tscale, new_operands[0]->scale);
+      output += *new_operands[0];
+      if (tscale != NULL) cdealloc(tscale);
+      tscale = NULL;
+      delete new_operands[0];
+      return;
+    }
     std::vector<Idx_Tensor*> tmp_ops = contract_down_terms(sr, new_operands, out_inds, 2, &output);
     //std::vector<Idx_Tensor*> tmp_ops = new_operands;//contract_down_terms(sr, tscale, new_operands, out_inds, 2, &output);
     {
