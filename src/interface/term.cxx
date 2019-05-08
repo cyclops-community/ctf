@@ -686,7 +686,9 @@ namespace CTF_int {
     std::vector< Idx_Tensor * > out_vec;
     int snum_ops = soperands.size();
     if (snum_ops == 1  || (snum_ops == 2 && terms_to_leave == 2)){
-      out_vec = soperands;
+      for (int i=0; i<snum_ops; i++){
+        out_vec.push_back(new Idx_Tensor(*soperands[i]));
+      }
       return out_vec;
     }
     do {
@@ -711,7 +713,7 @@ namespace CTF_int {
         std::vector<Idx_Tensor*> tmp_ops = operands;
         tmp_ops.erase(tmp_ops.begin() + i);
         std::vector<char> out_inds_A = det_uniq_inds_idx(tmp_ops, out_inds);
-        subproblems[0][i].intm = operands[i];
+        subproblems[0][i].intm = new Idx_Tensor(*operands[i]);
       }
       for (int i=1; i<num_ops; i++){
         nperm = nperm*(num_ops-i)/(i+1);
@@ -823,13 +825,13 @@ namespace CTF_int {
       if (finish_loop){
         if (est_time){
           if (terms_to_leave == 1){
-            out_vec.push_back(subproblems[num_ops-1][0].intm);
+            out_vec.push_back(new Idx_Tensor(*subproblems[num_ops-1][0].intm));
             *cost += subproblems[num_ops-1][0].cost;
           } else {
             assert(terms_to_leave == 2);
-            out_vec.push_back(subproblems[num_ops-1][0].left->intm);
+            out_vec.push_back(new Idx_Tensor(*subproblems[num_ops-1][0].left->intm));
             *cost += subproblems[num_ops-1][0].left->cost;
-            out_vec.push_back(subproblems[num_ops-1][0].right->intm);
+            out_vec.push_back(new Idx_Tensor(*subproblems[num_ops-1][0].right->intm));
             *cost += subproblems[num_ops-1][0].right->cost;
           } 
         } else {
@@ -902,6 +904,7 @@ namespace CTF_int {
       }
       if (op->parent == NULL && operands.size() != 1){
         op->sr->safemul(op->scale, scl, scl);
+        delete op;
       } else {
         new_ops.push_back(op);
       }
@@ -925,6 +928,9 @@ namespace CTF_int {
       return;
     }
     std::vector<Idx_Tensor*> tmp_ops = contract_down_terms(sr, new_operands, out_inds, 2, &output);
+    for (int i=0; i<(int)new_operands.size(); i++){
+      delete new_operands[i];
+    }
     //std::vector<Idx_Tensor*> tmp_ops = new_operands;//contract_down_terms(sr, tscale, new_operands, out_inds, 2, &output);
     {
       assert(tmp_ops.size() == 2);
@@ -971,13 +977,18 @@ namespace CTF_int {
     std::vector<Term*> new_op_terms = get_ops_rec();
     std::vector<Idx_Tensor*> new_operands = expand_terms(new_op_terms, out_inds, scale);
     std::vector<Idx_Tensor*> tmp_ops = contract_down_terms(sr, new_operands, out_inds, 1);
+    for (int i=0; i<new_operands.size(); i++){
+      delete new_operands[i];
+    }
     //Idx_Tensor rtsr = tmp_ops[0]->execute(out_inds);
     //delete tmp_ops[0];
     //tmp_ops.clear();
     //if (tscale != NULL) cdealloc(tscale);
     //tscale = NULL;
     sr->safecopy(tmp_ops[0]->scale, scale);
-    return *tmp_ops[0];
+    Idx_Tensor tt = *tmp_ops[0];
+    delete tmp_ops[0];
+    return tt;
   }
 
 
@@ -987,6 +998,9 @@ namespace CTF_int {
     std::vector<char> out_inds = output.get_uniq_inds();
     std::vector<Idx_Tensor*> new_operands = expand_terms(new_op_terms, out_inds, NULL, true, &cost);
     std::vector<Idx_Tensor*> tmp_ops = contract_down_terms(sr, new_operands, out_inds, 2, &output, true, &cost);
+    for (int i=0; i<new_operands.size(); i++){
+      delete new_operands[i];
+    }
     {
       assert(tmp_ops.size() == 2);
       Idx_Tensor * op_B = tmp_ops.back();
@@ -1019,6 +1033,9 @@ namespace CTF_int {
     std::vector<Term*> new_op_terms = get_ops_rec();
     std::vector<Idx_Tensor*> new_operands = expand_terms(new_op_terms, out_inds, NULL, true, &cost);
     std::vector<Idx_Tensor*> tmp_ops = contract_down_terms(sr, new_operands, out_inds, 1, NULL, true, &cost);
+    for (int i=0; i<new_operands.size(); i++){
+      delete new_operands[i];
+    }
     Idx_Tensor tsr = tmp_ops[0]->estimate_time(cost, out_inds);
     for (int i=0; i<(int)tmp_ops.size(); i++){
       delete tmp_ops[i];
