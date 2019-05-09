@@ -3215,7 +3215,7 @@ namespace CTF_int {
 
   void tensor::read_dense_from_file(char const * filename){
     MPI_File file;
-    MPI_File_open(this->wrld->comm, filename,  MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &file);
+    MPI_File_open(this->wrld->comm, filename,  MPI_MODE_RDONLY, MPI_INFO_NULL, &file);
     this->read_dense_from_file(file, 0);
     MPI_File_close(&file);
 
