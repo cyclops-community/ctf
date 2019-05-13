@@ -10,10 +10,10 @@ namespace CTF_int {
 
   //does conversion using MKL function if it is available
   bool try_mkl_coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_ja, int * csr_ia, char const * coo_vs, int const * coo_rs, int const * coo_cs, int el_size);
-  
+
   bool try_mkl_csr_to_coo(int64_t nz, int nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, char * coo_vs, int * coo_rs, int * coo_cs, int el_size);
 
-  template <typename dtype>  
+  template <typename dtype>
   void seq_coo_to_csr(int64_t nz, int nrow, dtype * csr_vs, int * csr_ja, int * csr_ia, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
     int sz = sizeof(dtype);
     if (sz == 4 || sz == 8 || sz == 16){
@@ -52,7 +52,7 @@ namespace CTF_int {
       public:
         int const * a;
         comp_ref(int const * a_){ a = a_; }
-        bool operator()(int u, int v){ 
+        bool operator()(int u, int v){
           return a[u] < a[v];
         }
     };
@@ -84,7 +84,7 @@ namespace CTF_int {
 
   }
 
-  template <typename dtype>  
+  template <typename dtype>
   void seq_coo_to_ccsr(int64_t nz, int64_t nnz_row, dtype * ccsr_vs, int * ccsr_ja, int * ccsr_ia, dtype const * coo_vs, int64_t const * coo_rs, int64_t const * coo_cs){
 #ifdef _OPENMP
     #pragma omp parallel for
@@ -98,7 +98,7 @@ namespace CTF_int {
       public:
         int64_t const * a;
         comp_ref(int64_t const * a_){ a = a_; }
-        bool operator()(int u, int v){ 
+        bool operator()(int u, int v){
           return a[u] < a[v];
         }
     };
@@ -149,7 +149,7 @@ namespace CTF_int {
     }
   }
 
-  template <typename dtype>  
+  template <typename dtype>
   void seq_csr_to_coo(int64_t nz, int nrow, dtype const * csr_vs, int const * csr_ja, int const * csr_ia, dtype * coo_vs, int * coo_rs, int * coo_cs){
     int sz = sizeof(dtype);
     if (sz == 4 || sz == 8 || sz == 16){
@@ -164,22 +164,22 @@ namespace CTF_int {
     }
   }
 
-  template <typename dtype>  
+  template <typename dtype>
   void def_coo_to_ccsr(int64_t nz, int64_t nnz_row, dtype * ccsr_vs, int * ccsr_ja, int * ccsr_ia, dtype const * coo_vs, int64_t const * coo_rs, int64_t const * coo_cs){
     seq_coo_to_ccsr<dtype>(nz, nnz_row, ccsr_vs, ccsr_ja, ccsr_ia, coo_vs, coo_rs, coo_cs);
   }
 
-  template <typename dtype>  
+  template <typename dtype>
   void def_coo_to_csr(int64_t nz, int nrow, dtype * csr_vs, int * csr_ja, int * csr_ia, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
     seq_coo_to_csr<dtype>(nz, nrow, csr_vs, csr_ja, csr_ia, coo_vs, coo_rs, coo_cs);
   }
 
-  template <typename dtype>  
+  template <typename dtype>
   void def_csr_to_coo(int64_t nz, int nrow, dtype const * csr_vs, int const * csr_ja, int const * csr_ia, dtype * coo_vs, int * coo_rs, int * coo_cs){
     seq_csr_to_coo<dtype>(nz, nrow, csr_vs, csr_ja, csr_ia, coo_vs, coo_rs, coo_cs);
   }
 
-  template <typename dtype>  
+  template <typename dtype>
   void seq_ccsr_to_coo(int64_t nz, int64_t nnz_row, dtype const * ccsr_vs, int const * ccsr_ja, int const * ccsr_ia, int64_t const * row_enc, dtype * coo_vs, int64_t * coo_rs, int64_t * coo_cs){
     //memcpy(coo_vs, ccsr_vs, sizeof(dtype)*nz);
     std::copy(ccsr_vs, ccsr_vs+nz, coo_vs);
@@ -198,12 +198,12 @@ namespace CTF_int {
     }
   }
 
-  template <typename dtype>  
+  template <typename dtype>
   void def_coo_to_ccsr(int64_t nz, int64_t nnz_row, dtype * ccsr_vs, int * ccsr_ja, int * ccsr_ia, int const * row_enc, dtype const * coo_vs, int64_t const * coo_rs, int64_t const * coo_cs){
     seq_coo_to_ccsr<dtype>(nz, nnz_row, ccsr_vs, ccsr_ja, ccsr_ia, row_enc, coo_vs, coo_rs, coo_cs);
   }
 
-  template <typename dtype>  
+  template <typename dtype>
   void def_ccsr_to_coo(int64_t nz, int64_t nnz_row, dtype const * ccsr_vs, int const * ccsr_ja, int const * ccsr_ia, int64_t const * row_enc, dtype * coo_vs, int64_t * coo_rs, int64_t * coo_cs){
     seq_ccsr_to_coo<dtype>(nz, nnz_row, ccsr_vs, ccsr_ja, ccsr_ia, row_enc, coo_vs, coo_rs, coo_cs);
   }
@@ -219,7 +219,7 @@ namespace CTF_int {
     dtype b = default_addinv<dtype>(a);
     return a>=b ? a : b;
   }
-  
+
   template <typename dtype, bool is_ord>
   inline typename std::enable_if<!is_ord, dtype>::type
   default_abs(dtype a){
@@ -240,7 +240,7 @@ namespace CTF_int {
   default_min(dtype a, dtype b){
     return a>b ? b : a;
   }
-  
+
   template <typename dtype, bool is_ord>
   inline typename std::enable_if<!is_ord, dtype>::type
   default_min(dtype a, dtype b){
@@ -248,7 +248,7 @@ namespace CTF_int {
     assert(0);
     return a;
   }
-   
+
   template <typename dtype, bool is_ord>
   inline typename std::enable_if<is_ord, dtype>::type
   default_max_lim(){
@@ -284,7 +284,7 @@ namespace CTF_int {
   default_max(dtype a, dtype b){
     return b>a ? b : a;
   }
-  
+
   template <typename dtype, bool is_ord>
   inline typename std::enable_if<!is_ord, dtype>::type
   default_max(dtype a, dtype b){
@@ -336,7 +336,7 @@ namespace CTF_int {
   constexpr bool get_default_is_ord(){
     return false;
   }
- 
+
   #define INST_ORD_TYPE(dtype)                  \
     template <>                                 \
     constexpr bool get_default_is_ord<dtype>(){ \
@@ -358,7 +358,7 @@ namespace CTF_int {
 
 namespace CTF {
 
-  /** \brief pair for sorting */  
+  /** \brief pair for sorting */
   template <typename dtype>
   struct dtypePair{
     int64_t key;
@@ -370,7 +370,7 @@ namespace CTF {
 
   /**
    * \defgroup algstrct Algebraic Structures
-   * \addtogroup algstrct 
+   * \addtogroup algstrct
    * @{
    */
 
@@ -378,7 +378,7 @@ namespace CTF {
    * \brief Set class defined by a datatype and a min/max function (if it is partially ordered i.e. is_ord=true)
    *         currently assumes min and max are given by numeric_limits (custom min/max not allowed)
    */
-  template <typename dtype=double, bool is_ord=CTF_int::get_default_is_ord<dtype>()> 
+  template <typename dtype=double, bool is_ord=CTF_int::get_default_is_ord<dtype>()>
   class Set : public CTF_int::algstrct {
     public:
       int pair_sz;
@@ -425,7 +425,7 @@ namespace CTF {
 
       bool is_ordered() const { return is_ord; }
 
-      Set() : CTF_int::algstrct(sizeof(dtype)){ 
+      Set() : CTF_int::algstrct(sizeof(dtype)){
         tmdtype = CTF_int::get_default_mdtype<dtype>(is_custom_mdtype);
         set_abs_to_default();
         pair_sz = sizeof(std::pair<int64_t,dtype>);
@@ -434,18 +434,18 @@ namespace CTF {
       void set_abs_to_default(){
         abs = &CTF_int::char_abs< dtype, CTF_int::default_abs<dtype, is_ord> >;
       }
-      
+
       MPI_Datatype mdtype() const {
-        return tmdtype;        
+        return tmdtype;
       }
 
-      void min(char const * a, 
+      void min(char const * a,
                char const * b,
                char *       c) const {
         ((dtype*)c)[0] = CTF_int::default_min<dtype,is_ord>(((dtype*)a)[0],((dtype*)b)[0]);
       }
 
-      void max(char const * a, 
+      void max(char const * a,
                char const * b,
                char *       c) const {
         ((dtype*)c)[0] = CTF_int::default_max<dtype,is_ord>(((dtype*)a)[0],((dtype*)b)[0]);
@@ -616,7 +616,7 @@ namespace CTF {
     }
 
 
-/* 
+/*
       void copy(int64_t      m,
                 int64_t      n,
                 char const * a,
@@ -641,239 +641,250 @@ namespace CTF {
 
   //FIXME do below with macros to shorten
 
-  template <>  
+  template <>
   inline void Set<float>::cast_double(double d, char * c) const {
     ((float*)c)[0] = (float)d;
   }
 
-  template <>  
+  template <>
   inline void Set<double>::cast_double(double d, char * c) const {
     ((double*)c)[0] = d;
   }
 
-  template <>  
+  template <>
   inline void Set<long double>::cast_double(double d, char * c) const {
     ((long double*)c)[0] = (long double)d;
   }
 
-  template <>  
+  template <>
   inline void Set<int>::cast_double(double d, char * c) const {
     ((int*)c)[0] = (int)d;
   }
 
-  template <>  
+  template <>
   inline void Set<uint64_t>::cast_double(double d, char * c) const {
     ((uint64_t*)c)[0] = (uint64_t)d;
   }
-  
-  template <>  
+
+  template <>
   inline void Set<int64_t>::cast_double(double d, char * c) const {
     ((int64_t*)c)[0] = (int64_t)d;
   }
-  
-  template <>  
+
+  template <>
   inline void Set< std::complex<float>,false >::cast_double(double d, char * c) const {
     ((std::complex<float>*)c)[0] = (std::complex<float>)d;
   }
- 
-  template <>  
+
+  template <>
   inline void Set< std::complex<double>,false >::cast_double(double d, char * c) const {
     ((std::complex<double>*)c)[0] = (std::complex<double>)d;
   }
 
-  template <>  
+  template <>
   inline void Set< std::complex<long double>,false >::cast_double(double d, char * c) const {
     ((std::complex<long double>*)c)[0] = (std::complex<long double>)d;
   }
- 
-  template <>  
+
+  template <>
   inline void Set<float>::cast_int(int64_t d, char * c) const {
     ((float*)c)[0] = (float)d;
   }
 
-  template <>  
+  template <>
   inline void Set<double>::cast_int(int64_t d, char * c) const {
     ((double*)c)[0] = (double)d;
   }
 
-  template <>  
+  template <>
   inline void Set<long double>::cast_int(int64_t d, char * c) const {
     ((long double*)c)[0] = (long double)d;
   }
 
-  template <>  
+  template <>
   inline void Set<int>::cast_int(int64_t d, char * c) const {
     ((int*)c)[0] = (int)d;
   }
 
-  template <>  
+  template <>
   inline void Set<uint64_t>::cast_int(int64_t d, char * c) const {
     ((uint64_t*)c)[0] = (uint64_t)d;
   }
-  
-  template <>  
+
+  template <>
   inline void Set<int64_t>::cast_int(int64_t d, char * c) const {
     ((int64_t*)c)[0] = (int64_t)d;
   }
- 
-  template <>  
+
+  template <>
   inline void Set< std::complex<float>,false >::cast_int(int64_t d, char * c) const {
     ((std::complex<float>*)c)[0] = (std::complex<float>)d;
   }
 
-  template <>  
+  template <>
   inline void Set< std::complex<double>,false >::cast_int(int64_t d, char * c) const {
     ((std::complex<double>*)c)[0] = (std::complex<double>)d;
   }
 
-  template <>  
+  template <>
   inline void Set< std::complex<long double>,false >::cast_int(int64_t d, char * c) const {
     ((std::complex<long double>*)c)[0] = (std::complex<long double>)d;
   }
 
-  template <>  
+  template <>
   inline double Set<float>::cast_to_double(char const * c) const {
     return (double)(((float*)c)[0]);
   }
 
-  template <>  
+  template <>
   inline double Set<double>::cast_to_double(char const * c) const {
     return ((double*)c)[0];
   }
 
-  template <>  
+  template <>
   inline double Set<int>::cast_to_double(char const * c) const {
     return (double)(((int*)c)[0]);
   }
 
-  template <>  
+  template <>
   inline double Set<uint64_t>::cast_to_double(char const * c) const {
     return (double)(((uint64_t*)c)[0]);
   }
-  
-  template <>  
+
+  template <>
   inline double Set<int64_t>::cast_to_double(char const * c) const {
     return (double)(((int64_t*)c)[0]);
   }
 
 
-  template <>  
+  template <>
   inline int64_t Set<int64_t>::cast_to_int(char const * c) const {
     return ((int64_t*)c)[0];
   }
-  
-  template <>  
+
+  template <>
   inline int64_t Set<int>::cast_to_int(char const * c) const {
     return (int64_t)(((int*)c)[0]);
   }
 
-  template <>  
+  template <>
   inline int64_t Set<unsigned int>::cast_to_int(char const * c) const {
     return (int64_t)(((unsigned int*)c)[0]);
   }
 
-  template <>  
+  template <>
   inline int64_t Set<uint64_t>::cast_to_int(char const * c) const {
     return (int64_t)(((uint64_t*)c)[0]);
   }
-  
-  template <>  
+
+  template <>
   inline int64_t Set<bool>::cast_to_int(char const * c) const {
     return (int64_t)(((bool*)c)[0]);
   }
 
-  template <>  
+  template <>
   inline void Set<float>::print(char const * a, FILE * fp) const {
     fprintf(fp,"%11.5E",((float*)a)[0]);
   }
 
-  template <>  
+  template <>
   inline void Set<double>::print(char const * a, FILE * fp) const {
     fprintf(fp,"%11.5E",((double*)a)[0]);
   }
 
-  template <>  
+  template <>
   inline void Set<int64_t>::print(char const * a, FILE * fp) const {
     fprintf(fp,"%ld",((int64_t*)a)[0]);
   }
 
-  template <>  
+  template <>
+  inline void Set<uint64_t>::print(char const * a, FILE * fp) const {
+    fprintf(fp,"%lu",((uint64_t*)a)[0]);
+  }
+
+  template <>
+  inline void Set<uint32_t>::print(char const * a, FILE * fp) const {
+    fprintf(fp,"%u",((uint32_t*)a)[0]);
+  }
+
+
+  template <>
   inline void Set<int>::print(char const * a, FILE * fp) const {
     fprintf(fp,"%d",((int*)a)[0]);
   }
 
-  template <>  
+  template <>
   inline void Set< std::complex<float>,false >::print(char const * a, FILE * fp) const {
     fprintf(fp,"(%11.5E,%11.5E)",((std::complex<float>*)a)[0].real(),((std::complex<float>*)a)[0].imag());
   }
 
-  template <>  
+  template <>
   inline void Set< std::complex<double>,false >::print(char const * a, FILE * fp) const {
     fprintf(fp,"(%11.5E,%11.5E)",((std::complex<double>*)a)[0].real(),((std::complex<double>*)a)[0].imag());
   }
 
-  template <>  
+  template <>
   inline void Set< std::complex<long double>,false >::print(char const * a, FILE * fp) const {
     fprintf(fp,"(%11.5LE,%11.5LE)",((std::complex<long double>*)a)[0].real(),((std::complex<long double>*)a)[0].imag());
   }
 
-  template <>  
+  template <>
   inline bool Set<float>::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
     if (a == NULL || b == NULL) return false;
     return ((float*)a)[0] == ((float*)b)[0];
   }
 
-  template <>  
+  template <>
   inline bool Set<double>::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
     if (a == NULL || b == NULL) return false;
     return ((double*)a)[0] == ((double*)b)[0];
   }
 
-  template <>  
+  template <>
   inline bool Set<int>::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
     if (a == NULL || b == NULL) return false;
     return ((int*)a)[0] == ((int*)b)[0];
   }
 
-  template <>  
+  template <>
   inline bool Set<uint64_t>::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
     if (a == NULL || b == NULL) return false;
     return ((uint64_t*)a)[0] == ((uint64_t*)b)[0];
   }
 
-  template <>  
+  template <>
   inline bool Set<int64_t>::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
     if (a == NULL || b == NULL) return false;
     return ((int64_t*)a)[0] == ((int64_t*)b)[0];
   }
 
-  template <>  
+  template <>
   inline bool Set<long double>::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
     if (a == NULL || b == NULL) return false;
     return ((long double*)a)[0] == ((long double*)b)[0];
   }
 
-  template <>  
+  template <>
   inline bool Set< std::complex<float>,false >::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
     if (a == NULL || b == NULL) return false;
     return (( std::complex<float> *)a)[0] == (( std::complex<float> *)b)[0];
   }
 
-  template <>  
+  template <>
   inline bool Set< std::complex<double>,false >::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
     if (a == NULL || b == NULL) return false;
     return (( std::complex<double> *)a)[0] == (( std::complex<double> *)b)[0];
   }
 
-  template <>  
+  template <>
   inline bool Set< std::complex<long double>,false >::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
     if (a == NULL || b == NULL) return false;
@@ -888,3 +899,4 @@ namespace CTF {
 }
 #include "monoid.h"
 #endif
+

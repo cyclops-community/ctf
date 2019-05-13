@@ -1572,6 +1572,11 @@ NORM_INFTY_INST(double)
     fill_sp_random_base<int64_t>(rmin, rmax, frac_sp, this);
   }
 
+  template<>
+  inline void Tensor<bool>::fill_sp_random(bool rmin, bool rmax, double frac_sp){
+    fill_sp_random_base<bool>(rmin, rmax, frac_sp, this);
+  }
+
   template<typename dtype>
   void Tensor<dtype>::contract(dtype            alpha,
                                CTF_int::tensor& A,

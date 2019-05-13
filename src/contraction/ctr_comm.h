@@ -126,11 +126,11 @@ namespace CTF_int{
                   char const *     A,
                   int const *      JA,
                   int const *      IA,
-                  int              nnz_A,
+                  int64_t          nnz_A,
                   char const *     B,
                   int const *      JB,
                   int const *      IB,
-                  int              nnz_B,
+                  int64_t          nnz_B,
                   char *           C,
                   algstrct const * sr_C) const { assert(0); }
 
@@ -141,11 +141,11 @@ namespace CTF_int{
                char const *     A,
                int const *      JA,
                int const *      IA,
-               int              nnz_A,
+               int64_t          nnz_A,
                char const *     B,
                int const *      JB,
                int const *      IB,
-               int              nnz_B,
+               int64_t          nnz_B,
                char *&          C_CSR,
                algstrct const * sr_C) const { assert(0); }
 

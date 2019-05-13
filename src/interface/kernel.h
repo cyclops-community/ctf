@@ -292,11 +292,11 @@ namespace CTF{
                   dtype_A const * A,
                   int const *     JA,
                   int const *     IA,
-                  int             nnz_A,
+                  int64_t         nnz_A,
                   dtype_B const * B,
                   int const *     JB,
                   int const *     IB,
-                  int             nnz_B,
+                  int64_t         nnz_B,
                   dtype_C *       C){
 #ifdef _OPENMP
       #pragma omp parallel for
@@ -381,7 +381,7 @@ namespace CTF{
       CTF_int::cdealloc(rev_col);
     }
 
-      void csrmultcsr
+    void csrmultcsr
                       (int          m, 
                       int           n,
                       int           k, 
@@ -490,50 +490,50 @@ namespace CTF{
 
 
 
-    void ccsrmultd
+    void fcsrmultd
                  (int          m,
                   int          n,
                   int          k,
                   char const * A,
                   int const *  JA,
                   int const *  IA,
-                  int          nnz_A,
+                  int64_t      nnz_A,
                   char const * B,
                   int const *  JB,
                   int const *  IB,
-                  int          nnz_B,
+                  int64_t      nnz_B,
                   char *       C,
                   CTF_int::algstrct const * sr_C) const {
       csrmultd(m,n,k,(dtype_A const *)A,JA,IA,nnz_A,(dtype_B const *)B,JB,IB,nnz_B,(dtype_C *)C);
     }
 
-    void ccsrmultcsr
-              (int          m,
+    void fcsrmultcsr
+             (int          m,
+              int          n,
+              int          k,
+              char const * A,
+              int const *  JA,
+              int const *  IA,
+              int          nnz_A,
+              char const * B,
+              int const *  JB,
+              int const *  IB,
+              int          nnz_B,
+              char *&      C_CSR,
+              CTF_int::algstrct const * sr_C) const {
+      csrmultcsr(m,n,k,(dtype_A const *)A,JA,IA,nnz_A,(dtype_B const *)B, JB, IB, nnz_B, C_CSR);
+    }
+
+    void csrmm(int          m,
                int          n,
                int          k,
                char const * A,
                int const *  JA,
                int const *  IA,
-               int          nnz_A,
+               int64_t      nnz_A,
                char const * B,
-               int const *  JB,
-               int const *  IB,
-               int          nnz_B,
-               char *&      C_CSR,
+               char *       C,
                CTF_int::algstrct const * sr_C) const {
-      csrmultcsr(m,n,k,(dtype_A const *)A,JA,IA,nnz_A,(dtype_B const *)B, JB, IB, nnz_B, C_CSR);
-    }
-
-    void ccsrmm(int          m,
-                int          n,
-                int          k,
-                char const * A,
-                int const *  JA,
-                int const *  IA,
-                int64_t      nnz_A,
-                char const * B,
-                char *       C,
-                CTF_int::algstrct const * sr_C) const {
       csrmm(m,n,k,(dtype_A const *)A,JA,IA,nnz_A,(dtype_B const *)B, (dtype_C *)C);
     }
 
