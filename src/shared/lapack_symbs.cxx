@@ -11,6 +11,10 @@
 #define PSGESVD psgesvd_
 #define PCGESVD pcgesvd_
 #define PZGESVD pzgesvd_
+#define PDSYEVX pdsyevx_
+#define PSSYEVX pssyevx_
+#define PCHEEVX pcheevx_
+#define PZHEEVX pzheevx_
 #define PSGEQRF psgeqrf_
 #define PDGEQRF pdgeqrf_
 #define PCGEQRF pcgeqrf_
@@ -193,6 +197,135 @@ namespace CTF_SCALAPACK{
                 int *,
                 double *,
                 int *);
+
+  extern "C"
+  void PSSYEVX(char *  JOBZ,
+               char *  RANGE,
+               char *  UPLO,
+               int *   N,
+               float * A,
+               int *   IA,
+               int *   JA,
+               int *   DESCA,
+               float * VL,
+               float * VU,
+               int *   IL,
+               int *   IU,
+               float * ABSTOL,
+               int *   M,
+               int *   NZ,
+               float * W,
+               float * ORFAC,
+               float * Z,
+               int *   IZ,
+               int *   JZ,
+               int *   DESCZ,
+               float * WORK,
+               int *   LWORK,
+               int *   IWORK,
+               int *   LIWORK,
+               int *   IFAIL,
+               int *   ICLUSTR,
+               float * GAP,
+               int *   INFO);
+
+  extern "C"
+  void PDSYEVX(char *   JOBZ,
+               char *   RANGE,
+               char *   UPLO,
+               int *    N,
+               double * A,
+               int *    IA,
+               int *    JA,
+               int *    DESCA,
+               double * VL,
+               double * VU,
+               int *    IL,
+               int *    IU,
+               double * ABSTOL,
+               int *    M,
+               int *    NZ,
+               double * W,
+               double * ORFAC,
+               double * Z,
+               int *    IZ,
+               int *    JZ,
+               int *    DESCZ,
+               double * WORK,
+               int *    LWORK,
+               int *    IWORK,
+               int *    LIWORK,
+               int *    IFAIL,
+               int *    ICLUSTR,
+               double * GAP,
+               int *    INFO);
+
+  extern "C"
+  void PCHEEVX(char *                JOBZ,
+               char *                RANGE,
+               char *                UPLO,
+               int *                 N,
+               std::complex<float> * A,
+               int *                 IA,
+               int *                 JA,
+               int *                 DESCA,
+               float *               VL,
+               float *               VU,
+               int *                 IL,
+               int *                 IU,
+               float *               ABSTOL,
+               int *                 M,
+               int *                 NZ,
+               float *               W,
+               float *               ORFAC,
+               std::complex<float> * Z,
+               int *                 IZ,
+               int *                 JZ,
+               int *                 DESCZ,
+               std::complex<float> * WORK,
+               int *                 LWORK,
+               float *               RWORK,
+               int *                 LRWORK,
+               int *                 IWORK,
+               int *                 LIWORK,
+               int *                 IFAIL,
+               int *                 ICLUSTR,
+               float *               GAP,
+               int *                 INFO);
+
+  extern "C"
+  void PZHEEVX(char *                 JOBZ,
+               char *                 RANGE,
+               char *                 UPLO,
+               int *                  N,
+               std::complex<double> * A,
+               int *                  IA,
+               int *                  JA,
+               int *                  DESCA,
+               double *               VL,
+               double *               VU,
+               int *                  IL,
+               int *                  IU,
+               double *               ABSTOL,
+               int *                  M,
+               int *                  NZ,
+               double *               W,
+               double *               ORFAC,
+               std::complex<double> * Z,
+               int *                  IZ,
+               int *                  JZ,
+               int *                  DESCZ,
+               std::complex<double> * WORK,
+               int *                  LWORK,
+               double *               RWORK,
+               int *                  LRWORK,
+               int *                  IWORK,
+               int *                  LIWORK,
+               int *                  IFAIL,
+               int *                  ICLUSTR,
+               double *               GAP,
+               int *                  INFO);
+
 
 
   extern "C"
@@ -524,6 +657,160 @@ namespace CTF_SCALAPACK{
     assert(0);
 #endif
   }
+
+  template <>
+  void psyevx<float>(char    JOBZ,
+                     char    RANGE,
+                     char    UPLO,
+                     int     N,
+                     float * A,
+                     int     IA,
+                     int     JA,
+                     int *   DESCA,
+                     float   VL,
+                     float   VU,
+                     int     IL,
+                     int     IU,
+                     float   ABSTOL,
+                     int     M,
+                     int     NZ,
+                     float * W,
+                     float   ORFAC,
+                     float * Z,
+                     int     IZ,
+                     int     JZ,
+                     int *   DESCZ,
+                     float * WORK,
+                     int     LWORK,
+                     int *   IWORK,
+                     int     LIWORK,
+                     int *   IFAIL,
+                     int *   ICLUSTR,
+                     float * GAP,
+                     int     INFO){
+#ifdef USE_SCALAPACK
+    PSSYEVX(&JOBZ,&RANGE,&UPLO,&N,A,&IA,&JA,DESCA,&VL,&VU,&IL,&IU,&ABSTOL,&M,&NZ,W,&ORFAC,Z,&IZ,&JZ,DESCZ,WORK,&LWORK,IWORK,&LIWORK,IFAIL,ICLUSTR,GAP,&INFO);
+#else
+    assert(0);
+#endif
+  }
+
+  template <>
+  void psyevx<double>(char     JOBZ,
+                      char     RANGE,
+                      char     UPLO,
+                      int      N,
+                      double * A,
+                      int      IA,
+                      int      JA,
+                      int *    DESCA,
+                      double   VL,
+                      double   VU,
+                      int      IL,
+                      int      IU,
+                      double   ABSTOL,
+                      int      M,
+                      int      NZ,
+                      double * W,
+                      double   ORFAC,
+                      double * Z,
+                      int      IZ,
+                      int      JZ,
+                      int *    DESCZ,
+                      double * WORK,
+                      int      LWORK,
+                      int *    IWORK,
+                      int      LIWORK,
+                      int *    IFAIL,
+                      int *    ICLUSTR,
+                      double * GAP,
+                      int      INFO){
+#ifdef USE_SCALAPACK
+    PDSYEVX(&JOBZ,&RANGE,&UPLO,&N,A,&IA,&JA,DESCA,&VL,&VU,&IL,&IU,&ABSTOL,&M,&NZ,W,&ORFAC,Z,&IZ,&JZ,DESCZ,WORK,&LWORK,IWORK,&LIWORK,IFAIL,ICLUSTR,GAP,&INFO);
+#else
+    assert(0);
+#endif
+  }
+
+  template <>
+  void pheevx<float>(char                  JOBZ,
+                     char                  RANGE,
+                     char                  UPLO,
+                     int                   N,
+                     std::complex<float> * A,
+                     int                   IA,
+                     int                   JA,
+                     int *                 DESCA,
+                     float                 VL,
+                     float                 VU,
+                     int                   IL,
+                     int                   IU,
+                     float                 ABSTOL,
+                     int                   M,
+                     int                   NZ,
+                     float *               W,
+                     float                 ORFAC,
+                     std::complex<float> * Z,
+                     int                   IZ,
+                     int                   JZ,
+                     int *                 DESCZ,
+                     std::complex<float> * WORK,
+                     int                   LWORK,
+                     float *               RWORK,
+                     int                   LRWORK,
+                     int *                 IWORK,
+                     int                   LIWORK,
+                     int *                 IFAIL,
+                     int *                 ICLUSTR,
+                     float *               GAP,
+                     int                   INFO){
+#ifdef USE_SCALAPACK
+    PCHEEVX(&JOBZ,&RANGE,&UPLO,&N,A,&IA,&JA,DESCA,&VL,&VU,&IL,&IU,&ABSTOL,&M,&NZ,W,&ORFAC,Z,&IZ,&JZ,DESCZ,WORK,&LWORK,RWORK,&LWORK,IWORK,&LIWORK,IFAIL,ICLUSTR,GAP,&INFO);
+#else
+    assert(0);
+#endif
+  }
+
+  template <>
+  void pheevx<double>(char                   JOBZ,
+                      char                   RANGE,
+                      char                   UPLO,
+                      int                    N,
+                      std::complex<double> * A,
+                      int                    IA,
+                      int                    JA,
+                      int *                  DESCA,
+                      double                 VL,
+                      double                 VU,
+                      int                    IL,
+                      int                    IU,
+                      double                 ABSTOL,
+                      int                    M,
+                      int                    NZ,
+                      double *               W,
+                      double                 ORFAC,
+                      std::complex<double> * Z,
+                      int                    IZ,
+                      int                    JZ,
+                      int *                  DESCZ,
+                      std::complex<double> * WORK,
+                      int                    LWORK,
+                      double *               RWORK,
+                      int                    LRWORK,
+                      int *                  IWORK,
+                      int                    LIWORK,
+                      int *                  IFAIL,
+                      int *                  ICLUSTR,
+                      double *               GAP,
+                      int                    INFO){
+#ifdef USE_SCALAPACK
+    PZHEEVX(&JOBZ,&RANGE,&UPLO,&N,A,&IA,&JA,DESCA,&VL,&VU,&IL,&IU,&ABSTOL,&M,&NZ,W,&ORFAC,Z,&IZ,&JZ,DESCZ,WORK,&LWORK,RWORK,&LWORK,IWORK,&LIWORK,IFAIL,ICLUSTR,GAP,&INFO);
+#else
+    assert(0);
+#endif
+  }
+
+
 
   template <>
   void pgeqrf<float>(int         M,
