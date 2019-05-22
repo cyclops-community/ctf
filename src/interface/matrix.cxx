@@ -661,11 +661,6 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void get_svd(dtype * A, dtype * U, dtype * S, dtype * VT, int & rank, double threshold){
-
-  }
-
-  template<typename dtype>
   void Matrix<dtype>::svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank, double threshold){
 
     Timer t_svd("SVD");
@@ -824,4 +819,115 @@ namespace CTF {
     U["ij"] = U["ik"] * U1["kj"];
     t_svd.stop();
   }
+
+
+  template<typename dtype>
+  void Matrix<dtype>::eigh(Matrix<dtype> & U, Vector<dtype> & D){
+    Timer t_eigh("EIGH");
+    t_eigh.start();
+    int info;
+
+    int m = this->nrow;
+    int n = this->ncol;
+
+    IASSERT(m==n);
+
+
+    int * desca;// = (int*)malloc(9*sizeof(int));
+    int * descu = (int*)malloc(9*sizeof(int));
+
+    int ictxt;
+    char layout_order;
+    this->get_desc(ictxt, desca, layout_order);
+
+    int pr, pc;
+    pr = this->edge_map[0].calc_phase();
+    pc = this->edge_map[1].calc_phase();
+    //CTF_SCALAPACK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
+    int64_t npr = n/pr + (n % pr != 0);
+    int64_t npc = n/pc + (n % pc != 0);
+
+    CTF_SCALAPACK::cdescinit(descu, n, n, 1, 1, 0, 0, ictxt, npr, &info);
+
+    dtype * A = (dtype*)CTF_int::alloc(this->size*sizeof(dtype));
+    dtype * u = (dtype*)CTF_int::alloc(sizeof(dtype)*npr*npc);
+    this->read_mat(desca, A, layout_order);
+
+
+    D = Vector<dtype>(n, (*(this->wrld)));
+    int64_t sc;
+    dtype * d_data = D.get_raw_data(&sc);
+
+    int lwork;
+    dtype dlwork;
+    int ilwork;
+
+    //if (typeid(dtype) == typeid(std::complex<float>)){
+    //  float * s = (float*)CTF_int::alloc(sizeof(float)*k);
+    //  CTF_SCALAPACK::pgeeigh<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
+    //  lwork = get_int_fromreal<dtype>(dlwork);
+    //  float * work = (float*)CTF_int::alloc(sizeof(float)*((int64_t)lwork));
+    //  CTF_SCALAPACK::pgeeigh<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
+    //  if (threshold > 0.0)
+    //    rank = std::lower_bound(s, s+k, (float)threshold) - s;
+    //  int phase = S.edge_map[0].calc_phase();
+    //  if ((int)(this->wrld->rank) < phase){
+    //    for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
+    //      s_data[i/phase] = s[i];
+    //    } 
+    //  }
+    //  CTF_int::cdealloc(s);
+    //  CTF_int::cdealloc(work);
+    //} else if (typeid(dtype) == typeid(std::complex<double>)){
+    //  double * s = (double*)CTF_int::alloc(sizeof(double)*k);
+    //  CTF_SCALAPACK::pgeeigh<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
+    //  lwork = get_int_fromreal<dtype>(dlwork);
+    //  double * work = (double*)CTF_int::alloc(sizeof(double)*((int64_t)lwork));
+    //  CTF_SCALAPACK::pgeeigh<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
+    //  if (threshold > 0.0)
+    //    rank = std::lower_bound(s, s+k, (double)threshold) - s;
+    //  int phase = S.edge_map[0].calc_phase();
+    //  if ((int)(this->wrld->rank) < phase){
+    //    for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
+    //      s_data[i/phase] = s[i];
+    //    } 
+    //  }
+    //  CTF_int::cdealloc(s);
+    //  CTF_int::cdealloc(work);
+    //} else {
+    dtype * d = (dtype*)CTF_int::alloc(sizeof(dtype)*n);
+    int M, NZ;
+    CTF_SCALAPACK::psyevx<dtype>('V', 'A', 'U', n, NULL, 1, 1, desca, (dtype)0, (dtype)0, 0, 0, (dtype)0, &M, &NZ, NULL, (dtype)0, NULL, 1, 1, descu, &dlwork, -1, &ilwork, -1, NULL, NULL, NULL, &info);  
+    lwork = get_int_fromreal<dtype>(dlwork);
+    dtype * work = (dtype*)CTF_int::alloc(sizeof(dtype)*((int64_t)lwork));
+    int * iwork = (int*)CTF_int::alloc(sizeof(int)*ilwork);
+    int * IFAIL = (int*)CTF_int::alloc(sizeof(int)*n);
+    int * ICLUSTR = (int*)CTF_int::alloc(sizeof(int)*2*npr*npc);
+    dtype * GAP = (dtype*)CTF_int::alloc(sizeof(dtype)*npr*npc);
+    CTF_SCALAPACK::psyevx<dtype>('V', 'A', 'U', n, A, 1, 1, desca, (dtype)0, (dtype)0, 0, 0, (dtype)0, &M, &NZ, d, (dtype)0, u, 1, 1, descu, work, lwork, iwork, ilwork, IFAIL, ICLUSTR, GAP, &info);
+    CTF_int::cdealloc(IFAIL);
+    CTF_int::cdealloc(ICLUSTR);
+    CTF_int::cdealloc(GAP);
+    if (info != 0){
+      printf("CTF ERROR: pysevx returned error code %d\n",info);
+    }
+    int phase = D.edge_map[0].calc_phase();
+    if ((int)(this->wrld->rank) < phase){
+      for (int i = D.edge_map[0].calc_phys_rank(D.topo); i < n; i += phase) {
+        d_data[i/phase] = d[i];
+      } 
+    }
+    CTF_int::cdealloc(d);
+    CTF_int::cdealloc(iwork);
+    CTF_int::cdealloc(work);
+
+    U = Matrix<dtype>(descu, u, layout_order, (*(this->wrld)));
+
+    CTF_int::cdealloc(A);
+    CTF_int::cdealloc(u);
+    free(desca);
+    free(descu);
+    t_eigh.stop();
+  }
+
 }

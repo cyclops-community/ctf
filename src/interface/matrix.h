@@ -324,6 +324,12 @@ namespace CTF {
        */
       void svd_rand(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank, int iter=1, int oversamp=5, Matrix<dtype> * U_guess=NULL);
 
+      /**
+       * \brief calculate symmetric or Hermitian eigensolve, must be called on square and symmetric or Hermitian matrix
+       * \param[out] U will be defined as a matrix of eigenvectors of the same dimensions as this matrix
+       * \param[out] D will be a vector of eigenvalues of the same dimension/type as this matrix (if this matrix is complex, D will be complex, but each value will have a zero complex part)
+       */
+      void eigh(Matrix<dtype> & U, Vector<dtype> & D);
   };
   /**
    * @}

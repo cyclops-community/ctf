@@ -219,8 +219,8 @@ namespace CTF_SCALAPACK {
               int     IL,
               int     IU,
               dtype   ABSTOL,
-              int     M,
-              int     NZ,
+              int *   M,
+              int *   NZ,
               dtype * W,
               dtype   ORFAC,
               dtype * Z,
@@ -234,7 +234,7 @@ namespace CTF_SCALAPACK {
               int *   IFAIL,
               int *   ICLUSTR,
               dtype * GAP,
-              int     INFO){
+              int *   INFO){
     assert(0);
   }
 
@@ -252,8 +252,8 @@ namespace CTF_SCALAPACK {
                      int     IL,
                      int     IU,
                      float   ABSTOL,
-                     int     M,
-                     int     NZ,
+                     int *   M,
+                     int *   NZ,
                      float * W,
                      float   ORFAC,
                      float * Z,
@@ -267,7 +267,7 @@ namespace CTF_SCALAPACK {
                      int *   IFAIL,
                      int *   ICLUSTR,
                      float * GAP,
-                     int     INFO);
+                     int *   INFO);
 
   template <>
   void psyevx<double>(char     JOBZ,
@@ -283,8 +283,8 @@ namespace CTF_SCALAPACK {
                       int      IL,
                       int      IU,
                       double   ABSTOL,
-                      int      M,
-                      int      NZ,
+                      int *    M,
+                      int *    NZ,
                       double * W,
                       double   ORFAC,
                       double * Z,
@@ -298,7 +298,7 @@ namespace CTF_SCALAPACK {
                       int *    IFAIL,
                       int *    ICLUSTR,
                       double * GAP,
-                      int      INFO);
+                      int *    INFO);
 
   template <typename dtype>
   void pheevx(char                  JOBZ,
@@ -314,8 +314,8 @@ namespace CTF_SCALAPACK {
               int                   IL,
               int                   IU,
               dtype                 ABSTOL,
-              int                   M,
-              int                   NZ,
+              int *                 M,
+              int *                 NZ,
               dtype *               W,
               dtype                 ORFAC,
               std::complex<dtype> * Z,
@@ -331,7 +331,7 @@ namespace CTF_SCALAPACK {
               int *                 IFAIL,
               int *                 ICLUSTR,
               dtype *               GAP,
-              int                   INFO){
+              int *                 INFO){
     assert(0);
   }
 
@@ -349,8 +349,8 @@ namespace CTF_SCALAPACK {
                      int                   IL,
                      int                   IU,
                      float                 ABSTOL,
-                     int                   M,
-                     int                   NZ,
+                     int *                 M,
+                     int *                 NZ,
                      float *               W,
                      float                 ORFAC,
                      std::complex<float> * Z,
@@ -366,7 +366,7 @@ namespace CTF_SCALAPACK {
                      int *                 IFAIL,
                      int *                 ICLUSTR,
                      float *               GAP,
-                     int                   INFO);
+                     int *                 INFO);
 
   template <>
   void pheevx<double>(char                   JOBZ,
@@ -382,8 +382,8 @@ namespace CTF_SCALAPACK {
                       int                    IL,
                       int                    IU,
                       double                 ABSTOL,
-                      int                    M,
-                      int                    NZ,
+                      int *                  M,
+                      int *                  NZ,
                       double *               W,
                       double                 ORFAC,
                       std::complex<double> * Z,
@@ -399,7 +399,7 @@ namespace CTF_SCALAPACK {
                       int *                  IFAIL,
                       int *                  ICLUSTR,
                       double *               GAP,
-                      int                    INFO);
+                      int *                  INFO);
 
   template <typename dtype>
   void porgqr(int         M,

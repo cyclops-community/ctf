@@ -672,8 +672,8 @@ namespace CTF_SCALAPACK{
                      int     IL,
                      int     IU,
                      float   ABSTOL,
-                     int     M,
-                     int     NZ,
+                     int *   M,
+                     int *   NZ,
                      float * W,
                      float   ORFAC,
                      float * Z,
@@ -687,9 +687,9 @@ namespace CTF_SCALAPACK{
                      int *   IFAIL,
                      int *   ICLUSTR,
                      float * GAP,
-                     int     INFO){
+                     int *   INFO){
 #ifdef USE_SCALAPACK
-    PSSYEVX(&JOBZ,&RANGE,&UPLO,&N,A,&IA,&JA,DESCA,&VL,&VU,&IL,&IU,&ABSTOL,&M,&NZ,W,&ORFAC,Z,&IZ,&JZ,DESCZ,WORK,&LWORK,IWORK,&LIWORK,IFAIL,ICLUSTR,GAP,&INFO);
+    PSSYEVX(&JOBZ,&RANGE,&UPLO,&N,A,&IA,&JA,DESCA,&VL,&VU,&IL,&IU,&ABSTOL,M,NZ,W,&ORFAC,Z,&IZ,&JZ,DESCZ,WORK,&LWORK,IWORK,&LIWORK,IFAIL,ICLUSTR,GAP,INFO);
 #else
     assert(0);
 #endif
@@ -709,8 +709,8 @@ namespace CTF_SCALAPACK{
                       int      IL,
                       int      IU,
                       double   ABSTOL,
-                      int      M,
-                      int      NZ,
+                      int *    M,
+                      int *    NZ,
                       double * W,
                       double   ORFAC,
                       double * Z,
@@ -724,9 +724,9 @@ namespace CTF_SCALAPACK{
                       int *    IFAIL,
                       int *    ICLUSTR,
                       double * GAP,
-                      int      INFO){
+                      int *    INFO){
 #ifdef USE_SCALAPACK
-    PDSYEVX(&JOBZ,&RANGE,&UPLO,&N,A,&IA,&JA,DESCA,&VL,&VU,&IL,&IU,&ABSTOL,&M,&NZ,W,&ORFAC,Z,&IZ,&JZ,DESCZ,WORK,&LWORK,IWORK,&LIWORK,IFAIL,ICLUSTR,GAP,&INFO);
+    PDSYEVX(&JOBZ,&RANGE,&UPLO,&N,A,&IA,&JA,DESCA,&VL,&VU,&IL,&IU,&ABSTOL,M,NZ,W,&ORFAC,Z,&IZ,&JZ,DESCZ,WORK,&LWORK,IWORK,&LIWORK,IFAIL,ICLUSTR,GAP,INFO);
 #else
     assert(0);
 #endif
@@ -746,8 +746,8 @@ namespace CTF_SCALAPACK{
                      int                   IL,
                      int                   IU,
                      float                 ABSTOL,
-                     int                   M,
-                     int                   NZ,
+                     int *                 M,
+                     int *                 NZ,
                      float *               W,
                      float                 ORFAC,
                      std::complex<float> * Z,
@@ -763,9 +763,9 @@ namespace CTF_SCALAPACK{
                      int *                 IFAIL,
                      int *                 ICLUSTR,
                      float *               GAP,
-                     int                   INFO){
+                     int *                 INFO){
 #ifdef USE_SCALAPACK
-    PCHEEVX(&JOBZ,&RANGE,&UPLO,&N,A,&IA,&JA,DESCA,&VL,&VU,&IL,&IU,&ABSTOL,&M,&NZ,W,&ORFAC,Z,&IZ,&JZ,DESCZ,WORK,&LWORK,RWORK,&LWORK,IWORK,&LIWORK,IFAIL,ICLUSTR,GAP,&INFO);
+    PCHEEVX(&JOBZ,&RANGE,&UPLO,&N,A,&IA,&JA,DESCA,&VL,&VU,&IL,&IU,&ABSTOL,M,NZ,W,&ORFAC,Z,&IZ,&JZ,DESCZ,WORK,&LWORK,RWORK,&LWORK,IWORK,&LIWORK,IFAIL,ICLUSTR,GAP,INFO);
 #else
     assert(0);
 #endif
@@ -785,8 +785,8 @@ namespace CTF_SCALAPACK{
                       int                    IL,
                       int                    IU,
                       double                 ABSTOL,
-                      int                    M,
-                      int                    NZ,
+                      int *                  M,
+                      int *                  NZ,
                       double *               W,
                       double                 ORFAC,
                       std::complex<double> * Z,
@@ -802,9 +802,9 @@ namespace CTF_SCALAPACK{
                       int *                  IFAIL,
                       int *                  ICLUSTR,
                       double *               GAP,
-                      int                    INFO){
+                      int *                  INFO){
 #ifdef USE_SCALAPACK
-    PZHEEVX(&JOBZ,&RANGE,&UPLO,&N,A,&IA,&JA,DESCA,&VL,&VU,&IL,&IU,&ABSTOL,&M,&NZ,W,&ORFAC,Z,&IZ,&JZ,DESCZ,WORK,&LWORK,RWORK,&LWORK,IWORK,&LIWORK,IFAIL,ICLUSTR,GAP,&INFO);
+    PZHEEVX(&JOBZ,&RANGE,&UPLO,&N,A,&IA,&JA,DESCA,&VL,&VU,&IL,&IU,&ABSTOL,M,NZ,W,&ORFAC,Z,&IZ,&JZ,DESCZ,WORK,&LWORK,RWORK,&LWORK,IWORK,&LIWORK,IFAIL,ICLUSTR,GAP,INFO);
 #else
     assert(0);
 #endif
