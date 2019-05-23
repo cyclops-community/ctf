@@ -55,18 +55,28 @@ bool eigh(Matrix<dtype> A){
   return pass_residual & pass_orthogonality;
 } 
 
-bool test_eigh(int n, World dw){
+template <typename dtype>
+bool test_eigh_dt(int n, World dw){
   bool pass = true;
-  Matrix<float> A_ss(n,n,SP|SY,dw);
+  Matrix<dtype> A_ss(n,n,SP|SY,dw);
   A_ss.fill_sp_random(-1.,1.,.8);
-  Matrix<float> A_s(n,n,SY,dw);
-  Matrix<float> A(n,n,dw);
+  Matrix<dtype> A_s(n,n,SY,dw);
+  Matrix<dtype> A(n,n,dw);
   A_s["ij"] = A_ss["ij"];
   A["ij"] = A_ss["ij"];
+  pass = pass & eigh<dtype>(A);
+  pass = pass & eigh<dtype>(A_s);
+  pass = pass & eigh<dtype>(A_ss);
 
-  pass = pass & eigh<float>(A);
-  pass = pass & eigh<float>(A_s);
-  pass = pass & eigh<float>(A_ss);
+  return pass;
+}
+
+bool test_eigh(int n, World dw){
+  bool pass = true;
+  pass = pass & test_eigh_dt<float>(n, dw);
+  pass = pass & test_eigh_dt<double>(n, dw);
+  //pass = pass & test_eigh_dt<std::complex<float>>(n, dw);
+  //pass = pass & test_eigh_dt<std::complex<double>>(n, dw);
 
   if (dw.rank == 0){
     if (pass){

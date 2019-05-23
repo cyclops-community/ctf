@@ -49,6 +49,7 @@
 #ifdef USE_SCALAPACK
 #include "../scalapack_tests/qr.cxx"
 #include "../scalapack_tests/svd.cxx"
+#include "../scalapack_tests/eigh.cxx"
 #endif
 
 
@@ -206,7 +207,12 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing SVD with m = %d n = %d k=%d:\n",n*n,n+1,n+1);
     pass.push_back(test_svd(n*n,n+1,n+1,dw));
+  
+    if (rank == 0)
+      printf("Testing symmetric eigensolve n = %d:\n",n*n+1);
+    pass.push_back(test_eigh(n*n+1,dw));
  
+
 #endif
     if (np == 1<<(int)log2(np)){
       if (rank == 0)

@@ -42,6 +42,10 @@
 #define PSGESVD psgesvd
 #define PCGESVD pcgesvd
 #define PZGESVD pzgesvd
+#define PDSYEVX pdsyevx
+#define PSSYEVX pssyevx
+#define PCHEEVX pcheevx
+#define PZHEEVX pzheevx
 #define PSGEQRF psgeqrf
 #define PDGEQRF pdgeqrf
 #define PCGEQRF pcgeqrf
