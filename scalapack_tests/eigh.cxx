@@ -75,8 +75,8 @@ bool test_eigh(int n, World dw){
   bool pass = true;
   pass = pass & test_eigh_dt<float>(n, dw);
   pass = pass & test_eigh_dt<double>(n, dw);
-  //pass = pass & test_eigh_dt<std::complex<float>>(n, dw);
-  //pass = pass & test_eigh_dt<std::complex<double>>(n, dw);
+  pass = pass & test_eigh_dt<std::complex<float>>(n, dw);
+  pass = pass & test_eigh_dt<std::complex<double>>(n, dw);
 
   if (dw.rank == 0){
     if (pass){

@@ -460,25 +460,29 @@ namespace CTF_SCALAPACK {
                       double * Z,
                       int *   DESCZ);
 
-//  template <>
-//  void pgeigh<std::complex<float>>(char    UPLO,
-//                                   int     N,
-//                                   std::complex<float> * A,
-//                                   int *   DESCA,
-//                                   std::complex<float> * W,
-//                                   std::complex<float> * Z,
-//                                   int *   DESCZ);
-//
-//
-//
-//  template <>
-//  void pgeigh<std::complex<double>>(char    UPLO,
-//                                    int     N,
-//                                    std::complex<double> * A,
-//                                    int *   DESCA,
-//                                    std::complex<double> * W,
-//                                    std::complex<double> * Z,
-//                                    int *   DESCZ);
+  template <>
+  void pgeigh<std::complex<float>>(char    UPLO,
+                                   int64_t n,
+                                   int64_t npr,
+                                   int64_t npc,
+                                   std::complex<float> * A,
+                                   int *   DESCA,
+                                   std::complex<float> * W,
+                                   std::complex<float> * Z,
+                                   int *   DESCZ);
+
+
+
+  template <>
+  void pgeigh<std::complex<double>>(char    UPLO,
+                                    int64_t n,
+                                    int64_t npr,
+                                    int64_t npc,
+                                    std::complex<double> * A,
+                                    int *   DESCA,
+                                    std::complex<double> * W,
+                                    std::complex<double> * Z,
+                                    int *   DESCZ);
 
   template <typename dtype>
   void porgqr(int         M,

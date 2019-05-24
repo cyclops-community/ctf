@@ -816,15 +816,15 @@ namespace CTF_SCALAPACK{
   }
 
   template <typename dtype>
-  void pgeigs(char    UPLO,
-              int64_t n,
-              int64_t npr,
-              int64_t npc,
-              dtype * A,
-              int *   desca,
-              dtype * d,
-              dtype * u,
-              int *   descu){
+  void peigs(char    UPLO,
+             int64_t n,
+             int64_t npr,
+             int64_t npc,
+             dtype * A,
+             int *   desca,
+             dtype * d,
+             dtype * u,
+             int *   descu){
     int M, NZ, info;
     int lwork;
     dtype dlwork;
@@ -858,6 +858,63 @@ namespace CTF_SCALAPACK{
     }
   }
 
+  template <typename dtype>
+  void peigh(char    UPLO,
+             int64_t n,
+             int64_t npr,
+             int64_t npc,
+             std::complex<dtype> * A,
+             int *   desca,
+             std::complex<dtype> * d,
+             std::complex<dtype> * u,
+             int *   descu){
+    int M, NZ, info;
+    int lwork;
+    dtype dlwork;
+    int lcwork;
+    std::complex<dtype> dlcwork;
+    int ilwork;
+    //create copy variables due to weird ScaLAPACK bug, which zeros out n and descu pointer for pdsyevx
+    //int64_t n_cpy = n;
+    //char UPLO_cpy = UPLO;
+    //int * descu_cpy = descu;
+    //int * desca_cpy = desca;
+    //printf("%c %c, %ld %ld, %p %p, %p %p",UPLO, UPLO_cpy, n, n_cpy, descu, descu_cpy, desca, desca_cpy);
+    CTF_SCALAPACK::pheevx<dtype>('V', 'A', 'U', n, NULL, 1, 1, desca, (dtype)0, (dtype)0, 0, 0, (dtype)0, &M, &NZ, NULL, (dtype)0, NULL, 1, 1, descu, &dlcwork, -1, &dlwork, -1, &ilwork, -1, NULL, NULL, NULL, &info);
+    //printf("%c %c, %ld %ld, %p %p, %p %p",UPLO, UPLO_cpy, n, n_cpy, descu, descu_cpy, desca, desca_cpy);
+    //UPLO = UPLO_cpy;
+    //n = n_cpy;
+    //descu = descu_cpy;
+    //desca = desca_cpy;
+    lwork = get_int_fromreal<dtype>(dlwork);
+    lcwork = get_int_fromreal<std::complex<dtype>>(dlcwork);
+    dtype * work = (dtype*)CTF_int::alloc(sizeof(dtype)*((int64_t)lwork));
+    std::complex<dtype> * cwork = (std::complex<dtype>*)CTF_int::alloc(sizeof(std::complex<dtype>)*((int64_t)lcwork));
+    int * iwork = (int*)CTF_int::alloc(sizeof(int)*ilwork);
+    int * IFAIL = (int*)CTF_int::alloc(sizeof(int)*n);
+    int * ICLUSTR = (int*)CTF_int::alloc(sizeof(int)*2*npr*npc);
+    dtype * GAP = (dtype*)CTF_int::alloc(sizeof(dtype)*npr*npc);
+    dtype * rd = (dtype*)CTF_int::alloc(sizeof(dtype)*n);
+    CTF_SCALAPACK::pheevx<dtype>('V', 'A', UPLO, n, A, 1, 1, desca, (dtype)0., (dtype)0., 0, 0, (dtype)0., &M, &NZ, rd, (dtype)0., u, 1, 1, descu, cwork, lcwork, work, lwork, iwork, ilwork, IFAIL, ICLUSTR, GAP, &info);
+#ifdef USE_OMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<n; i++){
+      d[i].real(rd[i]);
+      d[i].imag(0.);
+    }
+    CTF_int::cdealloc(rd);
+    CTF_int::cdealloc(cwork);
+    CTF_int::cdealloc(iwork);
+    CTF_int::cdealloc(work);
+    CTF_int::cdealloc(IFAIL);
+    CTF_int::cdealloc(ICLUSTR);
+    CTF_int::cdealloc(GAP);
+    if (info != 0){
+      printf("CTF ERROR: pysevx returned error code %d\n",info);
+    }
+  }
+
   template <>
   void pgeigh<float>(char    UPLO,
                      int64_t n,
@@ -868,7 +925,7 @@ namespace CTF_SCALAPACK{
                      float * W,
                      float * Z,
                      int *   DESCZ){
-    pgeigs<float>(UPLO,n,npr,npc,A,DESCA,W,Z,DESCZ);
+    peigs<float>(UPLO,n,npr,npc,A,DESCA,W,Z,DESCZ);
   }
 
   template <>
@@ -881,8 +938,37 @@ namespace CTF_SCALAPACK{
                       double * W,
                       double * Z,
                       int *   DESCZ){
-    pgeigs<double>(UPLO,n,npr,npc,A,DESCA,W,Z,DESCZ);
+    peigs<double>(UPLO,n,npr,npc,A,DESCA,W,Z,DESCZ);
   }
+
+
+  template <>
+  void pgeigh<std::complex<float>>(char    UPLO,
+                                   int64_t n,
+                                   int64_t npr,
+                                   int64_t npc,
+                                   std::complex<float> * A,
+                                   int *   DESCA,
+                                   std::complex<float> * W,
+                                   std::complex<float> * Z,
+                                   int *   DESCZ){
+    peigh<float>(UPLO,n,npr,npc,A,DESCA,W,Z,DESCZ);
+  }
+
+
+  template <>
+  void pgeigh<std::complex<double>>(char    UPLO,
+                                    int64_t n,
+                                    int64_t npr,
+                                    int64_t npc,
+                                    std::complex<double> * A,
+                                    int *   DESCA,
+                                    std::complex<double> * W,
+                                    std::complex<double> * Z,
+                                    int *   DESCZ){
+    peigh<double>(UPLO,n,npr,npc,A,DESCA,W,Z,DESCZ);
+  }
+
 
   template <>
   void pgeqrf<float>(int         M,
