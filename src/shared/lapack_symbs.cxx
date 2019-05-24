@@ -2,6 +2,7 @@
 #include <complex>
 #include <assert.h>
 #include "lapack_symbs.h"
+#include "../interface/common.h"
 
 #if FTN_UNDERSCORE
 #define DGELSD dgelsd_
@@ -814,7 +815,74 @@ namespace CTF_SCALAPACK{
 #endif
   }
 
+  template <typename dtype>
+  void pgeigs(char    UPLO,
+              int64_t n,
+              int64_t npr,
+              int64_t npc,
+              dtype * A,
+              int *   desca,
+              dtype * d,
+              dtype * u,
+              int *   descu){
+    int M, NZ, info;
+    int lwork;
+    dtype dlwork;
+    int ilwork;
+    //create copy variables due to weird ScaLAPACK bug, which zeros out n and descu pointer for pdsyevx
+    //int64_t n_cpy = n;
+    //char UPLO_cpy = UPLO;
+    //int * descu_cpy = descu;
+    //int * desca_cpy = desca;
+    //printf("%c %c, %ld %ld, %p %p, %p %p",UPLO, UPLO_cpy, n, n_cpy, descu, descu_cpy, desca, desca_cpy);
+    CTF_SCALAPACK::psyevx<dtype>('V', 'A', 'U', n, NULL, 1, 1, desca, (dtype)0, (dtype)0, 0, 0, (dtype)0, &M, &NZ, NULL, (dtype)0, NULL, 1, 1, descu, &dlwork, -1, &ilwork, -1, NULL, NULL, NULL, &info);
+    //printf("%c %c, %ld %ld, %p %p, %p %p",UPLO, UPLO_cpy, n, n_cpy, descu, descu_cpy, desca, desca_cpy);
+    //UPLO = UPLO_cpy;
+    //n = n_cpy;
+    //descu = descu_cpy;
+    //desca = desca_cpy;
+    lwork = get_int_fromreal<dtype>(dlwork);
+    dtype * work = (dtype*)CTF_int::alloc(sizeof(dtype)*((int64_t)lwork));
+    int * iwork = (int*)CTF_int::alloc(sizeof(int)*ilwork);
+    int * IFAIL = (int*)CTF_int::alloc(sizeof(int)*n);
+    int * ICLUSTR = (int*)CTF_int::alloc(sizeof(int)*2*npr*npc);
+    dtype * GAP = (dtype*)CTF_int::alloc(sizeof(dtype)*npr*npc);
+    CTF_SCALAPACK::psyevx<dtype>('V', 'A', UPLO, n, A, 1, 1, desca, (dtype)0., (dtype)0., 0, 0, (dtype)0., &M, &NZ, d, (dtype)0., u, 1, 1, descu, work, lwork, iwork, ilwork, IFAIL, ICLUSTR, GAP, &info);
+    CTF_int::cdealloc(iwork);
+    CTF_int::cdealloc(work);
+    CTF_int::cdealloc(IFAIL);
+    CTF_int::cdealloc(ICLUSTR);
+    CTF_int::cdealloc(GAP);
+    if (info != 0){
+      printf("CTF ERROR: pysevx returned error code %d\n",info);
+    }
+  }
 
+  template <>
+  void pgeigh<float>(char    UPLO,
+                     int64_t n,
+                     int64_t npr,
+                     int64_t npc,
+                     float * A,
+                     int *   DESCA,
+                     float * W,
+                     float * Z,
+                     int *   DESCZ){
+    pgeigs<float>(UPLO,n,npr,npc,A,DESCA,W,Z,DESCZ);
+  }
+
+  template <>
+  void pgeigh<double>(char    UPLO,
+                      int64_t n,
+                      int64_t npr,
+                      int64_t npc,
+                      double * A,
+                      int *   DESCA,
+                      double * W,
+                      double * Z,
+                      int *   DESCZ){
+    pgeigs<double>(UPLO,n,npr,npc,A,DESCA,W,Z,DESCZ);
+  }
 
   template <>
   void pgeqrf<float>(int         M,

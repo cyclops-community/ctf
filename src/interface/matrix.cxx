@@ -437,29 +437,6 @@ namespace CTF {
     write_mat(desc[4],desc[5],pr,pc,layout_order,desc[6],desc[7],desc[8],data_);
   }
 
-  template <typename dtype>
-  int get_int_fromreal(dtype r){
-    assert(0);
-    return -1;
-  }
-
-  template <>
-  inline int get_int_fromreal<float>(float r){
-    return (int)r;
-  }
-  template <>
-  inline int get_int_fromreal<double>(double r){
-    return (int)r;
-  }
-  template <>
-  inline int get_int_fromreal<std::complex<float>>(std::complex<float> r){
-    return (int)r.real();
-  }
-  template <>
-  inline int get_int_fromreal<std::complex<double>>(std::complex<double> r){
-    return (int)r.real();
-  }
-
   template<typename dtype>
   void Matrix<dtype>::get_tri(Matrix<dtype> & T, bool lower, bool keep_diag){
     Timer t_get_tri("get_tri");
@@ -683,7 +660,7 @@ namespace CTF {
     dtype * tau = (dtype*)malloc(((int64_t)n)*sizeof(dtype));
     dtype dlwork;
     CTF_SCALAPACK::pgeqrf<dtype>(m,n,A,1,1,desca,tau,(dtype*)&dlwork,-1,&info);
-    int lwork = get_int_fromreal<dtype>(dlwork);
+    int lwork = CTF_SCALAPACK::get_int_fromreal<dtype>(dlwork);
     dtype * work = (dtype*)malloc(((int64_t)lwork)*sizeof(dtype));
     CTF_SCALAPACK::pgeqrf<dtype>(m,n,A,1,1,desca,tau,work,lwork,&info);
  
@@ -696,7 +673,7 @@ namespace CTF {
 
     free(work);
     CTF_SCALAPACK::porgqr<dtype>(m,std::min(m,n),std::min(m,n),dQ,1,1,desca,tau,(dtype*)&dlwork,-1,&info);
-    lwork = get_int_fromreal<dtype>(dlwork);
+    lwork = CTF_SCALAPACK::get_int_fromreal<dtype>(dlwork);
     work = (dtype*)malloc(((int64_t)lwork)*sizeof(dtype));
     CTF_SCALAPACK::porgqr<dtype>(m,std::min(m,n),std::min(m,n),dQ,1,1,desca,tau,work,lwork,&info);
     Q = Matrix<dtype>(desca, dQ, layout_order, (*(this->wrld)));
@@ -765,7 +742,7 @@ namespace CTF {
     //if (typeid(dtype) == typeid(std::complex<float>)){
     //  float * s = (float*)CTF_int::alloc(sizeof(float)*k);
     //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
-    //  lwork = get_int_fromreal<dtype>(dlwork);
+    //  lwork = CTF_SCALAPACK::get_int_fromreal<dtype>(dlwork);
     //  float * work = (float*)CTF_int::alloc(sizeof(float)*((int64_t)lwork));
     //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
     //  if (threshold > 0.0)
@@ -781,7 +758,7 @@ namespace CTF {
     //} else if (typeid(dtype) == typeid(std::complex<double>)){
     //  double * s = (double*)CTF_int::alloc(sizeof(double)*k);
     //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
-    //  lwork = get_int_fromreal<dtype>(dlwork);
+    //  lwork = CTF_SCALAPACK::get_int_fromreal<dtype>(dlwork);
     //  double * work = (double*)CTF_int::alloc(sizeof(double)*((int64_t)lwork));
     //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
     //  if (threshold > 0.0)
@@ -797,7 +774,7 @@ namespace CTF {
     //} else {
     dtype * s = (dtype*)CTF_int::alloc(sizeof(dtype)*k);
     CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
-    lwork = get_int_fromreal<dtype>(dlwork);
+    lwork = CTF_SCALAPACK::get_int_fromreal<dtype>(dlwork);
     dtype * work = (dtype*)CTF_int::alloc(sizeof(dtype)*((int64_t)lwork));
     CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
     if (threshold > 0.0){
@@ -923,32 +900,9 @@ namespace CTF {
     int64_t sc;
     dtype * d_data = D.get_raw_data(&sc);
 
-    int lwork;
-    dtype dlwork;
-    int ilwork;
     dtype * d = (dtype*)CTF_int::alloc(sizeof(dtype)*n);
-    int M, NZ;
-    //create copy variables due to weird ScaLAPACK bug, which zeros out n and descu pointer for pdsyevx
-    int * descu_cpy = descu;
-    int * desca_cpy = desca;
-    int64_t n_cpy = n;
-    CTF_SCALAPACK::psyevx<dtype>('V', 'A', 'U', n, NULL, 1, 1, desca, (dtype)0, (dtype)0, 0, 0, (dtype)0, &M, &NZ, NULL, (dtype)0, NULL, 1, 1, descu, &dlwork, -1, &ilwork, -1, NULL, NULL, NULL, &info);
-    n = n_cpy;
-    descu = descu_cpy;
-    desca = desca_cpy;
-    lwork = get_int_fromreal<dtype>(dlwork);
-    dtype * work = (dtype*)CTF_int::alloc(sizeof(dtype)*((int64_t)lwork));
-    int * iwork = (int*)CTF_int::alloc(sizeof(int)*ilwork);
-    int * IFAIL = (int*)CTF_int::alloc(sizeof(int)*n);
-    int * ICLUSTR = (int*)CTF_int::alloc(sizeof(int)*2*npr*npc);
-    dtype * GAP = (dtype*)CTF_int::alloc(sizeof(dtype)*npr*npc);
-    CTF_SCALAPACK::psyevx<dtype>('V', 'A', 'U', n, A, 1, 1, desca, (dtype)0., (dtype)0., 0, 0, (dtype)0., &M, &NZ, d, (dtype)0., u, 1, 1, descu, work, lwork, iwork, ilwork, IFAIL, ICLUSTR, GAP, &info);
-    CTF_int::cdealloc(IFAIL);
-    CTF_int::cdealloc(ICLUSTR);
-    CTF_int::cdealloc(GAP);
-    if (info != 0){
-      printf("CTF ERROR: pysevx returned error code %d\n",info);
-    }
+    CTF_SCALAPACK::pgeigh('U', n, npr, npc, A, desca, d, u, desca);
+
     int phase = D.edge_map[0].calc_phase();
     if ((int)(this->wrld->rank) < phase){
       for (int i = D.edge_map[0].calc_phys_rank(D.topo); i < n; i += phase) {
@@ -956,8 +910,6 @@ namespace CTF {
       } 
     }
     CTF_int::cdealloc(d);
-    CTF_int::cdealloc(iwork);
-    CTF_int::cdealloc(work);
 
     U = Matrix<dtype>(descu, u, layout_order, (*(this->wrld)));
 

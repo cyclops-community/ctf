@@ -14,6 +14,30 @@ namespace CTF_LAPACK{
 
 namespace CTF_SCALAPACK {
   template <typename dtype>
+  int get_int_fromreal(dtype r){
+    assert(0);
+    return -1;
+  }
+
+  template <>
+  inline int get_int_fromreal<float>(float r){
+    return (int)r;
+  }
+  template <>
+  inline int get_int_fromreal<double>(double r){
+    return (int)r;
+  }
+  template <>
+  inline int get_int_fromreal<std::complex<float>>(std::complex<float> r){
+    return (int)r.real();
+  }
+  template <>
+  inline int get_int_fromreal<std::complex<double>>(std::complex<double> r){
+    return (int)r.real();
+  }
+
+
+  template <typename dtype>
   void pgesvd(char    JOBU,
               char    JOBVT,
               int     M,
@@ -400,6 +424,61 @@ namespace CTF_SCALAPACK {
                       int *                  ICLUSTR,
                       double *               GAP,
                       int *                  INFO);
+
+  template <typename dtype>
+  void pgeigh(char    UPLO,
+              int64_t n,
+              int64_t npr,
+              int64_t npc,
+              dtype * A,
+              int *   DESCA,
+              dtype * W,
+              dtype * Z,
+              int *   DESCZ){
+    assert(0);
+  }
+
+  template <>
+  void pgeigh<float>(char    UPLO,
+                     int64_t n,
+                     int64_t npr,
+                     int64_t npc,
+                     float * A,
+                     int *   DESCA,
+                     float * W,
+                     float * Z,
+                     int *   DESCZ);
+
+  template <>
+  void pgeigh<double>(char    UPLO,
+                      int64_t n,
+                      int64_t npr,
+                      int64_t npc,
+                      double * A,
+                      int *   DESCA,
+                      double * W,
+                      double * Z,
+                      int *   DESCZ);
+
+//  template <>
+//  void pgeigh<std::complex<float>>(char    UPLO,
+//                                   int     N,
+//                                   std::complex<float> * A,
+//                                   int *   DESCA,
+//                                   std::complex<float> * W,
+//                                   std::complex<float> * Z,
+//                                   int *   DESCZ);
+//
+//
+//
+//  template <>
+//  void pgeigh<std::complex<double>>(char    UPLO,
+//                                    int     N,
+//                                    std::complex<double> * A,
+//                                    int *   DESCA,
+//                                    std::complex<double> * W,
+//                                    std::complex<double> * Z,
+//                                    int *   DESCZ);
 
   template <typename dtype>
   void porgqr(int         M,
