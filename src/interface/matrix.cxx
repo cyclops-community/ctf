@@ -724,7 +724,7 @@ namespace CTF {
     CTF_SCALAPACK::cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, mpr, &info);
     CTF_SCALAPACK::cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, kpr, &info);
 
-    dtype * A = (dtype*)CTF_int::alloc(mpr*kpc*sizeof(dtype));
+    dtype * A = (dtype*)CTF_int::alloc(mpr*npc*sizeof(dtype));
 
 
     dtype * u = (dtype*)CTF_int::alloc(sizeof(dtype)*mpr*kpc);

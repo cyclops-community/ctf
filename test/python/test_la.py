@@ -205,7 +205,7 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(allclose(ctf.eye(n,dtype=numpy.complex128), ctf.dot(ctf.conj(Q.T()), Q)))
 
     def test_eigh(self):
-        n = 13
+        n = 11
         for dt in [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128]:
             A = ctf.random.random((n,n))
             A += A.conj().T()

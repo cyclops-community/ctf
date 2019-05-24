@@ -296,7 +296,7 @@ namespace CTF_int{
           CTF::Matrix<float> mU;
           CTF::Vector<float> vD;
           mA.eigh(mU, vD);
-          (*U)["ij"] = mU["ij"];
+          (*U)["ij"] = mU["ji"];
           (*D)["i"] = vD["i"];
         }
         break;
@@ -308,7 +308,7 @@ namespace CTF_int{
           CTF::Matrix<double> mU;
           CTF::Vector<double> vD;
           mA.eigh(mU, vD);
-          (*U)["ij"] = mU["ij"];
+          (*U)["ij"] = mU["ji"];
           (*D)["i"] = vD["i"];
         }
         break;
@@ -328,7 +328,8 @@ namespace CTF_int{
           CTF::Matrix<std::complex<float>> mU;
           CTF::Vector<std::complex<float>> vD;
           mA.eigh(mU, vD);
-          (*U)["ij"] = mU["ij"];
+          (*U)["ij"] = mU["ji"];
+          conj_helper<float>(U,U);
           (*D)["i"] = vD["i"];
         }
         break;
@@ -340,7 +341,8 @@ namespace CTF_int{
           CTF::Matrix<std::complex<double>> mU;
           CTF::Vector<std::complex<double>> vD;
           mA.eigh(mU, vD);
-          (*U)["ij"] = mU["ij"];
+          (*U)["ij"] = mU["ji"];
+          conj_helper<double>(U,U);
           (*D)["i"] = vD["i"];
         }
         break;
