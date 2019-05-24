@@ -249,7 +249,7 @@ namespace CTF_int{
         break;
 
       default:
-        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        printf("CTF ERROR: QR called on invalid tensor element type\n");
         assert(0);
         break;
     }
@@ -281,11 +281,77 @@ namespace CTF_int{
         break;
 
       default:
-        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        printf("CTF ERROR: QR called on invalid tensor element type\n");
         assert(0);
         break;
     }
   }
+
+
+  void matrix_eigh(tensor * A, tensor * U, tensor * D){
+   switch (A->sr->el_size){
+      case 4:
+        {
+          CTF::Matrix<float> mA(*A);
+          CTF::Matrix<float> mU;
+          CTF::Vector<float> vD;
+          mA.eigh(mU, vD);
+          (*U)["ij"] = mU["ij"];
+          (*D)["i"] = vD["i"];
+        }
+        break;
+
+
+      case 8:
+        {
+          CTF::Matrix<double> mA(*A);
+          CTF::Matrix<double> mU;
+          CTF::Vector<double> vD;
+          mA.eigh(mU, vD);
+          (*U)["ij"] = mU["ij"];
+          (*D)["i"] = vD["i"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: EIGH called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
+  void matrix_eigh_cmplx(tensor * A, tensor * U, tensor * D){
+    switch (A->sr->el_size){
+      case 8:
+        {
+          CTF::Matrix<std::complex<float>> mA(*A);
+          CTF::Matrix<std::complex<float>> mU;
+          CTF::Vector<std::complex<float>> vD;
+          mA.eigh(mU, vD);
+          (*U)["ij"] = mU["ij"];
+          (*D)["i"] = vD["i"];
+        }
+        break;
+
+
+      case 16:
+        {
+          CTF::Matrix<std::complex<double>> mA(*A);
+          CTF::Matrix<std::complex<double>> mU;
+          CTF::Vector<std::complex<double>> vD;
+          mA.eigh(mU, vD);
+          (*U)["ij"] = mU["ij"];
+          (*D)["i"] = vD["i"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: EIGH called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
 
 
   void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank, double threshold){

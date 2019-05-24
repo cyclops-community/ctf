@@ -194,6 +194,8 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void matrix_svd_rand_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, int iter, int oversmap, ctensor * U_init);
     cdef void tensor_svd(ctensor * dA, char * idx_A, char * idx_U, char * idx_VT, int rank, double threshold, bool use_svd_rand, int num_iter, int oversamp, ctensor ** USVT)
     cdef void tensor_svd_cmplx(ctensor * dA, char * idx_A, char * idx_U, char * idx_VT, int rank, double threshold, bool use_svd_rand, int num_iter, int oversamp, ctensor ** USVT)
+    cdef void matrix_eigh(ctensor * A, ctensor * U, ctensor * D);
+    cdef void matrix_eigh_cmplx(ctensor * A, ctensor * U, ctensor * D);
     cdef void conv_type(int type_idx1, int type_idx2, ctensor * A, ctensor * B)
     cdef void delete_arr(ctensor * A, char * arr)
     cdef void delete_pairs(ctensor * A, char * pairs)
@@ -583,7 +585,8 @@ cdef class itensor(term):
         free(ctsrs)
         t_svd.stop()
         return [U, S, VT]
-        
+
+
 
 def _rev_array(arr):
     if len(arr) == 1:
@@ -5688,7 +5691,7 @@ def svd_rand(tensor A, rank, niter=1, oversamp=5, VT_guess=None):
     Parameters
     ----------
     A: tensor_like
-        Input tensor 2 dimensions.
+        Input matrix
 
     rank: int
         Target SVD rank
@@ -5744,7 +5747,7 @@ def qr(tensor A):
     Parameters
     ----------
     A: tensor_like
-        Input tensor 2 dimensions.
+        Input matrix
 
     Returns
     -------
@@ -5776,7 +5779,7 @@ def cholesky(tensor A):
     Parameters
     ----------
     A: tensor_like
-        Input tensor 2 dimensions.
+        Input matrix
 
     Returns
     -------
@@ -5798,7 +5801,6 @@ def cholesky(tensor A):
 def solve_tri(tensor L, tensor B, lower=True, from_left=True, transp_L=False):
     """
     solve_tri(L,B,lower,from_left,transp_L)
-    Compute triangular solve (with multiple right or left hand sides)
 
     Parameters
     ----------
@@ -5837,6 +5839,37 @@ def solve_tri(tensor L, tensor B, lower=True, from_left=True, transp_L=False):
         matrix_trsm(L.dt, B.dt, X.dt, not lower, not from_left, transp_L)
     t_solve_tri.stop()
     return X
+
+def eigh(tensor A):
+    """
+    eigh(A)
+    Compute eigenvalues of eigenvectors of A, assuming that it is symmetric or Hermitian
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input matrix
+
+    Returns
+    -------
+    D: tensor
+        CTF vector containing eigenvalues of A
+    X: tensor
+        CTF matrix containing all eigenvectors of A
+    """
+    t_eigh = timer("pyeigh")
+    t_eigh.start()
+    if not isinstance(A,tensor) or A.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: Cholesky called on invalid tensor, must be CTF matrix')
+    U = tensor(A.shape, dtype=A.dtype)
+    D = tensor(A.shape[0], dtype=A.dtype)
+    if A.dtype == np.float64 or A.dtype == np.float32:
+        matrix_eigh(A.dt, U.dt, D.dt)
+    elif A.dtype == np.complex128 or A.dtype == np.complex64:
+        matrix_eigh_cmplx(A.dt, U.dt, D.dt)
+    t_eigh.stop()
+    return [D,U]
+
 
 def vecnorm(A, ord=2):
     """

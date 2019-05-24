@@ -204,6 +204,14 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(allclose(A, ctf.dot(Q,R)))
         self.assertTrue(allclose(ctf.eye(n,dtype=numpy.complex128), ctf.dot(ctf.conj(Q.T()), Q)))
 
+    def test_eigh(self):
+        n = 13
+        for dt in [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128]:
+            A = ctf.random.random((n,n))
+            A += A.conj().T()
+            [D,X]=ctf.eigh(A)
+            self.assertTrue(allclose(ctf.dot(A,X), X*D))
+            self.assertTrue(allclose(ctf.eye(n), ctf.dot(X.conj().T(), X)))
 
 
 if __name__ == "__main__":

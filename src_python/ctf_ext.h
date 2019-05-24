@@ -91,6 +91,8 @@ namespace CTF_int{
   void matrix_svd_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank);
   void matrix_qr(tensor * A, tensor * Q, tensor * R);
   void matrix_qr_cmplx(tensor * A, tensor * Q, tensor * R);
+  void matrix_eigh(tensor * A, tensor * U, tensor * D);
+  void matrix_eigh_cmplx(tensor * A, tensor * U, tensor * D);
   void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank, double threshold);
   void matrix_svd_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank, double threshold);
   void matrix_svd_rand(tensor * A, tensor * U, tensor * S, tensor * VT, int rank, int iter, int oversamp, tensor * U_init);
