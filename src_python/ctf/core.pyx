@@ -2614,7 +2614,7 @@ cdef class tensor:
         [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape] = _setgetitem_helper(self, key_init)
 
         if is_single_val:
-            vals = self.read(np.asarray([key]).reshape(1,self.ndim))
+            vals = self.read(np.asarray(np.mod([key],self.shape)).reshape(1,self.ndim))
             return vals[0]
 
         if is_everything:
@@ -2686,7 +2686,7 @@ cdef class tensor:
         [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape] = _setgetitem_helper(self, key_init)
         if is_single_val:
             if (comm().rank() == 0):
-                self.write(np.asarray([key]).reshape((1,self.ndim)),np.asarray(value,dtype=self.dtype).reshape(1))
+                self.write(np.mod(np.asarray([key]).reshape((1,self.ndim)),self.shape),np.asarray(value,dtype=self.dtype).reshape(1))
             else:
                 self.write([],[])
             return
