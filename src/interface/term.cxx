@@ -167,6 +167,8 @@ namespace CTF_int {
     }
 
     bool is_sparse_C = A.parent->is_sparse || B.parent->is_sparse;
+    if (!contract)
+      is_sparse_C = A.parent->is_sparse && B.parent->is_sparse;
     tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, false, NULL, false, is_sparse_C);
     //estimate number of nonzeros
     if (is_sparse_C){
@@ -180,10 +182,9 @@ namespace CTF_int {
         if (nnz_frac_C > 1./3.)
           is_sparse_C = false;
         if (create_dummy){
-          tsr_C->nnz_tot = (int64_t)nnz_frac_C*tsr_C->get_tot_size(false);
+          tsr_C->nnz_tot = (int64_t)(nnz_frac_C*tsr_C->get_tot_size(false));
         }
       } else {
-        is_sparse_C = A.parent->is_sparse && B.parent->is_sparse;
         if (create_dummy){
           tsr_C->nnz_tot = std::min(A.parent->nnz_tot+B.parent->nnz_tot,tsr_C->size*tsr_C->wrld->np);
         }

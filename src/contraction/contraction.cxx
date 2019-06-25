@@ -245,15 +245,15 @@ namespace CTF_int {
 
     //scale by probability of nonzero flop
     if (A->is_sparse)
-      bw += 2.*((double)A->nnz_tot)*A->sr->pair_size();
+      bw += 6.*((double)A->nnz_tot)*A->sr->pair_size();
     else
       bw += ((double)A->size)*A->wrld->np*A->sr->el_size;
     if (B->is_sparse)
-      bw += 2.*((double)B->nnz_tot)*B->sr->pair_size();
+      bw += 6.*((double)B->nnz_tot)*B->sr->pair_size();
     else
       bw += ((double)B->size)*B->wrld->np*B->sr->el_size;
     if (C->is_sparse)
-      bw += 3.*((double)C->nnz_tot)*C->sr->pair_size();
+      bw += 12.*this->estimate_output_nnz_frac()*((double)C->size)*C->wrld->np*C->sr->pair_size();
     else
       bw += 1.5*((double)C->size)*C->wrld->np*C->sr->el_size;
 
