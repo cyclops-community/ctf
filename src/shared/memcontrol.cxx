@@ -80,10 +80,10 @@ void read_off_memory_status(statm_t& result)
   void inc_tot_mem_used(int64_t a){
     tot_mem_used += a;
     ASSERT(tot_mem_used >= 0);
-    //int rank;
-  //  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-//    if (rank == 0)
-      //printf("INCREMENTING MEMUSAGE BY %ld to %ld\n",a,tot_mem_used);
+    /*int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (rank == 0)
+      printf("INCREMENTING MEMUSAGE BY %ld to %ld\n",a,tot_mem_used);*/
   //    printf("CTF used memory = %1.5E, Total used memory = %1.5E, available memory via malloc_info is = %1.5E\n", (double)tot_mem_used, (double)proc_bytes_used(), (double)proc_bytes_available());
   }
   #ifndef PRODUCTION
@@ -533,6 +533,13 @@ void read_off_memory_status(statm_t& result)
   }
 
   /**
+   * \brief gives total memory used on this MPI process for tensor data
+   */
+  int64_t get_tensor_data_bytes_allocated(){
+    return tot_mem_used;
+  }
+
+  /**
    * \brief gives total memory used on this MPI process 
    */
   int64_t proc_bytes_used(){
@@ -585,16 +592,20 @@ void read_off_memory_status(statm_t& result)
     //printf("bused = %ld s_st = %ld, s_end = %ld, size = %ld\n", (long)bused, (long)s_st, (long)s_end, (long)size);
     return (int64_t)bused;
     */
-/*    struct mallinfo info;
-    info = mallinfo();
-    return (int64_t)(info.usmblks + info.uordblks + info.hblkhd);*/
     /*int64_t ms = 0;
     int i;
     for (i=0; i<max_threads; i++){
       ms += mem_used[i];
     }
     return ms + mst_buffer_used;// + (int64_t)mst_buffer_size;*/
+#ifndef NOMALLINFO
+    struct mallinfo info;
+    info = mallinfo();
+    int64_t mused = (int64_t)(info.usmblks + info.uordblks + info.hblkhd);
+    return std::max(tot_mem_used, mused);
+#else
     return tot_mem_used;
+#endif
   }
 
   /* FIXME: only correct for 1 process per node */
@@ -666,7 +677,18 @@ void read_off_memory_status(statm_t& result)
 #else
     int64_t pused = proc_bytes_used();
     int64_t ptotal = proc_bytes_total();
+
+#ifndef NOMALLINFO
+    if (pused > ptotal){
+#if DEBUG >= 1
+      printf("Amount of memory used reported to be greater than total (presumably bug with mallinfo()), setting used memory to the part recorded by CTF tensor data allocations, to avoid this, rebuild CTF with flag -DNOMALLINFO\n");
+#endif
+      pused = tot_mem_used;
+    }
+#endif
+
     if (pused > memcap*ptotal){ printf("CTF ERROR: less than %lf percent of local memory remaining, ensuing segfault likely.\n", (100.*(1.-memcap))); }
+
     return memcap*ptotal-pused;
 #endif
   }

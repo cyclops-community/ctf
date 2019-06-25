@@ -2910,6 +2910,8 @@ namespace CTF_int {
         nnz_loc += nnz_blk[i];
       }
       wrld->cdt.allred(&nnz_loc, &nnz_tot, 1, MPI_INT64_T, MPI_SUM);
+      this->deregister_size();
+      this->register_size(nnz_loc*sr->pair_size());
   //    printf("New nnz loc = %ld tot = %ld\n", nnz_loc, nnz_tot);
     }
   }

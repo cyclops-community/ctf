@@ -56,7 +56,7 @@
 using namespace CTF;
 
 namespace CTF_int{
-  int64_t proc_bytes_used();
+  int64_t get_tensor_data_bytes_allocated();
 }
 
 char* getCmdOption(char ** begin,
@@ -336,7 +336,7 @@ int main(int argc, char ** argv){
   int num_pass = std::accumulate(pass.begin(), pass.end(), 0);
   if (rank == 0)
     printf("Testing completed, %d/%zu tests passed\n", num_pass, pass.size());
-  int64_t tot_mem_used = std::fabs(CTF_int::proc_bytes_used());
+  int64_t tot_mem_used = std::fabs(CTF_int::get_tensor_data_bytes_allocated());
   int64_t max_tot_mem_used;
   MPI_Reduce(&tot_mem_used, &max_tot_mem_used, 1, MPI_INT64_T, MPI_MAX, 0, MPI_COMM_WORLD);
   if (rank == 0 && max_tot_mem_used > 0)
