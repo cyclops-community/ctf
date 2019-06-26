@@ -267,11 +267,7 @@ void read_off_memory_status(statm_t& result)
    * \param[in,out] ptr pointer to set to new allocation address
    */
   int mst_alloc_ptr(int64_t const len, void ** const ptr){
-    if (len >10000)
-      printf("Allocating %ld bytes, %ld are available\n",len,proc_bytes_available());
     int pm = posix_memalign(ptr, ALIGN_BYTES, len);
-    if (len >10000)
-      printf("Succeeded in allocating %ld bytes, %ld are available\n",len,proc_bytes_available());
     ASSERT(pm==0);
 #if 0
     if (mst_buffer_size == 0)

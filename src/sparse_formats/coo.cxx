@@ -7,15 +7,16 @@
 namespace CTF_int {
   int64_t get_coo_size(int64_t nnz, int val_size, bool is_int64){
     val_size = std::max(val_size,8*((val_size + 7)/8));
-    if (is_int64)
+    if (is_int64){
       return nnz*(val_size+sizeof(int64_t)*2)+3*sizeof(int64_t);
-    else
+    } else {
       return nnz*(val_size+sizeof(int)*2)+3*sizeof(int64_t);
+    }
   }
 
   template <typename int_type>
   tCOO_Matrix<int_type>::tCOO_Matrix(int64_t nnz, algstrct const * sr){
-    int64_t size = get_coo_size(nnz, sr->el_size);
+    int64_t size = get_coo_size(nnz, sr->el_size, typeid(int_type)==typeid(int64_t));
     all_data = (char*)alloc(size);
     ((int64_t*)all_data)[0] = typeid(int_type)==typeid(int64_t);
     ((int64_t*)all_data)[1] = nnz;
@@ -36,7 +37,7 @@ namespace CTF_int {
     int const * csr_ia = csr.IA();
     char const * csr_vs = csr.vals();
 
-    int64_t size = get_coo_size(nnz, v_sz);
+    int64_t size = get_coo_size(nnz, v_sz, typeid(int_type)==typeid(int64_t));
     all_data = (char*)alloc(size);
     ((int64_t*)all_data)[0] = typeid(int_type)==typeid(int64_t);
     ((int64_t*)all_data)[1] = nnz;
@@ -62,7 +63,7 @@ namespace CTF_int {
     int64_t const * row_enc = csr.nnz_row_encoding();
     char const * csr_vs = csr.vals();
 
-    int64_t size = get_coo_size(nnz, v_sz);
+    int64_t size = get_coo_size(nnz, v_sz, typeid(int_type)==typeid(int64_t));
     all_data = (char*)alloc(size);
     ((int64_t*)all_data)[0] = typeid(int_type)==typeid(int64_t);
     ((int64_t*)all_data)[1] = nnz;
@@ -91,7 +92,7 @@ namespace CTF_int {
 
   template <typename int_type>
   int64_t tCOO_Matrix<int_type>::size() const {
-    return get_coo_size(nnz(),val_size());
+    return get_coo_size(nnz(),val_size(), typeid(int_type)==typeid(int64_t));
   }
   
   template <typename int_type>
