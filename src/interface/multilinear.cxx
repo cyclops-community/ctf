@@ -75,9 +75,11 @@ namespace CTF {
         //if (T->wrld->rank == 0)
         //  printf("tot_size = %ld max_memuse = %ld\n", tot_size*(int64_t)sizeof(dtype), max_memuse);
         if (tot_size*(int64_t)sizeof(dtype) > max_memuse){
-          if (div == k)
+          if (div == k){
             printf("CTF ERROR: insufficeint memory for TTTP");
-          else
+            IASSERT(0);
+            assert(0);
+          } else
             div = std::min(div*2, k);
         } else
           break;

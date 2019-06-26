@@ -486,16 +486,21 @@ namespace CTF_int {
     up_C = NULL;
 
     for (ib=iidx_lyr; ib<edge_len; ib+=inum_lyr){
+      printf("Performaing broadcast step A\n");
       op_A = bcast_step(edge_len, A, is_sparse_A, move_A, sr_A, b_A, s_A, buf_A, cdt_A, ctr_sub_lda_A, ctr_lda_A, nblk_A, size_blk_A, new_nblk_A, new_size_blk_A, offsets_A, ib);
+      printf("Performaing broadcast step B\n");
       op_B = bcast_step(edge_len, B, is_sparse_B, move_B, sr_B, b_B, s_B, buf_B, cdt_B, ctr_sub_lda_B, ctr_lda_B, nblk_B, size_blk_B, new_nblk_B, new_size_blk_B, offsets_B, ib);
+      printf("Performaing broadcast reduce step pre\n");
       op_C = reduce_step_pre(edge_len, new_C, is_sparse_C, move_C, sr_C, b_C, s_C, buf_C, cdt_C, ctr_sub_lda_C, ctr_lda_C, nblk_C, size_blk_C, new_nblk_C, new_size_blk_C, offsets_C, ib, rec_ctr->beta);
 
 
+      printf("Recursively running\n");
       TAU_FSTOP(spctr_2d_general);
       rec_ctr->run(op_A, new_nblk_A, new_size_blk_A,
                    op_B, new_nblk_B, new_size_blk_B,
                    op_C, new_nblk_C, new_size_blk_C,
                    up_C);
+      printf("Performing reduce step post\n");
 
       TAU_FSTART(spctr_2d_general);
       /*for (int i=0; i<ctr_sub_lda_C*ctr_lda_C; i++){

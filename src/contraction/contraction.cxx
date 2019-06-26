@@ -48,7 +48,7 @@ namespace CTF_int {
     alpha = other.alpha;
     beta  = other.beta;
   }
- 
+
   contraction::contraction(tensor *               A_,
                            int const *            idx_A_,
                            tensor *               B_,
@@ -66,7 +66,7 @@ namespace CTF_int {
     func = func_;
     alpha = alpha_;
     beta  = beta_;
-    
+   
     idx_A = (int*)alloc(sizeof(int)*A->order);
     idx_B = (int*)alloc(sizeof(int)*B->order);
     idx_C = (int*)alloc(sizeof(int)*C->order);
@@ -74,7 +74,7 @@ namespace CTF_int {
     memcpy(idx_B, idx_B_, sizeof(int)*B->order);
     memcpy(idx_C, idx_C_, sizeof(int)*C->order);
   }
- 
+
   contraction::contraction(tensor *               A_,
                            char const *           cidx_A,
                            tensor *               B_,
@@ -92,7 +92,7 @@ namespace CTF_int {
     func = func_;
     alpha = alpha_;
     beta  = beta_;
-    
+   
     conv_idx(A->order, cidx_A, &idx_A, B->order, cidx_B, &idx_B, C->order, cidx_C, &idx_C);
   }
 
@@ -106,7 +106,7 @@ namespace CTF_int {
     //if (A->wrld->cdt.cm == MPI_COMM_WORLD){
 //      update_all_models(A->wrld->cdt.cm);
     //}
-    
+   
     int stat = home_contract();
     if (stat != SUCCESS){
       printf("CTF ERROR: Failed to perform contraction\n");
@@ -115,7 +115,7 @@ namespace CTF_int {
 #endif
     }
   }
-  
+ 
   template<typename ptype>
   void get_perm(int     perm_order,
                 ptype   A,
@@ -182,7 +182,7 @@ namespace CTF_int {
       int64_t len_ctr = 1;
       for (int i=0; i<num_tot; i++){
         if (idx_arr[3*i+2]==-1){
-          int64_t edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
+          int64_t edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]]
                                                   : B->lens[idx_arr[3*i+1]];
           len_ctr *= edge_len;
         }
@@ -204,8 +204,8 @@ namespace CTF_int {
             C->order, idx_C,
             &num_tot, &idx_arr);
     for (int i=0; i<num_tot; i++){
-      int j =   (idx_arr[3*i+0] != -1) 
-              + (idx_arr[3*i+1] != -1) 
+      int j =   (idx_arr[3*i+0] != -1)
+              + (idx_arr[3*i+1] != -1)
               + (idx_arr[3*i+2] != -1);
       // if not sum/bcast index
       if (j > 1){
@@ -271,7 +271,7 @@ namespace CTF_int {
     if (this->A != os.A) return 0;
     if (this->B != os.B) return 0;
     if (this->C != os.C) return 0;
-    
+   
     for (int i=0; i<A->order; i++){
       if (idx_A[i] != os.idx_A[i]) return 0;
     }
@@ -311,7 +311,7 @@ namespace CTF_int {
                      iparam *       inner_prm){
     int i, num_tot, num_ctr, num_no_ctr_A, num_no_ctr_B, num_weigh;
     int * idx_arr;
-      
+     
     inv_idx(A->order, idx_A,
             B->order, idx_B,
             C->order, idx_C,
@@ -338,7 +338,7 @@ namespace CTF_int {
       }
       else if (i >= num_ctr)
         inner_prm->m = inner_prm->m * A->pad_edge_len[ordering_A[i]];
-      else 
+      else
         inner_prm->k = inner_prm->k * A->pad_edge_len[ordering_A[i]];
     }
     for (i=0; i<B->order; i++){
@@ -395,7 +395,7 @@ namespace CTF_int {
               A->sym[inA] != C->sym[inC]){
             broken = 1;
           }
-        } else {  
+        } else { 
           if (((inA>=0) + (inB>=0) + (inC>=0) != 3) ||
               ((inB == -1) ^ (iB == -1)) ||
               ((inC == -1) ^ (iC == -1)) ||
@@ -417,7 +417,7 @@ namespace CTF_int {
         }
       }
     }
-    
+   
     for (iC=0; iC<C->order; iC++){
       i = idx_C[iC];
       iA = idx_arr[3*i+0];
@@ -445,7 +445,7 @@ namespace CTF_int {
         }
       }
     }
-    
+   
     for (iB=0; iB<B->order; iB++){
       i = idx_B[iB];
       iC = idx_arr[3*i+2];
@@ -565,7 +565,7 @@ namespace CTF_int {
     int idx_self_C, idx_self_A, idx_self_B;
     int num_self_C, num_self_A, num_self_B;
     int * ordering_A, * ordering_B, * ordering_C, * idx_arr;
-    
+   
     CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&ordering_A);
     CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&ordering_B);
     CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&ordering_C);
@@ -633,13 +633,13 @@ namespace CTF_int {
     *new_ordering_A = ordering_A;
     *new_ordering_B = ordering_B;
     *new_ordering_C = ordering_C;
-    
+   
     //iparam iprm;
     //calc_fold_nmk(A, B, C, idx_A, idx_B, idx_C, *new_ordering_A, *new_ordering_B, &iprm);
     //return iprm;
   }
 
-  
+ 
   void contraction::get_fold_ctr(contraction *& fold_ctr,
                                  int &          all_fdim_A,
                                  int &          all_fdim_B,
@@ -746,9 +746,9 @@ namespace CTF_int {
 
     //iterate over permutations of {A,B,C}
     for (int iord=0; iord<max_ord; iord++){
-      get_perm<tensor*>(iord, A, B, C, 
+      get_perm<tensor*>(iord, A, B, C,
                        tA, tB, tC);
-      get_perm<tensor*>(iord, fold_ctr->A, fold_ctr->B, fold_ctr->C, 
+      get_perm<tensor*>(iord, fold_ctr->A, fold_ctr->B, fold_ctr->C,
                        tfA, tfB, tfC);
       get_perm<int*>(iord, fold_ctr->idx_A, fold_ctr->idx_B, fold_ctr->idx_C,
                            tidx_A, tidx_B, tidx_C);
@@ -756,8 +756,8 @@ namespace CTF_int {
                                tall_flen_A, tall_flen_B, tall_flen_C);
       get_perm<int>(iord, all_fdim_A, all_fdim_B, all_fdim_C,
                           tall_fdim_A, tall_fdim_B, tall_fdim_C);
-      get_len_ordering(tfA, tfB, tfC, tidx_A, tidx_B, tidx_C, 
-                        &tfnew_ord_A, &tfnew_ord_B, &tfnew_ord_C); 
+      get_len_ordering(tfA, tfB, tfC, tidx_A, tidx_B, tidx_C,
+                        &tfnew_ord_A, &tfnew_ord_B, &tfnew_ord_C);
       // m,n,k should be invarient to what transposes are done
       if (iord == 0){
         calc_fold_lnmk(tfA, tfB, tfC, tidx_A, tidx_B, tidx_C, tfnew_ord_A, tfnew_ord_B, &iprm);
@@ -774,7 +774,7 @@ namespace CTF_int {
       permute_target(tfA->order, tfnew_ord_A, tAiord);
       permute_target(tfB->order, tfnew_ord_B, tBiord);
       permute_target(tfC->order, tfnew_ord_C, tCiord);
-    
+   
       double time_est = 0.0;
       if (tA->is_sparse)
         time_est += tA->nnz_tot/(tA->size*tA->calc_npe())*tA->calc_nvirt()*est_time_transp(tall_fdim_A, tAiord, tall_flen_A, 1, tA->sr);
@@ -895,17 +895,17 @@ namespace CTF_int {
       iprm.tC = 'N';
     }
 //    printf("bperm_order = %d\n", bperm_order);
-    get_perm<tensor*>(bperm_order, A, B, C, 
+    get_perm<tensor*>(bperm_order, A, B, C,
                      tA, tB, tC);
-    get_perm<tensor*>(bperm_order, fold_ctr->A, fold_ctr->B, fold_ctr->C, 
+    get_perm<tensor*>(bperm_order, fold_ctr->A, fold_ctr->B, fold_ctr->C,
                      tfA, tfB, tfC);
     get_perm<int*>(bperm_order, fold_ctr->idx_A, fold_ctr->idx_B, fold_ctr->idx_C,
                          tidx_A, tidx_B, tidx_C);
     get_perm<int>(bperm_order, all_fdim_A, all_fdim_B, all_fdim_C,
                         tall_fdim_A, tall_fdim_B, tall_fdim_C);
 
-    get_len_ordering(tfA, tfB, tfC, tidx_A, tidx_B, tidx_C, 
-                     &fnew_ord_A, &fnew_ord_B, &fnew_ord_C); 
+    get_len_ordering(tfA, tfB, tfC, tidx_A, tidx_B, tidx_C,
+                     &fnew_ord_A, &fnew_ord_B, &fnew_ord_C);
 
     permute_target(tfA->order, fnew_ord_A, tA->inner_ordering);
     permute_target(tfB->order, fnew_ord_B, tB->inner_ordering);
@@ -962,7 +962,7 @@ namespace CTF_int {
         C->spmatricize(iprm.m, iprm.n, nrow_idx, all_fdim_C, all_flen_C, csr_or_coo, use_ccsr);
         C->sr->dealloc(C->data);
       }
-    
+   
     }
 
     CTF_int::cdealloc(fnew_ord_A);
@@ -987,7 +987,7 @@ namespace CTF_int {
 
     get_fold_ctr(fold_ctr, all_fdim_A, all_fdim_B, all_fdim_C,
                            all_flen_A, all_flen_B, all_flen_C);
- 
+
     select_ctr_perm(fold_ctr, all_fdim_A, all_fdim_B, all_fdim_C,
                               all_flen_A, all_flen_B, all_flen_C,
                     bperm_order, btime, iprm);
@@ -1009,9 +1009,9 @@ namespace CTF_int {
     int i, num_tot, iA, iB, iC;
     int * idx_arr;
     tensor * nA, * nB, * nC;
+  
+    contraction * nctr;
    
-    contraction * nctr; 
-    
     if (new_contraction != NULL){
       nA = new tensor(A, 0, 0);
       nB = new tensor(B, 0, 0);
@@ -1063,7 +1063,7 @@ namespace CTF_int {
               nA_sym[i] = NS;
               nA->set_sym(nA_sym);
             }
-            CTF_int::cdealloc(idx_arr); 
+            CTF_int::cdealloc(idx_arr);
             return 3*i;
           }
         } else {
@@ -1072,9 +1072,9 @@ namespace CTF_int {
               nA_sym[i] = NS;
               nA->set_sym(nA_sym);
             }
-            CTF_int::cdealloc(idx_arr); 
+            CTF_int::cdealloc(idx_arr);
             return 3*i;
-          }       
+          }      
         }
         if (idx_arr[3*iA+2] != -1){
           if (C->sym[idx_arr[3*iA+2]] != A->sym[i] ||
@@ -1083,7 +1083,7 @@ namespace CTF_int {
               nA_sym[i] = NS;
               nA->set_sym(nA_sym);
             }
-            CTF_int::cdealloc(idx_arr); 
+            CTF_int::cdealloc(idx_arr);
             return 3*i;
           }
         } else {
@@ -1092,14 +1092,14 @@ namespace CTF_int {
               nA_sym[i] = NS;
               nA->set_sym(nA_sym);
             }
-            CTF_int::cdealloc(idx_arr); 
+            CTF_int::cdealloc(idx_arr);
             return 3*i;
-          }       
+          }      
         }
       }
     }
 
-   
+  
     int nB_sym[B->order];
     if (new_contraction != NULL)
       memcpy(nB_sym, nB->sym, sizeof(int)*nB->order);
@@ -1113,7 +1113,7 @@ namespace CTF_int {
               nB_sym[i] = NS;
               nB->set_sym(nB_sym);
             }
-            CTF_int::cdealloc(idx_arr); 
+            CTF_int::cdealloc(idx_arr);
             return 3*i+1;
           }
         } else {
@@ -1122,18 +1122,18 @@ namespace CTF_int {
               nB_sym[i] = NS;
               nB->set_sym(nB_sym);
             }
-            CTF_int::cdealloc(idx_arr); 
+            CTF_int::cdealloc(idx_arr);
             return 3*i+1;
-          }       
+          }      
         }
         if (idx_arr[3*iB+2] != -1){
-          if (C->sym[idx_arr[3*iB+2]] != B->sym[i] || 
+          if (C->sym[idx_arr[3*iB+2]] != B->sym[i] ||
               idx_B[i+1] != idx_C[idx_arr[3*iB+2]+1]){
             if (new_contraction != NULL){
               nB_sym[i] = NS;
               nB->set_sym(nB_sym);
             }
-            CTF_int::cdealloc(idx_arr); 
+            CTF_int::cdealloc(idx_arr);
             return 3*i+1;
           }
         } else {
@@ -1142,15 +1142,15 @@ namespace CTF_int {
               nB_sym[i] = NS;
               nB->set_sym(nB_sym);
             }
-            CTF_int::cdealloc(idx_arr); 
+            CTF_int::cdealloc(idx_arr);
             return 3*i+1;
-          }       
+          }      
         }
       }
-    } 
+    }
     //if A=B, output symmetry may still be preserved, so long as all indices in A and B are proper
     bool is_preserv = true;
-    if (A != B) is_preserv = false; 
+    if (A != B) is_preserv = false;
     else {
       for (int j=0; j<A->order; j++){
         if (idx_A[j] != idx_B[j]){
@@ -1181,7 +1181,7 @@ namespace CTF_int {
                 nC_sym[i] = NS;
                 nC->set_sym(nC_sym);
               }
-              CTF_int::cdealloc(idx_arr); 
+              CTF_int::cdealloc(idx_arr);
               return 3*i+2;
             }
           } else if (idx_arr[3*idx_C[i+1]+1] != -1){
@@ -1189,9 +1189,9 @@ namespace CTF_int {
               nC_sym[i] = NS;
               nC->set_sym(nC_sym);
             }
-            CTF_int::cdealloc(idx_arr); 
+            CTF_int::cdealloc(idx_arr);
             return 3*i+2;
-          }       
+          }      
           if (idx_arr[3*iC+0] != -1){
             if (A->sym[idx_arr[3*iC+0]] != C->sym[i] ||
                 idx_C[i+1] != idx_A[idx_arr[3*iC+0]+1]){
@@ -1199,7 +1199,7 @@ namespace CTF_int {
                 nC_sym[i] = NS;
                 nC->set_sym(nC_sym);
               }
-              CTF_int::cdealloc(idx_arr); 
+              CTF_int::cdealloc(idx_arr);
               return 3*i+2;
             }
           } else if (idx_arr[3*iC+0] == -1){
@@ -1208,9 +1208,9 @@ namespace CTF_int {
                 nC_sym[i] = NS;
                 nC->set_sym(nC_sym);
               }
-              CTF_int::cdealloc(idx_arr); 
+              CTF_int::cdealloc(idx_arr);
               return 3*i+2;
-            }       
+            }      
           }
         }
       }
@@ -1224,7 +1224,7 @@ namespace CTF_int {
     int64_t len;
     int iA, iB, iC;
     int * idx_arr;
-       
+      
     inv_idx(A->order, idx_A,
             B->order, idx_B,
             C->order, idx_C,
@@ -1273,7 +1273,7 @@ namespace CTF_int {
     return true;
   }
 
-    
+   
   int contraction::check_mapping(){
 
     int num_tot, i, ph_A, ph_B, iA, iB, iC, pass, order, topo_order;
@@ -1288,11 +1288,11 @@ namespace CTF_int {
     if (B->is_mapped == 0) pass = 0;
     if (C->is_mapped == 0) pass = 0;
     ASSERT(pass==1);
-    
+   
     if (A->is_folded == 1) pass = 0;
     if (B->is_folded == 1) pass = 0;
     if (C->is_folded == 1) pass = 0;
-    
+   
     if (pass==0){
       DPRINTF(3,"failed confirmation here\n");
       return 0;
@@ -1317,7 +1317,7 @@ namespace CTF_int {
             B->order, idx_B,
             C->order, idx_C,
             &num_tot, &idx_arr);
-    
+   
     if (!check_self_mapping(A, idx_A))
       pass = 0;
     if (!check_self_mapping(B, idx_B))
@@ -1339,7 +1339,7 @@ namespace CTF_int {
   //      printf("A[%d].np = %d\n", iA, A->edge_map[iA].np);
         //printf("B[%d].np = %d\n", iB, B->edge_map[iB].np);
         //printf("C[%d].np = %d\n", iC, C->edge_map[iC].np);
-        if (0 == comp_dim_map(&B->edge_map[iB], &A->edge_map[iA]) || 
+        if (0 == comp_dim_map(&B->edge_map[iB], &A->edge_map[iA]) ||
             0 == comp_dim_map(&B->edge_map[iB], &C->edge_map[iC])){
           DPRINTF(3,"failed confirmation here %d %d %d\n",iA,iB,iC);
           pass = 0;
@@ -1359,7 +1359,7 @@ namespace CTF_int {
             } else break;
             if (map->has_child) map = map->child;
             else break;
-          } 
+          }
         }
       }
     }
@@ -1406,7 +1406,7 @@ namespace CTF_int {
                   } else break;
                   if (map->has_child) map = map->child;
                   else break;
-                } 
+                }
               }
             } else if (iA == -1){
               map = &pB->edge_map[iB];
@@ -1421,15 +1421,15 @@ namespace CTF_int {
               } else break;
               if (map->has_child) map = map->child;
               else break;
-              } 
-            } else { 
-              /* Confirm that the phases of A and B 
+              }
+            } else {
+              /* Confirm that the phases of A and B
                  over which we are contracting are the same */
               ph_A = pA->edge_map[iA].calc_phase();
               ph_B = pB->edge_map[iB].calc_phase();
 
               if (ph_A != ph_B){
-                //if (global_comm.rank == 0) 
+                //if (global_comm.rank == 0)
                   DPRINTF(3,"failed confirmation here iA=%d iB=%d\n",iA,iB);
                 pass = 0;
                 break;
@@ -1444,7 +1444,7 @@ namespace CTF_int {
                   pass = 0;
                 } else
                   phys_mapped[map->cdt] = 1;
-                } 
+                }
               } else {
                 /* If the mapping along this dimension is different, make sure
                    the mismatch is mapped onto unqiue physical dimensions */
@@ -1465,7 +1465,7 @@ namespace CTF_int {
                       break;
                     } else
                       phys_mismatched[map->cdt] = 1;
-                    if (map->has_child) 
+                    if (map->has_child)
                       map = map->child;
                     else break;
                   } else break;
@@ -1479,7 +1479,7 @@ namespace CTF_int {
                       break;
                     } else
                       phys_mismatched[map->cdt] = 1;
-                    if (map->has_child) 
+                    if (map->has_child)
                       map = map->child;
                     else break;
                   } else break;
@@ -1539,7 +1539,7 @@ namespace CTF_int {
 
     tsr_order = num_weigh;
 
-    
+   
     for (i=0; i<num_weigh; i++){
       iweigh = idx_weigh[i];
       iA = idx_arr[iweigh*3+0];
@@ -1549,8 +1549,8 @@ namespace CTF_int {
       if (A->edge_map[iA].type == PHYSICAL_MAP ||
           B->edge_map[iB].type == PHYSICAL_MAP ||
           C->edge_map[iC].type == PHYSICAL_MAP)
-        return NEGATIVE; 
-    }  
+        return NEGATIVE;
+    } 
     CTF_int::alloc_ptr(tsr_order*sizeof(int),           (void**)&restricted);
     CTF_int::alloc_ptr(tsr_order*sizeof(int64_t),       (void**)&tsr_edge_len);
     CTF_int::alloc_ptr(tsr_order*tsr_order*sizeof(int), (void**)&tsr_sym_table);
@@ -1562,10 +1562,10 @@ namespace CTF_int {
                              B->order, B->edge_map,
                        num_sub_phys_dims, &sub_phys_comm, &comm_idx);
 
-    for (i=0; i<tsr_order; i++){ 
-      weigh_map[i].type             = VIRTUAL_MAP; 
-      weigh_map[i].has_child        = 0; 
-      weigh_map[i].np               = 1; 
+    for (i=0; i<tsr_order; i++){
+      weigh_map[i].type             = VIRTUAL_MAP;
+      weigh_map[i].has_child        = 0;
+      weigh_map[i].np               = 1;
     }
     for (i=0; i<num_weigh; i++){
       iweigh = idx_weigh[i];
@@ -1573,7 +1573,7 @@ namespace CTF_int {
       iB = idx_arr[iweigh*3+1];
       iC = idx_arr[iweigh*3+2];
 
-      
+     
       weigh_map[i].np = lcm(weigh_map[i].np,A->edge_map[iA].np);
       weigh_map[i].np = lcm(weigh_map[i].np,B->edge_map[iB].np);
       weigh_map[i].np = lcm(weigh_map[i].np,C->edge_map[iC].np);
@@ -1587,7 +1587,7 @@ namespace CTF_int {
           if (A->sym[k] == NS)
             break;
         }
-        if (k==MAX(iA,jX)){ 
+        if (k==MAX(iA,jX)){
           tsr_sym_table[i*tsr_order+j] = 1;
           tsr_sym_table[j*tsr_order+i] = 1;
         }
@@ -1598,7 +1598,7 @@ namespace CTF_int {
           if (B->sym[k] == NS)
             break;
         }
-        if (k==MAX(iB,jX)){ 
+        if (k==MAX(iB,jX)){
           tsr_sym_table[i*tsr_order+j] = 1;
           tsr_sym_table[j*tsr_order+i] = 1;
         }
@@ -1609,7 +1609,7 @@ namespace CTF_int {
           if (C->sym[k] == NS)
             break;
         }
-        if (k==MAX(iC,jX)){ 
+        if (k==MAX(iC,jX)){
           tsr_sym_table[i*tsr_order+j] = 1;
           tsr_sym_table[j*tsr_order+i] = 1;
         }
@@ -1623,7 +1623,7 @@ namespace CTF_int {
 
     if (stat == ERROR)
       return ERROR;
-    
+   
     /* define mapping of tensors A and B according to the mapping of ctr dims */
     if (stat == SUCCESS){
       for (i=0; i<num_weigh; i++){
@@ -1655,7 +1655,7 @@ namespace CTF_int {
    * \brief map the indices over which we will be contracting
    *
    * \param idx_arr array of index mappings of size order*3 that
-   *        lists the indices (or -1) of A,B,C 
+   *        lists the indices (or -1) of A,B,C
    *        corresponding to every global index
    * \param idx_ctr specification of which indices are being contracted
    * \param num_tot total number of indices
@@ -1688,10 +1688,10 @@ namespace CTF_int {
     memset(tsr_sym_table, 0, tsr_order*tsr_order*sizeof(int));
     memset(restricted, 0, tsr_order*sizeof(int));
 
-    for (i=0; i<tsr_order; i++){ 
-      ctr_map[i].type             = VIRTUAL_MAP; 
-      ctr_map[i].has_child        = 0; 
-      ctr_map[i].np               = 1; 
+    for (i=0; i<tsr_order; i++){
+      ctr_map[i].type             = VIRTUAL_MAP;
+      ctr_map[i].has_child        = 0;
+      ctr_map[i].np               = 1;
     }
     for (i=0; i<num_ctr; i++){
       ictr = idx_ctr[i];
@@ -1701,14 +1701,14 @@ namespace CTF_int {
       copy_mapping(1, &A->edge_map[iA], &ctr_map[2*i+0]);
       copy_mapping(1, &B->edge_map[iB], &ctr_map[2*i+1]);
     }
-  /*  for (i=0; i<tsr_order; i++){ 
+  /*  for (i=0; i<tsr_order; i++){
       if (ctr_map[i].type == PHYSICAL_MAP) is_premapped = 1;
     }*/
 
     extract_free_comms(topo, A->order, A->edge_map,
                              B->order, B->edge_map,
                        num_sub_phys_dims, &sub_phys_comm, &comm_idx);
-    
+   
 
     /* Map a tensor of dimension 2*num_ctr, with symmetries among each pair.
      * Set the edge lengths and symmetries according to those in ctr dims of A and B.
@@ -1773,7 +1773,7 @@ namespace CTF_int {
     //}
     if (stat == ERROR)
       return ERROR;
-    
+   
     /* define mapping of tensors A and B according to the mapping of ctr dims */
     if (stat == SUCCESS){
       for (i=0; i<num_ctr; i++){
@@ -1805,7 +1805,7 @@ namespace CTF_int {
    * \brief map the indices over which we will not be contracting
    *
    * \param idx_arr array of index mappings of size order*3 that
-   *        lists the indices (or -1) of A,B,C 
+   *        lists the indices (or -1) of A,B,C
    *        corresponding to every global index
    * \param idx_noctr specification of which indices are not being contracted
    * \param num_tot total number of indices
@@ -1831,12 +1831,12 @@ namespace CTF_int {
       iB = idx_arr[3*inoctr+1];
       iC = idx_arr[3*inoctr+2];
 
-      
+     
       if (iC != -1 && iA != -1){
-        copy_mapping(1, C->edge_map + iC, A->edge_map + iA); 
-      } 
+        copy_mapping(1, C->edge_map + iC, A->edge_map + iA);
+      }
       if (iB != -1 && iA != -1){
-        copy_mapping(1, C->edge_map + iB, A->edge_map + iA); 
+        copy_mapping(1, C->edge_map + iB, A->edge_map + iA);
       }
     }*/
     /* Map remainders of A and B to remainders of phys grid */
@@ -1853,13 +1853,13 @@ namespace CTF_int {
       iB = idx_arr[3*inoctr+1];
       iC = idx_arr[3*inoctr+2];
 
-      
+     
       if (iA != -1 && iC != -1){
-        copy_mapping(1, A->edge_map + iA, C->edge_map + iC); 
-      } 
+        copy_mapping(1, A->edge_map + iA, C->edge_map + iC);
+      }
       if (iB != -1 && iC != -1){
-        copy_mapping(1, B->edge_map + iB, C->edge_map + iC); 
-      } 
+        copy_mapping(1, B->edge_map + iB, C->edge_map + iC);
+      }
     }
     stat = C->map_tensor_rem(topo->order,  topo->dim_comm, 0);
     if (stat != SUCCESS){
@@ -1872,12 +1872,12 @@ namespace CTF_int {
       iB = idx_arr[3*inoctr+1];
       iC = idx_arr[3*inoctr+2];
 
-      
+     
       if (iA != -1 && iC != -1){
-        copy_mapping(1, C->edge_map + iC, A->edge_map + iA); 
-      } 
+        copy_mapping(1, C->edge_map + iC, A->edge_map + iA);
+      }
       if (iB != -1 && iC != -1){
-        copy_mapping(1, C->edge_map + iC, B->edge_map + iB); 
+        copy_mapping(1, C->edge_map + iC, B->edge_map + iB);
       }
     }
     TAU_FSTOP(map_noctr_indices);
@@ -1890,7 +1890,7 @@ namespace CTF_int {
    * \brief map the indices which are indexed only for A or B or C
    *
    * \param idx_arr array of index mappings of size order*3 that
-   *        lists the indices (or -1) of A,B,C 
+   *        lists the indices (or -1) of A,B,C
    *        corresponding to every global index
    * \param idx_extra specification of which indices are not being contracted
    * \param num_extra number of indices not being contracted over
@@ -1946,7 +1946,7 @@ namespace CTF_int {
 
   int contraction::
       get_num_map_variants(topology const * topo){
-    int nAB, nAC, nBC, nmax_ctr_2d; 
+    int nAB, nAC, nBC, nmax_ctr_2d;
     return get_num_map_variants(topo, nmax_ctr_2d, nAB, nAC, nBC);
   }
 
@@ -1966,7 +1966,7 @@ namespace CTF_int {
     nAB=0;
     nAC=0;
     nBC=0;
-  
+ 
     for (int i=0; i<num_tot; i++){
       if (idx_arr[3*i+0] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] == -1)
         nAB++;
@@ -1986,7 +1986,7 @@ namespace CTF_int {
     TAU_FSTOP(get_num_map_vars);
     return nv;
   }
-  
+ 
   bool contraction::switch_topo_perm(){
     ASSERT(A->topo == B->topo && B->topo == C->topo);
     topology const * topo = A->topo;
@@ -2086,11 +2086,11 @@ namespace CTF_int {
     return true;
 
   }
- 
+
   bool contraction::
       exh_map_to_topo(topology const * topo,
                       int              variant){
-   
+  
     int num_tot;
     int * idx_arr;
     inv_idx(A->order, idx_A,
@@ -2098,7 +2098,7 @@ namespace CTF_int {
             C->order, idx_C,
             &num_tot, &idx_arr);
 
-    int nAB, nAC, nBC, nmax_ctr_2d; 
+    int nAB, nAC, nBC, nmax_ctr_2d;
     int nvar_tot = get_num_map_variants(topo, nmax_ctr_2d, nAB, nAC, nBC);
     ASSERT(variant<nvar_tot);
 
@@ -2138,7 +2138,7 @@ namespace CTF_int {
         v = v/choose(nAC,nctr_2d);
         get_choice(nBC,nctr_2d,v%choose(nBC,nctr_2d),iBC);
         v = v/choose(nBC,nctr_2d);
-        
+       
         for (int i=0; i<nctr_2d; i++){
          // printf("iAB[%d] = %d iAC[%d] = %d iBC[%d] = %d ord[%d] = %d\n", i, iAB[i], i, iAC[i], i, iBC[i], i, ord[i]);
           int iiAB=0;
@@ -2227,7 +2227,7 @@ namespace CTF_int {
             C->edge_map[iC].aug_phys(topo, idim);
           }
         }
-      } 
+      }
       int jA = -1;
       int jB = -1;
       int jC = -1;
@@ -2245,8 +2245,8 @@ namespace CTF_int {
         else if (jC != -1) C->edge_map[jC].aug_phys(topo, idim);
       }
     }*/
-    
-    
+   
+   
     //A->order*B->order*C->order+A->order*B->order+A->order*C->order+B->order*C->order+A->order+B->order+C->order+1;
 /*    int nv = variant;
     for (int idim=0; idim<topo->order; idim++){
@@ -2289,14 +2289,14 @@ namespace CTF_int {
           C->edge_map[iv/B->order].aug_phys(topo, idim);
           continue;
         }
-      } 
+      }
       iv -= A->order*B->order+A->order*C->order+B->order*C->order;
       A->edge_map[iv%A->order].aug_phys(topo, idim);
       iv = iv/A->order;
       B->edge_map[iv%B->order].aug_phys(topo, idim);
       iv = iv/B->order;
       C->edge_map[iv%C->order].aug_phys(topo, idim);
-    }   */ 
+    }   */
     bool is_mod = true;
     while (is_mod){
       is_mod = false;
@@ -2349,7 +2349,7 @@ namespace CTF_int {
     tensor * tA, * tB, * tC;
     get_perm<tensor*>(order, A, B, C, tA, tB, tC);
     get_perm<const int*>(order, idx_A, idx_B, idx_C, tidx_A, tidx_B, tidx_C);
-   
+  
     inv_idx(tA->order, tidx_A,
             tB->order, tidx_B,
             tC->order, tidx_C,
@@ -2367,7 +2367,7 @@ namespace CTF_int {
       } else if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
         idx_ctr[num_ctr] = i;
         num_ctr++;
-      } else if (idx_arr[3*i+2] != -1 &&  
+      } else if (idx_arr[3*i+2] != -1 && 
                   ((idx_arr[3*i+0] != -1) || (idx_arr[3*i+1] != -1))){
         idx_no_ctr[num_no_ctr] = i;
         num_no_ctr++;
@@ -2379,7 +2379,7 @@ namespace CTF_int {
     tA->topo = topo;
     tB->topo = topo;
     tC->topo = topo;
-    
+   
     /* Map the weigh indices of A, B, and C*/
 
 
@@ -2395,7 +2395,7 @@ namespace CTF_int {
         break;
       }
 
-      
+     
       /* Map the contraction indices of A and B */
       ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, topo, tA, tB);
       if (ret == NEGATIVE) {
@@ -2491,7 +2491,7 @@ namespace CTF_int {
       if (ret!=SUCCESS) return ret;
       ret = map_symtsr(tC->order, tC->sym_table, tC->edge_map);
       if (ret!=SUCCESS) return ret;
-      
+     
 
       stat = SUCCESS;
     } while(0);
@@ -2504,7 +2504,7 @@ namespace CTF_int {
     topology * tA, * tB, * tC;
     int ret;
     tensor * tsr_keep, * tsr_change_A, * tsr_change_B;
-    
+   
     tA = A->topo;
     tB = B->topo;
     tC = C->topo;
@@ -2522,7 +2522,7 @@ namespace CTF_int {
         tsr_keep = C;
         tsr_change_A = A;
         tsr_change_B = B;
-      } 
+      }
     } else {
       if (tB->order >= tC->order){
         tsr_keep = B;
@@ -2534,7 +2534,7 @@ namespace CTF_int {
         tsr_change_B = B;
       }
     }
-    
+   
     tA = tsr_change_A->topo;
     tB = tsr_change_B->topo;
     tC = tsr_keep->topo;
@@ -2549,7 +2549,7 @@ namespace CTF_int {
       if (!ret)
         return NEGATIVE;
     }
-    
+   
     if (tA != tC){
       morph_topo(tC, tA,
                  tsr_change_A->order, tsr_change_A->edge_map);
@@ -2576,15 +2576,17 @@ namespace CTF_int {
     btopo = -1;
     best_time = DBL_MAX;
     int num_tot;
-    int * idx_arr; 
+    int * idx_arr;
     inv_idx(A->order, idx_A,
             B->order, idx_B,
             C->order, idx_C,
             &num_tot, &idx_arr);
     TAU_FSTART(evaluate_mappings)
     int64_t max_memuse = proc_bytes_available();
+    bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
+    bool use_ccsr =  csr_or_coo && A->is_sparse && C->is_sparse && !B->is_sparse;
     for (j=0; j<6; j++){
-      // Attempt to map to all possible permutations of processor topology 
+      // Attempt to map to all possible permutations of processor topology
   #if DEBUG > 2
       for (int t=1; t<(int)wrld->topovec.size()+8; t++){
   #else
@@ -2596,7 +2598,7 @@ namespace CTF_int {
         A->set_padding();
         B->set_padding();
         C->set_padding();
-      
+     
         topology * topo_i = NULL;
         if (t < 8){
           if ((t & 1) > 0){
@@ -2623,22 +2625,22 @@ namespace CTF_int {
           }
         } else topo_i = wrld->topovec[t-8];
         ASSERT(topo_i != NULL);
-      
+     
         ret = map_to_topology(topo_i, j);
 
         if (ret == NEGATIVE){
           //printf("map_to_topology returned negative\n");
           continue;
         }
-    
+   
         A->is_mapped = 1;
         B->is_mapped = 1;
         C->is_mapped = 1;
         A->topo = topo_i;
         B->topo = topo_i;
         C->topo = topo_i;
-        
-        if (check_mapping() == 0){ 
+       
+        if (check_mapping() == 0){
           continue;
         }
         est_time = 0.0;
@@ -2665,7 +2667,7 @@ namespace CTF_int {
         //  int64_t len_ctr = 1;
         //  for (int i=0; i<num_tot; i++){
         //    if (idx_arr[3*i+2]==-1){
-        //      int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
+        //      int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]]
         //                                          : B->lens[idx_arr[3*i+1]];
         //      len_ctr *= edge_len;
         //    }
@@ -2678,8 +2680,9 @@ namespace CTF_int {
           if (global_comm.rank == 0)
             DPRINTF(1,"Not enough memory available for topo %d with order %d to store tensors %ld/%ld\n", t,j,(int64_t)size_memuse,max_memuse);
           continue;
-        } 
-
+        }
+        int64_t mem_fold = 0;
+        int64_t mem_fold_tmp = 0;
   #if FOLD_TSR
         if (can_fold()){
           est_time = est_time_fold();
@@ -2692,13 +2695,55 @@ namespace CTF_int {
           A->remove_fold();
           B->remove_fold();
           C->remove_fold();
-        } else 
+          if (A->is_sparse){
+            if (!csr_or_coo){
+              mem_fold += nnz_frac_A*A->size*(A->sr->el_size + sizeof(int64_t));
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
+            } else if (use_ccsr){
+              mem_fold += nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int64_t));
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
+            } else {
+              mem_fold += nnz_frac_A*A->size*A->sr->pair_size() + prm.m*sizeof(int);
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
+            }
+          } else {
+            mem_fold += A->size*A->sr->el_size;
+          }
+          if (B->is_sparse){
+            if (!csr_or_coo){
+              mem_fold += nnz_frac_B*B->size*(B->sr->el_size + sizeof(int64_t));
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
+            } else if (use_ccsr){
+              mem_fold += nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int64_t));
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
+            } else {
+              mem_fold += nnz_frac_B*B->size*B->sr->pair_size() + prm.k*sizeof(int);
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
+            }
+          } else {
+            mem_fold += B->size*B->sr->el_size;
+          }
+          if (C->is_sparse){
+            if (!csr_or_coo){
+              mem_fold += nnz_frac_C*C->size*(C->sr->el_size + sizeof(int64_t));
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
+            } else if (use_ccsr){
+              mem_fold += nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int64_t));
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
+            } else {
+              mem_fold += nnz_frac_C*C->size*C->sr->pair_size() + prm.n*sizeof(int);
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
+            }
+          } else {
+            mem_fold += C->size*C->sr->el_size;
+          }
+        } else
   #endif
         {
           sctr = construct_ctr();
           if (is_ctr_sparse){
             est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
-          } else { 
+          } else {
             est_time = sctr->est_time_rec(sctr->num_lyr);
           }
         }
@@ -2706,7 +2751,7 @@ namespace CTF_int {
         if (global_comm.rank == 0){
           printf("mapping passed contr est_time = %E sec\n", est_time);
         }
-  #endif 
+  #endif
         ASSERT(est_time >= 0.0);
         memuse = 0;
         need_remap_A = 0;
@@ -2720,7 +2765,7 @@ namespace CTF_int {
         } else
           need_remap_A = 1;
         if (need_remap_A) {
-          est_time += A->est_redist_time(*dA, nnz_frac_A); 
+          est_time += A->est_redist_time(*dA, nnz_frac_A);
           memuse = A->get_redist_mem(*dA, nnz_frac_A);
         } else
           memuse = 0;
@@ -2732,7 +2777,7 @@ namespace CTF_int {
         } else
           need_remap_B = 1;
         if (need_remap_B) {
-          est_time += B->est_redist_time(*dB, nnz_frac_B); 
+          est_time += B->est_redist_time(*dB, nnz_frac_B);
           memuse = std::max(memuse,B->get_redist_mem(*dB, nnz_frac_B));
         }
         if (topo_i == old_topo_C){
@@ -2743,13 +2788,13 @@ namespace CTF_int {
         } else
           need_remap_C = 1;
         if (need_remap_C) {
-          est_time += 2.*C->est_redist_time(*dC, nnz_frac_C); 
+          est_time += 2.*C->est_redist_time(*dC, nnz_frac_C);
           memuse = std::max(1.0*memuse,2.*C->get_redist_mem(*dC, nnz_frac_C));
         }
         if (is_ctr_sparse)
-          memuse = MAX(((spctr*)sctr)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse);
+          memuse = MAX(mem_fold_tmp, MAX(mem_fold + ((spctr*)sctr)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse));
         else
-          memuse = MAX((int64_t)sctr->mem_rec(), memuse);
+          memuse = MAX(mem_fold_tmp, MAX(mem_fold + (int64_t)sctr->mem_rec(), memuse));
   #if DEBUG >= 3
         if (global_comm.rank == 0){
           printf("total (with redistribution and transp) est_time = %E\n", est_time);
@@ -2762,7 +2807,7 @@ namespace CTF_int {
             DPRINTF(1,"Not enough memory available for topo %d with order %d memory %ld/%ld\n", t,j,memuse,max_memuse);
           delete sctr;
           continue;
-        } 
+        }
         if ((!A->is_sparse && A->size > INT_MAX) ||(!B->is_sparse &&  B->size > INT_MAX) || (!C->is_sparse && C->size > INT_MAX)){
           DPRINTF(1,"MPI does not handle enough bits for topo %d with order\n", j);
           delete sctr;
@@ -2773,7 +2818,7 @@ namespace CTF_int {
           best_time = est_time;
           //bmemuse = memuse;
           btopo = 6*t+j;
-        }  
+        } 
         delete sctr;
       }
     }
@@ -2806,7 +2851,7 @@ namespace CTF_int {
     btopo = -1;
     best_time = init_best_time;
     int num_tot;
-    int * idx_arr; 
+    int * idx_arr;
     inv_idx(A->order, idx_A,
             B->order, idx_B,
             C->order, idx_C,
@@ -2819,6 +2864,8 @@ namespace CTF_int {
     int64_t valid_mappings = 0;
     int64_t choice_offset = 0;
     int64_t max_memuse = proc_bytes_available();
+    bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
+    bool use_ccsr =  csr_or_coo && A->is_sparse && C->is_sparse && !B->is_sparse;
     TAU_FSTOP(init_select_ctr_map);
     for (int i=0; i<(int)wrld->topovec.size(); i++){
 //      int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
@@ -2847,21 +2894,21 @@ namespace CTF_int {
         A->topo = topo_i;
         B->topo = topo_i;
         C->topo = topo_i;
-        
+       
         TAU_FSTART(switch_topo_perm);
         br = switch_topo_perm();
         TAU_FSTOP(switch_topo_perm);
         if (!br){ DPRINTF(3,"switch topo perm returned false\n"); }
         if (!br) continue;
         TAU_FSTART(check_ctr_mapping);
-        if (check_mapping() == 0){ 
+        if (check_mapping() == 0){
           TAU_FSTOP(check_ctr_mapping);
           continue;
         }
         TAU_FSTOP(check_ctr_mapping);
         valid_mappings++;
         est_time = 0.0;
-        
+       
         TAU_FSTART(est_ctr_map_time);
         A->set_padding();
         B->set_padding();
@@ -2888,7 +2935,7 @@ namespace CTF_int {
         //  int64_t len_ctr = 1;
         //  for (int i=0; i<num_tot; i++){
         //    if (idx_arr[3*i+2]==-1){
-        //      int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
+        //      int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]]
         //                                          : B->lens[idx_arr[3*i+1]];
         //      len_ctr *= edge_len;
         //    }
@@ -2898,6 +2945,8 @@ namespace CTF_int {
 
 
         ctr * sctr;
+        int64_t mem_fold = 0;
+        int64_t mem_fold_tmp = 0;
   #if FOLD_TSR
         if (can_fold()){
           est_time = est_time_fold();
@@ -2910,19 +2959,61 @@ namespace CTF_int {
           A->remove_fold();
           B->remove_fold();
           C->remove_fold();
-        } else 
+          if (A->is_sparse){
+            if (!csr_or_coo){
+              mem_fold += nnz_frac_A*A->size*(A->sr->el_size + sizeof(int64_t));
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
+            } else if (use_ccsr){
+              mem_fold += nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int64_t));
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
+            } else {
+              mem_fold += nnz_frac_A*A->size*A->sr->pair_size() + prm.m*sizeof(int);
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
+            }
+          } else {
+            mem_fold += A->size*A->sr->el_size;
+          }
+          if (B->is_sparse){
+            if (!csr_or_coo){
+              mem_fold += nnz_frac_B*B->size*(B->sr->el_size + sizeof(int64_t));
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
+            } else if (use_ccsr){
+              mem_fold += nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int64_t));
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
+            } else {
+              mem_fold += nnz_frac_B*B->size*B->sr->pair_size() + prm.k*sizeof(int);
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
+            }
+          } else {
+            mem_fold += B->size*B->sr->el_size;
+          }
+          if (C->is_sparse){
+            if (!csr_or_coo){
+              mem_fold += nnz_frac_C*C->size*(C->sr->el_size + sizeof(int64_t));
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
+            } else if (use_ccsr){
+              mem_fold += nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int64_t));
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
+            } else {
+              mem_fold += nnz_frac_C*C->size*C->sr->pair_size() + prm.n*sizeof(int);
+              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
+            }
+          } else {
+            mem_fold += C->size*C->sr->el_size;
+          }
+        } else
   #endif
         {
           sctr = construct_ctr();
           if (is_ctr_sparse){
             est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
-          } else { 
+          } else {
             est_time = sctr->est_time_rec(sctr->num_lyr);
           }
         }
   #if DEBUG >= 4
         printf("mapping passed contr est_time = %E sec\n", est_time);
-  #endif 
+  #endif
         ASSERT(est_time >= 0.0);
 
         memuse = 0;
@@ -2937,7 +3028,7 @@ namespace CTF_int {
         } else
           need_remap_A = 1;
         if (need_remap_A) {
-          est_time += A->est_redist_time(*dA, nnz_frac_A); 
+          est_time += A->est_redist_time(*dA, nnz_frac_A);
           memuse = A->get_redist_mem(*dA, nnz_frac_A);
         } else
           memuse = 0;
@@ -2949,7 +3040,7 @@ namespace CTF_int {
         } else
           need_remap_B = 1;
         if (need_remap_B) {
-          est_time += B->est_redist_time(*dB, nnz_frac_B); 
+          est_time += B->est_redist_time(*dB, nnz_frac_B);
           memuse = std::max(memuse,B->get_redist_mem(*dB, nnz_frac_B));
         }
         if (topo_i == old_topo_C){
@@ -2960,16 +3051,16 @@ namespace CTF_int {
         } else
           need_remap_C = 1;
         if (need_remap_C) {
-          est_time += 2.*C->est_redist_time(*dC, nnz_frac_C); 
+          est_time += 2.*C->est_redist_time(*dC, nnz_frac_C);
           memuse = std::max(1.*memuse,2.*C->get_redist_mem(*dC, nnz_frac_C));
         }
- 
+
         if (est_time >= best_time) continue;
 
         if (is_ctr_sparse)
-          memuse = MAX(((spctr*)sctr)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse);
+          memuse = MAX(mem_fold_tmp, MAX(mem_fold + ((spctr*)sctr)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse));
         else
-          memuse = MAX((int64_t)sctr->mem_rec(), memuse);
+          memuse = MAX(mem_fold_tmp, MAX(mem_fold + (int64_t)sctr->mem_rec(), memuse));
   #if DEBUG >= 4
         printf("total (with redistribution and transp) est_time = %E\n", est_time);
   #endif
@@ -2982,10 +3073,10 @@ namespace CTF_int {
           TAU_FSTOP(get_avail_res);
           delete sctr;
           continue;
-        } 
+        }
         TAU_FSTOP(get_avail_res);
-        if (((!A->is_sparse) && A->size > INT_MAX) || 
-            ((!B->is_sparse) && B->size > INT_MAX) || 
+        if (((!A->is_sparse) && A->size > INT_MAX) ||
+            ((!B->is_sparse) && B->size > INT_MAX) ||
             ((!C->is_sparse) && C->size > INT_MAX)){
           DPRINTF(1,"MPI does not handle enough bits for topo %d with order %d \n", i, j);
           delete sctr;
@@ -2995,11 +3086,11 @@ namespace CTF_int {
           best_time = est_time;
           //bmemuse = memuse;
           btopo = old_off+j;
-        }  
+        } 
         delete sctr;
       }
     }
-#if DEBUG >= 2 
+#if DEBUG >= 2
     int64_t tot_valid_mappings;
     MPI_Allreduce(&valid_mappings, &tot_valid_mappings, 1, MPI_INT64_T, MPI_SUM, global_comm.cm);
     if (A->wrld->rank == 0) DPRINTF(2,"number valid mappings was %ld/%ld\n", tot_valid_mappings, tot_num_choices);
@@ -3039,14 +3130,14 @@ namespace CTF_int {
     ASSERT(A->wrld->comm == B->wrld->comm && B->wrld->comm == C->wrld->comm);
     World * wrld = A->wrld;
     CommData global_comm = wrld->cdt;
-    
+   
     TAU_FSTART(init_select_ctr_map);
   #if BEST_VOL
     CTF_int::alloc_ptr(sizeof(int64_t)*A->order, (void**)&virt_blk_len_A);
     CTF_int::alloc_ptr(sizeof(int64_t)*B->order, (void**)&virt_blk_len_B);
     CTF_int::alloc_ptr(sizeof(int64_t)*C->order, (void**)&virt_blk_len_C);
   #endif
-    
+   
     ASSERT(A->is_mapped);
     ASSERT(B->is_mapped);
     ASSERT(C->is_mapped);
@@ -3085,7 +3176,7 @@ namespace CTF_int {
     //bmemuse = UINT64_MAX;
     int ttopo, ttopo_sel, ttopo_exh;
     double gbest_time_sel, gbest_time_exh;
-  
+ 
     TAU_FSTART(get_best_sel_map);
     get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_sel, gbest_time_sel);
     TAU_FSTOP(get_best_sel_map);
@@ -3109,7 +3200,7 @@ namespace CTF_int {
     A->set_padding();
     B->set_padding();
     C->set_padding();
-    
+   
     if (!do_remap || ttopo == INT_MAX || ttopo == -1){
       CTF_int::cdealloc(old_phase_A);
       CTF_int::cdealloc(old_phase_B);
@@ -3170,7 +3261,7 @@ namespace CTF_int {
     A->is_mapped = 1;
     B->is_mapped = 1;
     C->is_mapped = 1;
-    
+   
     if (gbest_time_sel <= gbest_time_exh){
       ret = map_to_topology(topo_g, j_g);
       if (ret == NEGATIVE || ret == ERROR) {
@@ -3206,37 +3297,117 @@ namespace CTF_int {
     C->print_map(stdout);
     MPI_Barrier(global_comm.cm);
     #endif
-     
-#ifdef VERBOSE
-        double nnz_frac_A = 1.0;
-        double nnz_frac_B = 1.0;
-        double nnz_frac_C = 1.0;
-        int num_tot;
-        int * idx_arr; 
-        inv_idx(A->order, idx_A,
-                B->order, idx_B,
-                C->order, idx_C,
-                &num_tot, &idx_arr);
-        if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
-        if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
-        if (C->is_sparse){
-          nnz_frac_C = std::min(1.,((double)C->nnz_tot)/(C->size*C->calc_npe()));
-          int64_t len_ctr = 1;
-          for (int i=0; i<num_tot; i++){
-            if (idx_arr[3*i+2]==-1){
-              int64_t edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
-                                                      : B->lens[idx_arr[3*i+1]];
-              len_ctr *= edge_len;
-            }
-          }
-          nnz_frac_C = std::min(1.,std::max(nnz_frac_C,nnz_frac_A*nnz_frac_B*len_ctr));
+    
+#if (VERBOSE >= 1 || DEBUG >= 1)
+    double nnz_frac_A = 1.0;
+    double nnz_frac_B = 1.0;
+    double nnz_frac_C = 1.0;
+    int num_tot;
+    int * idx_arr;
+    inv_idx(A->order, idx_A,
+            B->order, idx_B,
+            C->order, idx_C,
+            &num_tot, &idx_arr);
+    if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
+    if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
+
+    nnz_frac_C = estimate_output_nnz_frac();
+    cdealloc(idx_arr);
+    int64_t memuse = 0;
+    int64_t mem_fold = 0;
+    int64_t mem_fold_tmp = 0;
+    bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
+    bool use_ccsr =  csr_or_coo && A->is_sparse && C->is_sparse && !B->is_sparse;
+#if FOLD_TSR
+    if (can_fold()){
+      iparam prm = map_fold(false);
+      A->remove_fold();
+      B->remove_fold();
+      C->remove_fold();
+      if (A->is_sparse){
+        if (!csr_or_coo){
+          mem_fold += nnz_frac_A*A->size*(A->sr->el_size + sizeof(int64_t));
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
+        } else if (use_ccsr){
+          mem_fold += nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int64_t));
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
+        } else {
+          mem_fold += nnz_frac_A*A->size*A->sr->pair_size() + prm.m*sizeof(int);
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
         }
-        cdealloc(idx_arr);
-        int64_t memuse = 0;
-        if (is_sparse())
-          memuse = MAX(((spctr*)*ctrf)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse);
-        else
-          memuse = MAX((int64_t)(*ctrf)->mem_rec(), memuse);
+      } else {
+        mem_fold += A->size*A->sr->el_size;
+      }
+      if (B->is_sparse){
+        if (!csr_or_coo){
+          mem_fold += nnz_frac_B*B->size*(B->sr->el_size + sizeof(int64_t));
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
+        } else if (use_ccsr){
+          mem_fold += nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int64_t));
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
+        } else {
+          mem_fold += nnz_frac_B*B->size*B->sr->pair_size() + prm.k*sizeof(int);
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
+        }
+      } else {
+        mem_fold += B->size*B->sr->el_size;
+      }
+      if (C->is_sparse){
+        if (!csr_or_coo){
+          mem_fold += nnz_frac_C*C->size*(C->sr->el_size + sizeof(int64_t));
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
+        } else if (use_ccsr){
+          mem_fold += nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int64_t));
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
+        } else {
+          mem_fold += nnz_frac_C*C->size*C->sr->pair_size() + prm.n*sizeof(int);
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
+        }
+      } else {
+        mem_fold += C->size*C->sr->el_size;
+      }
+    }
+#endif
+
+    memuse = 0;
+    bool need_remap_A = 0;
+    bool need_remap_B = 0;
+    bool need_remap_C = 0;
+    if (A->topo == old_topo_A){
+      for (d=0; d<A->order; d++){
+        if (!comp_dim_map(&A->edge_map[d],&old_map_A[d]))
+          need_remap_A = 1;
+      }
+    } else
+      need_remap_A = 1;
+    if (need_remap_A) {
+      memuse = A->get_redist_mem(*dA, nnz_frac_A);
+    } else
+      memuse = 0;
+    if (B->topo == old_topo_B){
+      for (d=0; d<B->order; d++){
+        if (!comp_dim_map(&B->edge_map[d],&old_map_B[d]))
+          need_remap_B = 1;
+      }
+    } else
+      need_remap_B = 1;
+    if (need_remap_B) {
+      memuse = std::max(memuse,B->get_redist_mem(*dB, nnz_frac_B));
+    }
+    if (C->topo == old_topo_C){
+      for (d=0; d<C->order; d++){
+        if (!comp_dim_map(&C->edge_map[d],&old_map_C[d]))
+          need_remap_C = 1;
+      }
+    } else
+      need_remap_C = 1;
+    if (need_remap_C) {
+      memuse = std::max(1.*memuse,2.*C->get_redist_mem(*dC, nnz_frac_C));
+    }
+    if (this->is_sparse())
+      memuse = MAX(mem_fold_tmp, MAX(mem_fold + ((spctr*)*ctrf)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse));
+    else
+      memuse = MAX(mem_fold_tmp, MAX(mem_fold + (int64_t)(*ctrf)->mem_rec(), memuse));
 
     if (global_comm.rank == 0){
       VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
@@ -3290,18 +3461,18 @@ namespace CTF_int {
       need_remap = 1;
     if (need_remap)
       C->redistribute(*dC);
-                   
+                  
     TAU_FSTOP(redistribute_for_contraction);
-    
+   
     CTF_int::cdealloc( old_phase_A );
     CTF_int::cdealloc( old_phase_B );
     CTF_int::cdealloc( old_phase_C );
-    
+   
     delete [] old_map_A;
     delete [] old_map_B;
     delete [] old_map_C;
 
-    
+   
     delete dA;
     delete dB;
     delete dC;
@@ -3319,7 +3490,7 @@ namespace CTF_int {
     int64_t nvirt;
     int64_t blk_sz_A, blk_sz_B, blk_sz_C;
     int64_t vrt_sz_A, vrt_sz_B, vrt_sz_C;
-    //int sA, sB, sC, 
+    //int sA, sB, sC,
     bool need_rep;
     int64_t * blk_len_A, * virt_blk_len_A, * blk_len_B;
     int64_t * virt_blk_len_B, * blk_len_C, * virt_blk_len_C;
@@ -3593,7 +3764,7 @@ namespace CTF_int {
       } else if (sC && i_C != -1){
         nvirt = virt_dim[i]/str_C->strip_dim[i_C];
       }*/
-      
+     
       nvirt = nvirt * virt_dim[i];
     }
     if (nvirt_all != NULL)
@@ -3764,7 +3935,7 @@ namespace CTF_int {
         }
         rec_ctr = &skctr->rec_ctr;
       }
-  
+ 
       if (B->is_sparse && B->wrld->np > 1){
         spctr_pin_keys * skctr = new spctr_pin_keys(this, 1);
         if (is_top){
@@ -3775,9 +3946,9 @@ namespace CTF_int {
         }
         rec_ctr = &skctr->rec_ctr;
       }
-  
+ 
       if (C->is_sparse && C->wrld->np > 1){
-        spctr_pin_keys * skctr = new spctr_pin_keys(this, 1);
+        spctr_pin_keys * skctr = new spctr_pin_keys(this, 2);
         if (is_top){
           hctr = skctr;
           is_top = 0;
@@ -3834,7 +4005,7 @@ namespace CTF_int {
         blk_len_A[a] = A->edge_map[a].calc_phase()/A->edge_map[a].calc_phys_phase();
       }
       std::fill(spvirt_blk_len_A, spvirt_blk_len_A+A->order, 1);
-    } else 
+    } else
       memcpy(spvirt_blk_len_A, virt_blk_len_A, sizeof(int64_t)*A->order);
     int64_t spvirt_blk_len_B[B->order];
     if (B->is_sparse){
@@ -3843,7 +4014,7 @@ namespace CTF_int {
         blk_len_B[a] = B->edge_map[a].calc_phase()/B->edge_map[a].calc_phys_phase();
       }
       std::fill(spvirt_blk_len_B, spvirt_blk_len_B+B->order, 1);
-    } else 
+    } else
       memcpy(spvirt_blk_len_B, virt_blk_len_B, sizeof(int64_t)*B->order);
     int64_t spvirt_blk_len_C[C->order];
     if (C->is_sparse){
@@ -3852,7 +4023,7 @@ namespace CTF_int {
         blk_len_C[a] = C->edge_map[a].calc_phase()/C->edge_map[a].calc_phys_phase();
       }
       std::fill(spvirt_blk_len_C, spvirt_blk_len_C+C->order, 1);
-    } else 
+    } else
       memcpy(spvirt_blk_len_C, virt_blk_len_C, sizeof(int64_t)*C->order);
 
     for (i=0; i<num_tot; i++){
@@ -4025,7 +4196,7 @@ namespace CTF_int {
       } else if (sC && i_C != -1){
         nvirt = virt_dim[i]/str_C->strip_dim[i_C];
       }*/
-      
+     
       nvirt = nvirt * virt_dim[i];
     }
 
@@ -4074,7 +4245,7 @@ namespace CTF_int {
       if (A->is_sparse && !B->is_sparse && !C->is_sparse){
         if (is_custom || !A->sr->has_coo_ker) krnl_type = 2;
         else krnl_type = 1;
-      } 
+      }
       if (A->is_sparse && B->is_sparse && !C->is_sparse){
         krnl_type = 3;
       }
@@ -4101,7 +4272,7 @@ namespace CTF_int {
     inp_cpy.offload = do_offload;
 
     seq_tsr_spctr * ctrseq;
-    if (C->is_sparse) 
+    if (C->is_sparse)
       ctrseq = new seq_tsr_spctr(this, krnl_type, &inp_cpy, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, 0);
     else
       ctrseq = new seq_tsr_spctr(this, krnl_type, &inp_cpy, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
@@ -4131,7 +4302,7 @@ namespace CTF_int {
     int * phys_mapped;
 
     int nphys_dim = A->topo->order;
-  
+ 
     CTF_int::alloc_ptr(sizeof(int)*nphys_dim*3, (void**)&phys_mapped);
     memset(phys_mapped, 0, sizeof(int)*nphys_dim*3);
 
@@ -4189,8 +4360,8 @@ namespace CTF_int {
 
     if (A->has_zero_edge_len || B->has_zero_edge_len
         || C->has_zero_edge_len){
-      if (!C->sr->isequal(beta,C->sr->mulid()) && !C->has_zero_edge_len){ 
-        int * new_idx_C; 
+      if (!C->sr->isequal(beta,C->sr->mulid()) && !C->has_zero_edge_len){
+        int * new_idx_C;
         int num_diag = 0;
         new_idx_C = (int*)CTF_int::alloc(sizeof(int)*C->order);
         for (int i=0; i<C->order; i++){
@@ -4234,7 +4405,7 @@ namespace CTF_int {
       CBA.contract();
       return SUCCESS;
     }
-    //FIXME: was putting indices of A at the end here before 
+    //FIXME: was putting indices of A at the end here before
 /*    if (A->is_sparse){
       //bool A_inds_ordered = true;
       //for (int i=1; i<A->order; i++){
@@ -4262,11 +4433,11 @@ namespace CTF_int {
         }
         ASSERT(ila>=0);
         used[ila] = 1;
-        if (idx_arr[3*ila] != -1) 
+        if (idx_arr[3*ila] != -1)
           new_idx_A[idx_arr[3*ila]]=num_tot-i-1;
-        if (idx_arr[3*ila+1] != -1) 
+        if (idx_arr[3*ila+1] != -1)
           new_idx_B[idx_arr[3*ila+1]]=num_tot-i-1;
-        if (idx_arr[3*ila+2] != -1) 
+        if (idx_arr[3*ila+2] != -1)
           new_idx_C[idx_arr[3*ila+2]]=num_tot-i-1;
       }
       cdealloc(idx_arr);
@@ -4285,7 +4456,7 @@ namespace CTF_int {
         CBA.contract();
         return SUCCESS;
       }
-      
+     
     }*/
 
 
@@ -4345,12 +4516,12 @@ namespace CTF_int {
   #else
     if (check_mapping() != 0) {
       /* Construct the tensor algorithm we would like to use */
-  #if DEBUG >= 1
+  #if (VERBOSE >= 1 || DEBUG >= 1)
       if (global_comm.rank == 0)
         printf("Keeping mappings:\n");
   #endif
     } else {
-  #if DEBUG >= 1
+  #if (VERBOSE >= 1 || DEBUG >= 1)
       if (global_comm.rank == 0){
         printf("Initial mappings are unsuitable mappings:\n");
         A->print_map();
@@ -4358,7 +4529,7 @@ namespace CTF_int {
         C->print_map();
       }
   #endif
-    } 
+    }
     stat = map(&ctrf);
     if (stat == ERROR) {
       printf("Failed to map tensors to physical grid\n");
@@ -4400,7 +4571,7 @@ namespace CTF_int {
       TAU_FSTOP(map_fold);
       delete ctrf;
       ctrf = construct_ctr(1, &prm);
-    } 
+    }
   #endif
   #if DEBUG >=2
   if (global_comm.rank == 0){
@@ -4625,19 +4796,19 @@ namespace CTF_int {
     char const * dbeta;
     ctr * ctrf;
     tensor * tnsr_A, * tnsr_B, * tnsr_C;
-  
+ 
     bool is_cons = this->check_consistency();
     if (!is_cons) return ERROR;
-  
+ 
     CommData global_comm = A->wrld->cdt;
-  
+ 
     A->unfold();
     B->unfold();
     C->unfold();
     if (A->has_zero_edge_len || B->has_zero_edge_len
         || C->has_zero_edge_len){
-      if (!C->sr->isequal(beta,C->sr->mulid()) && !C->has_zero_edge_len){ 
-        int * new_idx_C; 
+      if (!C->sr->isequal(beta,C->sr->mulid()) && !C->has_zero_edge_len){
+        int * new_idx_C;
         int num_diag = 0;
         new_idx_C = (int*)CTF_int::alloc(sizeof(int)*C->order);
         for (int i=0; i<C->order; i++){
@@ -4698,7 +4869,7 @@ namespace CTF_int {
     tnsr_A = A;
     tnsr_B = B;
     tnsr_C = C;
-    
+   
     tensor * new_tsr;
     while (tnsr_A->extract_diag(map_A, 1, new_tsr, &new_idx) == SUCCESS){
       if (tnsr_A != A) delete tnsr_A;
@@ -4781,7 +4952,7 @@ namespace CTF_int {
       if (ocfact != 1){
         if (ocfact != 1){
           tnsr_C->sr->safecopy(oc_align_alpha, tnsr_C->sr->addid());
-          
+         
           for (int i=0; i<ocfact; i++){
             tnsr_C->sr->add(oc_align_alpha, align_alpha, oc_align_alpha);
           }
@@ -4912,7 +5083,7 @@ namespace CTF_int {
       int64_t * nnz_blk_zero = (int64_t*)alloc(sizeof(int64_t)*C->calc_nvirt());
       std::fill(nnz_blk_zero, nnz_blk_zero+C->calc_nvirt(), 0);
       C->set_new_nnz_glb(nnz_blk_zero);
-      
+     
       tensor * C_buf = new tensor(C, 1, 1);
       C->set_new_nnz_glb(nnz_blk_C);
       cdealloc(nnz_blk_C);
@@ -4929,14 +5100,14 @@ namespace CTF_int {
       s.execute();
       delete C_buf;
       return SUCCESS;
-      
+     
     }
-    
-    if (A->has_zero_edge_len || 
-        B->has_zero_edge_len || 
+   
+    if (A->has_zero_edge_len ||
+        B->has_zero_edge_len ||
         C->has_zero_edge_len){
-      if (!C->sr->isequal(beta,C->sr->mulid()) && !C->has_zero_edge_len){ 
-        int * new_idx_C; 
+      if (!C->sr->isequal(beta,C->sr->mulid()) && !C->has_zero_edge_len){
+        int * new_idx_C;
         int num_diag = 0;
         new_idx_C = (int*)CTF_int::alloc(sizeof(int)*C->order);
         for (int i=0; i<C->order; i++){
@@ -4974,7 +5145,7 @@ namespace CTF_int {
       ret = home_contract(&new_type, ftsr, felm, alpha, beta);
       del_tsr(new_tid);
       return ret;
-    }*/ 
+    }*/
 
     //CTF_ctr_type_t ntype = *stype;
     if (this->func != NULL && !this->func->is_accumulator() && !this->func->intersect_only){
@@ -5024,7 +5195,7 @@ namespace CTF_int {
       return SUCCESS;
     }
 
-    // if multiplying A and B with one sparse, make first sparse 
+    // if multiplying A and B with one sparse, make first sparse
     if (!A->is_sparse && B->is_sparse){
       assert(this->func==NULL); // currently if contracting two tensors with special function and one is sparse, first operand of the two must be the sparse one
       contraction new_ctr = contraction(this->B,this->idx_B,this->A,this->idx_A,this->alpha,this->C,this->idx_C,this->beta,this->func);
@@ -5155,7 +5326,7 @@ namespace CTF_int {
           nc = new contraction(A, idx_A, X2, cidxX, alpha, C, idx_C, beta, func);
           nc->idx_A[iA] = num_tot;
         }
-        nc->execute();  
+        nc->execute(); 
         delete nc;
         delete X2;
         free(symX);
@@ -5189,7 +5360,7 @@ namespace CTF_int {
         CTF_int::alloc_ptr(new_ctr.A->calc_nvirt()*sizeof(int64_t), (void**)&new_ctr.A->nnz_blk);
         new_ctr.A->set_new_nnz_glb(A->nnz_blk);
       }
-    }     
+    }    
     if (was_home_B){
       if (A == B){ //stype->tid_A == stype->tid_B){
         new_ctr.B = new_ctr.A; //tensors[ntype.tid_B];
@@ -5322,7 +5493,7 @@ namespace CTF_int {
     tensor * T, * V;
     int fT, fV;
     int * idx_T, * idx_V;
-    if (A->size <= B->size){ 
+    if (A->size <= B->size){
       T = A;
       V = B;
       fT = 0;
@@ -5345,7 +5516,7 @@ namespace CTF_int {
       ASSERT(iT == idx_arr[3*i+fT]);
       int npres = 0;
       while (T->sym[iT+npres] == SY && iiC == -1 &&
-              ( (iV == -1 && iiV == -1) || 
+              ( (iV == -1 && iiV == -1) ||
                 (iV != -1 && iiV != -1 && V->sym[iiV] == SY)
               )
             ){
@@ -5354,14 +5525,14 @@ namespace CTF_int {
         iiV = idx_arr[3*ii+fV];
         iiC = idx_arr[3*ii+2];
       }
-      if (T->sym[iT+npres] == NS){ 
+      if (T->sym[iT+npres] == NS){
         if (iiC == -1 &&
-            ( (iV == -1 && iiV == -1) || 
+            ( (iV == -1 && iiV == -1) ||
               (iV != -1 && iiV != -1 && V->sym[iiV] == NS)
             ) )
           npres++;
       }
-      
+     
       if (npres > 1){
         free(idx_arr);
         return true;
@@ -5401,7 +5572,7 @@ namespace CTF_int {
     tensor * T, * V;
     int fT, fV;
     int * idx_T, * idx_V;
-    if (A->size <= B->size){ 
+    if (A->size <= B->size){
       T = A;
       V = B;
       fT = 0;
@@ -5424,7 +5595,7 @@ namespace CTF_int {
       ASSERT(iT == idx_arr[3*i+fT]);
       int npres = 0;
       while (T->sym[iT+npres] == SY && iiC == -1 &&
-              ( (iV == -1 && iiV == -1) || 
+              ( (iV == -1 && iiV == -1) ||
                 (iV != -1 && iiV != -1 && V->sym[iiV] == SY)
               )
             ){
@@ -5433,14 +5604,14 @@ namespace CTF_int {
         iiV = idx_arr[3*ii+fV];
         iiC = idx_arr[3*ii+2];
       }
-      if (T->sym[iT+npres] == NS){ 
+      if (T->sym[iT+npres] == NS){
         if (iiC == -1 &&
-            ( (iV == -1 && iiV == -1) || 
+            ( (iV == -1 && iiV == -1) ||
               (iV != -1 && iiV != -1 && V->sym[iiV] == NS)
             ) )
           npres++;
       }
-      
+     
       if (npres > 1){
         int sym_mask[T->order];
         std::fill(sym_mask, sym_mask+T->order, 0);
@@ -5448,7 +5619,7 @@ namespace CTF_int {
         /*for (int k=0; k<T->order; k++){
           printf("sym_mask[%d]=%d\n",k,sym_mask[k]);
         }*/
-        
+       
         if (T->is_home){
           if (T->wrld->cdt.rank == 0)
             DPRINTF(2,"Tensor %s leaving home\n", T->name);
@@ -5561,9 +5732,9 @@ namespace CTF_int {
       }
 /*
       if (alpha != NULL){
-        printf("alpha is "); 
+        printf("alpha is ");
         A->sr->print(alpha);
-        printf("\nbeta is "); 
+        printf("\nbeta is ");
         B->sr->print(beta);
         printf("\n");
       }

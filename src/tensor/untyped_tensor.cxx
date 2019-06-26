@@ -2376,6 +2376,15 @@ namespace CTF_int {
         can_block_shuffle = 0;
       }
     }
+  #if VERBOSE >=1
+    if (wrld->cdt.rank == 0){
+      if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle to mapping\n",this->name);
+      else if (is_sparse) VPRINTF(1,"Remapping tensor %s via sparse reshuffle to mapping\n",this->name);
+      else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle to mapping\n",this->name);
+    }
+    this->print_map(stdout);
+  #endif
+
 
     if (size > INT_MAX && !is_sparse && wrld->cdt.rank == 0)
       printf("CTF WARNING: Tensor %s is being redistributed to a mapping where its size is %ld, which is greater than INT_MAX=%d, so MPI could run into problems\n", name, size, INT_MAX);
@@ -2408,15 +2417,6 @@ namespace CTF_int {
       }
     }
   #endif
-  #if VERBOSE >=2
-    if (wrld->cdt.rank == 0){
-      if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle to mapping\n",this->name);
-      else if (is_sparse) VPRINTF(1,"Remapping tensor %s via sparse reshuffle to mapping\n",this->name);
-      else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle to mapping\n",this->name);
-    }
-    this->print_map(stdout);
-  #endif
-
 #if VERIFY_REMAP
     if (!is_sparse)
       padded_reshuffle(sym, old_dist, new_dist, this->data, &shuffled_data_corr, sr, wrld->cdt);
@@ -2496,6 +2496,11 @@ namespace CTF_int {
         Timer t_pf(spf);
         t_pf.stop();
       }
+    }
+  #endif
+  #if VERBOSE >=1
+    if (wrld->cdt.rank == 0){
+      VPRINTF(1,"Remapping complete for %s\n",this->name);
     }
   #endif
 
@@ -2919,7 +2924,6 @@ namespace CTF_int {
   void tensor::spmatricize(int m, int n, int nrow_idx, int all_fdim, int64_t const * all_flen, bool csr, bool ccsr){
 
     ASSERT(is_sparse);
-
 #ifdef PROFILE
     MPI_Barrier(this->wrld->comm);
     TAU_FSTART(sparse_transpose);

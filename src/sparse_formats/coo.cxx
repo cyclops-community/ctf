@@ -6,7 +6,7 @@
 
 namespace CTF_int {
   int64_t get_coo_size(int64_t nnz, int val_size, bool is_int64){
-    val_size = std::max(val_size,64*((val_size + 63)/64));
+    val_size = std::max(val_size,8*((val_size + 7)/8));
     if (is_int64)
       return nnz*(val_size+sizeof(int64_t)*2)+3*sizeof(int64_t);
     else
