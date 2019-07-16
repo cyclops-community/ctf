@@ -814,7 +814,7 @@ namespace CTF_int {
       } else {
         ASSERT(permutation_A != NULL);
         ASSERT(permutation_B == NULL);
-        tsr_A->read_local(&sz_A, &all_data_A, true);
+        tsr_A->read_local_nnz(&sz_A, &all_data_A, true);
         //permute all_data_A
         permute_keys(tsr_A->order, sz_A, tsr_A->lens, tsr_B->lens, permutation_A, all_data_A, &blk_sz_A, sr);
       }
