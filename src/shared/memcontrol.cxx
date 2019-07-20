@@ -23,6 +23,11 @@
 #include <spi/include/kernel/memory.h>
 #endif
 
+#ifndef __APPLE__
+#ifndef NOMALLINFO
+#define NOMALLINFO
+#endif
+#endif 
 
 #include "../interface/common.h"
 #include "util.h"
