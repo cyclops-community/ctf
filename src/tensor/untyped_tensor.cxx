@@ -1684,6 +1684,7 @@ namespace CTF_int {
             memcpy(this->nnz_blk, old_tsr->nnz_blk, old_tsr->calc_nvirt()*sizeof(int64_t));
             this->set_new_nnz_glb(this->nnz_blk);
           }
+          return SUCCESS;
         }
       }
     }
