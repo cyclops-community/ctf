@@ -286,13 +286,18 @@ class KnowValues(unittest.TestCase):
         ref = ctf.einsum('qrs,ri,sj->qij', a1, mo, mo)
         self.assertTrue(allclose(ref, dat))
 
-
-if __name__ == "__main__":
+def run_tests():
+    numpy.random.seed(5330);
+    wrld = ctf.comm()
     if ctf.comm().rank() != 0:
         result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))
     else:
         print("Tests for fancy index")
         result = unittest.TextTestRunner().run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))
+    return result
+
+if __name__ == "__main__":
+    result = run_tests()
     ctf.MPI_Stop()
     sys.exit(not result)
 
