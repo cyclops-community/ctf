@@ -4900,7 +4900,6 @@ namespace CTF_int {
     tnsr_A->unfold();
     tnsr_B->unfold();
     tnsr_C->unfold();
-    /*if (ntid_A == ntid_B || ntid_A == ntid_C){*/
     if (tnsr_A == tnsr_C){
       tensor * nnew_tsr = new tensor(tnsr_A);
       contraction nnew_ctr = contraction(new_ctr);
@@ -5048,6 +5047,8 @@ namespace CTF_int {
       if (tnsr_B != B) delete tnsr_B;
       for (int i=nst_C-1; i>=0; i--){
         dstack_tsr_C[i]->extract_diag(dstack_map_C[i], 0, tnsr_C, &new_idx);
+        free(dstack_map_C[i]);
+        free(new_idx);
         delete tnsr_C;
         tnsr_C = dstack_tsr_C[i];
       }

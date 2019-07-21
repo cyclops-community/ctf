@@ -733,8 +733,6 @@ namespace CTF_int {
           sub_idx[k] = k;
         }
         do {
-          for (int k=0; k<=i; k++){
-          }
           subproblems[i][isub].idx = sub_idx;
           subproblems[i][isub].cost = std::numeric_limits<double>::max();
           std::vector<Idx_Tensor*> sub_ops = operands;

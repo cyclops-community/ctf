@@ -361,7 +361,10 @@ cdef class term:
 
     def scale(self, scl):
         if isinstance(scl, (np.int, np.float, np.double, np.number)):
+            tm_old = self.tm
             self.tm = (deref(self.tm) * <double>scl).clone()
+            if tm_old != self.tm:
+                del tm_old
         else:
             st = np.ndarray([],dtype=self.dtype).itemsize
             beta = <char*>malloc(st)
@@ -478,9 +481,10 @@ cdef class itensor(term):
 
     def conv_type(self, dtype):
         self.tsr = tensor(copy=self.tsr,dtype=dtype)
+        del self.it
         self.it = new Idx_Tensor(self.tsr.dt, self.string.encode())
         self.dtype = dtype
-        del self.tm
+        #del self.tm
         self.tm = self.it
 
     def __repr__(self):
@@ -606,6 +610,9 @@ cdef class timer_epoch:
     def __cinit__(self, name=None):
         self.te = new Timer_epoch(name.encode())
 
+    def __dealloc__(self):
+        del self.te
+
     def begin(self):
         self.te.begin()
 
@@ -621,6 +628,9 @@ cdef class timer:
 
     def __cinit__(self, name=None):
         self.t = new Timer(name.encode())
+    
+    def __dealloc__(self):
+        del self.t
 
     def start(self):
         self.t.start()
@@ -2333,12 +2343,16 @@ cdef class tensor:
         cvals = <char*> malloc(sz*tB)
         self.dt.allread(&sz, cvals, unpack)
         cdef cnp.ndarray buf = np.empty(sz, dtype=self.dtype)
+        odata = buf.data
         buf.data = cvals
         if arr is None:
             sbuf = np.asarray(buf)
+            free(odata)
             return buf
         else:
             arr[:] = buf[:]
+            free(cvals)
+            buf.data = odata
 
     def read_all_nnz(self, unpack=True):
         """
@@ -3204,6 +3218,8 @@ def _trilSquare(tensor A):
     cdef ctensor * ct
     ct = new ctensor(A.dt, csym2)
     B.dt = new ctensor(ct, csym)
+    free(csym)
+    free(csym2)
     del ct
     return B
 
@@ -5629,6 +5645,8 @@ def TTTP(tensor A, mat_list):
         TTTP_[double](<Tensor[double]*>B.dt,len(tsr_list),modes,tsrs,1)
     else:
         raise ValueError('CTF PYTHON ERROR: TTTP does not support this dtype')
+    free(modes)
+    free(tsrs)
     t_tttp.stop()
     return B
 

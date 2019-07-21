@@ -529,6 +529,7 @@ namespace CTF {
 
     Matrix<dtype> S(desca, A, layout_order, (*(this->wrld)));
     free(A);
+    free(desca);
     S.get_tri(L, lower);
     t_cholesky.stop();
   }
