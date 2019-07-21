@@ -2480,11 +2480,11 @@ cdef class tensor:
         if b is not None:
             free(beta)
         if p_A is not None:
-            for i in range(0, sizeof(permutation_A), sizeof(int*)):
+            for i in range(self.ndim):
                 free(permutation_A[i])
             free(permutation_A)
         if p_B is not None:
-            for i in range(0, sizeof(permutation_B), sizeof(int*)):
+            for i in range(self.ndim):
                 free(permutation_B[i])
             free(permutation_B)
 
@@ -2694,6 +2694,7 @@ cdef class tensor:
             alpha[j] = na.view(dtype=np.int8)[j]
 
         self.dt.set(alpha)
+        free(alpha)
 
     def __setitem__(self, key_init, value_init):
         value = deepcopy(value_init)
@@ -2948,6 +2949,7 @@ cdef class tensor:
             thresh[j] = na.view(dtype=np.int8)[j]
         A = tensor(copy=self,sp=True)
         A.dt.sparsify(thresh, take_abs)
+        free(thresh)
         return A
 
     def to_nparray(self):

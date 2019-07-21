@@ -145,10 +145,7 @@ namespace CTF_int {
       tstart = tnum_pair * tid + MIN(tid, num_pair % ntd);
       if (tid < num_pair % ntd) tnum_pair++;
 
-      char * my_pairs_buf = (char*)alloc(sr->pair_size()*tnum_pair);
-      //char my_pairs_buf[sr->pair_size()*tnum_pair];
 
-      PairIterator my_pairs(sr, my_pairs_buf);
       PairIterator pairs(sr, pairs_buf);
 
       for (i=tstart; i<tstart+tnum_pair; i++){
