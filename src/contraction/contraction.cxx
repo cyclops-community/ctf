@@ -3054,9 +3054,6 @@ namespace CTF_int {
           est_time += 2.*C->est_redist_time(*dC, nnz_frac_C);
           memuse = std::max(1.*memuse,2.*C->get_redist_mem(*dC, nnz_frac_C));
         }
-
-        if (est_time >= best_time) continue;
-
         if (is_ctr_sparse)
           memuse = MAX(mem_fold_tmp, MAX(mem_fold + ((spctr*)sctr)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse));
         else
