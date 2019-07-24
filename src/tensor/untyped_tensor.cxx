@@ -1985,7 +1985,7 @@ namespace CTF_int {
 
     if (wrld->rank == 0)
       printf("Printing tensor %s\n",name);
-    if (is_sparse)
+    if (is_sparse && wrld->rank == 0)
       printf("Tensor has %ld nonzeros\n",nnz_tot);
 #ifdef DEBUG
     print_map(fp);
