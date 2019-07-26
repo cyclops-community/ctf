@@ -1792,7 +1792,7 @@ namespace CTF_int {
     }
   }
 
-  char * tensor::read_all_pairs(int64_t * num_pair, bool unpack, bool nonzero_only){
+  char * tensor::read_all_pairs(int64_t * num_pair, bool unpack, bool nonzero_only) const {
     int numPes;
     int * nXs;
     int nval, n, i;
@@ -1873,8 +1873,9 @@ namespace CTF_int {
 
   int tensor::allread(int64_t * num_pair,
                       char **   all_data,
-                      bool      unpack){
-    char * prs = read_all_pairs(num_pair, unpack);
+                      bool      unpack,
+                      bool      nnz_only) const {
+    char * prs = read_all_pairs(num_pair, unpack, nnz_only);
     PairIterator ipr(sr, prs);
     char * ball_data = sr->alloc((*num_pair));
     for (int64_t i=0; i<*num_pair; i++){
@@ -1888,7 +1889,7 @@ namespace CTF_int {
 
   int tensor::allread(int64_t * num_pair,
                       char *    all_data,
-                      bool      unpack){
+                      bool      unpack) const {
     char * prs = read_all_pairs(num_pair, unpack);
     PairIterator ipr(sr, prs);
     for (int64_t i=0; i<*num_pair; i++){

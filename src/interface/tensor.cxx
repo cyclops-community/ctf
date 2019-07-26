@@ -380,6 +380,18 @@ namespace CTF {
   }
 
   template<typename dtype>
+  void Tensor<dtype>::get_all_pairs(int64_t *      npair,
+                                    Pair<dtype> ** pairs,
+                                    bool           nonzeros_only,
+                                    bool           unpack_sym) const {
+    char * cpairs;
+    int ret;
+    ret = CTF_int::tensor::allread(npair,&cpairs,unpack_sym,nonzeros_only);
+    *pairs = (Pair<dtype>*)cpairs; //Pair<dtype>::cast_char_arr(cpairs, *npair, sr);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
+  }
+
+  template<typename dtype>
   void Tensor<dtype>::read_local(int64_t *      npair,
                                  Pair<dtype> ** pairs,
                                  bool           unpack_sym) const {

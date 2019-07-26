@@ -593,6 +593,19 @@ namespace CTF {
                            bool           unpack_sym=false) const;
 
       /**
+       * \brief gives the global indices and values associated with data stored on all processors (replicates the data on each process)
+       * \param[out] npair number of local values
+       * \param[out] pairs pointer to local key-value pairs, should be released with delete []
+       * \param[in] nonzeros_only if true, outputs all tensor elements, if false ignores those equivalent to the additive identity (zero)
+       * \param[in] unpack_sym if true, outputs all tensor elements, if false only those unique with respect to symmetry
+       */
+      void get_all_pairs(int64_t  *     npair,
+                         Pair<dtype> ** pairs,
+                         bool           nonzeros_only=false,
+                         bool           unpack_sym=false) const;
+
+
+      /**
        * \brief gives the global indices and values associated with the local data
        *          WARNING: for sparse tensors this includes the zeros to maintain consistency with
        *                   the behavior for dense tensors, use get_lcoal_pairs to get only nonzeros

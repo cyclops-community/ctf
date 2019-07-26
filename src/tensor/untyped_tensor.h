@@ -470,10 +470,12 @@ namespace CTF_int {
        * \param[out] num_pair number of values read
        * \param[in,out] all_data values read (allocated by library)
        * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
+       * \param[in] nnz_only if true only nonzero elements are read
        */
       int allread(int64_t * num_pair,
                   char **   all_data,
-                  bool      unpack);
+                  bool      unpack,
+                  bool      nnz_only=false) const;
 
       /**
        * \brief read entire tensor with each processor (in packed layout).
@@ -484,7 +486,7 @@ namespace CTF_int {
        */
       int allread(int64_t * num_pair,
                   char *    all_data,
-                  bool      unpack=true);
+                  bool      unpack=true) const;
 
       /**
        * \brief read all pairs with each processor (packed)
@@ -493,7 +495,7 @@ namespace CTF_int {
        * \param[in] nonzero_only whether to read only nonzeros
        * return char * containing allocated pairs
        */
-      char * read_all_pairs(int64_t * num_pair, bool unpack, bool nonzero_only=false);
+      char * read_all_pairs(int64_t * num_pair, bool unpack, bool nonzero_only=false) const;
 
        /**
        * \brief accumulates out a slice (block) of this tensor = B
