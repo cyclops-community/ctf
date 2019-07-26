@@ -5073,19 +5073,7 @@ namespace CTF_int {
     C->unfold();
 
     if (C->is_sparse && (C->nnz_tot > 0 || C->has_home)){
-      if (C->sr->isequal(beta,C->sr->addid())){
-        C->set_zero();
-      }
-      int64_t * nnz_blk_C = (int64_t*)alloc(sizeof(int64_t)*C->calc_nvirt());
-      memcpy(nnz_blk_C, C->nnz_blk, sizeof(int64_t)*C->calc_nvirt());
-      int64_t * nnz_blk_zero = (int64_t*)alloc(sizeof(int64_t)*C->calc_nvirt());
-      std::fill(nnz_blk_zero, nnz_blk_zero+C->calc_nvirt(), 0);
-      C->set_new_nnz_glb(nnz_blk_zero);
-     
-      tensor * C_buf = new tensor(C, 1, 1);
-      C->set_new_nnz_glb(nnz_blk_C);
-      cdealloc(nnz_blk_C);
-      cdealloc(nnz_blk_zero);
+      tensor * C_buf = new tensor(C, 0, 1);
       C_buf->has_home = 0;
       C_buf->is_home = 0;
       contraction new_ctr(*this);
@@ -5341,7 +5329,6 @@ namespace CTF_int {
     was_home_A = A->is_home;
     was_home_B = B->is_home;
     was_home_C = C->is_home;
-
     if (was_home_A){
 //      clone_tensor(stype->tid_A, 0, &ntype.tid_A, 0);
       new_ctr.A = new tensor(A, 0, 0); //tensors[ntype.tid_A];
