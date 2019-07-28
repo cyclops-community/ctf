@@ -17,6 +17,7 @@ namespace CTF_int{
   void update_all_models(MPI_Comm comm);
 }
 
+
 void train_off_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, bool sp_C);
 
 void train_ttm(int64_t sz, int64_t r, World & dw){
@@ -81,6 +82,23 @@ void train_ttm(int64_t sz, int64_t r, World & dw){
     free(inds_A);
   }
   TTM.stop();
+}
+
+void train_sparse_mttkrp(int64_t sz, int64_t R, World & dw){
+  Timer sMTTKRP("sMTTKRP");
+  sMTTKRP.start();
+  for (double sp = .1; sp>.00001; sp*=.25){
+    int64_t n = (int64_t)cbrt(sz/sp);
+    int64_t lens[3] = {n, n, n};
+    Tensor<> T(3, true, lens, dw);
+    Matrix<> M(n, R, dw);
+    M.fill_random(-1.,1.);
+    T.fill_sp_random(-1.,1.,sp);
+    M["ir"] = T["ijk"]*M["jr"]*M["kr"];
+    M["jr"] = T["ijk"]*M["ir"]*M["kr"];
+    M["kr"] = T["ijk"]*M["ir"]*M["jr"];
+  }
+  sMTTKRP.stop();
 }
 
 void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
@@ -246,6 +264,7 @@ void train_world(double dtime, World & dw, double step_size){
       if (n<80){
         train_ttm(n*m+13,n,dw);
       }
+      train_sparse_mttkrp(n*m/8, m, dw);
       train_dns_vec_mat(n, m, dw);
       train_sps_vec_mat(n-2, m, dw, 0, 0, 0);
       train_sps_vec_mat(n-4, m-2, dw, 1, 0, 0);
@@ -366,11 +385,10 @@ void train_all(double time, bool write_coeff, bool dump_data, std::string coeff_
   if(write_coeff)
     CTF_int::write_all_models(coeff_file);
   if(dump_data){
-    int rank, np;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &np);
     CTF_int::dump_all_models(data_dir);
   }
+  if (rank == 0)
+    CTF_int::print_all_models();
   MPI_Comm_free(&cm);
 }
 

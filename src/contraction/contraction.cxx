@@ -5135,7 +5135,7 @@ namespace CTF_int {
 
     //CTF_ctr_type_t ntype = *stype;
     if (this->func != NULL && !this->func->is_accumulator() && !this->func->intersect_only){
-      if (A->is_sparse){
+      if (A->is_sparse && B->sr->mulid() != NULL){
         char * tmp;
         tmp = C->sr->alloc(1);
         this->func->apply_f(A->sr->addid(), B->sr->mulid(), tmp);
@@ -5153,7 +5153,7 @@ namespace CTF_int {
           return SUCCESS;
         }
       }
-      if (B->is_sparse){
+      if (B->is_sparse && A->sr->mulid() != NULL){
         char * tmp;
         tmp = C->sr->alloc(1);
         this->func->apply_f(A->sr->mulid(), B->sr->addid(), tmp);

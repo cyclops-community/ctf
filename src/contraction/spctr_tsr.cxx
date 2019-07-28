@@ -601,7 +601,7 @@ namespace CTF_int {
           seq_tsr_spctr_k4.observe(tps);
         }
         break;
-      case 2:
+      case 5:
         if (is_custom){
           seq_tsr_spctr_cst_k5.observe(tps);
         } else {
