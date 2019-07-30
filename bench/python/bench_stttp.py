@@ -3,12 +3,20 @@ import os
 import argparse
 import time
 import sbench_args as sargs
+import numpy as np
 
 def run_bench(num_iter, s_start, s_end, mult, R, sp, use_tttp):
     wrld = ctf.comm()
     s = s_start
     nnz = s_start*s_start*s_start
+    agg_s = []
+    agg_avg_times = []
+    agg_min_times = []
+    agg_max_times = []
+    agg_min_95 = []
+    agg_max_95 = []
     while s<=s_end:
+        agg_s.append(s)
         T = ctf.tensor((s,s,s),sp=sp)
         T.fill_sp_random(-1.,1.,nnz/(s*s*s))
         U = ctf.random.random((s,R))
@@ -17,6 +25,7 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, use_tttp):
         te1 = 0.
         te2 = 0.
         te3 = 0.
+        avg_times = []
         for i in range(num_iter):
             t0 = time.time()
             if use_tttp:
@@ -27,11 +36,31 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, use_tttp):
             ite1 = t1 - t0
             te1 += ite1
 
+            avg_times.append(ite1)
+
             if ctf.comm().rank() == 0:
                 print(ite1)
+
         if ctf.comm().rank() == 0:
-            print("TTTP",te1/num_iter,"seconds on average with s =",s,"nnz =",nnz,"sp",sp,"use_tttp",use_tttp)
+            avg_time = (te1)/(num_iter)
+            agg_avg_times.append(avg_time)
+            print("TTTP",avg_time,"seconds on average with s =",s,"nnz =",nnz,"sp",sp,"use_tttp",use_tttp)
+            min_time = np.min(avg_times)
+            max_time = np.max(avg_times)
+            agg_min_times.append(min_time)
+            agg_max_times.append(max_time)
+            print("min/max interval is [",min_time,",",max_time,"]")
+            stddev = np.std(avg_times)
+            min_95 = (te1+te2+te3)/(3*num_iter)-2*stddev
+            max_95 = (te1+te2+te3)/(3*num_iter)+2*stddev
+            agg_min_95.append(min_95)
+            agg_max_95.append(max_95)
+            print("95% confidence interval is [",min_95,",",max_95,"]")
         s = int(s*mult)
+    if ctf.comm().rank() == 0:
+        print("s min_time min_95 avg_time max_95 max_time")
+        for i in range(len(agg_s)):
+            print(agg_s[i], agg_min_times[i], agg_min_95[i], agg_avg_times[i], agg_max_95[i], agg_max_times[i])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
