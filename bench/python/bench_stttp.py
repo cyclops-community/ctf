@@ -4,7 +4,7 @@ import argparse
 import time
 import sbench_args as sargs
 
-def run_bench(num_iter, s_start, s_end, mult, R, sp):
+def run_bench(num_iter, s_start, s_end, mult, R, sp, use_tttp):
     wrld = ctf.comm()
     s = s_start
     nnz = s_start*s_start*s_start
@@ -19,32 +19,29 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp):
         te3 = 0.
         for i in range(num_iter):
             t0 = time.time()
-            U = ctf.einsum("ijk,jr,kr->ir",T,V,W)
+            if use_tttp:
+                S = ctf.TTTP(T,[U,V,W])
+            else:
+                S = ctf.einsum("ijk,iR,jR,kR->ijk",T,U,V,W)
             t1 = time.time()
             ite1 = t1 - t0
             te1 += ite1
 
-            t0 = time.time()
-            V = ctf.einsum("ijk,ir,kr->jr",T,U,W)
-            t1 = time.time()
-            ite2 = t1 - t0
-            te2 += ite2
-
-            t0 = time.time()
-            W = ctf.einsum("ijk,ir,jr->kr",T,U,V)
-            t1 = time.time()
-            ite3 = t1 - t0
-            te3 += ite3
             if ctf.comm().rank() == 0:
-                print(ite1,ite2,ite3,"avg:",(ite1+ite2+ite3)/3.)
+                print(ite1)
         if ctf.comm().rank() == 0:
-            print("Completed",num_iter,"iterations, took",te1/num_iter,te2/num_iter,te3/num_iter,"seconds on average for 3 variants.")
-            print("MTTKRP took",(te1+te2+te3)/(3*num_iter),"seconds on average across variants with s =",s,"nnz =",nnz,"sp",sp)
+            print("TTTP",te1/num_iter,"seconds on average with s =",s,"nnz =",nnz,"sp",sp,"use_tttp",use_tttp)
         s = int(s*mult)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     sargs.add_arguments(parser)
+    parser.add_argument(
+        '--use_tttp',
+        type=int,
+        default=1,
+        metavar='int',
+        help='Wheter to use CTF TTTP routine (default: 1)')
     args, _ = parser.parse_known_args()
 
     num_iter = args.num_iter
@@ -53,8 +50,9 @@ if __name__ == "__main__":
     mult = args.mult
     R = args.R
     sp = args.sp
+    use_tttp = args.use_tttp
 
     if ctf.comm().rank() == 0:
-        print("num_iter is",num_iter,"s_start is",s_start,"s_end is",s_end,"mult is",mult,"R is",R,"sp is",sp)
-    run_bench(num_iter, s_start, s_end, mult, R, sp)
+        print("num_iter is",num_iter,"s_start is",s_start,"s_end is",s_end,"mult is",mult,"R is",R,"sp is",sp,"use_tttp is",use_tttp)
+    run_bench(num_iter, s_start, s_end, mult, R, sp, use_tttp)
 

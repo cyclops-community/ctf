@@ -12,26 +12,24 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp):
         T = ctf.tensor((s,s,s),sp=sp)
         T.fill_sp_random(-1.,1.,nnz/(s*s*s))
         U = ctf.random.random((s,R))
-        V = ctf.random.random((s,R))
-        W = ctf.random.random((s,R))
         te1 = 0.
         te2 = 0.
         te3 = 0.
         for i in range(num_iter):
             t0 = time.time()
-            U = ctf.einsum("ijk,jr,kr->ir",T,V,W)
+            S = ctf.einsum("ijk,ir->jkr",T,U)
             t1 = time.time()
             ite1 = t1 - t0
             te1 += ite1
 
             t0 = time.time()
-            V = ctf.einsum("ijk,ir,kr->jr",T,U,W)
+            S = ctf.einsum("ijk,jr->ikr",T,U)
             t1 = time.time()
             ite2 = t1 - t0
             te2 += ite2
 
             t0 = time.time()
-            W = ctf.einsum("ijk,ir,jr->kr",T,U,V)
+            S = ctf.einsum("ijk,kr->ijr",T,U)
             t1 = time.time()
             ite3 = t1 - t0
             te3 += ite3
@@ -39,7 +37,7 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp):
                 print(ite1,ite2,ite3,"avg:",(ite1+ite2+ite3)/3.)
         if ctf.comm().rank() == 0:
             print("Completed",num_iter,"iterations, took",te1/num_iter,te2/num_iter,te3/num_iter,"seconds on average for 3 variants.")
-            print("MTTKRP took",(te1+te2+te3)/(3*num_iter),"seconds on average across variants with s =",s,"nnz =",nnz,"sp",sp)
+            print("TTM took",(te1+te2+te3)/(3*num_iter),"seconds on average across variants with s =",s,"nnz =",nnz,"sp",sp)
         s = int(s*mult)
 
 if __name__ == "__main__":
