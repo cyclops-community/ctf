@@ -38,7 +38,7 @@ before_install:
   - conda install -y numpy nomkl blas=*=openblas
 install:
   - $CTF_CXX --version
-  - FC=gfortran-5 ./configure CXX="mpicxx -cxx=$CTF_CXX" --build-hptt --build-scalapack CXXFLAGS="-g -O1"
+  - FC=gfortran-5 ./configure CXX="mpicxx -cxx=$CTF_CXX" --build-hptt --build-scalapack CXXFLAGS="-O1 -no-pie"
   - make -j2 
   - make python -j2
 script:
