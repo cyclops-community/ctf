@@ -18,7 +18,7 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, use_tttp):
     while s<=s_end:
         agg_s.append(s)
         T = ctf.tensor((s,s,s),sp=sp)
-        T.fill_sp_random(-1.,1.,nnz/(s*s*s))
+        T.fill_sp_random(-1.,1.,float(nnz)/float(s*s*s))
         U = ctf.random.random((s,R))
         V = ctf.random.random((s,R))
         W = ctf.random.random((s,R))

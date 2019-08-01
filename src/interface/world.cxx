@@ -216,7 +216,8 @@ namespace CTF {
       // Get the environment variable FILE_PATH
       char * file_path = getenv("CTF_MODEL_FILE");
       if (file_path != NULL && strcmp(file_path,"")!=0){
-        VPRINTF(1,"Reading model coefficients from file %s (CTF_MODEL_FILE)\n", file_path);
+        if (rank == 0)
+          VPRINTF(1,"Reading model coefficients from file %s (CTF_MODEL_FILE)\n", file_path);
         std::string coeff_file;
         coeff_file = std::string(file_path);
         CTF_int::load_all_models(coeff_file);

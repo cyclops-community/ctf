@@ -18,7 +18,7 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp):
     while s<=s_end:
         agg_s.append(s)
         T = ctf.tensor((s,s,s),sp=sp)
-        T.fill_sp_random(-1.,1.,nnz/(s*s*s))
+        T.fill_sp_random(-1.,1.,float(nnz)/float(s*s*s))
         U = ctf.random.random((s,R))
         te1 = 0.
         te2 = 0.
@@ -62,8 +62,8 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp):
             agg_max_95.append(max_95)
             print("95% confidence interval is [",min_95,",",max_95,"]")
         s = int(s*mult)
-    print("s min_time min_95 avg_time max_95 max_time")
     if ctf.comm().rank() == 0:
+        print("s min_time min_95 avg_time max_95 max_time")
         for i in range(len(agg_s)):
             print(agg_s[i], agg_min_times[i], agg_min_95[i], agg_avg_times[i], agg_max_95[i], agg_max_times[i])
 
