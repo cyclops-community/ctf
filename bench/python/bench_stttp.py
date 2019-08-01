@@ -23,9 +23,7 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, use_tttp):
         V = ctf.random.random((s,R))
         W = ctf.random.random((s,R))
         te1 = 0.
-        te2 = 0.
-        te3 = 0.
-        avg_times = []
+        times = []
         for i in range(num_iter):
             t0 = time.time()
             if use_tttp:
@@ -36,7 +34,7 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, use_tttp):
             ite1 = t1 - t0
             te1 += ite1
 
-            avg_times.append(ite1)
+            times.append(ite1)
 
             if ctf.comm().rank() == 0:
                 print(ite1)
@@ -45,14 +43,14 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, use_tttp):
             avg_time = (te1)/(num_iter)
             agg_avg_times.append(avg_time)
             print("TTTP",avg_time,"seconds on average with s =",s,"nnz =",nnz,"sp",sp,"use_tttp",use_tttp)
-            min_time = np.min(avg_times)
-            max_time = np.max(avg_times)
+            min_time = np.min(times)
+            max_time = np.max(times)
             agg_min_times.append(min_time)
             agg_max_times.append(max_time)
             print("min/max interval is [",min_time,",",max_time,"]")
-            stddev = np.std(avg_times)
-            min_95 = (te1+te2+te3)/(3*num_iter)-2*stddev
-            max_95 = (te1+te2+te3)/(3*num_iter)+2*stddev
+            stddev = np.std(times)
+            min_95 = te1/num_iter-2*stddev
+            max_95 = te1/num_iter+2*stddev
             agg_min_95.append(min_95)
             agg_max_95.append(max_95)
             print("95% confidence interval is [",min_95,",",max_95,"]")
