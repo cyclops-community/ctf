@@ -68,7 +68,7 @@ if __name__ == "__main__":
         type=int,
         default=1,
         metavar='int',
-        help='Wheter to use CTF TTTP routine (default: 1)')
+        help='Whether to use CTF TTTP routine (default: 1)')
     args, _ = parser.parse_known_args()
 
     num_iter = args.num_iter

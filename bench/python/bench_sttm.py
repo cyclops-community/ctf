@@ -5,7 +5,7 @@ import time
 import sbench_args as sargs
 import numpy as np
 
-def run_bench(num_iter, s_start, s_end, mult, R, sp):
+def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_out):
     wrld = ctf.comm()
     s = s_start
     nnz = s_start*s_start*s_start
@@ -26,19 +26,31 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp):
         avg_times = []
         for i in range(num_iter):
             t0 = time.time()
-            S = ctf.einsum("ijk,ir->jkr",T,U)
+            if sp_out:
+                S = ctf.tensor((s,s,R),sp=True)
+                S.i("jkr") << T.i("ijk")*U.i("ir")
+            else:
+                S = ctf.einsum("ijk,ir->jkr",T,U)
             t1 = time.time()
             ite1 = t1 - t0
             te1 += ite1
 
             t0 = time.time()
-            S = ctf.einsum("ijk,jr->ikr",T,U)
+            if sp_out:
+                S = ctf.tensor((s,s,R),sp=True)
+                S.i("ikr") << T.i("ijk")*U.i("jr")
+            else:
+                S = ctf.einsum("ijk,jr->ikr",T,U)
             t1 = time.time()
             ite2 = t1 - t0
             te2 += ite2
 
             t0 = time.time()
-            S = ctf.einsum("ijk,kr->ijr",T,U)
+            if sp_out:
+                S = ctf.tensor((s,s,R),sp=True)
+                S.i("ijr") << T.i("ijk")*U.i("kr")
+            else:
+                S = ctf.einsum("ijk,kr->ijr",T,U)
             t1 = time.time()
             ite3 = t1 - t0
             te3 += ite3
@@ -70,6 +82,12 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     sargs.add_arguments(parser)
+    parser.add_argument(
+        '--sp_out',
+        type=int,
+        default=0,
+        metavar='int',
+        help='Whether to use explicit sparse output (default: 0)')
     args, _ = parser.parse_known_args()
 
     num_iter = args.num_iter
@@ -78,8 +96,8 @@ if __name__ == "__main__":
     mult = args.mult
     R = args.R
     sp = args.sp
+    sp_out = args.sp_out
 
     if ctf.comm().rank() == 0:
-        print("num_iter is",num_iter,"s_start is",s_start,"s_end is",s_end,"mult is",mult,"R is",R,"sp is",sp)
-    run_bench(num_iter, s_start, s_end, mult, R, sp)
-
+        print("num_iter is",num_iter,"s_start is",s_start,"s_end is",s_end,"mult is",mult,"R is",R,"sp is",sp,"sp_out is",sp_out)
+    run_bench(num_iter, s_start, s_end, mult, R, sp, sp_out)
