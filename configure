@@ -432,7 +432,7 @@ function defaultflags
     case $compiler in
         intel)
             if [ "x$AR"        = "x" ]; then AR='xiar'; fi
-            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-qopenmp -O2 -ipo'; fi
+            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-qopenmp -O3 -ipo'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
             if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
@@ -440,7 +440,7 @@ function defaultflags
             ;;
         gnu | clang)
             if [ "x$AR"        = "x" ]; then AR='ar'; fi
-            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-O2'; fi
+            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-O3'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
             if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
@@ -450,7 +450,7 @@ function defaultflags
             echo 'No default flags known for given compilers. Make sure that you have set the'
             echo 'appropriate compiler flags manually.'
             if [ "x$AR"        = "x" ]; then AR='ar'; fi
-            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-O2'; fi
+            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-O3'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
             if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
