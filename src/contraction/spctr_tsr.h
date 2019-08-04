@@ -22,23 +22,29 @@ namespace CTF_int{
       /**
        * \brief returns the execution time the local part this kernel is estimated to take
        * \param[in] nlyr amount of replication
+       * \param[in] nblk_A number of virtual blocks in A
+       * \param[in] nblk_B number of virtual blocks in B
+       * \param[in] nblk_C number of virtual blocks in C
        * \param[in] nnz_frac_A percentage of nonzeros in tensor A
        * \param[in] nnz_frac_B percentage of nonzeros in tensor B
        * \param[in] nnz_frac_C percentage of nonzeros in tensor C
        * \return time in sec
        */
-      virtual double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ return 0.0; }
-      double est_time_fp(int nlyr){ return est_time_fp(nlyr, 1.0, 1.0, 1.0); }
+      virtual double est_time_fp(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ return 0.0; }
+      double est_time_fp(int nlyr){ return est_time_fp(nlyr, 1, 1, 1, 1.0, 1.0, 1.0); }
       /**
        * \brief returns the execution time this kernel and its recursive calls are estimated to take
        * \param[in] nlyr amount of replication
+       * \param[in] nblk_A number of virtual blocks in A
+       * \param[in] nblk_B number of virtual blocks in B
+       * \param[in] nblk_C number of virtual blocks in C
        * \param[in] nnz_frac_A percentage of nonzeros in tensor A
        * \param[in] nnz_frac_B percentage of nonzeros in tensor B
        * \param[in] nnz_frac_C percentage of nonzeros in tensor C
        * \return time in sec
        */
-      virtual double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ return 0.0; }
-      double est_time_rec(int nlyr){ return est_time_rec(nlyr, 1.0, 1.0, 1.0); }
+      virtual double est_time_rec(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ return 0.0; }
+      double est_time_rec(int nlyr){ return est_time_rec(nlyr, 1, 1, 1, 1.0, 1.0, 1.0); }
       /**
        * \brief returns the number of bytes need by each processor in this kernel and its recursive calls
        * \return bytes needed for recursive contraction
@@ -92,8 +98,8 @@ namespace CTF_int{
       double est_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       int64_t est_spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       uint64_t est_membw(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
-      double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
-      double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+      double est_time_fp(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+      double est_time_rec(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
 
       /**
        * \brief copies ctr object
@@ -142,7 +148,7 @@ namespace CTF_int{
       int64_t spmem_fp();
       int64_t spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
 
-      double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+      double est_time_rec(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       spctr * clone();
 
       /**
@@ -182,8 +188,8 @@ namespace CTF_int{
       int64_t spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       spctr * clone();
 
-      double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
-      double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+      double est_time_fp(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+      double est_time_rec(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       spctr_pin_keys(spctr * other);
       ~spctr_pin_keys();
       spctr_pin_keys(contraction const * s, int AxBxC);

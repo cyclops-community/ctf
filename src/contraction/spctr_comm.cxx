@@ -6,6 +6,7 @@
 #include "contraction.h"
 #include "../tensor/untyped_tensor.h"
 #include "../sparse_formats/ccsr.h"
+#include <cfloat>
 
 namespace CTF_int {
   spctr_replicate::spctr_replicate(contraction const * c,
@@ -138,7 +139,7 @@ namespace CTF_int {
     rec_ctr->print();
   }
 
-  double spctr_replicate::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
+  double spctr_replicate::est_time_fp(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
     int i;
     double tot_sz;
     tot_sz = 0.0;
@@ -159,16 +160,18 @@ namespace CTF_int {
     }
     for (i=0; i<ncdt_C; i++){
       ASSERT(cdt_C[i]->np > 0);
-      if (is_sparse_C)
-        tot_sz += sr_C->estimate_csr_red_time(nnz_frac_C*size_C*sr_C->pair_size(), cdt_C[i]);
-      else
+      if (is_sparse_C){
+        //FIXME: address bug associated with virtualization + sparse reduction
+        if (nblk_C > 1) tot_sz = DBL_MAX/2;
+        else tot_sz += sr_C->estimate_csr_red_time(nnz_frac_C*size_C*sr_C->pair_size(), cdt_C[i]);
+      } else
         tot_sz += cdt_C[i]->estimate_red_time(nnz_frac_C*size_C*sr_C->el_size, sr_C->addmop());
     }
     return tot_sz;
   }
 
-  double spctr_replicate::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
-    return rec_ctr->est_time_rec(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C) + est_time_fp(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+  double spctr_replicate::est_time_rec(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
+    return rec_ctr->est_time_rec(nlyr, nblk_A, nblk_B, nblk_C, nnz_frac_A, nnz_frac_B, nnz_frac_C) + est_time_fp(nlyr, nblk_A, nblk_B, nblk_C, nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
   int64_t spctr_replicate::spmem_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){

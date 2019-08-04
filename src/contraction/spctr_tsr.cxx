@@ -253,7 +253,7 @@ namespace CTF_int {
   LinModel<3> seq_tsr_spctr_k4(seq_tsr_spctr_k4_init,"seq_tsr_spctr_k4");
   LinModel<3> seq_tsr_spctr_k5(seq_tsr_spctr_k5_init,"seq_tsr_spctr_k5");
 
-  double seq_tsr_spctr::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
+  double seq_tsr_spctr::est_time_fp(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
 //    return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
     double ps[] = {1.0, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C)};
     switch (krnl_type){
@@ -323,8 +323,8 @@ namespace CTF_int {
     return 0.0;
   }
 
-  double seq_tsr_spctr::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
-    return est_time_fp(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+  double seq_tsr_spctr::est_time_rec(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
+    return est_time_fp(nlyr, nblk_A, nblk_B, nblk_C, nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
   void seq_tsr_spctr::run(char * A, int nblk_A, int64_t const * size_blk_A,
@@ -676,13 +676,13 @@ namespace CTF_int {
   }
 
 
-  double spctr_virt::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
+  double spctr_virt::est_time_rec(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
     /* FIXME: for now treat flops like comm, later make proper cost */
     int64_t nblk = 1;
     for (int dim=0; dim<num_dim; dim++){
       nblk *= virt_dim[dim];
     }
-    return nblk*rec_ctr->est_time_rec(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+    return nblk*rec_ctr->est_time_rec(nlyr, nblk_A, nblk_B, nblk_C, nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
 
@@ -996,7 +996,7 @@ namespace CTF_int {
   }
 
   LinModel<2> pin_keys_mdl(pin_keys_mdl_init,"pin_keys_mdl");
-  double spctr_pin_keys::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
+  double spctr_pin_keys::est_time_fp(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
     switch (AxBxC){
       case 0:
       {
@@ -1017,8 +1017,8 @@ namespace CTF_int {
     return 0;
   }
 
-  double spctr_pin_keys::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
-    return est_time_fp(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C)+rec_ctr->est_time_rec(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+  double spctr_pin_keys::est_time_rec(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
+    return est_time_fp(nlyr, nblk_A, nblk_B, nblk_C, nnz_frac_A, nnz_frac_B, nnz_frac_C)+rec_ctr->est_time_rec(nlyr, nblk_A, nblk_B, nblk_C, nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
   void spctr_pin_keys::run(char * A, int nblk_A, int64_t const * size_blk_A,

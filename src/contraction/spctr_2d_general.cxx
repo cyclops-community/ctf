@@ -90,7 +90,7 @@ namespace CTF_int {
     aux_size = MAX(move_A*sr_A->el_size*s_A, MAX(move_B*sr_B->el_size*s_B, move_C*sr_C->el_size*s_C));
   }
 
-  double spctr_2d_general::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
+  double spctr_2d_general::est_time_fp(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
     int64_t b_A, b_B, b_C, s_A, s_B, s_C, aux_size;
     find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, aux_size);
     double est_bcast_time = 0.0;
@@ -115,8 +115,9 @@ namespace CTF_int {
     return (est_bcast_time*(double)edge_len)/MIN(nlyr,edge_len);
   }
 
-  double spctr_2d_general::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
-    return rec_ctr->est_time_rec(1, nnz_frac_A, nnz_frac_B, nnz_frac_C)*(double)edge_len/MIN(nlyr,edge_len) + est_time_fp(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+  double spctr_2d_general::est_time_rec(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
+    //FIXME: adjust nblk_X
+    return rec_ctr->est_time_rec(1, nblk_A, nblk_B, nblk_C, nnz_frac_A, nnz_frac_B, nnz_frac_C)*(double)edge_len/MIN(nlyr,edge_len) + est_time_fp(nlyr, nblk_A, nblk_B, nblk_C, nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
   int64_t spctr_2d_general::spmem_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {

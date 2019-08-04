@@ -46,8 +46,8 @@ namespace CTF_int{
        * \return bytes needed for recursive contraction
        */
       int64_t spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
-      double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
-      double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+      double est_time_fp(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+      double est_time_rec(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       void print();
       spctr * clone();
 

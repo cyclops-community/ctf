@@ -2695,7 +2695,7 @@ namespace CTF_int {
           iparam prm = map_fold(false);
           sctr = construct_ctr(1, &prm);
           if (is_ctr_sparse)
-            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
           else
             est_time = sctr->est_time_rec(sctr->num_lyr);
           A->remove_fold();
@@ -2748,7 +2748,7 @@ namespace CTF_int {
         {
           sctr = construct_ctr();
           if (is_ctr_sparse){
-            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
           } else {
             est_time = sctr->est_time_rec(sctr->num_lyr);
           }
@@ -2964,7 +2964,7 @@ namespace CTF_int {
           iparam prm = map_fold(false);
           sctr = construct_ctr(1, &prm);
           if (is_ctr_sparse)
-            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
           else
             est_time = sctr->est_time_rec(sctr->num_lyr);
           A->remove_fold();
@@ -3017,7 +3017,7 @@ namespace CTF_int {
         {
           sctr = construct_ctr();
           if (is_ctr_sparse){
-            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
           } else {
             est_time = sctr->est_time_rec(sctr->num_lyr);
           }
