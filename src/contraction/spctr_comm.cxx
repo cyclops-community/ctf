@@ -160,11 +160,9 @@ namespace CTF_int {
     }
     for (i=0; i<ncdt_C; i++){
       ASSERT(cdt_C[i]->np > 0);
-      if (is_sparse_C){
-        //FIXME: address bug associated with virtualization + sparse reduction
-        if (nblk_C > 1) tot_sz = DBL_MAX/2;
-        else tot_sz += sr_C->estimate_csr_red_time(nnz_frac_C*size_C*sr_C->pair_size(), cdt_C[i]);
-      } else
+      if (is_sparse_C)
+        tot_sz += sr_C->estimate_csr_red_time(nnz_frac_C*size_C*sr_C->pair_size(), cdt_C[i]);
+      else
         tot_sz += cdt_C[i]->estimate_red_time(nnz_frac_C*size_C*sr_C->el_size, sr_C->addmop());
     }
     return tot_sz;

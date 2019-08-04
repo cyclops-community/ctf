@@ -703,8 +703,8 @@ namespace CTF {
       }
 
       bool is_last_col_zero(int64_t m, int64_t n, dtype const * M) const {
-        for (int64_t i=0; i<n; i++){
-          if (!this->isequal((char*)(M+(m*(n-1)+i)), (char*)&tmulid)) return false;
+        for (int64_t i=0; i<m; i++){
+          if (!this->isequal((char*)(M+(m*(n-1)+i)), (char*)&this->taddid)) return false;
         }
         return true;
       }
@@ -728,11 +728,13 @@ namespace CTF {
         if (nnz_row == 0){
           M = CTF_int::CCSR_Matrix(nnz_row*n, nnz_row, m, n, this);
         } else {
+          if (this->is_last_col_zero(k, n, B)){
+            n = n0-1;
+          }
           int new_order[2] = {1, 0};
           int64_t lens[2] = {(int64_t)nnz_row, (int64_t)n};
           bool use_hptt = CTF_int::hptt_is_applicable(2, new_order, this->el_size);
           //Note: if there is padding last column of dense matrix would be full of zeros and we don't want to generate nonzeros for this colum, as this will cause tricky bugs!
-          if (this->is_last_col_zero(k, n, B)) n = n0-1;
           if (use_hptt){
             char * data = this->alloc(((int64_t)nnz_row)*n);
             this->init_shell(((int64_t)nnz_row)*n, data);
