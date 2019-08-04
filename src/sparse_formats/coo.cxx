@@ -265,8 +265,14 @@ namespace CTF_int {
     int64_t * lda_col = (int64_t*)alloc(sizeof(int64_t)*(order-nrow_idx));
     int64_t * lda_row = (int64_t*)alloc(sizeof(int64_t)*nrow_idx);
 
+#if DEBUG >= 1
+    int64_t tot_sz = 1;
+#endif
     //FIXME: handle symmetric folded indices as in set_data
     for (int i=0; i<order; i++){
+#if DEBUG >= 1
+      tot_sz *= lens[i];
+#endif
       ordering[rev_ordering[i]]=i;
     }
     for (int i=0; i<order; i++){
@@ -318,9 +324,11 @@ namespace CTF_int {
         }*/
         lda_k *= lens[j];
       }
-      //ASSERT(k<tot_sz);
-//      if (k>=tot_sz) printf("k=%ld tot_sz=%ld c = %d r = %d\n",k,tot_sz,cs[i],rs[i]);
-//      printf("p[%d %d] [%d,%d]->%ld\n",phase_rank[0],phase_rank[1],rs[i],cs[i],k);
+#if DEBUG >= 1
+      if (k>=tot_sz) printf("k=%ld tot_sz=%ld c = %ld r = %ld\n",k,tot_sz,(int64_t)cs[i],(int64_t)rs[i]);
+      ASSERT(k<tot_sz);
+#endif
+      //printf("p[%d %d] [%d,%d]->%ld\n",phase_rank[0],phase_rank[1],rs[i],cs[i],k);
       pi[i].write_key(k);
       pi[i].write_val(vs+v_sz*i);
       //printf("k=%ld col = %d row = %d\n", pi[i].k(), cs[i], rs[i]);
