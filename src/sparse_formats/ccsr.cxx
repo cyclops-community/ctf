@@ -419,8 +419,8 @@ namespace CTF_int {
     TAU_FSTART(ccsr_add);
     CCSR_Matrix A(cA);
     CCSR_Matrix B(cB);
-    A.print((algstrct*)adder);
-    B.print((algstrct*)adder);
+    //A.print((algstrct*)adder);
+    //B.print((algstrct*)adder);
 
     int el_size = A.val_size();
 

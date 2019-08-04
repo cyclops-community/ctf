@@ -8,7 +8,7 @@ import os
 import sys
 
 def allclose(a, b):
-    return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() < 1e-14
+    return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() < 1e-10
 
 def a0_and_a1():
     a0 = numpy.arange(60.).reshape(5,4,3)

@@ -455,7 +455,7 @@ namespace CTF_int {
     cdealloc(parts);*/
     for (int z=1; z<s; z<<=1){
       for (int i=0; i<s-z; i+=2*z){
-        char * csr_new = smnds[i]; //csr_add(smnds[i], smnds[i+z], is_ccsr);
+        char * csr_new = csr_add(smnds[i], smnds[i+z], is_ccsr);
         if ((smnds[i] < parts_buffer ||
              smnds[i] > parts_buffer+tot_buf_size) &&
             (smnds[i] < rcv_buf ||
@@ -470,6 +470,7 @@ namespace CTF_int {
         smnds[i] = csr_new;
       }
     }
+    assert(smnds[0] <parts_buffer || smnds[0]>= parts_buffer+tot_buf_size);
     cdealloc(parts_buffer); //dealloc all parts
     cdealloc(rcv_buf);
     TAU_FSTOP(csr_reduce);
