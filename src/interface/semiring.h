@@ -702,9 +702,16 @@ namespace CTF {
           this->gen_csrmm(m,n,k,((dtype*)alpha)[0],(dtype*)A,JA,IA,nnz_A,(dtype*)B,((dtype*)beta)[0],(dtype*)C);
       }
 
+      bool is_last_col_zero(int64_t m, int64_t n, dtype const * M) const {
+        for (int64_t i=0; i<n; i++){
+          if (!this->isequal((char*)(M+(m*(n-1)+i)), (char*)&tmulid)) return false;
+        }
+        return true;
+      }
+
       void gen_ccsrmm
                      (int64_t         m,
-                      int64_t         n,
+                      int64_t         n0,
                       int64_t         k,
                       int64_t         nnz_row,
                       dtype           alpha,
@@ -717,12 +724,15 @@ namespace CTF {
                       dtype           beta,
                       char *&         C_CCSR) const {
         CTF_int::CCSR_Matrix M;
+        int64_t n = n0;
         if (nnz_row == 0){
           M = CTF_int::CCSR_Matrix(nnz_row*n, nnz_row, m, n, this);
         } else {
           int new_order[2] = {1, 0};
           int64_t lens[2] = {(int64_t)nnz_row, (int64_t)n};
           bool use_hptt = CTF_int::hptt_is_applicable(2, new_order, this->el_size);
+          //Note: if there is padding last column of dense matrix would be full of zeros and we don't want to generate nonzeros for this colum, as this will cause tricky bugs!
+          if (this->is_last_col_zero(k, n, B)) n = n0-1;
           if (use_hptt){
             char * data = this->alloc(((int64_t)nnz_row)*n);
             this->init_shell(((int64_t)nnz_row)*n, data);
@@ -1122,6 +1132,17 @@ namespace CTF {
    */
 }
 namespace CTF {
+// TODO: add these with manual loop
+//  template <>
+//  bool CTF::Semiring<float,1>::is_last_col_zero(int64_t m, int64_t n, float const * M) const;
+//  template <>
+//  void CTF::Semiring<double,1>::is_last_col_zero(int64_t m, int64_t n, double const * M) const;
+//  template <>
+//  bool CTF::Semiring<std::complex<float>,0>::is_last_col_zero(int64_t m, int64_t n, std::complex<float> const * M) const;
+//  template <>
+//  void CTF::Semiring<std::complex<double>,0>::is_last_col_zero(int64_t m, int64_t n, std::complex<double> const * M) const;
+
+
   template <>
   void CTF::Semiring<float,1>::default_csrmm(int,int,int,float,float const *,int const *,int const *,int,float const *,float,float *) const;
   template <>
