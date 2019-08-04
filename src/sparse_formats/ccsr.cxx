@@ -18,8 +18,6 @@ namespace CTF_int {
     offset += sizeof(int)*nnz;
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     return offset;
-
-    return get_csr_size(nnz_row,nnz_row,val_size)+get_csr_size(nnz_row,nnz,val_size);
   }
 
   CCSR_Matrix::CCSR_Matrix(int64_t nnz, int64_t nnz_row, int64_t nrow_, int64_t ncol, accumulatable const * sr){
@@ -392,9 +390,11 @@ namespace CTF_int {
     }
     for (int64_t i=0; i<nz; i++){
       while (i>=ccsr_ia[irow+1]-1) irow++;
-      printf("[%d,%d] ",irow,ccsr_ja[i]);
+      printf("[%ld,%d] ",row_enc[irow],ccsr_ja[i]);
       sr->print(ccsr_vs+v_sz*i);
       printf("\n");
+      assert(row_enc[irow] <= nrow());
+      assert(ccsr_ja[i] <= ncol());
     }
 
   }
@@ -419,9 +419,8 @@ namespace CTF_int {
     TAU_FSTART(ccsr_add);
     CCSR_Matrix A(cA);
     CCSR_Matrix B(cB);
-    /*printf("Performing CCSR add\n");
     A.print((algstrct*)adder);
-    B.print((algstrct*)adder);*/
+    B.print((algstrct*)adder);
 
     int el_size = A.val_size();
 
@@ -459,7 +458,7 @@ namespace CTF_int {
     IC[0] = 1;
     innz_row_A = 0;
     innz_row_B = 0;
-    for (int i=0; i<nnz_row; i++){
+    for (int64_t i=0; i<nnz_row; i++){
       memset(has_col, 0, sizeof(int)*ncol);
       IC[i+1] = IC[i];
       //printf("i = %d nnz_row = %d, innz_row_A = %d nnz_row_A = %d, innz_row_B = %d nnz_row_B = %d\n",i,nnz_row,innz_row_A,nnz_row_A,innz_row_B,nnz_row_B);
@@ -487,7 +486,6 @@ namespace CTF_int {
       }
       //printf("i=%d,nnz_row =%d\n",i,nnz_row);
     }
-    //printf("nnz is %d\n",IC[nnz_row]-1);
     CCSR_Matrix C(IC[nnz_row]-1, nnz_row, nrow, ncol, adder);
     char * vC = C.vals();
     int * JC = C.JA();
@@ -504,9 +502,11 @@ namespace CTF_int {
       if (innz_row_A < nnz_row_A && innz_row_B < nnz_row_B && row_enc_A[innz_row_A] == row_enc_B[innz_row_B]){
         memset(has_col, 0, sizeof(int)*ncol);
         for (int j=0; j<IA[innz_row_A+1]-IA[innz_row_A]; j++){
+          assert(JA[IA[innz_row_A]+j-1]-1 < ncol);
           has_col[JA[IA[innz_row_A]+j-1]-1] = 1;
         }
         for (int j=0; j<IB[innz_row_B+1]-IB[innz_row_B]; j++){
+          assert(JB[IB[innz_row_B]+j-1]-1 < ncol);
           has_col[JB[IB[innz_row_B]+j-1]-1] = 1;
         }
         int vs = 0;
@@ -521,11 +521,13 @@ namespace CTF_int {
         memset(has_col, 0, sizeof(int)*ncol);
         for (int j=0; j<IA[innz_row_A+1]-IA[innz_row_A]; j++){
           int idx_A = IA[innz_row_A]+j-1;
+          assert(JA[idx_A]-1 < ncol);
           memcpy(vC+rev_col[JA[idx_A]-1],vA+idx_A*el_size,el_size);
           has_col[JA[idx_A]-1] = 1;
         }
         for (int j=0; j<IB[innz_row_B+1]-IB[innz_row_B]; j++){
           int idx_B = IB[innz_row_B]+j-1;
+          assert(JB[idx_B]-1 < ncol);
           if (has_col[JB[idx_B]-1])
             adder->accum(vB+idx_B*el_size,vC+rev_col[JB[idx_B]-1]);
           else
@@ -534,10 +536,12 @@ namespace CTF_int {
         innz_row_A++;
         innz_row_B++;
       } else if (innz_row_B>=nnz_row_B || (innz_row_A < nnz_row_A && row_enc_A[innz_row_A] < row_enc_B[innz_row_B])){
+        assert(IC[i]-1+IA[innz_row_A+1] - IA[innz_row_A] <= C.nnz());
         memcpy(JC+IC[i]-1, JA+IA[innz_row_A]-1, sizeof(int)*(IA[innz_row_A+1] - IA[innz_row_A]));
         memcpy(vC+(IC[i]-1)*el_size, vA+(IA[innz_row_A]-1)*el_size, el_size*(IA[innz_row_A+1] - IA[innz_row_A]));
         innz_row_A++;
       } else {
+        assert(IC[i]-1+IB[innz_row_B+1] - IB[innz_row_B] <= C.nnz());
         memcpy(JC+IC[i]-1, JB+IB[innz_row_B]-1, sizeof(int)*(IB[innz_row_B+1] - IB[innz_row_B]));
         memcpy(vC+(IC[i]-1)*el_size, vB+(IB[innz_row_B]-1)*el_size, el_size*(IB[innz_row_B+1] - IB[innz_row_B]));
         innz_row_B++;
@@ -545,12 +549,10 @@ namespace CTF_int {
     }
     cdealloc(has_col);
     cdealloc(rev_col);
-    /*printf("nnz C is %ld\n", C.nnz());
-    printf("%d %d %d\n",C.IA()[0],C.IA()[1],C.IA()[2]);
-    printf("%d %d\n",C.JA()[0],C.JA()[1]);
-    printf("%lf %lf\n",((double*)C.vals())[0],((double*)C.vals())[1]);*/
+    //printf("%d %d %d\n",C.IA()[0],C.IA()[1],C.IA()[2]);
+    //printf("%d %d\n",C.JA()[0],C.JA()[1]);
+    //printf("%lf %lf\n",((double*)C.vals())[0],((double*)C.vals())[1]);
     TAU_FSTOP(ccsr_add);
-    //C.print((algstrct*)adder);
     return C.all_data;
   }
 

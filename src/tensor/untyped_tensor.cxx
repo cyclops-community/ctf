@@ -473,6 +473,11 @@ namespace CTF_int {
 
 
   int64_t tensor::calc_npe() const {
+    if (!is_mapped){
+      if (this->order == 0) return 1;
+      else return wrld->np;
+    }
+
     int j;
     int64_t npe;
     mapping * map;
@@ -722,11 +727,11 @@ namespace CTF_int {
           }
           if (vp > 1) sprintf(tname+strlen(tname),"v%d",vp);
         }
-//        sprintf(tname+strlen(tname),"c%d",edge_map[dim].has_child);
+        sprintf(tname+strlen(tname),"c%d",edge_map[dim].has_child);
       }
       sprintf(tname+strlen(tname), "]");
-      /*printf("CTF: Tensor mapping is %s\n",tname);
-      printf("\nCTF: sym  len  tphs  pphs  vphs\n");
+      printf("CTF: Tensor mapping is %s\n",tname);
+      /*printf("\nCTF: sym  len  tphs  pphs  vphs\n");
       for (int dim=0; dim<order; dim++){
         int tp = edge_map[dim].calc_phase();
         int pp = edge_map[dim].calc_phys_phase();

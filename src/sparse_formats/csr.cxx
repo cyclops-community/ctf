@@ -14,6 +14,7 @@ namespace CTF_int {
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     offset += sizeof(int)*nnz;
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
+    if (offset % 1024 != 0) offset += 1024-(offset%1024);
     return offset;
   }
 

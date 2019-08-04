@@ -457,7 +457,20 @@ namespace CTF_int {
         cdealloc(work);
         cdealloc(iwork);
         cdealloc(A);
-        memcpy(coeff_guess, b, nparam*sizeof(double));
+        double step = 1.;
+        for (int ii=0; ii<nparam; ii++){
+          if (b[ii] <= 0.){
+            step = std::min(step, -.999*coeff_guess[ii]/(b[ii]-coeff_guess[ii]));
+          }
+        }
+        assert(step>=0.);
+        if (step == 1.)
+          memcpy(coeff_guess, b, nparam*sizeof(double));
+        else {
+          for (int ii=0; ii<nparam; ii++){
+            coeff_guess[ii] = (1.-step)*coeff_guess[ii] + step*b[ii];
+          }
+        }
         /*print();
         double max_resd_sq = 0.0;
         for (int i=0; i<ncol-nparam; i++){

@@ -5,6 +5,7 @@
 #include "spctr_comm.h"
 #include "contraction.h"
 #include "../tensor/untyped_tensor.h"
+#include "../sparse_formats/ccsr.h"
 
 namespace CTF_int {
   spctr_replicate::spctr_replicate(contraction const * c,
@@ -289,7 +290,10 @@ namespace CTF_int {
   //        printf("%d out of %d reds complete, size = %ld should be %ld\n",blk,nblk_C,size_blk_C[blk],((CSR_Matrix)(new_C+csr_sz_acc)).size());
         
           csr_sz_acc += size_blk_C[blk];
-          size_blk_C[blk] = cdt_C[i]->rank == 0 ? ((CSR_Matrix)(new_Cs[blk])).size() : 0;
+          if (this->is_ccsr_C)
+            size_blk_C[blk] = cdt_C[i]->rank == 0 ? ((CCSR_Matrix)(new_Cs[blk])).size() : 0;
+          else
+            size_blk_C[blk] = cdt_C[i]->rank == 0 ? ((CSR_Matrix)(new_Cs[blk])).size() : 0;
           new_csr_sz_acc += size_blk_C[blk];
 //          printf("rank %d blk size %ld tot sz %ld\n", cdt_C[i]->rank, size_blk_C[blk], new_csr_sz_acc);
         }

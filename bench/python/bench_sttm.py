@@ -5,10 +5,10 @@ import time
 import sbench_args as sargs
 import numpy as np
 
-def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_out):
+def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_out, sp_init):
     wrld = ctf.comm()
     s = s_start
-    nnz = s_start*s_start*s_start
+    nnz = float(s_start*s_start*s_start)*sp_init
     agg_s = []
     agg_avg_times = []
     agg_min_times = []
@@ -61,7 +61,7 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_out):
             print("Completed",num_iter,"iterations, took",te1/num_iter,te2/num_iter,te3/num_iter,"seconds on average for 3 variants.")
             avg_time = (te1+te2+te3)/(3*num_iter)
             agg_avg_times.append(avg_time)
-            print("TTM took",avg_times,"seconds on average across variants with s =",s,"nnz =",nnz,"sp",sp)
+            print("TTM took",avg_times,"seconds on average across variants with s =",s,"nnz =",nnz,"sp =",sp,"sp_out =",sp_out)
             min_time = np.min(avg_times)
             max_time = np.max(avg_times)
             agg_min_times.append(min_time)
@@ -97,7 +97,8 @@ if __name__ == "__main__":
     R = args.R
     sp = args.sp
     sp_out = args.sp_out
+    sp_init = args.sp_init
 
     if ctf.comm().rank() == 0:
-        print("num_iter is",num_iter,"s_start is",s_start,"s_end is",s_end,"mult is",mult,"R is",R,"sp is",sp,"sp_out is",sp_out)
-    run_bench(num_iter, s_start, s_end, mult, R, sp, sp_out)
+        print("num_iter is",num_iter,"s_start is",s_start,"s_end is",s_end,"mult is",mult,"R is",R,"sp is",sp,"sp_out is",sp_out,"sp_init is",sp_init)
+    run_bench(num_iter, s_start, s_end, mult, R, sp, sp_out, sp_init)

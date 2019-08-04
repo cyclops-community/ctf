@@ -5,10 +5,10 @@ import time
 import sbench_args as sargs
 import numpy as np
 
-def run_bench(num_iter, s_start, s_end, mult, R, sp):
+def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_init):
     wrld = ctf.comm()
     s = s_start
-    nnz = s_start*s_start*s_start
+    nnz = float(s_start*s_start*s_start)*sp_init
     agg_s = []
     agg_avg_times = []
     agg_min_times = []
@@ -82,8 +82,9 @@ if __name__ == "__main__":
     mult = args.mult
     R = args.R
     sp = args.sp
+    sp_init = args.sp_init
 
     if ctf.comm().rank() == 0:
-        print("num_iter is",num_iter,"s_start is",s_start,"s_end is",s_end,"mult is",mult,"R is",R,"sp is",sp)
-    run_bench(num_iter, s_start, s_end, mult, R, sp)
+        print("num_iter is",num_iter,"s_start is",s_start,"s_end is",s_end,"mult is",mult,"R is",R,"sp is",sp,"sp_init is",sp_init)
+    run_bench(num_iter, s_start, s_end, mult, R, sp,sp_init)
 

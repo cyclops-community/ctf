@@ -35,4 +35,9 @@ def add_arguments(parser):
         default=1,
         metavar='int',
         help='Whether to use sparse format (default: 1)')
-
+    parser.add_argument(
+        '--sp_init',
+        type=float,
+        default=1.,
+        metavar='float',
+        help='Initial sparsity fraction (default: 1)')

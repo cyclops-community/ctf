@@ -255,7 +255,7 @@ namespace CTF_int {
     if (C->is_sparse)
       bw += 12.*this->estimate_output_nnz_frac()*((double)C->size)*C->wrld->np*C->sr->pair_size();
     else
-      bw += 1.5*((double)C->size)*C->wrld->np*C->sr->el_size;
+      bw += 4*((double)C->size)*C->wrld->np*C->sr->el_size;
 
     return bw;
   }
@@ -263,7 +263,7 @@ namespace CTF_int {
   double contraction::estimate_time(){
     int np = std::max(A->wrld->np,B->wrld->np);
     double flop_rate = 1.E9*np;
-    double bw_rate = 1.E6*np;
+    double bw_rate = 1.E5*np;
     return this->estimate_num_flops()/flop_rate + this->estimate_bw()/bw_rate;
   }
 
@@ -2585,9 +2585,21 @@ namespace CTF_int {
     int64_t max_memuse = proc_bytes_available();
     bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
     bool use_ccsr =  csr_or_coo && A->is_sparse && C->is_sparse && !B->is_sparse;
+    double nnz_frac_A = 1.0;
+    double nnz_frac_B = 1.0;
+    double nnz_frac_C = 1.0;
+    if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
+    if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
+    nnz_frac_C = std::min(1.,4*estimate_output_nnz_frac());
+    nnz_frac_A = std::min(1.,4*nnz_frac_A);
+    nnz_frac_B = std::min(1.,4*nnz_frac_B);
+  #if VERBOSE >= 1
+    if (global_comm.rank == 0)
+      printf("nnz_frac_A is %lf, nnz_frac_B is %lf, estimated nnz_frac_C is %lf\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
+  #endif
     for (j=0; j<6; j++){
       // Attempt to map to all possible permutations of processor topology
-  #if DEBUG > 2
+  #if DEBUG > 4
       for (int t=1; t<(int)wrld->topovec.size()+8; t++){
   #else
       for (int t=global_comm.rank+1; t<(int)wrld->topovec.size()+8; t+=global_comm.np){
@@ -2656,12 +2668,6 @@ namespace CTF_int {
         }
   #endif
         ctr * sctr;
-        double nnz_frac_A = 1.0;
-        double nnz_frac_B = 1.0;
-        double nnz_frac_C = 1.0;
-        if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
-        if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
-        nnz_frac_C = estimate_output_nnz_frac();
         //if (C->is_sparse){
         //  nnz_frac_C = std::min(1.,((double)C->nnz_tot)/(C->size*C->calc_npe()));
         //  int64_t len_ctr = 1;
@@ -2804,12 +2810,12 @@ namespace CTF_int {
 
         if ((int64_t)memuse >= max_memuse){
           if (global_comm.rank == 0)
-            DPRINTF(1,"Not enough memory available for topo %d with order %d memory %ld/%ld\n", t,j,memuse,max_memuse);
+            DPRINTF(3,"Not enough memory available for topo %d with order %d memory %ld/%ld\n", t,j,memuse,max_memuse);
           delete sctr;
           continue;
         }
         if ((!A->is_sparse && A->size > INT_MAX) ||(!B->is_sparse &&  B->size > INT_MAX) || (!C->is_sparse && C->size > INT_MAX)){
-          DPRINTF(1,"MPI does not handle enough bits for topo %d with order\n", j);
+          DPRINTF(3,"MPI does not handle enough bits for topo %d with order\n", j);
           delete sctr;
           continue;
         }
@@ -2817,6 +2823,7 @@ namespace CTF_int {
         if (est_time < best_time) {
           best_time = est_time;
           //bmemuse = memuse;
+          DPRINTF(1,"[SEL] Found new best contraction memuse = %E, est_time = %E\n",(double)memuse,best_time);
           btopo = 6*t+j;
         } 
         delete sctr;
@@ -2866,6 +2873,18 @@ namespace CTF_int {
     int64_t max_memuse = proc_bytes_available();
     bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
     bool use_ccsr =  csr_or_coo && A->is_sparse && C->is_sparse && !B->is_sparse;
+    double nnz_frac_A = 1.0;
+    double nnz_frac_B = 1.0;
+    double nnz_frac_C = 1.0;
+    if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
+    if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
+    nnz_frac_C = std::min(1.,4*estimate_output_nnz_frac());
+    nnz_frac_A = std::min(1.,4*nnz_frac_A);
+    nnz_frac_B = std::min(1.,4*nnz_frac_B);
+  #if VERBOSE >= 1
+    if (global_comm.rank == 0)
+      printf("nnz_frac_A is %lf, nnz_frac_B is %lf, estimated nnz_frac_C is %lf\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
+  #endif
     TAU_FSTOP(init_select_ctr_map);
     for (int i=0; i<(int)wrld->topovec.size(); i++){
 //      int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
@@ -2920,14 +2939,6 @@ namespace CTF_int {
         C->print_map(stdout, 0);
   #endif
 
-
-        double nnz_frac_A = 1.0;
-        double nnz_frac_B = 1.0;
-        double nnz_frac_C = 1.0;
-        if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
-        if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
-
-        nnz_frac_C = estimate_output_nnz_frac();
         //if (C->is_sparse){
         //  nnz_frac_C = std::min(1.,((double)C->nnz_tot)/(C->size*C->calc_npe()));
         //  nnz_frac_C = std::max(nnz_frac_C,nnz_frac_A);
@@ -3066,7 +3077,7 @@ namespace CTF_int {
         TAU_FSTOP(est_ctr_map_time);
         TAU_FSTART(get_avail_res);
         if ((int64_t)memuse >= max_memuse){
-          DPRINTF(1,"[EXH] Not enough memory available for topo %d with order %d memory %ld/%ld\n", i,j,memuse,max_memuse);
+          DPRINTF(3,"[EXH] Not enough memory available for topo %d with order %d memory %ld/%ld\n", i,j,memuse,max_memuse);
           TAU_FSTOP(get_avail_res);
           delete sctr;
           continue;
@@ -3075,7 +3086,7 @@ namespace CTF_int {
         if (((!A->is_sparse) && A->size > INT_MAX) ||
             ((!B->is_sparse) && B->size > INT_MAX) ||
             ((!C->is_sparse) && C->size > INT_MAX)){
-          DPRINTF(1,"MPI does not handle enough bits for topo %d with order %d \n", i, j);
+          DPRINTF(3,"MPI does not handle enough bits for topo %d with order %d \n", i, j);
           delete sctr;
           continue;
         }
@@ -3083,6 +3094,7 @@ namespace CTF_int {
           best_time = est_time;
           //bmemuse = memuse;
           btopo = old_off+j;
+          DPRINTF(1,"[EXH] Found new best contraction memuse = %E, est_time = %E\n",(double)memuse,best_time);
         } 
         delete sctr;
       }
@@ -3197,7 +3209,22 @@ namespace CTF_int {
     A->set_padding();
     B->set_padding();
     C->set_padding();
-   
+    double nnz_frac_A = 1.0;
+    double nnz_frac_B = 1.0;
+    double nnz_frac_C = 1.0;
+    int num_tot;
+    int * idx_arr;
+    inv_idx(A->order, idx_A,
+            B->order, idx_B,
+            C->order, idx_C,
+            &num_tot, &idx_arr);
+    if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
+    if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
+
+    nnz_frac_C = std::min(1.,4*estimate_output_nnz_frac());
+    nnz_frac_A = std::min(1.,4*nnz_frac_A);
+    nnz_frac_B = std::min(1.,4*nnz_frac_B);
+
     if (!do_remap || ttopo == INT_MAX || ttopo == -1){
       CTF_int::cdealloc(old_phase_A);
       CTF_int::cdealloc(old_phase_B);
@@ -3296,19 +3323,6 @@ namespace CTF_int {
     #endif
     
 #if (VERBOSE >= 1 || DEBUG >= 1)
-    double nnz_frac_A = 1.0;
-    double nnz_frac_B = 1.0;
-    double nnz_frac_C = 1.0;
-    int num_tot;
-    int * idx_arr;
-    inv_idx(A->order, idx_A,
-            B->order, idx_B,
-            C->order, idx_C,
-            &num_tot, &idx_arr);
-    if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
-    if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
-
-    nnz_frac_C = estimate_output_nnz_frac();
     cdealloc(idx_arr);
     int64_t memuse = 0;
     int64_t mem_fold = 0;
@@ -4570,7 +4584,7 @@ namespace CTF_int {
       ctrf = construct_ctr(1, &prm);
     }
   #endif
-  #if DEBUG >=2
+  #if (VERBOSE >= 1 || DEBUG >= 1)
   if (global_comm.rank == 0){
     ctrf->print();
   }

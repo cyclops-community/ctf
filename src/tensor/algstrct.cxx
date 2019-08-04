@@ -412,7 +412,6 @@ namespace CTF_int {
       else snd_szs[i] = parts[i]->size();
       tot_buf_size += snd_szs[i];
     }
-
     MPI_Alltoall(snd_szs, 1, MPI_INT, rcv_szs, 1, MPI_INT, scm);
     int64_t tot_rcv_sz = 0;
     for (int i=0; i<s; i++){
@@ -456,7 +455,7 @@ namespace CTF_int {
     cdealloc(parts);*/
     for (int z=1; z<s; z<<=1){
       for (int i=0; i<s-z; i+=2*z){
-        char * csr_new = csr_add(smnds[i], smnds[i+z], is_ccsr);
+        char * csr_new = smnds[i]; //csr_add(smnds[i], smnds[i+z], is_ccsr);
         if ((smnds[i] < parts_buffer ||
              smnds[i] > parts_buffer+tot_buf_size) &&
             (smnds[i] < rcv_buf ||
@@ -467,6 +466,7 @@ namespace CTF_int {
             (smnds[i+z] < rcv_buf ||
              smnds[i+z] > rcv_buf+tot_rcv_sz))
           cdealloc(smnds[i+z]);
+        //FIXME this does not make sense for i>0
         smnds[i] = csr_new;
       }
     }

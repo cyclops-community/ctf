@@ -716,7 +716,6 @@ namespace CTF {
                       dtype const *   B,
                       dtype           beta,
                       char *&         C_CCSR) const {
-        //printf("Doing ccsrmm with %d nonzeros and %d/%d nonzero rows\n",nnz_A,nnz_row,m);
         CTF_int::CCSR_Matrix M;
         if (nnz_row == 0){
           M = CTF_int::CCSR_Matrix(nnz_row*n, nnz_row, m, n, this);
