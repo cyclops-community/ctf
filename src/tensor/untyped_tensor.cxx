@@ -2566,9 +2566,9 @@ namespace CTF_int {
       return (int64_t)this->sr->el_size*std::max(this->size,old_dist.size)*nnz_frac;
     else {
       if (is_sparse)
-        return (int64_t)this->sr->pair_size()*std::max(this->size,old_dist.size)*nnz_frac*3;
+        return (int64_t)this->sr->pair_size()*std::max(this->size,old_dist.size)*nnz_frac*2;
       else
-        return (int64_t)this->sr->el_size*std::max(this->size,old_dist.size)*nnz_frac*2.5;
+        return (int64_t)this->sr->el_size*std::max(this->size,old_dist.size)*nnz_frac*1.5;
     }
   }
 

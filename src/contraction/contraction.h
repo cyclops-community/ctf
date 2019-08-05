@@ -282,6 +282,10 @@ namespace CTF_int {
        */
       int try_topo_morph();
 
+      void calc_nnz_frac(double & nnz_frac_A, double & nnz_frac_B, double & nnz_frac_C);
+
+      void detail_estimate_mem_and_time(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int64_t & memuse, double & est_time);
+
       void get_best_sel_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time);
 
       void get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time, double init_best_time);

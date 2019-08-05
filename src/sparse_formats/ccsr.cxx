@@ -300,7 +300,8 @@ namespace CTF_int {
       int * pja = mat->JA();
       int * pia = mat->IA();
       pia[0] = 1;
-      for (int64_t j=0, k=0; j<nnz_r; j++){
+      int64_t k = 0;
+      for (int64_t j=0; j<nnz_r; j++){
         if ((row_enc[j]-1) % s == i){
           prow_enc[k] = (row_enc[j]-1) / s + 1;
           memcpy(pvals+(pia[k]-1)*v_sz, org_vals+(org_ia[j]-1)*v_sz, (org_ia[j+1]-org_ia[j])*v_sz);

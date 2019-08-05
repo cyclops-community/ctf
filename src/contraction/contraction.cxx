@@ -2564,35 +2564,161 @@ namespace CTF_int {
 
   }
 
+  void contraction::calc_nnz_frac(double & nnz_frac_A, double & nnz_frac_B, double & nnz_frac_C){
+    nnz_frac_A = 1.0;
+    nnz_frac_B = 1.0;
+    nnz_frac_C = 1.0;
+    if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
+    if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
+    nnz_frac_C = std::min(1.,2.*estimate_output_nnz_frac());
+  }
+
+  void contraction::detail_estimate_mem_and_time(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int64_t & memuse, double & est_time){
+    ctr * sctr;
+    est_time = 0.;
+    memuse = 0;
+    topology * topo_i = A->topo;
+    bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
+    bool use_ccsr =  csr_or_coo && A->is_sparse && C->is_sparse && !B->is_sparse;
+    int64_t mem_fold = 0;
+    int64_t mem_fold_tmp = 0;
+    int64_t mem_ext = 0;
+#if FOLD_TSR
+    if (can_fold()){
+      est_time = est_time_fold();
+      iparam prm = map_fold(false);
+      sctr = construct_ctr(1, &prm);
+      if (this->is_sparse())
+        est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
+      else
+        est_time = sctr->est_time_rec(sctr->num_lyr);
+      A->remove_fold();
+      B->remove_fold();
+      C->remove_fold();
+      if (A->is_sparse){
+        if (!csr_or_coo){
+          mem_fold += nnz_frac_A*A->size*(A->sr->el_size + sizeof(int64_t));
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
+        } else if (use_ccsr){
+          mem_fold += nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int64_t));
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
+        } else {
+          mem_fold += nnz_frac_A*A->size*A->sr->pair_size() + A->calc_nvirt()*prm.m*sizeof(int);
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
+        }
+      } else {
+        mem_fold += A->size*A->sr->el_size;
+      }
+      if (B->is_sparse){
+        if (!csr_or_coo){
+          mem_fold += nnz_frac_B*B->size*(B->sr->el_size + sizeof(int64_t));
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
+        } else if (use_ccsr){
+          mem_fold += nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int64_t));
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
+        } else {
+          mem_fold += nnz_frac_B*B->size*B->sr->pair_size() + B->calc_nvirt()*prm.k*sizeof(int);
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
+        }
+      } else {
+        mem_fold += B->size*B->sr->el_size;
+      }
+      if (C->is_sparse){
+        if (!csr_or_coo){
+          mem_fold += nnz_frac_C*C->size*(C->sr->el_size + sizeof(int64_t));
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
+        } else if (use_ccsr){
+          mem_fold += nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int64_t));
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
+        } else {
+          mem_fold += nnz_frac_C*C->size*C->sr->pair_size() + C->calc_nvirt()*prm.n*sizeof(int);
+          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
+        }
+      } else {
+        mem_fold += C->size*C->sr->el_size;
+      }
+    } else
+#endif
+    {
+      sctr = construct_ctr();
+      if (this->is_sparse()){
+        est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
+      } else {
+        est_time = sctr->est_time_rec(sctr->num_lyr);
+      }
+    }
+#if DEBUG >= 3
+    if (global_comm.rank == 0){
+      printf("mapping passed contr est_time = %E sec\n", est_time);
+    }
+#endif
+    ASSERT(est_time >= 0.0);
+    bool need_remap_A = 0;
+    bool need_remap_B = 0;
+    bool need_remap_C = 0;
+    if (topo_i == old_topo_A){
+      for (int d=0; d<A->order; d++){
+        if (!comp_dim_map(&A->edge_map[d],&old_map_A[d]))
+          need_remap_A = 1;
+      }
+    } else
+      need_remap_A = 1;
+    if (need_remap_A) {
+      if (A->is_sparse)
+        mem_ext += A->size*A->sr->pair_size()*nnz_frac_A;
+      else
+        mem_ext += A->size*A->sr->el_size;
+      est_time += A->est_redist_time(*dA, nnz_frac_A);
+      memuse = A->get_redist_mem(*dA, nnz_frac_A);
+    } else
+      memuse = 0;
+    if (topo_i == old_topo_B){
+      for (int d=0; d<B->order; d++){
+        if (!comp_dim_map(&B->edge_map[d],&old_map_B[d]))
+          need_remap_B = 1;
+      }
+    } else
+      need_remap_B = 1;
+    if (need_remap_B) {
+      if (B->is_sparse)
+        mem_ext += B->size*B->sr->pair_size()*nnz_frac_B;
+      else
+        mem_ext += B->size*B->sr->el_size;
+      est_time += B->est_redist_time(*dB, nnz_frac_B);
+      memuse = std::max(memuse,B->get_redist_mem(*dB, nnz_frac_B));
+    }
+    if (topo_i == old_topo_C){
+      for (int d=0; d<C->order; d++){
+        if (!comp_dim_map(&C->edge_map[d],&old_map_C[d]))
+          need_remap_C = 1;
+      }
+    } else
+      need_remap_C = 1;
+    if (need_remap_C) {
+      est_time += 2.*C->est_redist_time(*dC, nnz_frac_C);
+      mem_ext += 2.*C->get_redist_mem(*dC, nnz_frac_C);
+    }
+    if (this->is_sparse())
+      memuse = mem_ext + MAX(mem_fold_tmp, MAX(mem_fold + ((spctr*)sctr)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse));
+    else
+      memuse = mem_ext + MAX(mem_fold_tmp, MAX(mem_fold + (int64_t)sctr->mem_rec(), memuse));
+    delete sctr;
+  }
+
+
   void contraction::get_best_sel_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time){
-    int ret, j, d;
-    int need_remap_A, need_remap_B, need_remap_C;
-    int64_t memuse;//, bmemuse;
-    double est_time, best_time;
+    int ret, j;
+    double best_time;
     int btopo;
-    bool is_ctr_sparse = is_sparse();
     World * wrld = A->wrld;
     CommData global_comm = wrld->cdt;
     btopo = -1;
     best_time = DBL_MAX;
-    int num_tot;
-    int * idx_arr;
-    inv_idx(A->order, idx_A,
-            B->order, idx_B,
-            C->order, idx_C,
-            &num_tot, &idx_arr);
+
     TAU_FSTART(evaluate_mappings)
     int64_t max_memuse = proc_bytes_available();
-    bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
-    bool use_ccsr =  csr_or_coo && A->is_sparse && C->is_sparse && !B->is_sparse;
-    double nnz_frac_A = 1.0;
-    double nnz_frac_B = 1.0;
-    double nnz_frac_C = 1.0;
-    if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
-    if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
-    nnz_frac_C = std::min(1.,2.*estimate_output_nnz_frac());
-    //nnz_frac_A = std::min(1.,2*nnz_frac_A);
-    //nnz_frac_B = std::min(1.,2*nnz_frac_B);
+    double nnz_frac_A, nnz_frac_B, nnz_frac_C;
+    this->calc_nnz_frac(nnz_frac_A, nnz_frac_B, nnz_frac_C);
   #if VERBOSE >= 1
     if (global_comm.rank == 0)
       printf("nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
@@ -2655,7 +2781,6 @@ namespace CTF_int {
         if (check_mapping() == 0){
           continue;
         }
-        est_time = 0.0;
         A->set_padding();
         B->set_padding();
         C->set_padding();
@@ -2667,156 +2792,22 @@ namespace CTF_int {
           C->print_map(stdout, 0);
         }
   #endif
-        ctr * sctr;
-        //if (C->is_sparse){
-        //  nnz_frac_C = std::min(1.,((double)C->nnz_tot)/(C->size*C->calc_npe()));
-        //  int64_t len_ctr = 1;
-        //  for (int i=0; i<num_tot; i++){
-        //    if (idx_arr[3*i+2]==-1){
-        //      int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]]
-        //                                          : B->lens[idx_arr[3*i+1]];
-        //      len_ctr *= edge_len;
-        //    }
-        //  }
-        //  nnz_frac_C = std::min(1.,std::max(nnz_frac_C,nnz_frac_A*nnz_frac_B*len_ctr));
-        //}
         // check this early on to avoid 64-bit integer overflow
         double size_memuse = A->size*nnz_frac_A*A->sr->el_size + B->size*nnz_frac_B*B->sr->el_size + C->size*nnz_frac_C*C->sr->el_size;
         if (size_memuse >= (double)max_memuse){
-          if (global_comm.rank == 0)
-            DPRINTF(1,"Not enough memory available for topo %d with order %d to store tensors %ld/%ld\n", t,j,(int64_t)size_memuse,max_memuse);
           continue;
         }
-        int64_t mem_fold = 0;
-        int64_t mem_fold_tmp = 0;
-  #if FOLD_TSR
-        if (can_fold()){
-          est_time = est_time_fold();
-          iparam prm = map_fold(false);
-          sctr = construct_ctr(1, &prm);
-          if (is_ctr_sparse)
-            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
-          else
-            est_time = sctr->est_time_rec(sctr->num_lyr);
-          A->remove_fold();
-          B->remove_fold();
-          C->remove_fold();
-          if (A->is_sparse){
-            if (!csr_or_coo){
-              mem_fold += nnz_frac_A*A->size*(A->sr->el_size + sizeof(int64_t));
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
-            } else if (use_ccsr){
-              mem_fold += nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int64_t));
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
-            } else {
-              mem_fold += nnz_frac_A*A->size*A->sr->pair_size() + A->calc_nvirt()*prm.m*sizeof(int);
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
-            }
-          } else {
-            mem_fold += A->size*A->sr->el_size;
-          }
-          if (B->is_sparse){
-            if (!csr_or_coo){
-              mem_fold += nnz_frac_B*B->size*(B->sr->el_size + sizeof(int64_t));
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
-            } else if (use_ccsr){
-              mem_fold += nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int64_t));
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
-            } else {
-              mem_fold += nnz_frac_B*B->size*B->sr->pair_size() + B->calc_nvirt()*prm.k*sizeof(int);
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
-            }
-          } else {
-            mem_fold += B->size*B->sr->el_size;
-          }
-          if (C->is_sparse){
-            if (!csr_or_coo){
-              mem_fold += nnz_frac_C*C->size*(C->sr->el_size + sizeof(int64_t));
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
-            } else if (use_ccsr){
-              mem_fold += nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int64_t));
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
-            } else {
-              mem_fold += nnz_frac_C*C->size*C->sr->pair_size() + C->calc_nvirt()*prm.n*sizeof(int);
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
-            }
-          } else {
-            mem_fold += C->size*C->sr->el_size;
-          }
-        } else
-  #endif
-        {
-          sctr = construct_ctr();
-          if (is_ctr_sparse){
-            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
-          } else {
-            est_time = sctr->est_time_rec(sctr->num_lyr);
-          }
-        }
-  #if DEBUG >= 3
-        if (global_comm.rank == 0){
-          printf("mapping passed contr est_time = %E sec\n", est_time);
-        }
-  #endif
+        int64_t memuse;//, bmemuse;
+        double est_time;
+        detail_estimate_mem_and_time(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, memuse, est_time);
         ASSERT(est_time >= 0.0);
-        memuse = 0;
-        need_remap_A = 0;
-        need_remap_B = 0;
-        need_remap_C = 0;
-        if (topo_i == old_topo_A){
-          for (d=0; d<A->order; d++){
-            if (!comp_dim_map(&A->edge_map[d],&old_map_A[d]))
-              need_remap_A = 1;
-          }
-        } else
-          need_remap_A = 1;
-        if (need_remap_A) {
-          est_time += A->est_redist_time(*dA, nnz_frac_A);
-          memuse = A->get_redist_mem(*dA, nnz_frac_A);
-        } else
-          memuse = 0;
-        if (topo_i == old_topo_B){
-          for (d=0; d<B->order; d++){
-            if (!comp_dim_map(&B->edge_map[d],&old_map_B[d]))
-              need_remap_B = 1;
-          }
-        } else
-          need_remap_B = 1;
-        if (need_remap_B) {
-          est_time += B->est_redist_time(*dB, nnz_frac_B);
-          memuse = std::max(memuse,B->get_redist_mem(*dB, nnz_frac_B));
-        }
-        if (topo_i == old_topo_C){
-          for (d=0; d<C->order; d++){
-            if (!comp_dim_map(&C->edge_map[d],&old_map_C[d]))
-              need_remap_C = 1;
-          }
-        } else
-          need_remap_C = 1;
-        if (need_remap_C) {
-          est_time += 2.*C->est_redist_time(*dC, nnz_frac_C);
-          memuse = std::max(1.0*memuse,2.*C->get_redist_mem(*dC, nnz_frac_C));
-        }
-        if (is_ctr_sparse)
-          memuse = MAX(mem_fold_tmp, MAX(mem_fold + ((spctr*)sctr)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse));
-        else
-          memuse = MAX(mem_fold_tmp, MAX(mem_fold + (int64_t)sctr->mem_rec(), memuse));
-  #if DEBUG >= 3
-        if (global_comm.rank == 0){
-          printf("total (with redistribution and transp) est_time = %E\n", est_time);
-        }
-  #endif
-        ASSERT(est_time >= 0.0);
-
         if ((int64_t)memuse >= max_memuse){
           if (global_comm.rank == 0)
             DPRINTF(3,"Not enough memory available for topo %d with order %d memory %ld/%ld\n", t,j,memuse,max_memuse);
-          delete sctr;
           continue;
         }
         if ((!A->is_sparse && A->size > INT_MAX) ||(!B->is_sparse &&  B->size > INT_MAX) || (!C->is_sparse && C->size > INT_MAX)){
           DPRINTF(3,"MPI does not handle enough bits for topo %d with order\n", j);
-          delete sctr;
           continue;
         }
 
@@ -2826,7 +2817,6 @@ namespace CTF_int {
           DPRINTF(1,"[SEL] Found new best contraction memuse = %E, est_time = %E\n",(double)memuse,best_time);
           btopo = 6*t+j;
         } 
-        delete sctr;
       }
     }
     TAU_FSTOP(evaluate_mappings)
@@ -2843,26 +2833,16 @@ namespace CTF_int {
     idx=ttopo;
     time=gbest_time;
 
-    cdealloc(idx_arr);
   }
 
   void contraction::get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time, double init_best_time=DBL_MAX){
-    int d;
-    int need_remap_A, need_remap_B, need_remap_C;
-    int64_t memuse;//, bmemuse;
-    double est_time, best_time;
+    double best_time;
     int btopo;
-    bool is_ctr_sparse = is_sparse();
     World * wrld = A->wrld;
     CommData global_comm = wrld->cdt;
     btopo = -1;
     best_time = init_best_time;
-    int num_tot;
-    int * idx_arr;
-    inv_idx(A->order, idx_A,
-            B->order, idx_B,
-            C->order, idx_C,
-            &num_tot, &idx_arr);
+
     int64_t tot_num_choices = 0;
     for (int i=0; i<(int)wrld->topovec.size(); i++){
      // tot_num_choices += pow(num_choices,(int)wrld->topovec[i]->order);
@@ -2871,14 +2851,8 @@ namespace CTF_int {
     int64_t valid_mappings = 0;
     int64_t choice_offset = 0;
     int64_t max_memuse = proc_bytes_available();
-    bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
-    bool use_ccsr =  csr_or_coo && A->is_sparse && C->is_sparse && !B->is_sparse;
-    double nnz_frac_A = 1.0;
-    double nnz_frac_B = 1.0;
-    double nnz_frac_C = 1.0;
-    if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
-    if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
-    nnz_frac_C = std::min(1.,2.*estimate_output_nnz_frac());
+    double nnz_frac_A, nnz_frac_B, nnz_frac_C;
+    this->calc_nnz_frac(nnz_frac_A, nnz_frac_B, nnz_frac_C);
   #if VERBOSE >= 1
     if (global_comm.rank == 0)
       printf("nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
@@ -2924,7 +2898,6 @@ namespace CTF_int {
         }
         TAU_FSTOP(check_ctr_mapping);
         valid_mappings++;
-        est_time = 0.0;
        
         TAU_FSTART(est_ctr_map_time);
         A->set_padding();
@@ -2936,140 +2909,14 @@ namespace CTF_int {
         B->print_map(stdout, 0);
         C->print_map(stdout, 0);
   #endif
-
-        //if (C->is_sparse){
-        //  nnz_frac_C = std::min(1.,((double)C->nnz_tot)/(C->size*C->calc_npe()));
-        //  nnz_frac_C = std::max(nnz_frac_C,nnz_frac_A);
-        //  nnz_frac_C = std::max(nnz_frac_C,nnz_frac_B);
-        //  int64_t len_ctr = 1;
-        //  for (int i=0; i<num_tot; i++){
-        //    if (idx_arr[3*i+2]==-1){
-        //      int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]]
-        //                                          : B->lens[idx_arr[3*i+1]];
-        //      len_ctr *= edge_len;
-        //    }
-        //  }
-        //  nnz_frac_C = std::min(1.,std::max(nnz_frac_C,nnz_frac_A*nnz_frac_B*len_ctr));
-        //}
-
-
-        ctr * sctr;
-        int64_t mem_fold = 0;
-        int64_t mem_fold_tmp = 0;
-  #if FOLD_TSR
-        if (can_fold()){
-          est_time = est_time_fold();
-          iparam prm = map_fold(false);
-          sctr = construct_ctr(1, &prm);
-          if (is_ctr_sparse)
-            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
-          else
-            est_time = sctr->est_time_rec(sctr->num_lyr);
-          A->remove_fold();
-          B->remove_fold();
-          C->remove_fold();
-          if (A->is_sparse){
-            if (!csr_or_coo){
-              mem_fold += nnz_frac_A*A->size*(A->sr->el_size + sizeof(int64_t));
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
-            } else if (use_ccsr){
-              mem_fold += nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int64_t));
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
-            } else {
-              mem_fold += nnz_frac_A*A->size*A->sr->pair_size() + A->calc_nvirt()*prm.m*sizeof(int);
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
-            }
-          } else {
-            mem_fold += A->size*A->sr->el_size;
-          }
-          if (B->is_sparse){
-            if (!csr_or_coo){
-              mem_fold += nnz_frac_B*B->size*(B->sr->el_size + sizeof(int64_t));
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
-            } else if (use_ccsr){
-              mem_fold += nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int64_t));
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
-            } else {
-              mem_fold += nnz_frac_B*B->size*B->sr->pair_size() + B->calc_nvirt()*prm.k*sizeof(int);
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
-            }
-          } else {
-            mem_fold += B->size*B->sr->el_size;
-          }
-          if (C->is_sparse){
-            if (!csr_or_coo){
-              mem_fold += nnz_frac_C*C->size*(C->sr->el_size + sizeof(int64_t));
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
-            } else if (use_ccsr){
-              mem_fold += nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int64_t));
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
-            } else {
-              mem_fold += nnz_frac_C*C->size*C->sr->pair_size() + C->calc_nvirt()*prm.n*sizeof(int);
-              mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
-            }
-          } else {
-            mem_fold += C->size*C->sr->el_size;
-          }
-        } else
-  #endif
-        {
-          sctr = construct_ctr();
-          if (is_ctr_sparse){
-            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
-          } else {
-            est_time = sctr->est_time_rec(sctr->num_lyr);
-          }
+        // check this early on to avoid 64-bit integer overflow
+        double size_memuse = A->size*nnz_frac_A*A->sr->el_size + B->size*nnz_frac_B*B->sr->el_size + C->size*nnz_frac_C*C->sr->el_size;
+        if (size_memuse >= (double)max_memuse){
+          continue;
         }
-  #if DEBUG >= 4
-        printf("mapping passed contr est_time = %E sec\n", est_time);
-  #endif
-        ASSERT(est_time >= 0.0);
-
-        memuse = 0;
-        need_remap_A = 0;
-        need_remap_B = 0;
-        need_remap_C = 0;
-        if (topo_i == old_topo_A){
-          for (d=0; d<A->order; d++){
-            if (!comp_dim_map(&A->edge_map[d],&old_map_A[d]))
-              need_remap_A = 1;
-          }
-        } else
-          need_remap_A = 1;
-        if (need_remap_A) {
-          est_time += A->est_redist_time(*dA, nnz_frac_A);
-          memuse = A->get_redist_mem(*dA, nnz_frac_A);
-        } else
-          memuse = 0;
-        if (topo_i == old_topo_B){
-          for (d=0; d<B->order; d++){
-            if (!comp_dim_map(&B->edge_map[d],&old_map_B[d]))
-              need_remap_B = 1;
-          }
-        } else
-          need_remap_B = 1;
-        if (need_remap_B) {
-          est_time += B->est_redist_time(*dB, nnz_frac_B);
-          memuse = std::max(memuse,B->get_redist_mem(*dB, nnz_frac_B));
-        }
-        if (topo_i == old_topo_C){
-          for (d=0; d<C->order; d++){
-            if (!comp_dim_map(&C->edge_map[d],&old_map_C[d]))
-              need_remap_C = 1;
-          }
-        } else
-          need_remap_C = 1;
-        if (need_remap_C) {
-          est_time += 2.*C->est_redist_time(*dC, nnz_frac_C);
-          memuse = std::max(1.*memuse,2.*C->get_redist_mem(*dC, nnz_frac_C));
-        }
-        if (is_ctr_sparse)
-          memuse = MAX(mem_fold_tmp, MAX(mem_fold + ((spctr*)sctr)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse));
-        else
-          memuse = MAX(mem_fold_tmp, MAX(mem_fold + (int64_t)sctr->mem_rec(), memuse));
-  #if DEBUG >= 4
-        printf("total (with redistribution and transp) est_time = %E\n", est_time);
-  #endif
+        int64_t memuse;//, bmemuse;
+        double est_time;
+        detail_estimate_mem_and_time(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, memuse, est_time);
         ASSERT(est_time >= 0.0);
 
         TAU_FSTOP(est_ctr_map_time);
@@ -3077,7 +2924,6 @@ namespace CTF_int {
         if ((int64_t)memuse >= max_memuse){
           DPRINTF(3,"[EXH] Not enough memory available for topo %d with order %d memory %ld/%ld\n", i,j,memuse,max_memuse);
           TAU_FSTOP(get_avail_res);
-          delete sctr;
           continue;
         }
         TAU_FSTOP(get_avail_res);
@@ -3085,7 +2931,6 @@ namespace CTF_int {
             ((!B->is_sparse) && B->size > INT_MAX) ||
             ((!C->is_sparse) && C->size > INT_MAX)){
           DPRINTF(3,"MPI does not handle enough bits for topo %d with order %d \n", i, j);
-          delete sctr;
           continue;
         }
         if (est_time < best_time) {
@@ -3094,7 +2939,6 @@ namespace CTF_int {
           btopo = old_off+j;
           DPRINTF(1,"[EXH] Found new best contraction memuse = %E, est_time = %E\n",(double)memuse,best_time);
         } 
-        delete sctr;
       }
     }
 #if DEBUG >= 2
@@ -3114,9 +2958,6 @@ namespace CTF_int {
 
     idx=ttopo;
     time=gbest_time;
-
-    cdealloc(idx_arr);
-
   }
 
   int contraction::map(ctr ** ctrf, bool do_remap){
@@ -3184,6 +3025,8 @@ namespace CTF_int {
     int ttopo, ttopo_sel, ttopo_exh;
     double gbest_time_sel, gbest_time_exh;
  
+    double nnz_frac_A, nnz_frac_B, nnz_frac_C;
+    this->calc_nnz_frac(nnz_frac_A, nnz_frac_B, nnz_frac_C);
     TAU_FSTART(get_best_sel_map);
     get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_sel, gbest_time_sel);
     TAU_FSTOP(get_best_sel_map);
@@ -3207,21 +3050,6 @@ namespace CTF_int {
     A->set_padding();
     B->set_padding();
     C->set_padding();
-    double nnz_frac_A = 1.0;
-    double nnz_frac_B = 1.0;
-    double nnz_frac_C = 1.0;
-    int num_tot;
-    int * idx_arr;
-    inv_idx(A->order, idx_A,
-            B->order, idx_B,
-            C->order, idx_C,
-            &num_tot, &idx_arr);
-    if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
-    if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
-
-    nnz_frac_C = std::min(1.,2.*estimate_output_nnz_frac());
-    //nnz_frac_A = std::min(1.,2*nnz_frac_A);
-    //nnz_frac_B = std::min(1.,2*nnz_frac_B);
 
     if (!do_remap || ttopo == INT_MAX || ttopo == -1){
       CTF_int::cdealloc(old_phase_A);
@@ -3303,6 +3131,23 @@ namespace CTF_int {
     A->set_padding();
     B->set_padding();
     C->set_padding();
+#if (VERBOSE >= 1 || DEBUG >= 1)
+
+    int64_t memuse;
+    double est_time;
+
+    detail_estimate_mem_and_time(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, memuse, est_time);
+    //printf("%E %E %E\n",est_time,gbest_time_sel,gbest_time_exh);
+    assert(est_time == std::min(gbest_time_sel,gbest_time_exh));
+    if (global_comm.rank == 0){
+      VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory (already used %E) and take an estimated of %E sec\n",
+              (double)memuse,(double)proc_bytes_available(),(double)proc_bytes_used(),std::min(gbest_time_sel,gbest_time_exh));
+#if VERBOSE >= 2
+      (*ctrf)->print();
+#endif
+    }
+#endif
+
     if (can_fold()){
       iparam prm = map_fold(false);
       *ctrf = construct_ctr(1, &prm);
@@ -3317,115 +3162,11 @@ namespace CTF_int {
     A->print_map(stdout);
     B->print_map(stdout);
     C->print_map(stdout);
+
+
     MPI_Barrier(global_comm.cm);
     #endif
     
-#if (VERBOSE >= 1 || DEBUG >= 1)
-    cdealloc(idx_arr);
-    int64_t memuse = 0;
-    int64_t mem_fold = 0;
-    int64_t mem_fold_tmp = 0;
-    bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
-    bool use_ccsr =  csr_or_coo && A->is_sparse && C->is_sparse && !B->is_sparse;
-#if FOLD_TSR
-    if (can_fold()){
-      iparam prm = map_fold(false);
-      A->remove_fold();
-      B->remove_fold();
-      C->remove_fold();
-      if (A->is_sparse){
-        if (!csr_or_coo){
-          mem_fold += nnz_frac_A*A->size*(A->sr->el_size + sizeof(int64_t));
-          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
-        } else if (use_ccsr){
-          mem_fold += nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int64_t));
-          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
-        } else {
-          mem_fold += nnz_frac_A*A->size*A->sr->pair_size() + A->calc_nvirt()*prm.m*sizeof(int);
-          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
-        }
-      } else {
-        mem_fold += A->size*A->sr->el_size;
-      }
-      if (B->is_sparse){
-        if (!csr_or_coo){
-          mem_fold += nnz_frac_B*B->size*(B->sr->el_size + sizeof(int64_t));
-          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
-        } else if (use_ccsr){
-          mem_fold += nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int64_t));
-          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
-        } else {
-          mem_fold += nnz_frac_B*B->size*B->sr->pair_size() + B->calc_nvirt()*prm.k*sizeof(int);
-          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
-        }
-      } else {
-        mem_fold += B->size*B->sr->el_size;
-      }
-      if (C->is_sparse){
-        if (!csr_or_coo){
-          mem_fold += nnz_frac_C*C->size*(C->sr->el_size + sizeof(int64_t));
-          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold);
-        } else if (use_ccsr){
-          mem_fold += nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int64_t));
-          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
-        } else {
-          mem_fold += nnz_frac_C*C->size*C->sr->pair_size() + C->calc_nvirt()*prm.n*sizeof(int);
-          mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
-        }
-      } else {
-        mem_fold += C->size*C->sr->el_size;
-      }
-    }
-#endif
-
-    memuse = 0;
-    bool need_remap_A = 0;
-    bool need_remap_B = 0;
-    bool need_remap_C = 0;
-    if (A->topo == old_topo_A){
-      for (d=0; d<A->order; d++){
-        if (!comp_dim_map(&A->edge_map[d],&old_map_A[d]))
-          need_remap_A = 1;
-      }
-    } else
-      need_remap_A = 1;
-    if (need_remap_A) {
-      memuse = A->get_redist_mem(*dA, nnz_frac_A);
-    } else
-      memuse = 0;
-    if (B->topo == old_topo_B){
-      for (d=0; d<B->order; d++){
-        if (!comp_dim_map(&B->edge_map[d],&old_map_B[d]))
-          need_remap_B = 1;
-      }
-    } else
-      need_remap_B = 1;
-    if (need_remap_B) {
-      memuse = std::max(memuse,B->get_redist_mem(*dB, nnz_frac_B));
-    }
-    if (C->topo == old_topo_C){
-      for (d=0; d<C->order; d++){
-        if (!comp_dim_map(&C->edge_map[d],&old_map_C[d]))
-          need_remap_C = 1;
-      }
-    } else
-      need_remap_C = 1;
-    if (need_remap_C) {
-      memuse = std::max(1.*memuse,2.*C->get_redist_mem(*dC, nnz_frac_C));
-    }
-    if (this->is_sparse())
-      memuse = MAX(mem_fold_tmp, MAX(mem_fold + ((spctr*)*ctrf)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse));
-    else
-      memuse = MAX(mem_fold_tmp, MAX(mem_fold + (int64_t)(*ctrf)->mem_rec(), memuse));
-
-    if (global_comm.rank == 0){
-      VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
-              (double)memuse,(double)proc_bytes_available(),std::min(gbest_time_sel,gbest_time_exh));
-#if VERBOSE >= 2
-      (*ctrf)->print();
-#endif
-    }
-#endif
 
     if (A->is_cyclic == 0 &&
         B->is_cyclic == 0 &&
