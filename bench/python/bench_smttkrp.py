@@ -20,7 +20,7 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_init):
         T = ctf.tensor((s,s,s),sp=sp)
         T.fill_sp_random(-1.,1.,float(nnz)/float(s*s*s))
         if ctf.comm().rank() == 0:
-            print("T sp =",T.sp,"nnz_tot =",T.nnz_tot,"sp_frac is",float(nnz)/float(s*s*s))
+            print("Performing MTTKRP with s =",s,"nnz =",nnz,"sp =",sp,"sp_init =",sp_init)
         U = ctf.random.random((s,R))
         V = ctf.random.random((s,R))
         W = ctf.random.random((s,R))
@@ -53,7 +53,7 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_init):
             print("Completed",num_iter,"iterations, took",te1/num_iter,te2/num_iter,te3/num_iter,"seconds on average for 3 variants.")
             avg_time = (te1+te2+te3)/(3*num_iter)
             agg_avg_times.append(avg_time)
-            print("MTTKRP took",avg_times,"seconds on average across variants with s =",s,"nnz =",nnz,"sp",sp)
+            print("MTTKRP took",avg_times,"seconds on average across variants with s =",s,"nnz =",nnz,"sp =",sp,"sp_init =",sp_init)
             min_time = np.min(avg_times)
             max_time = np.max(avg_times)
             agg_min_times.append(min_time)
@@ -86,5 +86,5 @@ if __name__ == "__main__":
 
     if ctf.comm().rank() == 0:
         print("num_iter is",num_iter,"s_start is",s_start,"s_end is",s_end,"mult is",mult,"R is",R,"sp is",sp,"sp_init is",sp_init)
-    run_bench(num_iter, s_start, s_end, mult, R, sp,sp_init)
+    run_bench(num_iter, s_start, s_end, mult, R, sp, sp_init)
 

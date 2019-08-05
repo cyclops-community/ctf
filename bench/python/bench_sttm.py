@@ -17,6 +17,8 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_out, sp_init):
     agg_max_95 = []
     while s<=s_end:
         agg_s.append(s)
+        if ctf.comm().rank() == 0:
+            print("Performing TTM with s =",s,"nnz =",nnz,"sp =",sp,"sp_out =",sp_out,"sp_init =",sp_init)
         T = ctf.tensor((s,s,s),sp=sp)
         T.fill_sp_random(-1.,1.,float(nnz)/float(s*s*s))
         U = ctf.random.random((s,R))
@@ -61,7 +63,7 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_out, sp_init):
             print("Completed",num_iter,"iterations, took",te1/num_iter,te2/num_iter,te3/num_iter,"seconds on average for 3 variants.")
             avg_time = (te1+te2+te3)/(3*num_iter)
             agg_avg_times.append(avg_time)
-            print("TTM took",avg_times,"seconds on average across variants with s =",s,"nnz =",nnz,"sp =",sp,"sp_out =",sp_out)
+            print("TTM took",avg_times,"seconds on average across variants with s =",s,"nnz =",nnz,"sp =",sp,"sp_out =",sp_out,"sp_init =",sp_init)
             min_time = np.min(avg_times)
             max_time = np.max(avg_times)
             agg_min_times.append(min_time)

@@ -5,10 +5,10 @@ import time
 import sbench_args as sargs
 import numpy as np
 
-def run_bench(num_iter, s_start, s_end, mult, R, sp, use_tttp):
+def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_init, use_tttp):
     wrld = ctf.comm()
     s = s_start
-    nnz = s_start*s_start*s_start
+    nnz = float(s_start*s_start*s_start)*sp_init
     agg_s = []
     agg_avg_times = []
     agg_min_times = []
@@ -17,6 +17,8 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, use_tttp):
     agg_max_95 = []
     while s<=s_end:
         agg_s.append(s)
+        if ctf.comm().rank() == 0:
+            print("Performing TTTP with s =",s,"nnz =",nnz,"sp",sp,"sp_init is",sp_init,"use_tttp",use_tttp)
         T = ctf.tensor((s,s,s),sp=sp)
         T.fill_sp_random(-1.,1.,float(nnz)/float(s*s*s))
         U = ctf.random.random((s,R))
@@ -29,7 +31,11 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, use_tttp):
             if use_tttp:
                 S = ctf.TTTP(T,[U,V,W])
             else:
-                S = ctf.einsum("ijk,iR,jR,kR->ijk",T,U,V,W)
+                if sp:
+                    S = ctf.tensor((s,s,s),sp=sp)
+                    S.i("ijk") << T.i("ijk")*U.i("iR")*V.i("jR")*W.i("kR")
+                else:
+                    S = ctf.einsum("ijk,iR,jR,kR->ijk",T,U,V,W)
             t1 = time.time()
             ite1 = t1 - t0
             te1 += ite1
@@ -42,7 +48,7 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, use_tttp):
         if ctf.comm().rank() == 0:
             avg_time = (te1)/(num_iter)
             agg_avg_times.append(avg_time)
-            print("TTTP",avg_time,"seconds on average with s =",s,"nnz =",nnz,"sp",sp,"use_tttp",use_tttp)
+            print("TTTP",avg_time,"seconds on average with s =",s,"nnz =",nnz,"sp",sp,"sp_init is",sp_init,"use_tttp",use_tttp)
             min_time = np.min(times)
             max_time = np.max(times)
             agg_min_times.append(min_time)
@@ -78,8 +84,9 @@ if __name__ == "__main__":
     R = args.R
     sp = args.sp
     use_tttp = args.use_tttp
+    sp_init = args.sp_init
 
     if ctf.comm().rank() == 0:
-        print("num_iter is",num_iter,"s_start is",s_start,"s_end is",s_end,"mult is",mult,"R is",R,"sp is",sp,"use_tttp is",use_tttp)
-    run_bench(num_iter, s_start, s_end, mult, R, sp, use_tttp)
+        print("num_iter is",num_iter,"s_start is",s_start,"s_end is",s_end,"mult is",mult,"R is",R,"sp is",sp,"use_tttp is",use_tttp,"sp_init is",sp_init)
+    run_bench(num_iter, s_start, s_end, mult, R, sp, sp_init, use_tttp)
 
