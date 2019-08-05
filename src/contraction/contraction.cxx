@@ -2590,9 +2590,9 @@ namespace CTF_int {
     double nnz_frac_C = 1.0;
     if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
     if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
-    nnz_frac_C = std::min(1.,4*estimate_output_nnz_frac());
-    nnz_frac_A = std::min(1.,4*nnz_frac_A);
-    nnz_frac_B = std::min(1.,4*nnz_frac_B);
+    //nnz_frac_C = std::min(1.,2*estimate_output_nnz_frac());
+    //nnz_frac_A = std::min(1.,2*nnz_frac_A);
+    //nnz_frac_B = std::min(1.,2*nnz_frac_B);
   #if VERBOSE >= 1
     if (global_comm.rank == 0)
       printf("nnz_frac_A is %lf, nnz_frac_B is %lf, estimated nnz_frac_C is %lf\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
@@ -2878,9 +2878,9 @@ namespace CTF_int {
     double nnz_frac_C = 1.0;
     if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
     if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
-    nnz_frac_C = std::min(1.,4*estimate_output_nnz_frac());
-    nnz_frac_A = std::min(1.,4*nnz_frac_A);
-    nnz_frac_B = std::min(1.,4*nnz_frac_B);
+    //nnz_frac_C = std::min(1.,2*estimate_output_nnz_frac());
+    //nnz_frac_A = std::min(1.,2*nnz_frac_A);
+    //nnz_frac_B = std::min(1.,2*nnz_frac_B);
   #if VERBOSE >= 1
     if (global_comm.rank == 0)
       printf("nnz_frac_A is %lf, nnz_frac_B is %lf, estimated nnz_frac_C is %lf\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
@@ -3221,9 +3221,9 @@ namespace CTF_int {
     if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
     if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
 
-    nnz_frac_C = std::min(1.,4*estimate_output_nnz_frac());
-    nnz_frac_A = std::min(1.,4*nnz_frac_A);
-    nnz_frac_B = std::min(1.,4*nnz_frac_B);
+    //nnz_frac_C = std::min(1.,2*estimate_output_nnz_frac());
+    //nnz_frac_A = std::min(1.,2*nnz_frac_A);
+    //nnz_frac_B = std::min(1.,2*nnz_frac_B);
 
     if (!do_remap || ttopo == INT_MAX || ttopo == -1){
       CTF_int::cdealloc(old_phase_A);

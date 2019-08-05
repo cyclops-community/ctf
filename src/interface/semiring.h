@@ -725,12 +725,26 @@ namespace CTF {
                       char *&         C_CCSR) const {
         CTF_int::CCSR_Matrix M;
         int64_t n = n0;
-        if (nnz_row == 0){
-          M = CTF_int::CCSR_Matrix(nnz_row*n, nnz_row, m, n, this);
-        } else {
-          if (this->is_last_col_zero(k, n, B)){
-            n = n0-1;
+        if (this->is_last_col_zero(k, n, B)){
+          n = n0-1;
+        }
+        if (n == 0){
+          M = CTF_int::CCSR_Matrix(0, 0, m, n0, this);
+          if (C_CCSR != NULL && !this->isequal((char const *)&beta, this->addid())){
+            CTF_int::CCSR_Matrix C(C_CCSR);
+            if (!this->isequal((char const *)&beta, this->mulid()))
+              this->scal(C.nnz(), (char*)&beta, C.all_data, 1);
+            C_CCSR = CTF_int::CCSR_Matrix::ccsr_add(C.all_data, M.all_data, this);
+            CTF_int::cdealloc(M.all_data);
+          } else {
+            //CTF_int::cdealloc(C_CCSR);
+            C_CCSR = M.all_data;
           }
+          return;
+        } 
+        if (nnz_row == 0){
+          M = CTF_int::CCSR_Matrix(nnz_row*n, nnz_row, m, n0, this);
+        } else {
           int new_order[2] = {1, 0};
           int64_t lens[2] = {(int64_t)nnz_row, (int64_t)n};
           bool use_hptt = CTF_int::hptt_is_applicable(2, new_order, this->el_size);
@@ -739,11 +753,11 @@ namespace CTF {
             char * data = this->alloc(((int64_t)nnz_row)*n);
             this->init_shell(((int64_t)nnz_row)*n, data);
             csrmm(nnz_row,n,k,(char const *)&alpha, (char const *)A, JA, IA, nnz_A, (char const*)B, this->mulid(), data, NULL);
-            M = CTF_int::CCSR_Matrix(((int64_t)nnz_row)*n, nnz_row, m, n, this);
+            M = CTF_int::CCSR_Matrix(((int64_t)nnz_row)*n, nnz_row, m, n0, this);
             CTF_int::nosym_transpose_hptt(2, new_order, lens, 1, data, M.vals(), this);
             this->dealloc(data);
           } else {
-            M = CTF_int::CCSR_Matrix(((int64_t)nnz_row)*n, nnz_row, m, n, this);
+            M = CTF_int::CCSR_Matrix(((int64_t)nnz_row)*n, nnz_row, m, n0, this);
             csrmm(nnz_row,n,k,(char const *)&alpha, (char const *)A, JA, IA, nnz_A, (char const*)B, this->mulid(), M.vals(), NULL);
             CTF_int::nosym_transpose(2,new_order,lens,M.vals(),1,this);
           }
