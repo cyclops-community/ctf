@@ -124,11 +124,11 @@ namespace CTF_int {
     int64_t b_A, b_B, b_C, s_A, s_B, s_C, aux_size;
     find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, aux_size);
     int64_t mem_usage = 0;
-    if (is_sparse_A) mem_usage += sr_A->pair_size()*s_A*nnz_frac_A;
+    if (is_sparse_A) mem_usage += (sr_A->pair_size()*s_A)*nnz_frac_A;
     else mem_usage += sr_A->el_size*s_A;
-    if (is_sparse_B) mem_usage += sr_B->pair_size()*s_B*nnz_frac_B;
+    if (is_sparse_B) mem_usage += (sr_B->pair_size()*s_B)*nnz_frac_B;
     else mem_usage += sr_B->el_size*s_B;
-    if (is_sparse_C) mem_usage += sr_C->pair_size()*s_C*nnz_frac_C;
+    if (is_sparse_C) mem_usage += (3*sr_C->pair_size()*s_C)*nnz_frac_C;
     else mem_usage += sr_C->el_size*s_C;
     return mem_usage;
   }

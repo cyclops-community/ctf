@@ -383,7 +383,8 @@ namespace CTF_int {
     TAU_FSTART(csr_reduce);
     int s = 2;
     double t_st = MPI_Wtime();
-    while (p%s != 0) s++;
+    if (is_ccsr) s = p;
+    else { while (p%s != 0) s++; }
     int sr = r%s;
     MPI_Comm scm;
     MPI_Comm rcm;

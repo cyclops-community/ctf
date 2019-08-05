@@ -2590,12 +2590,12 @@ namespace CTF_int {
     double nnz_frac_C = 1.0;
     if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
     if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
-    //nnz_frac_C = std::min(1.,2*estimate_output_nnz_frac());
+    nnz_frac_C = std::min(1.,2.*estimate_output_nnz_frac());
     //nnz_frac_A = std::min(1.,2*nnz_frac_A);
     //nnz_frac_B = std::min(1.,2*nnz_frac_B);
   #if VERBOSE >= 1
     if (global_comm.rank == 0)
-      printf("nnz_frac_A is %lf, nnz_frac_B is %lf, estimated nnz_frac_C is %lf\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
+      printf("nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
   #endif
     for (j=0; j<6; j++){
       // Attempt to map to all possible permutations of processor topology
@@ -2709,7 +2709,7 @@ namespace CTF_int {
               mem_fold += nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int64_t));
               mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
             } else {
-              mem_fold += nnz_frac_A*A->size*A->sr->pair_size() + prm.m*sizeof(int);
+              mem_fold += nnz_frac_A*A->size*A->sr->pair_size() + A->calc_nvirt()*prm.m*sizeof(int);
               mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
             }
           } else {
@@ -2723,7 +2723,7 @@ namespace CTF_int {
               mem_fold += nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int64_t));
               mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
             } else {
-              mem_fold += nnz_frac_B*B->size*B->sr->pair_size() + prm.k*sizeof(int);
+              mem_fold += nnz_frac_B*B->size*B->sr->pair_size() + B->calc_nvirt()*prm.k*sizeof(int);
               mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
             }
           } else {
@@ -2737,7 +2737,7 @@ namespace CTF_int {
               mem_fold += nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int64_t));
               mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
             } else {
-              mem_fold += nnz_frac_C*C->size*C->sr->pair_size() + prm.n*sizeof(int);
+              mem_fold += nnz_frac_C*C->size*C->sr->pair_size() + C->calc_nvirt()*prm.n*sizeof(int);
               mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
             }
           } else {
@@ -2878,12 +2878,10 @@ namespace CTF_int {
     double nnz_frac_C = 1.0;
     if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
     if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
-    //nnz_frac_C = std::min(1.,2*estimate_output_nnz_frac());
-    //nnz_frac_A = std::min(1.,2*nnz_frac_A);
-    //nnz_frac_B = std::min(1.,2*nnz_frac_B);
+    nnz_frac_C = std::min(1.,2.*estimate_output_nnz_frac());
   #if VERBOSE >= 1
     if (global_comm.rank == 0)
-      printf("nnz_frac_A is %lf, nnz_frac_B is %lf, estimated nnz_frac_C is %lf\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
+      printf("nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
   #endif
     TAU_FSTOP(init_select_ctr_map);
     for (int i=0; i<(int)wrld->topovec.size(); i++){
@@ -2978,7 +2976,7 @@ namespace CTF_int {
               mem_fold += nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int64_t));
               mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
             } else {
-              mem_fold += nnz_frac_A*A->size*A->sr->pair_size() + prm.m*sizeof(int);
+              mem_fold += nnz_frac_A*A->size*A->sr->pair_size() + A->calc_nvirt()*prm.m*sizeof(int);
               mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
             }
           } else {
@@ -2992,7 +2990,7 @@ namespace CTF_int {
               mem_fold += nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int64_t));
               mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
             } else {
-              mem_fold += nnz_frac_B*B->size*B->sr->pair_size() + prm.k*sizeof(int);
+              mem_fold += nnz_frac_B*B->size*B->sr->pair_size() + B->calc_nvirt()*prm.k*sizeof(int);
               mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
             }
           } else {
@@ -3006,7 +3004,7 @@ namespace CTF_int {
               mem_fold += nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int64_t));
               mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
             } else {
-              mem_fold += nnz_frac_C*C->size*C->sr->pair_size() + prm.n*sizeof(int);
+              mem_fold += nnz_frac_C*C->size*C->sr->pair_size() + C->calc_nvirt()*prm.n*sizeof(int);
               mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
             }
           } else {
@@ -3221,7 +3219,7 @@ namespace CTF_int {
     if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
     if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
 
-    //nnz_frac_C = std::min(1.,2*estimate_output_nnz_frac());
+    nnz_frac_C = std::min(1.,2.*estimate_output_nnz_frac());
     //nnz_frac_A = std::min(1.,2*nnz_frac_A);
     //nnz_frac_B = std::min(1.,2*nnz_frac_B);
 
@@ -3343,7 +3341,7 @@ namespace CTF_int {
           mem_fold += nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int64_t));
           mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
         } else {
-          mem_fold += nnz_frac_A*A->size*A->sr->pair_size() + prm.m*sizeof(int);
+          mem_fold += nnz_frac_A*A->size*A->sr->pair_size() + A->calc_nvirt()*prm.m*sizeof(int);
           mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_A*A->size*(A->sr->el_size + 2*sizeof(int))));
         }
       } else {
@@ -3357,7 +3355,7 @@ namespace CTF_int {
           mem_fold += nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int64_t));
           mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
         } else {
-          mem_fold += nnz_frac_B*B->size*B->sr->pair_size() + prm.k*sizeof(int);
+          mem_fold += nnz_frac_B*B->size*B->sr->pair_size() + B->calc_nvirt()*prm.k*sizeof(int);
           mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_B*B->size*(B->sr->el_size + 2*sizeof(int))));
         }
       } else {
@@ -3371,7 +3369,7 @@ namespace CTF_int {
           mem_fold += nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int64_t));
           mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
         } else {
-          mem_fold += nnz_frac_C*C->size*C->sr->pair_size() + prm.n*sizeof(int);
+          mem_fold += nnz_frac_C*C->size*C->sr->pair_size() + C->calc_nvirt()*prm.n*sizeof(int);
           mem_fold_tmp = std::max(mem_fold_tmp, mem_fold + (int64_t)(nnz_frac_C*C->size*(C->sr->el_size + 2*sizeof(int))));
         }
       } else {

@@ -229,7 +229,7 @@ namespace CTF_int {
     if (krnl_type>0) size_C *= ((int64_t)inner_params.m)*inner_params.n;
     if (is_sparse_A) size_A *= nnz_frac_A*10;
     if (is_sparse_B) size_B *= nnz_frac_B*10;
-    if (is_sparse_C) size_C *= nnz_frac_C*10;
+    if (is_sparse_C) size_C *= nnz_frac_C*30;
 
     return size_A+size_B+size_C;
   }
