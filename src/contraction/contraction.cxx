@@ -3033,7 +3033,8 @@ namespace CTF_int {
       printf("In map nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
   #endif
     TAU_FSTART(get_best_sel_map);
-    get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_sel, gbest_time_sel);
+    //get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_sel, gbest_time_sel);
+    gbest_time_sel = 10000.;
     TAU_FSTOP(get_best_sel_map);
     if (gbest_time_sel < 1.){
       gbest_time_exh = gbest_time_sel+1.;
@@ -3153,9 +3154,6 @@ namespace CTF_int {
     if (global_comm.rank == 0){
       VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory (already used %E) and take an estimated of %E sec\n",
               (double)memuse,(double)proc_bytes_available(),(double)proc_bytes_used(),std::min(gbest_time_sel,gbest_time_exh));
-#if VERBOSE >= 2
-      (*ctrf)->print();
-#endif
     }
     printf("Times are %E %E %E ttopo is %d,old_off = %ld,j = %d i = %d\n",est_time,gbest_time_sel,gbest_time_exh,ttopo, old_off, j_g, ii);
     assert(est_time == std::min(gbest_time_sel,gbest_time_exh));
@@ -3169,6 +3167,12 @@ namespace CTF_int {
       C->remove_fold();
     } else
       *ctrf = construct_ctr();
+
+    if (global_comm.rank == 0){
+#if VERBOSE >= 2
+      (*ctrf)->print();
+#endif
+    }
     #if DEBUG > 2
     if (global_comm.rank == 0)
       printf("New mappings:\n");
