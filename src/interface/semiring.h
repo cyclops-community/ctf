@@ -729,7 +729,7 @@ namespace CTF {
           n = n0-1;
         }
         if (n == 0){
-          M = CTF_int::CCSR_Matrix(0, 0, m, n0, this);
+          M = CTF_int::CCSR_Matrix(0, 0, m, 1, this);
           if (C_CCSR != NULL && !this->isequal((char const *)&beta, this->addid())){
             CTF_int::CCSR_Matrix C(C_CCSR);
             if (!this->isequal((char const *)&beta, this->mulid()))
@@ -743,7 +743,7 @@ namespace CTF {
           return;
         } 
         if (nnz_row == 0){
-          M = CTF_int::CCSR_Matrix(nnz_row*n, nnz_row, m, n0, this);
+          M = CTF_int::CCSR_Matrix(nnz_row*n, nnz_row, m, n, this);
         } else {
           int new_order[2] = {1, 0};
           int64_t lens[2] = {(int64_t)nnz_row, (int64_t)n};
@@ -1151,8 +1151,8 @@ namespace CTF {
 // TODO: add these with manual loop
 //  template <>
 //  bool CTF::Semiring<float,1>::is_last_col_zero(int64_t m, int64_t n, float const * M) const;
-//  template <>
-//  void CTF::Semiring<double,1>::is_last_col_zero(int64_t m, int64_t n, double const * M) const;
+  template <>
+  bool CTF::Semiring<double,1>::is_last_col_zero(int64_t m, int64_t n, double const * M) const;
 //  template <>
 //  bool CTF::Semiring<std::complex<float>,0>::is_last_col_zero(int64_t m, int64_t n, std::complex<float> const * M) const;
 //  template <>

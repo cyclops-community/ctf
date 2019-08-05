@@ -2,6 +2,7 @@
 #include "../shared/blas_symbs.h"
 #include "../shared/offload.h"
 #include "../sparse_formats/csr.h"
+#include "../shared/util.h"
 
 #ifdef USE_MKL
 #include "../shared/mkl_symbs.h"
@@ -750,5 +751,19 @@ namespace CTF {
     CTF_int::offload_gemm<std::complex<double>>(tA, tB, m, n, k, ((std::complex<double> const*)alpha)[0], (std::complex<double> const *)A, lda_A, (std::complex<double> const *)B, lda_B, ((std::complex<double> const*)beta)[0], (std::complex<double>*)C, m);
   }
 
+
+  template<> 
+  bool CTF::Semiring<double,1>::is_last_col_zero(int64_t m, int64_t n, double const * M) const {
+    TAU_FSTART(is_last_col_zero);
+    for (int64_t i=0; i<n; i++){
+      if (M[m*(n-1)+i]!= this->taddid){
+        TAU_FSTOP(is_last_col_zero);
+        return false;
+      }
+    }
+    TAU_FSTOP(is_last_col_zero);
+    return true;
+  }
+   
 
 }

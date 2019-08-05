@@ -39,6 +39,7 @@ namespace CTF_int {
 
   CCSR_Matrix::CCSR_Matrix(tCOO_Matrix<int64_t> const & coom, int64_t nrow_, int64_t ncol, algstrct const * sr, char * data, bool init_data){
     ASSERT(ALIGN >= 16);
+    TAU_FSTART(ccsr_conv);
     int64_t nz = coom.nnz(); 
     int64_t v_sz = coom.val_size(); 
     int64_t const * coo_rs = coom.rows();
@@ -102,13 +103,16 @@ namespace CTF_int {
     //memcpy(ccsr_vs, vs, nz*v_sz);
     //memset(ccsr_ja
 
+    TAU_FSTART(coo_to_ccsr);
     sr->coo_to_ccsr(nz, nnz_row, ccsr_vs, ccsr_ja, ccsr_ia, vs, coo_rs, coo_cs);
+    TAU_FSTOP(coo_to_ccsr);
 /*    for (int i=0; i<nrow_; i++){
       printf("ccsr_ja[%d] = %d\n",i,ccsr_ja[i]);
     }
     for (int i=0; i<nz; i++){
       printf("ccsr_ia[%d] = %d\n",i,ccsr_ia[i]);
     }*/
+    TAU_FSTOP(ccsr_conv);
     
   }
 
@@ -259,6 +263,7 @@ namespace CTF_int {
   }*/
 
   void CCSR_Matrix::partition(int s, char ** parts_buffer, sparse_matrix ** parts){
+    TAU_FSTART(ccsr_partition);
     int part_nnz[s], part_nrows[s];
     int64_t nnz_r = nnz_row();
     int64_t nr = nrow();
@@ -306,9 +311,11 @@ namespace CTF_int {
       }
       part_data += get_ccsr_size(part_nnz[i], part_nrows[i], v_sz);
     }
+    TAU_FSTOP(ccsr_partition);
   }
       
   void CCSR_Matrix::assemble(char * const * smnds, int s){
+    TAU_FSTART(ccsr_assemble);
     CCSR_Matrix * ccsrs = new CCSR_Matrix[s];
     int const ** pja = (int const **)malloc(sizeof(int*)*s);
     int const ** pia = (int const **)malloc(sizeof(int*)*s);
@@ -373,6 +380,7 @@ namespace CTF_int {
     free(prow_enc);
     free(row_inds);
     delete [] ccsrs;
+    TAU_FSTOP(ccsr_assemble);
   }
 
   void CCSR_Matrix::print(algstrct const * sr){
