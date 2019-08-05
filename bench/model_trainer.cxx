@@ -87,7 +87,7 @@ void train_ttm(int64_t sz, int64_t r, World & dw){
 void train_sparse_mttkrp(int64_t sz, int64_t R, World & dw){
   Timer sMTTKRP("sMTTKRP");
   sMTTKRP.start();
-  for (double sp = .1; sp>.00001; sp*=.25){
+  for (double sp = .1; sp>.000001; sp*=.25){
     int64_t n = (int64_t)cbrt(sz/sp);
     int64_t lens[3] = {n, n, n};
     Tensor<> T(3, true, lens, dw);
@@ -97,6 +97,11 @@ void train_sparse_mttkrp(int64_t sz, int64_t R, World & dw){
     M["ir"] = T["ijk"]*M["jr"]*M["kr"];
     M["jr"] = T["ijk"]*M["ir"]*M["kr"];
     M["kr"] = T["ijk"]*M["ir"]*M["jr"];
+    int64_t lens2[3] = {n, n, R};
+    Tensor<> T2(3, true, lens2, dw);
+    T2["jkr"] = T["ijk"]*M["ir"];
+    T2["ikr"] = T["ijk"]*M["jr"];
+    T2["ijr"] = T["ijk"]*M["kr"];
   }
   sMTTKRP.stop();
 }

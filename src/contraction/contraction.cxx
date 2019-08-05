@@ -2937,7 +2937,7 @@ namespace CTF_int {
           best_time = est_time;
           //bmemuse = memuse;
           btopo = old_off+j;
-          DPRINTF(1,"[EXH] Found new best contraction memuse = %E, est_time = %E\n",(double)memuse,best_time);
+          DPRINTF(1,"[EXH] Found new best contraction i %d btopo %d old_off %ld j %d memuse = %E, est_time = %E\n",i,btopo,old_off,j,(double)memuse,best_time);
         } 
       }
     }
@@ -3027,6 +3027,11 @@ namespace CTF_int {
  
     double nnz_frac_A, nnz_frac_B, nnz_frac_C;
     this->calc_nnz_frac(nnz_frac_A, nnz_frac_B, nnz_frac_C);
+
+  #if VERBOSE >= 1
+    if (global_comm.rank == 0)
+      printf("In map nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
+  #endif
     TAU_FSTART(get_best_sel_map);
     get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_sel, gbest_time_sel);
     TAU_FSTOP(get_best_sel_map);
@@ -3071,6 +3076,8 @@ namespace CTF_int {
     }
     topology * topo_g = NULL;
     int j_g;
+    int64_t old_off = 0;
+    int ii = 0;
     if (gbest_time_sel <= gbest_time_exh){
       j_g = ttopo%6;
       if (ttopo < 48){
@@ -3093,7 +3100,6 @@ namespace CTF_int {
     } else {
       int64_t choice_offset = 0;
       int i=0;
-      int64_t old_off = 0;
       for (i=0; i<(int)wrld->topovec.size(); i++){
         //int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
         int tnum_choices = get_num_map_variants(wrld->topovec[i]);
@@ -3101,18 +3107,19 @@ namespace CTF_int {
         choice_offset += tnum_choices;
         if (choice_offset > ttopo) break;
       }
+      ii = i;
       topo_g = wrld->topovec[i];
       j_g = ttopo-old_off;
     }
 
-    A->topo = topo_g;
-    B->topo = topo_g;
-    C->topo = topo_g;
-    A->is_mapped = 1;
-    B->is_mapped = 1;
-    C->is_mapped = 1;
    
     if (gbest_time_sel <= gbest_time_exh){
+      A->topo = topo_g;
+      B->topo = topo_g;
+      C->topo = topo_g;
+      A->is_mapped = 1;
+      B->is_mapped = 1;
+      C->is_mapped = 1;
       ret = map_to_topology(topo_g, j_g);
       if (ret == NEGATIVE || ret == ERROR) {
         printf("ERROR ON FINAL MAP ATTEMPT, THIS SHOULD NOT HAPPEN\n");
@@ -3120,6 +3127,12 @@ namespace CTF_int {
       }
     } else {
       exh_map_to_topo(topo_g, j_g);
+      A->topo = topo_g;
+      B->topo = topo_g;
+      C->topo = topo_g;
+      A->is_mapped = 1;
+      B->is_mapped = 1;
+      C->is_mapped = 1;
       switch_topo_perm();
     }
   #if DEBUG > 2
@@ -3137,8 +3150,6 @@ namespace CTF_int {
     double est_time;
 
     detail_estimate_mem_and_time(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, memuse, est_time);
-    //printf("%E %E %E\n",est_time,gbest_time_sel,gbest_time_exh);
-    assert(est_time == std::min(gbest_time_sel,gbest_time_exh));
     if (global_comm.rank == 0){
       VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory (already used %E) and take an estimated of %E sec\n",
               (double)memuse,(double)proc_bytes_available(),(double)proc_bytes_used(),std::min(gbest_time_sel,gbest_time_exh));
@@ -3146,6 +3157,8 @@ namespace CTF_int {
       (*ctrf)->print();
 #endif
     }
+    printf("Times are %E %E %E ttopo is %d,old_off = %ld,j = %d i = %d\n",est_time,gbest_time_sel,gbest_time_exh,ttopo, old_off, j_g, ii);
+    assert(est_time == std::min(gbest_time_sel,gbest_time_exh));
 #endif
 
     if (can_fold()){
