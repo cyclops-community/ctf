@@ -2646,11 +2646,10 @@ namespace CTF_int {
       } else {
         est_time = sctr->est_time_rec(sctr->num_lyr);
       }
+
     }
-#if DEBUG >= 3
-    if (global_comm.rank == 0){
-      printf("mapping passed contr est_time = %E sec\n", est_time);
-    }
+#if DEBUG >= 4
+    printf("mapping passed contr est_time = %E sec %d %ld %ld %ld %E %E %E\n", est_time, sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
 #endif
     ASSERT(est_time >= 0.0);
     bool need_remap_A = 0;
@@ -3021,6 +3020,12 @@ namespace CTF_int {
       old_phase_C[j]   = C->edge_map[j].calc_phase();
     }
 
+    A->clear_mapping();
+    B->clear_mapping();
+    C->clear_mapping();
+    A->set_padding();
+    B->set_padding();
+    C->set_padding();
     //bmemuse = UINT64_MAX;
     int ttopo, ttopo_sel, ttopo_exh;
     double gbest_time_sel, gbest_time_exh;
@@ -3036,6 +3041,13 @@ namespace CTF_int {
     //get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_sel, gbest_time_sel);
     gbest_time_sel = 10000.;
     TAU_FSTOP(get_best_sel_map);
+
+    A->clear_mapping();
+    B->clear_mapping();
+    C->clear_mapping();
+    A->set_padding();
+    B->set_padding();
+    C->set_padding();
     if (gbest_time_sel < 1.){
       gbest_time_exh = gbest_time_sel+1.;
       ttopo_exh = ttopo_sel;
@@ -3136,7 +3148,7 @@ namespace CTF_int {
       C->is_mapped = 1;
       switch_topo_perm();
     }
-  #if DEBUG > 2
+  #if DEBUG >= 2
     if (!check_mapping())
       printf("ERROR ON FINAL MAP ATTEMPT, THIS SHOULD NOT HAPPEN\n");
   //  else if (global_comm.rank == 0) printf("Mapping successful estimated execution time = %lf sec\n",best_time);
@@ -3155,7 +3167,9 @@ namespace CTF_int {
       VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory (already used %E) and take an estimated of %E sec\n",
               (double)memuse,(double)proc_bytes_available(),(double)proc_bytes_used(),std::min(gbest_time_sel,gbest_time_exh));
     }
-    printf("Times are %E %E %E ttopo is %d,old_off = %ld,j = %d i = %d\n",est_time,gbest_time_sel,gbest_time_exh,ttopo, old_off, j_g, ii);
+    if (est_time != std::min(gbest_time_sel,gbest_time_exh))
+      printf("Times are %E %E %E ttopo is %d,old_off = %ld,j = %d i = %d\n",est_time,gbest_time_sel,gbest_time_exh,ttopo, old_off, j_g, ii);
+
     assert(est_time == std::min(gbest_time_sel,gbest_time_exh));
 #endif
 
@@ -3167,22 +3181,19 @@ namespace CTF_int {
       C->remove_fold();
     } else
       *ctrf = construct_ctr();
-
-    if (global_comm.rank == 0){
 #if VERBOSE >= 2
+    if (global_comm.rank == 0)
       (*ctrf)->print();
 #endif
-    }
-    #if DEBUG > 2
+#if DEBUG >= 2
     if (global_comm.rank == 0)
       printf("New mappings:\n");
     A->print_map(stdout);
     B->print_map(stdout);
     C->print_map(stdout);
 
-
     MPI_Barrier(global_comm.cm);
-    #endif
+#endif
     
 
     if (A->is_cyclic == 0 &&
