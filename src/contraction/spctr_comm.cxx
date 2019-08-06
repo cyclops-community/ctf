@@ -176,7 +176,7 @@ namespace CTF_int {
     int64_t mem_usage = 0;
     if (is_sparse_A) mem_usage += nnz_frac_A*(size_A*sr_A->pair_size());
     if (is_sparse_B) mem_usage += nnz_frac_B*(size_B*sr_B->pair_size());
-    if (is_sparse_C) mem_usage += 3.*nnz_frac_C*(size_C*sr_C->pair_size());
+    if (is_sparse_C) mem_usage += 4.*nnz_frac_C*(size_C*sr_C->pair_size());
     return mem_usage;
   }
 

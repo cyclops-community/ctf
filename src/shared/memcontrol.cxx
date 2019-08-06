@@ -73,7 +73,7 @@ void read_off_memory_status(statm_t& result)
   };
 
   /* fraction of total memory which can be saturated */
-  double memcap = 0.75;
+  double memcap = 0.5;
   int64_t mem_size = 0;
   #define MAX_THREADS 256
   int max_threads;

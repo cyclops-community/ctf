@@ -385,6 +385,7 @@ namespace CTF_int {
     double t_st = MPI_Wtime();
     if (is_ccsr) s = p;
     else { while (p%s != 0) s++; }
+    //while (p%s != 0) s++;
     int sr = r%s;
     MPI_Comm scm;
     MPI_Comm rcm;
