@@ -32,11 +32,9 @@ namespace CTF_int {
   }
 
   void load_all_models(std::string file_name){
-#ifdef TUNE
     for (int i=0; i<(int)get_all_models().size(); i++){
       get_all_models()[i]->load_coeff(file_name);
     }
-#endif
   }
 
   void write_all_models(std::string file_name){
