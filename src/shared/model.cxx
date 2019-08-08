@@ -122,13 +122,13 @@ namespace CTF_int {
     is_active = true;
     //copy initial static coefficients to initialzie model (defined in init_model.cxx)
     memcpy(coeff_guess, init_guess, nparam*sizeof(double));
+    name = (char*)alloc(strlen(name_)+1);
+    name[0] = '\0';
+    strcpy(name, name_);
 #ifdef TUNE
     /*for (int i=0; i<nparam; i++){
       regularization[i] = coeff_guess[i]*REG_LAMBDA;
     }*/
-    name = (char*)alloc(strlen(name_)+1);
-    name[0] = '\0';
-    strcpy(name, name_);
     hist_size = hist_size_;
     mat_lda = nparam+1;
     time_param_mat = (double*)alloc(mat_lda*hist_size*sizeof(double));
@@ -140,8 +140,8 @@ namespace CTF_int {
     avg_under_time = 0.0;
     over_time = 0.0;
     under_time = 0.0;
-    get_all_models().push_back(this);
 #endif
+    get_all_models().push_back(this);
   }
 
 
@@ -155,8 +155,8 @@ namespace CTF_int {
 
   template <int nparam>
   LinModel<nparam>::~LinModel(){
-#ifdef TUNE
     if (name != NULL) cdealloc(name);
+#ifdef TUNE
     if (time_param_mat != NULL) cdealloc(time_param_mat);
 #endif
   }
@@ -455,20 +455,21 @@ namespace CTF_int {
         cdealloc(work);
         cdealloc(iwork);
         cdealloc(A);
-        double step = 1.;
-        for (int ii=0; ii<nparam; ii++){
-          if (b[ii] <= 0.){
-            step = std::min(step, -.999*coeff_guess[ii]/(b[ii]-coeff_guess[ii]));
-          }
-        }
-        assert(step>=0.);
-        if (step == 1.)
-          memcpy(coeff_guess, b, nparam*sizeof(double));
-        else {
-          for (int ii=0; ii<nparam; ii++){
-            coeff_guess[ii] = (1.-step)*coeff_guess[ii] + step*b[ii];
-          }
-        }
+        //double step = 1.;
+        //for (int ii=0; ii<nparam; ii++){
+        //  if (b[ii] <= 0.){
+        //    step = std::min(step, -.999*coeff_guess[ii]/(b[ii]-coeff_guess[ii]));
+        //  }
+        //}
+        //assert(step>=0.);
+        //if (step == 1.)
+        //  memcpy(coeff_guess, b, nparam*sizeof(double));
+        //else {
+        //  for (int ii=0; ii<nparam; ii++){
+        //    coeff_guess[ii] = (1.-step)*coeff_guess[ii] + step*b[ii];
+        //  }
+        //}
+        memcpy(coeff_guess, b, nparam*sizeof(double));
         /*print();
         double max_resd_sq = 0.0;
         for (int i=0; i<ncol-nparam; i++){
