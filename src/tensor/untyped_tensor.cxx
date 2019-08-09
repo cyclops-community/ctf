@@ -73,8 +73,10 @@ namespace CTF_int {
       delete sr;
       cdealloc(name);
     }
-    if (order == -1)
+    if (order == -1){
       delete sr;
+      order = -2;
+    }
   }
 
   tensor::~tensor(){
@@ -172,6 +174,13 @@ namespace CTF_int {
   }
 
   tensor::tensor(tensor const * other, bool copy, bool alloc_data){
+    if (other->order < 0){
+      this->order = other->order;
+      if (other->order == -1){
+        this->sr = other->sr->clone();
+      }
+      return;
+    }
     char * nname = (char*)alloc(strlen(other->name) + 2);
     char d[] = "\'";
     strcpy(nname, other->name);

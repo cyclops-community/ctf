@@ -66,7 +66,7 @@ namespace CTF_int {
       /**
        * \brief destructor
        */
-      virtual ~algstrct() = 0;
+      virtual ~algstrct();
 
       /**
        * \brief ''copy constructor''
@@ -447,7 +447,7 @@ namespace CTF_int {
 
   };
   //http://stackoverflow.com/questions/630950/pure-virtual-destructor-in-c
-  inline algstrct::~algstrct(){}
+  //inline algstrct::~algstrct(){}
 
   /**
    * \brief depins keys of n pairs

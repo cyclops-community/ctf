@@ -1726,8 +1726,15 @@ NORM_INFTY_INST(double)
   Tensor<dtype>& Tensor<dtype>::operator=(Tensor<dtype> A){
 
     free_self();
-    init(A.sr, A.order, A.lens, A.sym, A.wrld, 0, A.name, A.profile, A.is_sparse);
-    copy_tensor_data(&A);
+    if (A.order < 0){
+      this->order = A.order;
+      if (A.order == -1){
+        this->sr = A.sr->clone();
+      }
+    } else {
+      init(A.sr, A.order, A.lens, A.sym, A.wrld, 0, A.name, A.profile, A.is_sparse);
+      copy_tensor_data(&A);
+    }
     return *this;
 /*
     sr = A.sr;
