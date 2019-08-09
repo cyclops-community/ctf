@@ -1,5 +1,5 @@
 namespace CTF_int{
-double csrred_mdl_init[] = {3.0689E-03, 2.2385E-04, 4.4815E-07};
+double csrred_mdl_init[] = {3.0689E-03, 2.2385E-03, 4.4815E-07};
 double csrred_mdl_cst_init[] = {-1.8323E-04, 1.3076E-04, 2.8732E-09};
 double alltoall_mdl_init[] = {1.0000E-06, 1.0000E-06, 5.0000E-10};
 double alltoallv_mdl_init[] = {7.3164E-23, 1.0404E-04, 2.5827E-07};
