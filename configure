@@ -1358,7 +1358,7 @@ for mod in mods:
             extra_link_args="-L$BUILDDIR/lib_shared $CXXFLAGS $LD_LIB_PATH $LINKFLAGS $LDFLAGS".split()
         ))
 
-setup(name="CTF",packages=["ctf"],version="1.5.4",cmdclass = {'build_ext': build_ext},ext_modules = cythonize(ext_mods))
+setup(name="CTF",packages=["ctf"],version="1.5.5",cmdclass = {'build_ext': build_ext},ext_modules = cythonize(ext_mods))
 
 EOF
 echo 'A setup.py file has been created (to adjust all settings edit the setup.py file manually or rerun ./configure to create a new one).'
