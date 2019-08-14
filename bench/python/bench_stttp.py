@@ -21,30 +21,58 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_init, use_tttp):
             print("Performing TTTP with s =",s,"nnz =",nnz,"sp",sp,"sp_init is",sp_init,"use_tttp",use_tttp)
         T = ctf.tensor((s,s,s),sp=sp)
         T.fill_sp_random(-1.,1.,float(nnz)/float(s*s*s))
-        U = ctf.random.random((s,R))
-        V = ctf.random.random((s,R))
-        W = ctf.random.random((s,R))
         te1 = 0.
         times = []
-        for i in range(num_iter):
-            t0 = time.time()
-            if use_tttp:
-                S = ctf.TTTP(T,[U,V,W])
-            else:
-                if sp:
-                    S = ctf.tensor((s,s,s),sp=sp)
-                    S.i("ijk") << T.i("ijk")*U.i("iR")*V.i("jR")*W.i("kR")
+        if R > 1:
+            U = ctf.random.random((s,R))
+            V = ctf.random.random((s,R))
+            W = ctf.random.random((s,R))
+            for i in range(num_iter):
+                t0 = time.time()
+                if use_tttp:
+                    S = ctf.TTTP(T,[U,V,W])
                 else:
-                    S = ctf.einsum("ijk,iR,jR,kR->ijk",T,U,V,W)
-            t1 = time.time()
-            ite1 = t1 - t0
-            te1 += ite1
+                    if sp:
+                        S = ctf.tensor((s,s,s),sp=sp)
+                        Z = ctf.tensor((s,s,s,R),sp=sp)
+                        Z.i("ijkr") << T.i("ijk")*U.i("ir")
+                        Z.i("ijkr") << Z.i("ijkr")*V.i("jr")
+                        S.i("ijkr") << Z.i("ijkr")*W.i("kr")
+                        #S.i("ijk") << T.i("ijk")*U.i("iR")*V.i("jR")*W.i("kR")
+                    else:
+                        S = ctf.einsum("ijk,iR,jR,kR->ijk",T,U,V,W)
+                t1 = time.time()
+                ite1 = t1 - t0
+                te1 += ite1
 
-            times.append(ite1)
+                times.append(ite1)
 
-            if ctf.comm().rank() == 0:
-                print(ite1)
+                if ctf.comm().rank() == 0:
+                    print(ite1)
+        else:
+            U = ctf.random.random((s))
+            V = ctf.random.random((s))
+            W = ctf.random.random((s))
+            for i in range(num_iter):
+                t0 = time.time()
+                if use_tttp:
+                    S = ctf.TTTP(T,[U,V,W])
+                else:
+                    if sp:
+                        S = ctf.tensor((s,s,s),sp=sp)
+                        S.i("ijk") << T.i("ijk")*U.i("i")
+                        S.i("ijk") << S.i("ijk")*V.i("j")
+                        S.i("ijk") << S.i("ijk")*W.i("k")
+                    else:
+                        S = ctf.einsum("ijk,i,j,k->ijk",T,U,V,W)
+                t1 = time.time()
+                ite1 = t1 - t0
+                te1 += ite1
 
+                times.append(ite1)
+
+                if ctf.comm().rank() == 0:
+                    print(ite1)
         if ctf.comm().rank() == 0:
             avg_time = (te1)/(num_iter)
             agg_avg_times.append(avg_time)
