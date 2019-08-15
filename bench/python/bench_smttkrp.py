@@ -15,6 +15,19 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_init):
     agg_max_times = []
     agg_min_95 = []
     agg_max_95 = []
+    if num_iter > 1:
+        if ctf.comm().rank() == 0:
+            print("Performing MTTKRP WARMUP with s =",s,"nnz =",nnz,"sp =",sp,"sp_init =",sp_init)
+        T = ctf.tensor((s,s,s),sp=sp)
+        T.fill_sp_random(-1.,1.,float(nnz)/float(s*s*s))
+        U = ctf.random.random((s,R))
+        V = ctf.random.random((s,R))
+        W = ctf.random.random((s,R))
+        U = ctf.einsum("ijk,jr,kr->ir",T,V,W)
+        V = ctf.einsum("ijk,ir,kr->jr",T,U,W)
+        W = ctf.einsum("ijk,ir,jr->kr",T,U,V)
+        if ctf.comm().rank() == 0:
+            print("Completed MTTKRP WARMUP with s =",s,"nnz =",nnz,"sp =",sp,"sp_init =",sp_init)
     while s<=s_end:
         agg_s.append(s)
         T = ctf.tensor((s,s,s),sp=sp)

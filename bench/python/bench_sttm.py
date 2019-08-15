@@ -15,6 +15,23 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_out, sp_init):
     agg_max_times = []
     agg_min_95 = []
     agg_max_95 = []
+    if num_iter > 1:
+        if ctf.comm().rank() == 0:
+            print("Performing TTM WARMUP with s =",s,"nnz =",nnz,"sp =",sp,"sp_out =",sp_out,"sp_init =",sp_init)
+        T = ctf.tensor((s,s,s),sp=sp)
+        T.fill_sp_random(-1.,1.,float(nnz)/float(s*s*s))
+        U = ctf.random.random((s,R))
+        if sp_out:
+            S = ctf.tensor((s,s,R),sp=True)
+            S.i("jkr") << T.i("ijk")*U.i("ir")
+            S.i("ikr") << T.i("ijk")*U.i("jr")
+            S.i("ijr") << T.i("ijk")*U.i("kr")
+        else:
+            S = ctf.einsum("ijk,ir->jkr",T,U)
+            S = ctf.einsum("ijk,jr->ikr",T,U)
+            S = ctf.einsum("ijk,kr->ijr",T,U)
+        if ctf.comm().rank() == 0:
+            print("Completed TTM WARMUP with s =",s,"nnz =",nnz,"sp =",sp,"sp_out =",sp_out,"sp_init =",sp_init)
     while s<=s_end:
         agg_s.append(s)
         if ctf.comm().rank() == 0:

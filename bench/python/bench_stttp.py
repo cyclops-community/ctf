@@ -15,6 +15,28 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_init, use_tttp):
     agg_max_times = []
     agg_min_95 = []
     agg_max_95 = []
+    if num_iter > 1:
+        if ctf.comm().rank() == 0:
+            print("Performing TTTP WARMUP with s =",s,"nnz =",nnz,"sp",sp,"sp_init is",sp_init,"use_tttp",use_tttp)
+
+        T = ctf.tensor((s,s,s),sp=sp)
+        T.fill_sp_random(-1.,1.,float(nnz)/float(s*s*s))
+        U = ctf.random.random((s,R))
+        V = ctf.random.random((s,R))
+        W = ctf.random.random((s,R))
+        if use_tttp:
+            S = ctf.TTTP(T,[U,V,W])
+        else:
+            if sp:
+                S = ctf.tensor((s,s,s),sp=sp)
+                Z = ctf.tensor((s,s,s,R),sp=sp)
+                Z.i("ijkr") << T.i("ijk")*U.i("ir")
+                Z.i("ijkr") << Z.i("ijkr")*V.i("jr")
+                S.i("ijkr") << Z.i("ijkr")*W.i("kr")
+            else:
+                S = ctf.einsum("ijk,iR,jR,kR->ijk",T,U,V,W)
+        if ctf.comm().rank() == 0:
+            print("Completed TTTP WARMUP with s =",s,"nnz =",nnz,"sp",sp,"sp_init is",sp_init,"use_tttp",use_tttp)
     while s<=s_end:
         agg_s.append(s)
         if ctf.comm().rank() == 0:
