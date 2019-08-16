@@ -32,7 +32,7 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_init, use_tttp):
                 Z = ctf.tensor((s,s,s,R),sp=sp)
                 Z.i("ijkr") << T.i("ijk")*U.i("ir")
                 Z.i("ijkr") << Z.i("ijkr")*V.i("jr")
-                S.i("ijkr") << Z.i("ijkr")*W.i("kr")
+                S.i("ijk") << Z.i("ijkr")*W.i("kr")
             else:
                 S = ctf.einsum("ijk,iR,jR,kR->ijk",T,U,V,W)
         if ctf.comm().rank() == 0:
@@ -59,7 +59,7 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_init, use_tttp):
                         Z = ctf.tensor((s,s,s,R),sp=sp)
                         Z.i("ijkr") << T.i("ijk")*U.i("ir")
                         Z.i("ijkr") << Z.i("ijkr")*V.i("jr")
-                        S.i("ijkr") << Z.i("ijkr")*W.i("kr")
+                        S.i("ijk") << Z.i("ijkr")*W.i("kr")
                         #S.i("ijk") << T.i("ijk")*U.i("iR")*V.i("jR")*W.i("kR")
                     else:
                         S = ctf.einsum("ijk,iR,jR,kR->ijk",T,U,V,W)
@@ -83,8 +83,8 @@ def run_bench(num_iter, s_start, s_end, mult, R, sp, sp_init, use_tttp):
                     if sp:
                         S = ctf.tensor((s,s,s),sp=sp)
                         S.i("ijk") << T.i("ijk")*U.i("i")
-                        S.i("ijk") << S.i("ijk")*V.i("j")
-                        S.i("ijk") << S.i("ijk")*W.i("k")
+                        0.0*S.i("ijk") << S.i("ijk")*V.i("j")
+                        0.0*S.i("ijk") << S.i("ijk")*W.i("k")
                     else:
                         S = ctf.einsum("ijk,i,j,k->ijk",T,U,V,W)
                 t1 = time.time()
