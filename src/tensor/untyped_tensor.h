@@ -718,7 +718,7 @@ namespace CTF_int {
                            char const * beta);
 
       /**
-        * \brief accumulates this tensor from a tensor object defined on a different world
+        * \brief accumulates into this tensor from a tensor object defined on a different world
         * \param[in] tsr_sub id of tensor on a subcomm of this CTF inst
         * \param[in] alpha scaling factor for this tensor
         * \param[in] beta scaling factor for tensor tsr

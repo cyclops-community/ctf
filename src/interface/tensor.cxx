@@ -996,7 +996,7 @@ namespace CTF {
   template<typename dtype>
   void Tensor<dtype>::add_to_subworld(
                            Tensor<dtype> * tsr){
-    return add_to_subworld(tsr, sr->mulid(), sr->mulid());
+    CTF_int::tensor::add_to_subworld(tsr, sr->mulid(), sr->mulid());
   }
 
   template<typename dtype>

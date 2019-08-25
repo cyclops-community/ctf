@@ -338,7 +338,6 @@ namespace CTF {
         this->edge_map[1].cdt  == 0)
       layout_order = 'R';
     int ctxt;
-    IASSERT(this->wrld->comm == MPI_COMM_WORLD);
     CTF_SCALAPACK::cblacs_get(-1, 0, &ctxt);
     CTF_int::grid_wrapper gw;
     gw.pr = pr;
@@ -875,6 +874,65 @@ namespace CTF {
 
     IASSERT(m==n);
 
+    int pr, pc;
+    pr = this->edge_map[0].calc_phase();
+    pc = this->edge_map[1].calc_phase();
+
+    //ScaLAPACK currently only supports square grids for symeigsolve
+    if (pr != pc){
+      IASSERT(this->wrld->comm == MPI_COMM_WORLD);
+      int ctxt;
+      CTF_SCALAPACK::cblacs_get(-1, 0, &ctxt);
+      int sqrtp = (int)std::sqrt((double)(this->wrld->np));
+      while ((sqrtp+1) * (sqrtp+1) <= this->wrld->np) sqrtp++;
+      if (sqrtp * sqrtp == this->wrld->np){
+        int dims[2];
+        dims[0] = sqrtp;
+        dims[1] = sqrtp;
+        Matrix<dtype> A(this->nrow, this->ncol, "ij", Partition(2,dims)["ij"], Idx_Partition(), 0, *this->wrld);
+        A["ij"] = this->operator[]("ij");
+        A.eigh(U,D);
+      } else {
+        MPI_Comm subcomm;
+        MPI_Comm_split(this->wrld->comm, ((int)this->wrld->rank) < sqrtp*sqrtp, this->wrld->rank, &subcomm);
+        World sworld(subcomm);
+        //cblacs_gridinit needs to be called by all processors in bigger comm, so create the grid with all processes and add it (FIXME: create general infrastructure for this) FIXME: also, this won't extend to calling eigh on subcomms.
+        CTF_int::grid_wrapper gw;
+        gw.pr = sqrtp;
+        gw.pc = sqrtp;
+        gw.layout = 'C';
+        std::set<CTF_int::grid_wrapper>::iterator s = CTF_int::scalapack_grids.find(gw);
+        if (s == CTF_int::scalapack_grids.end()){
+          CTF_SCALAPACK::cblacs_gridinit(&ctxt, &gw.layout, gw.pr, gw.pc);
+          gw.ctxt = ctxt;
+          CTF_int::scalapack_grids.insert(gw);
+        }
+        int dims[2];
+        dims[0] = sqrtp;
+        dims[1] = sqrtp;
+        if (((int)this->wrld->rank) < sqrtp*sqrtp){
+          Matrix<dtype> A(this->nrow, this->ncol, "ij", Partition(2,dims)["ij"], Idx_Partition(), 0, sworld);
+          this->add_to_subworld(&A);
+          Matrix<dtype> sU;
+          Vector<dtype> sD;
+          A.eigh(sU,sD);
+          U = Matrix<dtype>(n, n, *this->wrld);
+          D = Vector<dtype>(n, *this->wrld);
+          U.add_from_subworld(&sU);
+          D.add_from_subworld(&sD);
+        } else {
+          Tensor<dtype> dummy;//0,0,(int64_t*)NULL,NULL,sworld);
+          this->add_to_subworld(&dummy);
+          U = Matrix<dtype>(n, n, *this->wrld);
+          D = Vector<dtype>(n, *this->wrld);
+          U.add_from_subworld(&dummy);
+          D.add_from_subworld(&dummy);
+        }
+        MPI_Comm_free(&subcomm);
+      }
+      t_eigh.stop();
+      return;
+    }
 
     int * desca;// = (int*)malloc(9*sizeof(int));
     int * descu = (int*)malloc(9*sizeof(int));
@@ -883,9 +941,6 @@ namespace CTF {
     char layout_order;
     this->get_desc(ictxt, desca, layout_order);
 
-    int pr, pc;
-    pr = this->edge_map[0].calc_phase();
-    pc = this->edge_map[1].calc_phase();
     //CTF_SCALAPACK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
     int64_t npr = n/pr + (n % pr != 0);
     int64_t npc = n/pc + (n % pc != 0);

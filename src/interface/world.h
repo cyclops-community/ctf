@@ -153,7 +153,7 @@ namespace CTF_int {
     public:
       int pr;
       int pc;
-      int layout;
+      char layout;
       int ctxt;
 
       bool operator<(grid_wrapper const & other) const;

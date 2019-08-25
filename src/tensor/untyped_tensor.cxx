@@ -852,12 +852,19 @@ namespace CTF_int {
                                char **         sub_buffer_){
     int is_sub = 0;
     //FIXME: assumes order 0 dummy, what if we run this on actual order 0 tensor?
-    if (order >= -1) is_sub = 1;
+    if (order >= 0) is_sub = 1;
     int tot_sub;
     greater_world->cdt.allred(&is_sub, &tot_sub, 1, MPI_INT, MPI_SUM);
     //ensure the number of processes that have a subcomm defined is equal to the size of the subcomm
     //this should in most sane cases ensure that a unique subcomm is involved
-    if (order >= -1) ASSERT(tot_sub == wrld->np);
+    if (order >= 0){
+      if (tot_sub != wrld->np){
+        if (wrld->rank == 0){
+          printf("tot_sub = %d, wrld->np = %d\n",tot_sub,wrld->np);
+        }
+      }
+      ASSERT(tot_sub == wrld->np);
+    }
     int aorder;
     greater_world->cdt.allred(&order, &aorder, 1, MPI_INT, MPI_MAX);
 
@@ -923,8 +930,10 @@ namespace CTF_int {
       delete odst;
       odst = new distribution(rbuffer);
       CTF_int::cdealloc(rbuffer);
-    } else
-      sr->set(sub_buffer, sr->addid(), odst->size);
+    } else {
+      if (bw_mirror_rank == 0)
+        sr->set(sub_buffer, sr->addid(), odst->size);
+    }
     *sub_buffer_ = sub_buffer;
 
   }
@@ -1067,14 +1076,14 @@ namespace CTF_int {
                                char const * alpha,
                                char const * beta){
   #ifdef USE_SLICE_FOR_SUBWORLD
-    int offsets[this->order];
-    memset(offsets, 0, this->order*sizeof(int));
+    int64_t offsets[this->order];
+    memset(offsets, 0, this->order*sizeof(int64_t));
     if (tsr_sub->order <= -1){ // == NULL){
 //      CommData * cdt = new CommData(MPI_COMM_SELF);
     // (CommData*)CTF_int::alloc(sizeof(CommData));
     //  SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
       World dt_self = World(MPI_COMM_SELF);
-      tensor stsr = tensor(sr, 0, (int64_t*)NULL, NULL, &dt_self, 0);
+      tensor stsr(sr, 0, (int64_t*)NULL, NULL, &dt_self, 0);
       stsr.slice(NULL, NULL, beta, this, offsets, offsets, alpha);
     } else {
       tsr_sub->slice(offsets, lens, beta, this, offsets, lens, alpha);
@@ -1113,8 +1122,8 @@ namespace CTF_int {
                                  char const * alpha,
                                  char const * beta){
   #ifdef USE_SLICE_FOR_SUBWORLD
-    int offsets[this->order];
-    memset(offsets, 0, this->order*sizeof(int));
+    int64_t offsets[this->order];
+    memset(offsets, 0, this->order*sizeof(int64_t));
     if (tsr_sub->order <= -1){ // == NULL){
       World dt_self = World(MPI_COMM_SELF);
       tensor stsr = tensor(sr, 0, (int64_t*)NULL, NULL, &dt_self, 0);
