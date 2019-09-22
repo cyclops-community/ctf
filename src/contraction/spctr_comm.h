@@ -41,6 +41,13 @@ namespace CTF_int{
        * \return bytes needed for contraction
        */
       int64_t spmem_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+
+      /**
+       * \brief returns the number of bytes used temporarily (not needed as we recurse)
+       * \return bytes needed
+       */
+      int64_t spmem_tmp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+
       /**
        * \brief returns the number of bytes need by each processor in this kernel and its recursive calls
        * \return bytes needed for recursive contraction

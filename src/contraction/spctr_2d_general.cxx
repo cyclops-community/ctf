@@ -4,6 +4,7 @@
 #include "../tensor/untyped_tensor.h"
 #include "../mapping/mapping.h"
 #include "../shared/util.h"
+#include "../shared/memcontrol.h"
 #include "../sparse_formats/ccsr.h"
 #include <climits>
 
@@ -130,11 +131,24 @@ namespace CTF_int {
     else mem_usage += sr_B->el_size*s_B;
     if (is_sparse_C) mem_usage += (3*sr_C->pair_size()*s_C)*nnz_frac_C;
     else mem_usage += sr_C->el_size*s_C;
+
+    return mem_usage;
+  }
+
+  int64_t spctr_2d_general::spmem_tmp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
+    int64_t b_A, b_B, b_C, s_A, s_B, s_C, aux_size;
+    find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, aux_size);
+    int64_t mem_usage = 0;
+    if (move_C){
+      if (is_sparse_C) mem_usage += (3*sr_C->pair_size()*s_C)*nnz_frac_C;
+      else mem_usage += sr_C->el_size*s_C;
+    }
+
     return mem_usage;
   }
 
   int64_t spctr_2d_general::spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
-    return rec_ctr->spmem_rec(nnz_frac_A, nnz_frac_B, nnz_frac_C) + spmem_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C);
+    return std::max(spmem_tmp(nnz_frac_A, nnz_frac_B, nnz_frac_C), rec_ctr->spmem_rec(nnz_frac_A, nnz_frac_B, nnz_frac_C)) + spmem_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
   char * bcast_step(int64_t edge_len, char * A, bool is_sparse_A, bool move_A, algstrct const * sr_A, int64_t b_A, int64_t s_A, char * buf_A, CommData * cdt_A, int64_t ctr_sub_lda_A, int64_t ctr_lda_A, int nblk_A, int64_t const * size_blk_A, int & new_nblk_A, int64_t *& new_size_blk_A, int64_t * offsets_A, int ib){
