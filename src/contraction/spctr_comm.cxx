@@ -176,14 +176,22 @@ namespace CTF_int {
     int64_t mem_usage = 0;
     if (is_sparse_A) mem_usage += nnz_frac_A*(size_A*sr_A->pair_size());
     if (is_sparse_B) mem_usage += nnz_frac_B*(size_B*sr_B->pair_size());
-    if (is_sparse_C) mem_usage += 4.*nnz_frac_C*(size_C*sr_C->pair_size());
+    if (is_sparse_C) mem_usage += 3.*nnz_frac_C*(size_C*sr_C->pair_size());
     return mem_usage;
   }
 
-  int64_t spctr_replicate::spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
-    return rec_ctr->spmem_rec(nnz_frac_A, nnz_frac_B, nnz_frac_C) + spmem_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C);
+  int64_t spctr_replicate::spmem_tmp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
+    int64_t mem_usage = 0;
+    if (this->ncdt_C > 0){
+      if (!is_sparse_C)
+        mem_usage += sr_C->el_size*size_C;
+    }
+    return mem_usage;
   }
 
+  int64_t spctr_replicate::spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
+    return std::max(spmem_tmp(nnz_frac_A, nnz_frac_B, nnz_frac_C), rec_ctr->spmem_rec(nnz_frac_A, nnz_frac_B, nnz_frac_C)) + spmem_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C);
+  }
 
   void spctr_replicate::run(char * A, int nblk_A, int64_t const * size_blk_A,
                             char * B, int nblk_B, int64_t const * size_blk_B,

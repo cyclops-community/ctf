@@ -166,7 +166,11 @@ namespace CTF_int {
       }
     }
 
+#ifdef NO_HYPERSPARSE
+    bool is_sparse_C = A.parent->is_sparse && B.parent->is_sparse;
+#else
     bool is_sparse_C = A.parent->is_sparse || B.parent->is_sparse;
+#endif
     if (!contract)
       is_sparse_C = A.parent->is_sparse && B.parent->is_sparse;
     tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, false, NULL, false, is_sparse_C);
