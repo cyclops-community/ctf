@@ -2,6 +2,19 @@
 
 namespace CTF_int {
 
+  struct int64_t1
+  {
+    int64_t i[1];
+    int64_t1(int64_t a)
+    {
+      i[0] = a;
+    }
+    operator const int64_t*() const
+    {
+      return i;
+    }
+  };
+
   struct int1
   {
     int i[1];
@@ -47,45 +60,45 @@ namespace CTF {
   }
 
   template<typename dtype>
-  Vector<dtype>::Vector(int                       len_,
+  Vector<dtype>::Vector(int64_t                   len_,
                         World &                   world_,
                         CTF_int::algstrct const & sr_)
-   : Tensor<dtype>(1, CTF_int::int1(len_), CTF_int::int1(NS), world_, sr_, NULL, 0) {
+   : Tensor<dtype>(1, CTF_int::int64_t1(len_), CTF_int::int1(NS), world_, sr_, NULL, 0) {
     len = len_;
   }
 
   template<typename dtype>
-  Vector<dtype>::Vector(int                       len_,
+  Vector<dtype>::Vector(int64_t                   len_,
                         World &                   world_,
                         char const *              name_,
                         int                       profile_,
                         CTF_int::algstrct const & sr_)
-   : Tensor<dtype>(1, CTF_int::int1(len_), CTF_int::int1(NS), world_, sr_, name_, profile_) {
+   : Tensor<dtype>(1, CTF_int::int64_t1(len_), CTF_int::int1(NS), world_, sr_, name_, profile_) {
     len = len_;
   }
 
   template<typename dtype>
-  Vector<dtype>::Vector(int                       len_,
+  Vector<dtype>::Vector(int64_t                   len_,
                         int                       atr_,
                         World &                   world_,
                         char const *              name_,
                         int                       profile_,
                         CTF_int::algstrct const & sr_)
-   : Tensor<dtype>(1, atr_>0, CTF_int::int1(len_), CTF_int::int1(NS), world_, sr_, name_, profile_) {
+   : Tensor<dtype>(1, atr_>0, CTF_int::int64_t1(len_), CTF_int::int1(NS), world_, sr_, name_, profile_) {
     len = len_;
   }
 
   template<typename dtype>
-  Vector<dtype>::Vector(int                       len_,
+  Vector<dtype>::Vector(int64_t                   len_,
                         int                       atr_,
                         World &                   world_,
                         CTF_int::algstrct const & sr_)
-   : Tensor<dtype>(1, atr_>0, CTF_int::int1(len_), CTF_int::int1(NS), world_, sr_) {
+   : Tensor<dtype>(1, atr_>0, CTF_int::int64_t1(len_), CTF_int::int1(NS), world_, sr_) {
     len = len_;
   }
 
   template<typename dtype>
-  Vector<dtype>::Vector(int                       len_,
+  Vector<dtype>::Vector(int64_t                   len_,
                         char                      idx,
                         Idx_Partition const &     prl,
                         Idx_Partition const &     blk,
@@ -94,7 +107,7 @@ namespace CTF {
                         CTF_int::algstrct const & sr_,
                         char const *              name_,
                         int                       profile_) 
-    : Tensor<dtype>(1, (atr_&4)>0, CTF_int::int1(len_), CTF_int::int1(NS), 
+    : Tensor<dtype>(1, (atr_&4)>0, CTF_int::int64_t1(len_), CTF_int::int1(NS), 
                            world_, CTF_int::char1(idx), prl, blk, name_, profile_, sr_) {
     len = len_;
   }
