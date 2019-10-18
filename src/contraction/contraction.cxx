@@ -3098,7 +3098,6 @@ namespace CTF_int {
     topology * topo_g = NULL;
     int j_g;
     int64_t old_off = 0;
-    int ii = 0;
     if (gbest_time_sel <= gbest_time_exh){
       j_g = ttopo%6;
       if (ttopo < 48){
@@ -3128,7 +3127,6 @@ namespace CTF_int {
         choice_offset += tnum_choices;
         if (choice_offset > ttopo) break;
       }
-      ii = i;
       topo_g = wrld->topovec[i];
       j_g = ttopo-old_off;
     }
