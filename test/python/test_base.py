@@ -357,6 +357,16 @@ class KnowValues(unittest.TestCase):
         a2 = ctf.astensor(numpy.ones((2,5,2)))
         self.assertTrue(ctf.hstack((a1, a2)).shape == (2,9,2))
 
+    def test_int_conv(self):
+        a = ctf.ones(2, dtype=float)
+        b = numpy.ones(2, dtype=float)
+        self.assertTrue(numpy.allclose(a.to_nparray(),b))
+
+        a = ctf.zeros(2, dtype=complex)
+        a[0] = 1
+        self.assertTrue(numpy.allclose([a.norm2()],[1.]))
+        a *= 2
+        self.assertTrue(numpy.allclose([a.norm2()],[2.]))
 
 def run_tests():
     numpy.random.seed(5330);

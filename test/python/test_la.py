@@ -213,6 +213,11 @@ class KnowValues(unittest.TestCase):
             self.assertTrue(allclose(ctf.dot(A,X), X*D))
             self.assertTrue(allclose(ctf.eye(n), ctf.dot(X.conj().T(), X)))
 
+    def test_norm(self):
+        vec = ctf.zeros((20,20),dtype=numpy.float64)
+        vec.fill_random(-1,1)
+        self.assertTrue(numpy.allclose([ctf.norm(vec,2)],[numpy.linalg.norm(vec.to_nparray(),2)]))
+
 
 def run_tests():
     numpy.random.seed(5330)

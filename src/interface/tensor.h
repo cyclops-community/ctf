@@ -1178,7 +1178,7 @@ namespace CTF {
       /**
        * \brief computes the frobenius norm of the tensor (needs sqrt()!)
        */
-      dtype norm2(){ return sqrt(reduce(OP_SUMSQ)); };
+      double norm2();
 
       /**
        * \brief finds the max absolute value element of the tensor
