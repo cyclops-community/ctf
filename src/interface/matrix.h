@@ -17,7 +17,8 @@ namespace CTF {
   template<typename dtype=double> 
   class Matrix : public Tensor<dtype> {
     public:
-      int nrow, ncol, symm;
+      int64_t nrow, ncol;
+      int symm;
       /** 
        * \brief default constructor for a matrix
        */
@@ -46,8 +47,8 @@ namespace CTF {
        * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */ 
-      Matrix(int                       nrow,
-             int                       ncol,
+      Matrix(int64_t                   nrow,
+             int64_t                   ncol,
              World &                   wrld,
              CTF_int::algstrct const & sr=Ring<dtype>(),
              char const *              name=NULL,
@@ -62,8 +63,8 @@ namespace CTF {
        * \param[in] profile set to 1 to profile contractions involving this tensor
        * \param[in] sr defines the tensor arithmetic for this tensor
        */ 
-      Matrix(int                       nrow,
-             int                       ncol,
+      Matrix(int64_t                   nrow,
+             int64_t                   ncol,
              World &                   wrld,
              char const *              name,
              int                       profile=0,
@@ -81,8 +82,8 @@ namespace CTF {
        * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */ 
-      Matrix(int                       nrow,
-             int                       ncol,
+      Matrix(int64_t                   nrow,
+             int64_t                   ncol,
              int                       atr=0,
              World &                   wrld=get_universe(),
              CTF_int::algstrct const & sr=Ring<dtype>(),
@@ -99,8 +100,8 @@ namespace CTF {
        * \param[in] profile set to 1 to profile contractions involving this tensor
        * \param[in] sr defines the tensor arithmetic for this tensor
        */ 
-      Matrix(int                       nrow,
-             int                       ncol,
+      Matrix(int64_t                   nrow,
+             int64_t                   ncol,
              int                       atr,
              World &                   wrld,
              char const *              name,
@@ -122,8 +123,8 @@ namespace CTF {
        * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */ 
-      Matrix(int                       nrow,
-             int                       ncol,
+      Matrix(int64_t                   nrow,
+             int64_t                   ncol,
              char const *              idx,
              Idx_Partition const &     prl,
              Idx_Partition const &     blk=Idx_Partition(),
@@ -179,8 +180,8 @@ namespace CTF {
        * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */
-      Matrix(int                       nrow,
-             int                       ncol,
+      Matrix(int64_t                   nrow,
+             int64_t                   ncol,
              int                       mb,
              int                       nb,
              int                       pr,

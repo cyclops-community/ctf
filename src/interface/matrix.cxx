@@ -23,6 +23,19 @@ namespace CTF_int{
       return i;
     }
   };
+  struct int64_t2
+  {
+    int64_t i[2];
+    int64_t2(int64_t a, int64_t b)
+    {
+      i[0] = a;
+      i[1] = b;
+    }
+    operator const int64_t*() const
+    {
+      return i;
+    }
+  };
 }
 
 
@@ -68,13 +81,13 @@ namespace CTF {
 
 
   template<typename dtype>
-  Matrix<dtype>::Matrix(int                       nrow_,
-                        int                       ncol_,
+  Matrix<dtype>::Matrix(int64_t                   nrow_,
+                        int64_t                   ncol_,
                         World &                   world_,
                         CTF_int::algstrct const & sr_,
                         char const *              name_,
                         int                       profile_)
-    : Tensor<dtype>(2, false, CTF_int::int2(nrow_, ncol_),  CTF_int::int2(NS, NS),
+    : Tensor<dtype>(2, false, CTF_int::int64_t2(nrow_, ncol_),  CTF_int::int2(NS, NS),
                            world_, sr_, name_, profile_) {
     nrow = nrow_;
     ncol = ncol_;
@@ -82,14 +95,14 @@ namespace CTF {
   }
 
   template<typename dtype>
-  Matrix<dtype>::Matrix(int                       nrow_,
-                        int                       ncol_,
+  Matrix<dtype>::Matrix(int64_t                   nrow_,
+                        int64_t                   ncol_,
                         int                       atr_,
                         World &                   world_,
                         CTF_int::algstrct const & sr_,
                         char const *              name_,
                         int                       profile_)
-    : Tensor<dtype>(2, (atr_&4)>0, CTF_int::int2(nrow_, ncol_), CTF_int::int2(atr_&3, NS), 
+    : Tensor<dtype>(2, (atr_&4)>0, CTF_int::int64_t2(nrow_, ncol_), CTF_int::int2(atr_&3, NS), 
                            world_, sr_, name_, profile_) {
     nrow = nrow_;
     ncol = ncol_;
@@ -97,13 +110,13 @@ namespace CTF {
   }
 
   template<typename dtype>
-  Matrix<dtype>::Matrix(int                       nrow_,
-                        int                       ncol_,
+  Matrix<dtype>::Matrix(int64_t                   nrow_,
+                        int64_t                   ncol_,
                         World &                   world_,
                         char const *              name_,
                         int                       profile_,
                         CTF_int::algstrct const & sr_)
-    : Tensor<dtype>(2, false, CTF_int::int2(nrow_, ncol_), CTF_int::int2(NS, NS),
+    : Tensor<dtype>(2, false, CTF_int::int64_t2(nrow_, ncol_), CTF_int::int2(NS, NS),
                            world_, sr_, name_, profile_) {
     nrow = nrow_;
     ncol = ncol_;
@@ -112,14 +125,14 @@ namespace CTF {
 
 
   template<typename dtype>
-  Matrix<dtype>::Matrix(int                       nrow_,
-                        int                       ncol_,
+  Matrix<dtype>::Matrix(int64_t                   nrow_,
+                        int64_t                   ncol_,
                         int                       atr_,
                         World &                   world_,
                         char const *              name_,
                         int                       profile_,
                         CTF_int::algstrct const & sr_)
-    : Tensor<dtype>(2, (atr_&4)>0, CTF_int::int2(nrow_, ncol_), CTF_int::int2(atr_&3, NS), 
+    : Tensor<dtype>(2, (atr_&4)>0, CTF_int::int64_t2(nrow_, ncol_), CTF_int::int2(atr_&3, NS), 
                            world_, sr_, name_, profile_) {
     nrow = nrow_;
     ncol = ncol_;
@@ -128,8 +141,8 @@ namespace CTF {
 
 
   template<typename dtype>
-  Matrix<dtype>::Matrix(int                       nrow_,
-                        int                       ncol_,
+  Matrix<dtype>::Matrix(int64_t                   nrow_,
+                        int64_t                   ncol_,
                         char const *              idx,
                         Idx_Partition const &     prl,
                         Idx_Partition const &     blk,
@@ -138,7 +151,7 @@ namespace CTF {
                         CTF_int::algstrct const & sr_,
                         char const *              name_,
                         int                       profile_)
-    : Tensor<dtype>(2, (atr_&4)>0, CTF_int::int2(nrow_, ncol_), CTF_int::int2(atr_&3, NS), 
+    : Tensor<dtype>(2, (atr_&4)>0, CTF_int::int64_t2(nrow_, ncol_), CTF_int::int2(atr_&3, NS), 
                            world_, idx, prl, blk, name_, profile_, sr_) {
     nrow = nrow_;
     ncol = ncol_;
@@ -164,8 +177,8 @@ namespace CTF {
 
   template<typename dtype>
   void get_my_kv_pair(int            rank,
-                      int            nrow,
-                      int            ncol,
+                      int64_t        nrow,
+                      int64_t        ncol,
                       int            mb,
                       int            nb,
                       int            pr,
@@ -380,8 +393,8 @@ namespace CTF {
   }
 
   template<typename dtype>
-  Matrix<dtype>::Matrix(int                       nrow_,
-                        int                       ncol_,
+  Matrix<dtype>::Matrix(int64_t                   nrow_,
+                        int64_t                   ncol_,
                         int                       mb,
                         int                       nb,
                         int                       pr,
@@ -395,7 +408,7 @@ namespace CTF {
                         CTF_int::algstrct const & sr_,
                         char const *              name_,
                         int                       profile_)
-    : Tensor<dtype>(2, false, CTF_int::int2(nrow_, ncol_),  CTF_int::int2(NS, NS),
+    : Tensor<dtype>(2, false, CTF_int::int64_t2(nrow_, ncol_),  CTF_int::int2(NS, NS),
                            wrld_, sr_, name_, profile_) {
     nrow = nrow_;
     ncol = ncol_;
@@ -829,7 +842,7 @@ namespace CTF {
       A["ij"] = this->operator[]("ij");
       return A.svd_rand(U,S,VT,rank,iter,oversamp,U_guess);
     }
-    int max_rank = std::min(std::min(nrow,ncol), rank+oversamp);
+    int max_rank = std::min(std::min(nrow,ncol), (int64_t)rank+oversamp);
     IASSERT(rank+oversamp <= std::min(nrow,ncol) || U_guess==NULL);
     bool del_U_guess = false;
     if (U_guess == NULL){

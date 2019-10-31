@@ -1856,9 +1856,10 @@ namespace CTF_int {
   }
 
   bool summation::check_consistency(){
-    int i, num_tot, len;
+    int i, num_tot;
     int iA, iB;
     int * idx_arr;
+    int64_t len;
        
     inv_idx(A->order, idx_A,
             B->order, idx_B,
@@ -1873,7 +1874,7 @@ namespace CTF_int {
       }
       if (len != -1 && iB != -1 && len != B->lens[iB]){
         if (A->wrld->cdt.rank == 0){
-          printf("i = %d Error in sum call: The %dth edge length (%d) of tensor %s does not",
+          printf("i = %d Error in sum call: The %dth edge length (%ld) of tensor %s does not",
                   i, iA, len, A->name);
           printf("match the %dth edge length (%ld) of tensor %s.\n",
                   iB, B->lens[iB], B->name);

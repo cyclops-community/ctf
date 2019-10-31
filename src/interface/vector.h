@@ -13,7 +13,7 @@ namespace CTF {
   template <typename dtype=double>
   class Vector : public Tensor<dtype> {
     public:
-      int len;
+      int64_t len;
       /** 
        * \brief default constructor for a vector
        */
@@ -37,7 +37,7 @@ namespace CTF {
        * \param[in] world CTF world where the tensor will live
        * \param[in] sr defines the tensor arithmetic for this tensor
        */ 
-      Vector(int                       len,
+      Vector(int64_t                   len,
              World &                   world,
              CTF_int::algstrct const & sr);
 
@@ -49,7 +49,7 @@ namespace CTF {
        * \param[in] profile set to 1 to profile contractions involving this tensor
        * \param[in] sr defines the tensor arithmetic for this tensor
        */ 
-      Vector(int                       len,
+      Vector(int64_t                   len,
              World &                   world=get_universe(),
              char const *              name=NULL,
              int                       profile=0,
@@ -62,7 +62,7 @@ namespace CTF {
        * \param[in] world CTF world where the tensor will live
        * \param[in] sr defines the tensor arithmetic for this tensor
        */ 
-      Vector(int                       len,
+      Vector(int64_t                   len,
              int                       atr,
              World &                   world=get_universe(),
              CTF_int::algstrct const & sr=Ring<dtype>());
@@ -77,7 +77,7 @@ namespace CTF {
        * \param[in] profile set to 1 to profile contractions involving this tensor
        * \param[in] sr defines the tensor arithmetic for this tensor
        */ 
-      Vector(int                       len,
+      Vector(int64_t                   len,
              int                       atr,
              World &                   world,
              char const *              name,
@@ -99,7 +99,7 @@ namespace CTF {
        * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */ 
-      Vector(int                       len,
+      Vector(int64_t                   len,
              char                      idx,
              Idx_Partition const &     prl,
              Idx_Partition const &     blk=Idx_Partition(),
