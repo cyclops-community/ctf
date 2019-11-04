@@ -3174,7 +3174,7 @@ namespace CTF_int {
               (double)memuse,(double)proc_bytes_available(),(double)proc_bytes_used(),std::min(gbest_time_sel,gbest_time_exh));
     }
     if (est_time != std::min(gbest_time_sel,gbest_time_exh))
-      printf("Times are %E %E %E ttopo is %d,old_off = %ld,j = %d i = %d\n",est_time,gbest_time_sel,gbest_time_exh,ttopo, old_off, j_g, ii);
+      printf("Times are %E %E %E ttopo is %d,old_off = %ld,j = %d\n",est_time,gbest_time_sel,gbest_time_exh,ttopo, old_off, j_g);
 
     assert(est_time == std::min(gbest_time_sel,gbest_time_exh));
 #endif
