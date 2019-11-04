@@ -1370,8 +1370,15 @@ NORM1_INST(double)
     sc[""] = cA[inds];
     dtype val = ((dtype*)sc.data)[0];
     MPI_Bcast((char *)&val, sizeof(dtype), MPI_CHAR, 0, A.wrld->comm);
-    nrm = std::abs(val);
+    nrm = std::sqrt(std::abs(val));
+  }
 
+
+  template<typename dtype>
+  double Tensor<dtype>::norm2(){
+    if (wrld->rank == 0)
+      printf("CTF ERROR: norm2 not available for the type of tensor %s\n",name);
+    IASSERT(0);
   }
 
 
@@ -1407,10 +1414,10 @@ NORM2_COMPLEX_INST(double)
 
 #define NORM2_INST(dtype) \
   template<> \
-  inline dtype Tensor<dtype>::norm2(){ \
+  inline double Tensor<dtype>::norm2(){ \
     double nrm = 0; \
     this->norm2(nrm); \
-    return (dtype)nrm; \
+    return nrm; \
   }
 
 

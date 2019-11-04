@@ -244,7 +244,7 @@ cdef extern from "ctf.hpp" namespace "CTF":
         void write(int64_t, int64_t *, dtype *)
         void write(int64_t, dtype, dtype, int64_t *, dtype *)
         dtype norm1()
-        dtype norm2() # Frobenius norm
+        double norm2() # Frobenius norm
         dtype norm_infty()
         
     cdef cppclass Vector[dtype](ctensor):
@@ -5316,20 +5316,20 @@ def ones(shape, dtype = None, order='F'):
         shape = (shape,)
     shape = np.asarray(shape)
     if dtype is not None:
+        dtype = _get_np_dtype([dtype])
         ret = tensor(shape, dtype = dtype)
         string = ""
         string_index = 33
         for i in range(len(shape)):
             string += chr(string_index)
             string_index += 1
-        if dtype == np.float64:
+        if dtype == np.float64 or dtype == np.complex128 or dtype == np.complex64 or dtype == np.float32:
             ret.i(string) << 1.0
-        elif dtype == np.complex128:
-            ret.i(string) << 1.0
-        elif dtype == np.int64:
+        elif dtype == np.bool or dtype == np.int64 or dtype == np.int32 or dtype == np.int16 or dtype == np.int8:
             ret.i(string) << 1
-        elif dtype == np.bool:
-            ret.i(string) << 1
+        else:
+            raise ValueError('CTF PYTHON ERROR: bad dtype')
+
         return ret
     else:
         ret = tensor(shape, dtype = np.float64)

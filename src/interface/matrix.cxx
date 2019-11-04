@@ -67,6 +67,9 @@ namespace CTF {
       case SY:
         symm=SY;
         break;
+      case SH:
+        symm=SH;
+        break;
       case AS:
         symm=AS;
         break;
