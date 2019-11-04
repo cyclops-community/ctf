@@ -625,7 +625,7 @@ namespace CTF {
        */
       void get_all_data(int64_t  * npair,
                         dtype **   data,
-                        bool       unpack=false);
+                        bool       unpack=false) const;
 
       /**
        * \brief collects the entire tensor data on each process (not memory scalable)

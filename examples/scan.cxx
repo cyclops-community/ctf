@@ -80,9 +80,10 @@ int scan_test(int     logn,
   srand48(dw.rank*27);
   v.fill_random(0.0, 1.0);
   
-  double start_data[1<<logn];
+  double * start_data;
 
-  v.read_all(start_data);
+  int64_t nn;
+  v.get_all_data(&nn, &start_data);
 
   scan(v, logn);
 
@@ -100,6 +101,8 @@ int scan_test(int     logn,
     else
       printf("{ scan via tensor contractions } failed \n");
   }
+
+  delete [] start_data;
   return pass;
 } 
 

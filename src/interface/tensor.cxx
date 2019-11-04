@@ -390,6 +390,16 @@ namespace CTF {
   }
 
   template<typename dtype>
+  void Tensor<dtype>::get_all_data(int64_t * npair,
+                                   dtype **  data,
+                                   bool      unpack_sym) const {
+    char * cdata;
+    CTF_int::tensor::allread(npair, &cdata, unpack_sym);
+    *data = (dtype*)cdata;
+  }
+
+
+  template<typename dtype>
   void Tensor<dtype>::read_local(int64_t *      npair,
                                  Pair<dtype> ** pairs,
                                  bool           unpack_sym) const {
