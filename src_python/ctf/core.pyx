@@ -174,6 +174,9 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef int64_t sum_bool_tsr(ctensor *);
     cdef void pow_helper[dtype](ctensor * A, ctensor * B, ctensor * C, char * idx_A, char * idx_B, char * idx_C);
     cdef void abs_helper[dtype](ctensor * A, ctensor * B);
+    cdef void helper_floor[dtype](ctensor * A, ctensor * B);
+    cdef void helper_ceil[dtype](ctensor * A, ctensor * B);
+    cdef void helper_round[dtype](ctensor * A, ctensor * B);
     cdef void all_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
     cdef void conj_helper[dtype](ctensor * A, ctensor * B);
     cdef void any_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
@@ -6134,6 +6137,88 @@ def abs(initA):
         abs_helper[int8_t](<ctensor*>A.dt, <ctensor*>oA.dt)
     return oA
 
+def floor(x, out=None):
+    """
+    floor(x, out=None)
+    Elementwise round to integer by dropping decimal fraction (output as floating point type).
+    Uses c-style round-to-greatest rule to break-tiies as opposed to numpy's round to nearest even
+
+    Parameters
+    ----------
+    x: tensor_like
+        Input tensor.
+
+    Returns
+    -------
+    out: tensor
+        A tensor of same structure and dtype as x with values rounded C-style to int
+
+    """
+    cdef tensor A = astensor(x)
+    cdef tensor oA = tensor(copy=A)
+    if A.dtype == np.float64:
+        helper_floor[double](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.float32:
+        helper_floor[float](<ctensor*>A.dt, <ctensor*>oA.dt)
+    else:
+        raise ValueError('CTF PYTHON ERROR: Unsupported dtype for floor()')
+    return oA
+   
+
+def ceil(x, out=None):
+    """
+    ceil(x, out=None)
+    Elementwise ceiling to integer (output as floating point type)
+
+    Parameters
+    ----------
+    x: tensor_like
+        Input tensor.
+
+    Returns
+    -------
+    out: tensor
+        A tensor of same structure and dtype as x with values ceil(f)
+
+    """
+    cdef tensor A = astensor(x)
+    cdef tensor oA = tensor(copy=A)
+    if A.dtype == np.float64:
+        helper_ceil[double](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.float32:
+        helper_ceil[float](<ctensor*>A.dt, <ctensor*>oA.dt)
+    else:
+        raise ValueError('CTF PYTHON ERROR: Unsupported dtype for ceil()')
+    return oA
+   
+
+def rint(x, out=None):
+    """
+    rint(x, out=None)
+    Elementwise round to nearest integer (output as floating point type)
+
+    Parameters
+    ----------
+    x: tensor_like
+        Input tensor.
+
+    Returns
+    -------
+    out: tensor
+        A tensor of same structure and dtype as x with values rounded to nearest integer
+
+    """
+    cdef tensor A = astensor(x)
+    cdef tensor oA = tensor(copy=A)
+    if A.dtype == np.float64:
+        helper_round[double](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.float32:
+        helper_round[float](<ctensor*>A.dt, <ctensor*>oA.dt)
+    else:
+        raise ValueError('CTF PYTHON ERROR: Unsupported dtype for rint()')
+    return oA
+   
+
 def _setgetitem_helper(obj, key_init):
     is_everything = 1
     is_contig = 1
@@ -6248,3 +6333,5 @@ def arange(start, stop, step=1, dtype=None):
     else: 
         raise ValueError('CTF PYTHON ERROR: unsupported starting value type for numpy arange')
     return t
+
+

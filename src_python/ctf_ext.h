@@ -5,7 +5,7 @@ namespace CTF_int{
 
 
   /**
-   * \python absolute value function
+   * \brief (back-end for python) absolute value function
    * \param[in] A tensor, param[in,out] B tensor (becomes absolute value of A)
    * \return None
    */
@@ -13,7 +13,7 @@ namespace CTF_int{
   void abs_helper(tensor * A, tensor * B);
 
   /**
-   * \python pow function
+   * \brief (back-end for python) pow function
    * \param[in] A tensor, param[in] B tensor, param[in,out] C tensor, param[in] index of A, param[in] index of B, param[in] index of C
    * \return None
    */
@@ -21,18 +21,44 @@ namespace CTF_int{
   void pow_helper(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C);
 
   /**
-   * \python all function
+   * \brief (back-end for python) function that computes floor of part
+   * \param[in] A tensor, param[in,out] B tensor stores b_{...} = floor(a_{...})
+   */
+  template <typename dtype>
+  void helper_floor(tensor * A, tensor * B);
+
+  /**
+   * \brief (back-end for python) function that computes ceil of part
+   * \param[in] A tensor, param[in,out] B tensor stores b_{...} = ceil(a_{...})
+   */
+  template <typename dtype>
+  void helper_ceil(tensor * A, tensor * B);
+
+  /**
+   * \brief (back-end for python) function that computes round of part
+   * \param[in] A tensor, param[in,out] B tensor stores b_{...} = round(a_{...})
+   */
+  template <typename dtype>
+  void helper_round(tensor * A, tensor * B);
+
+  /**
+   * \brief (back-end for python) all function
    * \param[in] A tensor, param[in] B tensor with bool values created, param[in] index of A, param[in] index of B
    * \return None
    */
   template <typename dtype>
   void all_helper(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
-  
+
+  /**
+   * \brief (back-end for python) conjugation function
+   * \param[in] A tensor, param[in] B tensor with bool values created
+   * \return None
+   */
   template <typename dtype>
   void conj_helper(tensor * A, tensor * B);
 
   /**
-   * \python function that get the real part from complex numbers
+   * \brief (back-end for python) function that get the real part from complex numbers
    * \param[in] A tensor, param[in] B tensor stores the real part from tensor A
    * \return None
    */
@@ -40,7 +66,7 @@ namespace CTF_int{
   void get_real(tensor * A, tensor * B);
 
   /**
-   * \python function that get the imaginary part from complex numbers
+   * \brief (back-end for python) function that get the imaginary part from complex numbers
    * \param[in] A tensor, param[in] B tensor stores the imaginary part from tensor A
    * \return None
    */
@@ -48,7 +74,7 @@ namespace CTF_int{
   void get_imag(tensor * A, tensor * B);
 
   /**
-   * \python function that set the real part from complex numbers
+   * \brief (back-end for python) function that set the real part from complex numbers
    * \param[in] A tensor, param[in] B tensor stores the real part from tensor A
    * \return None
    */
@@ -56,7 +82,7 @@ namespace CTF_int{
   void set_real(tensor * A, tensor * B);
 
   /**
-   * \python function that set the imaginary part from complex numbers
+   * \brief (back-end for python) function that set the imaginary part from complex numbers
    * \param[in] A tensor, param[in] B tensor stores the imaginary part from tensor A
    * \return None
    */
@@ -64,7 +90,7 @@ namespace CTF_int{
   void set_imag(tensor * A, tensor * B);
 
   /**
-   * \python any function
+   * \brief (back-end for python) any function
    * \param[in] A tensor, param[in] B tensor with bool values created, param[in] index of A, param[in] index of B
    * \return None
    */

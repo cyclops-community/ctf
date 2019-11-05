@@ -368,6 +368,20 @@ class KnowValues(unittest.TestCase):
         a *= 2
         self.assertTrue(numpy.allclose([a.norm2()],[2.]))
 
+    def test_rounding(self):
+        for dt in [numpy.float32, numpy.float64]:
+            a = numpy.arange(-5.,5.,.2,dtype=dt)
+            fa = numpy.floor(a)
+            ra = numpy.rint(a)
+            ca = numpy.ceil(a)
+            cfa = ctf.floor(a)
+            cra = ctf.rint(a)
+            cca = ctf.ceil(a)
+            self.assertTrue(numpy.allclose(cfa.to_nparray(),fa))
+            #Note this won't generallybe true due to different rounding rules e.g. for -3.5 
+            self.assertTrue(numpy.allclose(cra.to_nparray(),ra))
+            self.assertTrue(numpy.allclose(cca.to_nparray(),ca))
+
 def run_tests():
     numpy.random.seed(5330);
     wrld = ctf.comm()
