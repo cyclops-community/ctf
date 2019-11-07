@@ -2034,7 +2034,7 @@ cdef class tensor:
         Parameters
         ----------
         inds: array (1D or 2D)
-            If 1D array, each index specifies global index, e.g. access T[i,j,k] via i+n*j+n^2*k, if 2D array, a corresponding row would be [i,j,k]
+            If 1D array, each index specifies global index, e.g. access T[i,j,k] via n^2*i+n*j+n^2*k, if 2D array, a corresponding row would be [i,j,k]
         vals: array
             A 1D array specifying values to be accumulated to for each index, if None, this array will be returned
         a: scalar
@@ -2538,7 +2538,7 @@ cdef class tensor:
         Parameters
         ----------
         inds: array (1D or 2D)
-            If 1D array, each index specifies global index, e.g. access T[i,j,k] via i+n*j+n^2*k, if 2D array, a corresponding row would be [i,j,k]
+            If 1D array, each index specifies global index, e.g. access T[i,j,k] via n^2*i+n*j+k, if 2D array, a corresponding row would be [i,j,k]
         vals: array
             A 1D array specifying values to write for each index
         a: scalar
