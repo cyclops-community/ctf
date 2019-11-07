@@ -2022,27 +2022,42 @@ cdef class tensor:
         """
         return ravel(self, order)
 
-    def read(self, init_inds, vals=None, a=None, b=None):
+    def read(self, inds, vals=None, a=None, b=None):
         """
-        read(init_inds, vals=None, a=None, b=None)
-        Helper function on reading a tensor.
+        read(inds, vals=None, a=None, b=None)
+
+        Retrieves and accumulates a set of values to a corresponding set of specified indices (a is scaling for vals and b is scaling for old vlaues in tensor).
+        vals[i] = b*vals[i] + a*T[inds[i]]
+        Each MPI process is expected to read a different subset of values and all MPI processes must participate (even if reading nothing).
+        However, the set of values read may overlap.
+        
+        Parameters
+        ----------
+        inds: array (1D or 2D)
+            If 1D array, each index specifies global index, e.g. access T[i,j,k] via i+n*j+n^2*k, if 2D array, a corresponding row would be [i,j,k]
+        vals: array
+            A 1D array specifying values to be accumulated to for each index, if None, this array will be returned
+        a: scalar
+            Scaling factor to apply to data in tensor (default is 1)
+        b: scalar
+            Scaling factor to apply to vals (default is 0)
         """
-        inds = np.asarray(init_inds)
+        iinds = np.asarray(inds)
         #if each index is a tuple, we have a 2D array, convert it to 1D array of global indices
-        if inds.ndim == 2:
+        if iinds.ndim == 2:
             mystrides = np.ones(self.ndim,dtype=np.int32)
             for i in range(1,self.ndim):
                 mystrides[self.ndim-i-1]=mystrides[self.ndim-i]*self.shape[self.ndim-i]
-            inds = np.dot(inds, np.asarray(mystrides) )
+            iinds = np.dot(iinds, np.asarray(mystrides) )
         cdef char * ca
         if vals is not None:
             if vals.dtype != self.dtype:
                 raise ValueError('CTF PYTHON ERROR: bad dtype of vals parameter to read')
         gvals = vals
         if vals is None:
-            gvals = np.zeros(len(inds),dtype=self.dtype)
-        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=_use_align_for_pair(self.dtype)))
-        buf['a'][:] = inds[:]
+            gvals = np.zeros(len(iinds),dtype=self.dtype)
+        cdef cnp.ndarray buf = np.empty(len(iinds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=_use_align_for_pair(self.dtype)))
+        buf['a'][:] = iinds[:]
         buf['b'][:] = gvals[:]
 
         cdef char * alpha
@@ -2062,7 +2077,7 @@ cdef class tensor:
             nb = np.array([b])
             for j in range(0,st):
                 beta[j] = nb.view(dtype=np.int8)[j]
-        (<ctensor*>self.dt).read(len(inds),<char*>alpha,<char*>beta,buf.data)
+        (<ctensor*>self.dt).read(len(iinds),<char*>alpha,<char*>beta,buf.data)
         gvals[:] = buf['b'][:]
         if a is not None:
             free(alpha)
@@ -2428,7 +2443,27 @@ cdef class tensor:
     def permute(self, tensor A, p_A=None, p_B=None, a=None, b=None):
         """
         permute(self, tensor A, p_A=None, p_B=None, a=None, b=None)
-        Permute the tensor.
+
+        Permute the tensor along each mode, so that
+            self[p_B[0,i_1],....,p_B[self.ndim-1,i_ndim]] = A[i_1,....,i_ndim]
+        or
+            B[i_1,....,i_ndim] = A[p_A[0,i_1],....,p_A[self.ndim-1,i_ndim]]
+        exactly one of p_A or p_B should be provided.
+
+        Parameters
+        ----------
+        A: CTF tensor
+            Tensor whose data will be permuted.
+        p_A: list of arrays
+            List of length A.ndim, the ith item of which is an array of slength A.shape[i], with values specifying the
+            permutation target of that index or -1 to denote that this index should be projected away.
+        p_B: list of arrays
+            List of length self.ndim, the ith item of which is an array of slength Aselfshape[i], with values specifying the
+            permutation target of that index or -1 to denote that this index should not be permuted to.
+        a: scalar
+            Scaling for values in a (default 1)
+        b: scalar
+            Scaling for values in self (default 0)
         """
         if p_A is None and p_B is None:
             raise ValueError("CTF PYTHON ERROR: permute must be called with either p_A or p_B defined")
@@ -2491,22 +2526,37 @@ cdef class tensor:
                 free(permutation_B[i])
             free(permutation_B)
 
-    def write(self, init_inds, init_vals, a=None, b=None):
+    def write(self, inds, vals, a=None, b=None):
         """
-        write(init_inds, init_vals, a=None, b=None)
-        Helper function on writing a tensor.
+        write(inds, vals, a=None, b=None)
+        
+        Accumulates a set of values to a corresponding set of specified indices (a is scaling for vals and b is scaling for old vlaues in tensor).
+        T[inds[i]] = b*T[inds[i]] + a*vals[i].
+        Each MPI process is expected to write a different subset of values and all MPI processes must participate (even if writing nothing).
+        However, the set of values written may overlap, in which case they will be accumulated.
+        
+        Parameters
+        ----------
+        inds: array (1D or 2D)
+            If 1D array, each index specifies global index, e.g. access T[i,j,k] via i+n*j+n^2*k, if 2D array, a corresponding row would be [i,j,k]
+        vals: array
+            A 1D array specifying values to write for each index
+        a: scalar
+            Scaling factor to apply to vals (default is 1)
+        b: scalar
+            Scaling factor to apply to existing data (default is 0)
         """
-        inds = np.asarray(init_inds)
-        vals = np.asarray(init_vals, dtype=self.dtype)
+        iinds = np.asarray(inds)
+        vvals = np.asarray(vals, dtype=self.dtype)
         #if each index is a tuple, we have a 2D array, convert it to 1D array of global indices
-        if inds.ndim == 2:
+        if iinds.ndim == 2:
             mystrides = np.ones(self.ndim,dtype=np.int32)
             for i in range(1,self.ndim):
                 #mystrides[i]=mystrides[i-1]*self.shape[i-1]
                 mystrides[self.ndim-i-1]=mystrides[self.ndim-i]*self.shape[self.ndim-i]
-            inds = np.dot(inds, np.asarray(mystrides))
+            iinds = np.dot(iinds, np.asarray(mystrides))
 
-#        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=False))
+#        cdef cnp.ndarray buf = np.empty(len(iinds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=False))
         cdef char * alpha
         cdef char * beta
     # if type is np.bool, assign the st with 1, since bool does not have itemsize in numpy
@@ -2528,10 +2578,10 @@ cdef class tensor:
             nb = np.array([b])
             for j in range(0,st):
                 beta[j] = nb.view(dtype=np.int8)[j]
-        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=_use_align_for_pair(self.dtype)))
-        buf['a'][:] = inds[:]
-        buf['b'][:] = vals[:]
-        self.dt.write(len(inds),alpha,beta,buf.data)
+        cdef cnp.ndarray buf = np.empty(len(iinds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=_use_align_for_pair(self.dtype)))
+        buf['a'][:] = iinds[:]
+        buf['b'][:] = vvals[:]
+        self.dt.write(len(iinds),alpha,beta,buf.data)
 
         if a is not None:
             free(alpha)
