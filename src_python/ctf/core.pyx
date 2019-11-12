@@ -532,9 +532,12 @@ cdef class itensor(term):
             Indices indexing right singular vectors, should be subset of the string of this itensor, plus same auxiliary index as in U
     
         threshold: real double precision or None, optional
-           threshold for truncating singular values of the SVD, determines rank, if threshold ia also used, rank will be set to minimum of rank and number of singular values above threshold
+           threshold for truncating singular values of the SVD, determines rank, if threshold is also used, rank will be set to minimum of rank and number of singular values above threshold
 
-        niter: int or None, optional, default 1
+        use_svd_rand: bool, optional
+            If True, randomized method (orthogonal iteration) will be used to calculate a low-rank SVD. Is faster, especially for low-rank, but less robust than typical SVD.
+
+        num_iter: int or None, optional, default 1
             number of orthogonal iterations to perform (higher gives better accuracy)
 
         oversamp: int or None, optional, default 5
@@ -553,9 +556,11 @@ cdef class itensor(term):
         """
         t_svd = timer("pyTSVD")
         t_svd.start()
-        if rank == None:
+        if rank is None:
             rank = 0
-        if threshold == None:
+            if use_svd_rand:
+                raise ValueError('CTF PYTHON ERROR: rank must be specified when using randomized SVD')
+        if threshold is None:
             threshold = 0.
         cdef ctensor ** ctsrs = <ctensor**>malloc(sizeof(ctensor*)*3)
         if _ord_comp(self.tsr.order, 'F'):
@@ -603,8 +608,7 @@ def _rev_array(arr):
         return arr2
 
 def _get_num_str(n):
-    allstr = "abcdefghijklmonpqrstuvwzyx0123456789,./;'][=-`"
-    return allstr[0:n]
+    return "".join(chr(i) for i in range(39, 127))[0:n]
 
 
 cdef class timer_epoch:
