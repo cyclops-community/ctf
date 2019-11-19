@@ -511,10 +511,10 @@ namespace CTF_int {
       int * i32_recv_counts, * i32_recv_displs;
 
 
-      CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_send_counts);
-      CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_send_displs);
-      CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_recv_counts);
-      CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_recv_displs);
+      CTF_int::alloc_ptr(np*sizeof(int), (void**)&i32_send_counts);
+      CTF_int::alloc_ptr(np*sizeof(int), (void**)&i32_send_displs);
+      CTF_int::alloc_ptr(np*sizeof(int), (void**)&i32_recv_counts);
+      CTF_int::alloc_ptr(np*sizeof(int), (void**)&i32_recv_displs);
 
       for (int p=0; p<np; p++){
         i32_send_counts[p] = send_counts[p];

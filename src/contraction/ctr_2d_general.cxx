@@ -325,14 +325,14 @@ namespace CTF_int {
     }
 #endif
     else {
-      ret = CTF_int::mst_alloc_ptr(s_A*sr_A->el_size, (void**)&buf_A);
+      ret = CTF_int::alloc_ptr(s_A*sr_A->el_size, (void**)&buf_A);
       ASSERT(ret==0);
-      ret = CTF_int::mst_alloc_ptr(s_B*sr_B->el_size, (void**)&buf_B);
+      ret = CTF_int::alloc_ptr(s_B*sr_B->el_size, (void**)&buf_B);
       ASSERT(ret==0);
-      ret = CTF_int::mst_alloc_ptr(s_C*sr_C->el_size, (void**)&buf_C);
+      ret = CTF_int::alloc_ptr(s_C*sr_C->el_size, (void**)&buf_C);
       ASSERT(ret==0);
     }
-    //ret = CTF_int::mst_alloc_ptr(aux_size, (void**)&buf_aux);
+    //ret = CTF_int::alloc_ptr(aux_size, (void**)&buf_aux);
     //ASSERT(ret==0);
 
     //for (ib=this->idx_lyr; ib<edge_len; ib+=this->num_lyr){

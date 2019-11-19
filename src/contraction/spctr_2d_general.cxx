@@ -170,7 +170,7 @@ namespace CTF_int {
 
             int64_t bc_size_A = 0;
             for (int z=0; z<new_nblk_A; z++) bc_size_A += new_size_blk_A[z];
-            ret = CTF_int::mst_alloc_ptr(bc_size_A, (void**)&buf_A);
+            ret = CTF_int::alloc_ptr(bc_size_A, (void**)&buf_A);
             ASSERT(ret==0);
             op_A = buf_A;
             spcopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*b_A, ctr_sub_lda_A,
@@ -198,7 +198,7 @@ namespace CTF_int {
         for (int z=0; z<new_nblk_A; z++) bc_size_A += new_size_blk_A[z];
 
         if (cdt_A->rank != owner_A){ 
-          ret = CTF_int::mst_alloc_ptr(bc_size_A, (void**)&buf_A);
+          ret = CTF_int::alloc_ptr(bc_size_A, (void**)&buf_A);
           ASSERT(ret==0);
           op_A = buf_A;
         }
@@ -237,7 +237,7 @@ namespace CTF_int {
             int64_t bc_size_A = 0;
             for (int z=0; z<new_nblk_A; z++) bc_size_A += new_size_blk_A[z];
 
-            ret = CTF_int::mst_alloc_ptr(bc_size_A, (void**)&buf_A);
+            ret = CTF_int::alloc_ptr(bc_size_A, (void**)&buf_A);
             ASSERT(ret==0);
             op_A = buf_A;
             spcopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*edge_len, ctr_sub_lda_A,
@@ -449,19 +449,19 @@ namespace CTF_int {
     if (0){
     } else {
       if (!is_sparse_A){
-        ret = CTF_int::mst_alloc_ptr(s_A*sr_A->el_size, (void**)&buf_A);
+        ret = CTF_int::alloc_ptr(s_A*sr_A->el_size, (void**)&buf_A);
         ASSERT(ret==0);
       } else buf_A = NULL;
       if (!is_sparse_B){
-        ret = CTF_int::mst_alloc_ptr(s_B*sr_B->el_size, (void**)&buf_B);
+        ret = CTF_int::alloc_ptr(s_B*sr_B->el_size, (void**)&buf_B);
         ASSERT(ret==0);
       } else buf_B = NULL;
       if (!is_sparse_C){
-        ret = CTF_int::mst_alloc_ptr(s_C*sr_C->el_size, (void**)&buf_C);
+        ret = CTF_int::alloc_ptr(s_C*sr_C->el_size, (void**)&buf_C);
         ASSERT(ret==0);
       } else buf_C = NULL;
     }
-    ret = CTF_int::mst_alloc_ptr(aux_size, (void**)&buf_aux);
+    ret = CTF_int::alloc_ptr(aux_size, (void**)&buf_aux);
     ASSERT(ret==0);
 
     int64_t * offsets_A;

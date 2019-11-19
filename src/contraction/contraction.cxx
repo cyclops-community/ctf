@@ -4901,8 +4901,6 @@ namespace CTF_int {
     }
 
 
-    CTF_int::contract_mst();
-
     //if (stype->tid_A == stype->tid_B || stype->tid_A == stype->tid_C){
     /*if (stype->tid_A == stype->tid_C){
       clone_tensor(stype->tid_A, 1, &new_tid);
