@@ -211,7 +211,8 @@ namespace CTF_int {
 
   template <typename dtype>
   bool default_isequal(dtype a, dtype b){
-    for (int i=0; i<sizeof(dtype); i++){
+    int sz = sizeof(dtype);
+    for (int i=0; i<sz; i++){
       if (((char const *)&a)[i] != ((char const *)&b)[i]){
         return false;
       }
