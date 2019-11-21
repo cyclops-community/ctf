@@ -925,6 +925,13 @@ namespace CTF_int {
        * \param[in] A first operand
        * \param[in] B second operand
        */
+      void elementwise_smaller(tensor * A, tensor * B);
+
+      /**
+       * \brief do an elementwise comparison(<) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
+       * \param[in] A first operand
+       * \param[in] B second operand
+       */
       template <typename dtype>
       void smaller_than(tensor * A, tensor * B);
 

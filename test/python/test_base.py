@@ -382,6 +382,25 @@ class KnowValues(unittest.TestCase):
             self.assertTrue(numpy.allclose(cra.to_nparray(),ra))
             self.assertTrue(numpy.allclose(cca.to_nparray(),ca))
 
+    def test_complex(self):
+        for dt in [numpy.complex64, numpy.complex128, complex]:
+            a = abs(numpy.ones(2, dtype=dt))
+            b = abs(ctf.ones(2, dtype=dt))
+            self.assertTrue(a.dtype==b.dtype)
+            self.assertTrue(numpy.allclose(a,b.to_nparray()))
+
+    def test_mixtype_comp(self):
+        a = numpy.ones(2, dtype=int) < 1.0
+        b = ctf.ones(2, dtype=int) < 1.0
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.zeros(2, dtype=numpy.float32) < numpy.ones(2, dtype=numpy.float64)
+        b = ctf.zeros(2, dtype=numpy.float32) < ctf.ones(2, dtype=numpy.float64)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.ones(2, dtype=int) == numpy.ones(2, dtype=float)
+        b = ctf.ones(2, dtype=int) == ctf.ones(2, dtype=float)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+
+
 def run_tests():
     numpy.random.seed(5330);
     wrld = ctf.comm()

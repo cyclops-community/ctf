@@ -800,6 +800,12 @@ namespace CTF_int {
     ASSERT(0);
   }
 
+  bivar_function * algstrct::get_elementwise_smaller() const {
+    printf("CTF ERROR: elementwise smaller compariso nfunction not available for the algebraic sturcture associated with this tensor\n");
+    ASSERT(0);
+    assert(0);
+    return NULL;
+  }
   ConstPairIterator::ConstPairIterator(PairIterator const & pi){
     sr=pi.sr; ptr=pi.ptr;
   }

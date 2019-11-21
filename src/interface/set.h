@@ -2,6 +2,7 @@
 #define __SET_H__
 
 #include "../tensor/algstrct.h"
+#include "functions.h"
 //#include <stdint.h>
 #include <limits>
 #include <inttypes.h>
@@ -209,6 +210,16 @@ namespace CTF_int {
   }
 
   template <typename dtype>
+  bool default_isequal(dtype a, dtype b){
+    for (int i=0; i<sizeof(dtype); i++){
+      if (((char const *)&a)[i] != ((char const *)&b)[i]){
+        return false;
+      }
+    }
+    return true;
+  }
+
+  template <typename dtype>
   dtype default_addinv(dtype a){
     return -a;
   }
@@ -353,6 +364,27 @@ namespace CTF_int {
   INST_ORD_TYPE(int64_t)
   INST_ORD_TYPE(uint64_t)
 
+  #define INST_IET(typ) \
+    template <> \
+    inline bool default_isequal<typ>(typ a, typ b){ \
+      return a==b; \
+    } \
+
+  INST_IET(float)
+  INST_IET(double)
+  INST_IET(std::complex<float>)
+  INST_IET(std::complex<double>)
+  INST_IET(bool)
+  INST_IET(int)
+  INST_IET(int16_t)
+  INST_IET(int64_t)
+  INST_IET(uint16_t)
+  INST_IET(uint32_t)
+  INST_IET(uint64_t)
+  INST_IET(std::complex<long double>)
+  INST_IET(long double)
+
+
 }
 
 
@@ -491,7 +523,6 @@ namespace CTF {
         }
       }
 
-
       bool isequal(char const * a, char const * b) const {
         if (a == NULL && b == NULL) return true;
         if (a == NULL || b == NULL) return false;
@@ -614,6 +645,11 @@ namespace CTF {
         memcpy(arr+i*el_size,(char*)&dummy,el_size);
       }
     }
+
+    CTF_int::bivar_function * get_elementwise_smaller() const {
+      return new Bivar_Function<dtype,dtype,bool>([](dtype a, dtype b){ return !CTF_int::default_isequal<dtype>(CTF_int::default_max<dtype,is_ord>(a,b), a);});  
+    }
+
 
 
 /*
@@ -890,8 +926,6 @@ namespace CTF {
     if (a == NULL || b == NULL) return false;
     return (( std::complex<long double> *)a)[0] == (( std::complex<long double> *)b)[0];
   }
-
-
 
   /**
    * @}

@@ -3366,5 +3366,21 @@ namespace CTF_int {
     }
     return this;
   }
+
+  void tensor::elementwise_smaller(tensor * A, tensor * B){
+    char str[this->order];
+    for (int i=0; i<this->order; i++){
+      str[i] = 'a'+i;
+    }
+    ASSERT(A->sr->el_size == B->sr->el_size);
+    assert(A->sr->el_size == B->sr->el_size);
+    bivar_function * func = A->sr->get_elementwise_smaller();
+    this->operator[](str) = func->operator()(A->operator[](str),B->operator[](str));
+    this->operator[](str) += func->operator()(A->operator[](str),B->operator[](str));
+    delete func;
+	}
+
+
+
 }
 

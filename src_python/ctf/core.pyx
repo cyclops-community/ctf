@@ -121,6 +121,7 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
         void compare_elementwise[dtype](ctensor * A, ctensor * B)
         void not_equals[dtype](ctensor * A, ctensor * B)
         void smaller_than[dtype](ctensor * A, ctensor * B)
+        void elementwise_smaller(ctensor * A, ctensor * B)
         void smaller_equal_than[dtype](ctensor * A, ctensor * B)
         void larger_than[dtype](ctensor * A, ctensor * B)
         void larger_equal_than[dtype](ctensor * A, ctensor * B)
@@ -3109,7 +3110,14 @@ cdef class tensor:
 
     def __richcmp__(self, b, op):
         if isinstance(b,tensor):
-            return self._compare_tensors(b,op)
+            if b.dtype == self.dtype:
+                return self._compare_tensors(b,op)
+            else:
+                typ = _get_np_dtype([b.dtype,self.dtype])
+                if b.dtype != typ:
+                    return self._compare_tensors(astensor(b,dtype=typ),op)
+                else:
+                    return astensor(self,dtype=typ)._compare_tensors(b,op)
         elif isinstance(b,np.ndarray):
             return self._compare_tensors(astensor(b),op)
         else:
@@ -3148,16 +3156,21 @@ cdef class tensor:
     # change the operators "<","<=","==","!=",">",">=" when applied to tensors
     # also for each operator we need to add the template.
     def _compare_tensors(tensor self, tensor b, op):
+        new_shape = []
+        for i in range(min(self.ndim,b.ndim)):
+            new_shape.append(self.shape[i])
+            if b.shape[i] != new_shape[i]:
+                raise ValueError('CTF PYTHON ERROR: unable to perform comparison between tensors of different shape')
+        for i in range(min(self.ndim,b.ndim),max(self.ndim,b.ndim)):
+            if self.ndim > b.ndim:
+                new_shape.append(self.shape[i])
+            else:
+                new_shape.append(b.shape[i])
+
+        c = tensor(new_shape, dtype=np.bool, sp=self.sp)
         # <
         if op == 0:
-            if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                c.dt.smaller_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                c.dt.smaller_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
-            else:
-                raise ValueError('CTF PYTHON ERROR: bad dtype')
+            c.dt.elementwise_smaller(<ctensor*>self.dt,<ctensor*>b.dt)
             return c
         # <=
         if op == 1:
@@ -3173,18 +3186,6 @@ cdef class tensor:
 
         # ==
         if op == 2:
-            new_shape = []
-            for i in range(min(self.ndim,b.ndim)):
-                new_shape.append(self.shape[i])
-                if b.shape[i] != new_shape[i]:
-                    raise ValueError('CTF PYTHON ERROR: bad dtype')
-            for i in range(min(self.ndim,b.ndim),max(self.ndim,b.ndim)):
-                if self.ndim > b.ndim:
-                    new_shape.append(self.shape[i])
-                else:
-                    new_shape.append(b.shape[i])
-
-            c = tensor(new_shape, dtype=np.bool, sp=self.sp)
             if self.dtype == np.float64:
                 c.dt.compare_elementwise[double](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.float32:
@@ -3210,10 +3211,8 @@ cdef class tensor:
         # !=
         if op == 3:
             if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
                 c.dt.not_equals[double](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
                 c.dt.not_equals[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
@@ -3222,10 +3221,8 @@ cdef class tensor:
         # >
         if op == 4:
             if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
                 c.dt.larger_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
                 c.dt.larger_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
@@ -3234,10 +3231,8 @@ cdef class tensor:
         # >=
         if op == 5:
             if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
                 c.dt.larger_equal_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
                 c.dt.larger_equal_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
@@ -6179,8 +6174,10 @@ def abs(initA):
         abs_helper[float](<ctensor*>A.dt, <ctensor*>oA.dt)
     elif A.dtype == np.complex64:
         abs_helper[complex64_t](<ctensor*>A.dt, <ctensor*>oA.dt)
+        oA = tensor(copy=oA, dtype=np.float32)
     elif A.dtype == np.complex128:
         abs_helper[complex128_t](<ctensor*>A.dt, <ctensor*>oA.dt)
+        oA = tensor(copy=oA, dtype=np.float64)
     elif A.dtype == np.int64:
         abs_helper[int64_t](<ctensor*>A.dt, <ctensor*>oA.dt)
     elif A.dtype == np.int32:

@@ -396,6 +396,10 @@ namespace CTF_int {
       /** \brief sets n elements of array of pairs a to value b */
       virtual void set_pairs(char * a, char const * b, int64_t n) const;
 
+      /**
+       * \brief returns function for elementwise comparison
+       */
+      virtual bivar_function * get_elementwise_smaller() const;
   };
 
   class PairIterator;
@@ -526,6 +530,8 @@ namespace CTF_int {
        * \brief searches for pair op via std::lower_bound
        */
       int64_t lower_bound(int64_t n, ConstPairIterator op);
+
+
   };
 
 }
