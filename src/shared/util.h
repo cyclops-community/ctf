@@ -281,18 +281,15 @@ namespace CTF_int {
   #define TAU_FSTOP(ARG)
   #endif
   #define TIME(STRING) TAU_PROFILE(STRING, " ", TAU_DEFAULT)
-  #define MST_ALIGN_BYTES ALIGN_BYTES
 
   struct mem_transfer {
     void * old_ptr;
     void * new_ptr;
   };
 
-  std::list<mem_transfer> contract_mst();
   int untag_mem(void * ptr);
   int free_cond(void * ptr);
   void mem_create();
-  void mst_create(int64_t size);
   void mem_exit(int rank);
 
 

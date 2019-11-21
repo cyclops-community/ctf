@@ -193,7 +193,7 @@ namespace CTF_int {
     int max_ntd = 1;
   #endif
 
-    mst_alloc_ptr(np*sizeof(int64_t)*max_ntd, (void**)&all_virt_counts);
+    alloc_ptr(np*sizeof(int64_t)*max_ntd, (void**)&all_virt_counts);
 
 
     /* Count how many elements need to go to each new virtual bucket */

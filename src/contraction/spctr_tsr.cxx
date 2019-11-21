@@ -1068,12 +1068,12 @@ namespace CTF_int {
     char * nX = NULL;
     switch (AxBxC){
       case 0:
-        mst_alloc_ptr(sr->pair_size()*nnz, (void**)&nX);
+        alloc_ptr(sr->pair_size()*nnz, (void**)&nX);
         memcpy(nX, X, sr->pair_size()*nnz);
         nA = nX;
         break;
       case 1:
-        mst_alloc_ptr(sr->pair_size()*nnz, (void**)&nX);
+        alloc_ptr(sr->pair_size()*nnz, (void**)&nX);
         memcpy(nX, X, sr->pair_size()*nnz);
         nB = nX;
         break;

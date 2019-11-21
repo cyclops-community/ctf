@@ -73,15 +73,15 @@ namespace CTF_int {
     int64_t * bucket_store;  
     int64_t * count_store;  
     int64_t * thread_store;  
-    mst_alloc_ptr(sizeof(int64_t)*MAX(old_size,new_size), (void**)&bucket_store);
-    mst_alloc_ptr(sizeof(int64_t)*MAX(old_size,new_size), (void**)&count_store);
-    mst_alloc_ptr(sizeof(int64_t)*MAX(old_size,new_size), (void**)&thread_store);
+    alloc_ptr(sizeof(int64_t)*MAX(old_size,new_size), (void**)&bucket_store);
+    alloc_ptr(sizeof(int64_t)*MAX(old_size,new_size), (void**)&count_store);
+    alloc_ptr(sizeof(int64_t)*MAX(old_size,new_size), (void**)&thread_store);
     std::fill(bucket_store, bucket_store+MAX(old_size,new_size), -1);
 
     int64_t ** par_virt_counts;
     alloc_ptr(sizeof(int64_t*)*max_ntd, (void**)&par_virt_counts);
     for (int t=0; t<max_ntd; t++){
-      mst_alloc_ptr(sizeof(int64_t)*nbucket, (void**)&par_virt_counts[t]);
+      alloc_ptr(sizeof(int64_t)*nbucket, (void**)&par_virt_counts[t]);
       std::fill(par_virt_counts[t], par_virt_counts[t]+nbucket, 0);
     }
     #pragma omp parallel num_threads(max_ntd)
@@ -142,7 +142,7 @@ namespace CTF_int {
     //clip global indices to my physical cyclic phase (local tensor data)
 
   #endif
-    // FIXME: may be better to mst_alloc, but this should ensure the 
+    // FIXME: may be better to alloc, but this should ensure the 
     //        compiler knows there are no write conflicts
   #ifdef USE_OMP
     int64_t * count = par_virt_counts[tid];
@@ -554,10 +554,10 @@ namespace CTF_int {
     }
     vbs_old = old_dist.size/old_nvirt;
 
-    mst_alloc_ptr(np*sizeof(int64_t),   (void**)&recv_counts);
-    mst_alloc_ptr(np*sizeof(int64_t),   (void**)&send_counts);
-    mst_alloc_ptr(np*sizeof(int64_t),   (void**)&send_displs);
-    mst_alloc_ptr(np*sizeof(int64_t),   (void**)&recv_displs);
+    alloc_ptr(np*sizeof(int64_t),   (void**)&recv_counts);
+    alloc_ptr(np*sizeof(int64_t),   (void**)&send_counts);
+    alloc_ptr(np*sizeof(int64_t),   (void**)&send_displs);
+    alloc_ptr(np*sizeof(int64_t),   (void**)&recv_displs);
     alloc_ptr(order*sizeof(int64_t), (void**)&old_sub_edge_len);
     alloc_ptr(order*sizeof(int64_t), (void**)&new_sub_edge_len);
     int ** bucket_offset;
@@ -644,10 +644,10 @@ namespace CTF_int {
 
     char * send_buffer, * recv_buffer;
     if (reuse_buffers){
-      mst_alloc_ptr(MAX(old_dist.size,swp_nval)*sr->el_size, (void**)&tsr_cyclic_data);
+      alloc_ptr(MAX(old_dist.size,swp_nval)*sr->el_size, (void**)&tsr_cyclic_data);
     } else {
-      mst_alloc_ptr(old_dist.size*sr->el_size, (void**)&send_buffer);
-      mst_alloc_ptr(swp_nval*sr->el_size, (void**)&recv_buffer);
+      alloc_ptr(old_dist.size*sr->el_size, (void**)&send_buffer);
+      alloc_ptr(swp_nval*sr->el_size, (void**)&recv_buffer);
     }
 
     TAU_FSTART(pack_virt_buf);
@@ -722,7 +722,7 @@ namespace CTF_int {
     if (reuse_buffers){
       if (swp_nval > old_dist.size){
         cdealloc(tsr_data);
-        mst_alloc_ptr(swp_nval*sr->el_size, (void**)&tsr_data);
+        alloc_ptr(swp_nval*sr->el_size, (void**)&tsr_data);
       }
       send_buffer = tsr_cyclic_data;
       recv_buffer = tsr_data;
