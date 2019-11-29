@@ -268,6 +268,7 @@ cdef extern from "ctf.hpp" namespace "CTF":
 
 cdef extern from "ctf.hpp" namespace "CTF":
     cdef void TTTP_ "CTF::TTTP"[dtype](Tensor[dtype] * T, int num_ops, int * modes, Tensor[dtype] ** mat_list, bool aux_mode_first)
+    cdef void MTTKRP_ "CTF::MTTKRP"[dtype](Tensor[dtype] * T, Tensor[dtype] ** mat_list, int mode, bool aux_mode_first)
 
 
 #from enum import Enum
@@ -5640,6 +5641,7 @@ def TTTP(tensor A, mat_list):
     """
     TTTP(A, mat_list)
     Compute updates to entries in tensor A based on matrices in mat_list (tensor times tensor products)
+    This routine is generally much faster then einsum when A is sparse.
 
     Parameters
     ----------
@@ -5703,6 +5705,59 @@ def TTTP(tensor A, mat_list):
     free(tsrs)
     t_tttp.stop()
     return B
+
+
+def MTTKRP(tensor A, mat_list, mode):
+    """
+    MTTKRP(A, mat_list, mode)
+    Compute Matricized Tensor Times Khatri Rao Product with output mode given as mode, e.g.
+    MTTKRP(A, [U,V,W,Z], 2) gives W = einsum("ijkl,ij,jr,lr->kr",A,U,V,Z).
+    This routine is generally much faster then einsum when A is sparse.
+
+    Parameters
+    ----------
+    A: tensor_like
+       Input tensor of arbitrary ndim
+
+    mat_list: list of size A.ndim containing matrices that are n_i-by-R where n_i is dimension of ith mode of A,
+              on output mat_list[mode] will contain the output of the MTTKRP 
+    """
+    t_mttkrp = timer("pyMTTKRP")
+    t_mttkrp.start()
+    if len(mat_list) != A.ndim:
+        raise ValueError('CTF PYTHON ERROR: mat_list argument to MTTKRP must be of same length as ndim')
+    k = -1
+    cdef int * modes
+    tsrs = <Tensor[double]**>malloc(len(mat_list)*sizeof(ctensor*))
+    tsr_list = []
+    for i in range(len(mat_list))[::-1]:
+        t = tensor(copy=mat_list[i])
+        tsr_list.append(t)
+        tsrs[imode] = <Tensor[double]*>t.dt
+        imode += 1
+        if mat_list[i].ndim == 1:
+            if k != -1:
+                raise ValueError('CTF PYTHON ERROR: mat_list must contain only vectors or only matrices')
+            if mat_list[i].shape[0] != A.shape[i]:
+                raise ValueError('CTF PYTHON ERROR: input vector to MTTKRP does not match the corresponding tensor dimension')
+            #exp = exp*mat_list[i].i(s[i])
+        else:
+            if mat_list[i].ndim != 2:
+                raise ValueError('CTF PYTHON ERROR: mat_list operands has invalid dimension')
+            if k == -1:
+                k = mat_list[i].shape[1]
+            else:
+                if k != mat_list[i].shape[1]:
+                    raise ValueError('CTF PYTHON ERROR: mat_list second mode lengths of tensor must match')
+    B = tensor(copy=A)
+    if A.dtype == np.float64:
+        MTTKRP_[double](<Tensor[double]*>B.dt,tsrs,mode,1)
+    else:
+        raise ValueError('CTF PYTHON ERROR: MTTKRP does not support this dtype')
+    mat_list[mode] = tsr_list[mode]
+    free(modes)
+    free(tsrs)
+    t_mttkrp.stop()
 
 def svd(tensor A, rank=None, threshold=None):
     """
