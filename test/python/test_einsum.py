@@ -130,15 +130,24 @@ class KnowValues(unittest.TestCase):
             mats = []
             for i in range(N):
                 mats.append(ctf.random.random([lens[i]]))
+            mats[0] = ctf.zeros([lens[0]])
             for i in range(N):
-                ctr = A.i("ijklm"[0:N])
-                for j in range(N):
-                    if i != j:
-                        #ctr *= mats[j].i("ijklm"[j]+"r")
-                        ctr *= mats[j].i("ijklm"[j])
-                ans = ctf.zeros(mats[i].shape)
-                ans.i("ijklm"[i]) << ctr
+                if N == 2:
+                    if i == 0:
+                        ans = ctf.einsum("ij,j->i",A,mats[1])
+                    else:
+                        ans = ctf.einsum("ij,i->j",A,mats[0])
+                else:
+                    ctr = A.i("ijklm"[0:N])
+                    for j in range(N):
+                        if i != j:
+                            #ctr *= mats[j].i("ijklm"[j]+"r")
+                            ctr *= mats[j].i("ijklm"[j])
+                    ans = ctf.zeros(mats[i].shape)
+                    ans.i("ijklm"[i]) << ctr
                 ctf.MTTKRP(A, mats, i)
+                print(ans.shape, mats[i].shape, lens)
+                print(ans, mats[i])
                 self.assertTrue(allclose(ans, mats[i]))
 
 

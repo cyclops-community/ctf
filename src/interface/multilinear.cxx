@@ -420,6 +420,11 @@ namespace CTF {
     bool is_vec = mat_list[0]->order == 1;
     if (!is_vec)
       k = mat_list[0]->lens[1-aux_mode_first];
+    IASSERT(mode >= 0 && mode < T->order);
+    printf("mode is %d\n", mode);
+    T->print();
+    mat_list[0]->print();
+    mat_list[1]->print();
     for (int i=0; i<T->order; i++){
       IASSERT(is_vec || T->lens[i] == mat_list[i]->lens[aux_mode_first]);
       IASSERT(!mat_list[i]->is_sparse);
@@ -443,7 +448,7 @@ namespace CTF {
       T->get_local_pairs(&npair, &pairs, true, false);
 
     ldas[0] = 1;
-    for (int i=0; i<T->order; i++){
+    for (int i=1; i<T->order; i++){
       ldas[i] *= T->lens[i];
     }
 
@@ -575,11 +580,11 @@ namespace CTF {
             dtype d = pairs[i].d;
             for (int j=0; j<T->order; j++){
               if (j != mode){
-                key = key/ldas[j];
-                d *= arrs[j][(key%T->lens[j])/phys_phase[j]];
+                int64_t ke = key/ldas[j];
+                d *= arrs[j][(ke%T->lens[j])/phys_phase[j]];
               }
             }
-            key = key/ldas[mode];
+            int64_t ke = key/ldas[mode];
             arrs[mode][(key%T->lens[mode])/phys_phase[mode]] += d;
           }
         } else {
@@ -587,8 +592,8 @@ namespace CTF {
           for (int64_t i=0; i<npair; i++){
             int64_t key = pairs[i].k;
             for (int j=0; j<T->order; j++){
-              key = key/ldas[j];
-              inds[j] = (key%T->lens[j])/phys_phase[j];
+              int64_t ke = key/ldas[j];
+              inds[j] = (ke%T->lens[j])/phys_phase[j];
             }
             for (int kk=0; kk<kd; kk++){
               dtype d = pairs[i].d;

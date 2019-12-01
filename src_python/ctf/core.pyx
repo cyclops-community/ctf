@@ -5727,13 +5727,15 @@ def MTTKRP(tensor A, mat_list, mode):
     if len(mat_list) != A.ndim:
         raise ValueError('CTF PYTHON ERROR: mat_list argument to MTTKRP must be of same length as ndim')
     k = -1
-    cdef int * modes
     tsrs = <Tensor[double]**>malloc(len(mat_list)*sizeof(ctensor*))
     tsr_list = []
+    imode = 0
     for i in range(len(mat_list))[::-1]:
         t = tensor(copy=mat_list[i])
         tsr_list.append(t)
-        tsrs[i] = <Tensor[double]*>t.dt
+        print(t)
+        tsrs[imode] = <Tensor[double]*>t.dt
+        imode += 1
         if mat_list[i].ndim == 1:
             if k != -1:
                 raise ValueError('CTF PYTHON ERROR: mat_list must contain only vectors or only matrices')
@@ -5750,11 +5752,11 @@ def MTTKRP(tensor A, mat_list, mode):
                     raise ValueError('CTF PYTHON ERROR: mat_list second mode lengths of tensor must match')
     B = tensor(copy=A)
     if A.dtype == np.float64:
-        MTTKRP_[double](<Tensor[double]*>B.dt,tsrs,mode,1)
+        MTTKRP_[double](<Tensor[double]*>B.dt,tsrs,A.ndim-mode-1,1)
     else:
         raise ValueError('CTF PYTHON ERROR: MTTKRP does not support this dtype')
-    mat_list[mode] = tsr_list[mode]
-    free(modes)
+    mat_list[mode] = tsr_list[A.ndim-mode-1]
+    print(mat_list[mode])
     free(tsrs)
     t_mttkrp.stop()
 
