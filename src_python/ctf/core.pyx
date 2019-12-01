@@ -5733,7 +5733,6 @@ def MTTKRP(tensor A, mat_list, mode):
     for i in range(len(mat_list))[::-1]:
         t = tensor(copy=mat_list[i])
         tsr_list.append(t)
-        print(t)
         tsrs[imode] = <Tensor[double]*>t.dt
         imode += 1
         if mat_list[i].ndim == 1:
@@ -5756,7 +5755,6 @@ def MTTKRP(tensor A, mat_list, mode):
     else:
         raise ValueError('CTF PYTHON ERROR: MTTKRP does not support this dtype')
     mat_list[mode] = tsr_list[A.ndim-mode-1]
-    print(mat_list[mode])
     free(tsrs)
     t_mttkrp.stop()
 

@@ -126,30 +126,40 @@ class KnowValues(unittest.TestCase):
     def test_MTTKRP_vec(self):
         for N in range(2,5):
             lens = numpy.random.randint(2, 4, N)
-            A = ctf.random.random(lens)
+            A = ctf.tensor(lens)
+            A.fill_sp_random(-1.,1.,.5)
             mats = []
             for i in range(N):
                 mats.append(ctf.random.random([lens[i]]))
-            mats[0] = ctf.zeros([lens[0]])
             for i in range(N):
-                if N == 2:
-                    if i == 0:
-                        ans = ctf.einsum("ij,j->i",A,mats[1])
-                    else:
-                        ans = ctf.einsum("ij,i->j",A,mats[0])
-                else:
-                    ctr = A.i("ijklm"[0:N])
-                    for j in range(N):
-                        if i != j:
-                            #ctr *= mats[j].i("ijklm"[j]+"r")
-                            ctr *= mats[j].i("ijklm"[j])
-                    ans = ctf.zeros(mats[i].shape)
-                    ans.i("ijklm"[i]) << ctr
+                ctr = A.i("ijklm"[0:N])
+                for j in range(N):
+                    if i != j:
+                        ctr *= mats[j].i("ijklm"[j])
+                ans = ctf.zeros(mats[i].shape)
+                ans.i("ijklm"[i]) << ctr
                 ctf.MTTKRP(A, mats, i)
-                print(ans.shape, mats[i].shape, lens)
-                print(ans, mats[i])
                 self.assertTrue(allclose(ans, mats[i]))
 
+
+    def test_MTTKRP_mat(self):
+        k = 9
+        for N in range(2,5):
+            lens = numpy.random.randint(2, 4, N)
+            A = ctf.tensor(lens)
+            A.fill_sp_random(-1.,1.,.5)
+            mats = []
+            for i in range(N):
+                mats.append(ctf.random.random([lens[i],k]))
+            for i in range(N):
+                ctr = A.i("ijklm"[0:N])
+                for j in range(N):
+                    if i != j:
+                        ctr *= mats[j].i("ijklm"[j]+"r")
+                ans = ctf.zeros(mats[i].shape)
+                ans.i("ijklm"[i]+"r") << ctr
+                ctf.MTTKRP(A, mats, i)
+                self.assertTrue(allclose(ans, mats[i]))
 
     def test_TTTP_vec(self):
         A = numpy.random.random((4, 3, 5))

@@ -421,10 +421,6 @@ namespace CTF {
     if (!is_vec)
       k = mat_list[0]->lens[1-aux_mode_first];
     IASSERT(mode >= 0 && mode < T->order);
-    printf("mode is %d\n", mode);
-    T->print();
-    mat_list[0]->print();
-    mat_list[1]->print();
     for (int i=0; i<T->order; i++){
       IASSERT(is_vec || T->lens[i] == mat_list[i]->lens[aux_mode_first]);
       IASSERT(!mat_list[i]->is_sparse);
@@ -449,7 +445,7 @@ namespace CTF {
 
     ldas[0] = 1;
     for (int i=1; i<T->order; i++){
-      ldas[i] *= T->lens[i];
+      ldas[i] = ldas[i-1] * T->lens[i-1];
     }
 
     Tensor<dtype> ** redist_mats = (Tensor<dtype>**)malloc(sizeof(Tensor<dtype>*)*T->order);
@@ -472,6 +468,12 @@ namespace CTF {
       for (int i=0; i<T->order; i++){
         Tensor<dtype> mmat;
         Tensor<dtype> * mat = mat_list[i];
+
+        int64_t tot_sz;
+        if (is_vec)
+          tot_sz = T->lens[i];
+        else
+          tot_sz = T->lens[i]*kd;
         if (div>1){
           if (aux_mode_first){
             slice_st[0] = k_start;
@@ -512,13 +514,10 @@ namespace CTF {
           if (T->wrld->np == 1){
             IASSERT(div == 1);
             arrs[i] = (dtype*)mat_list[i]->data;
+            if (i == mode)
+              std::fill(arrs[i], arrs[i]+mat_list[i]->size, *((dtype*)T->sr->addid()));
           } else if (i != mode){
-            int64_t sz;
-            if (is_vec)
-              sz = T->lens[i];
-            else
-              sz = T->lens[i]*kd;
-            arrs[i] = (dtype*)T->sr->alloc(sz);
+            arrs[i] = (dtype*)T->sr->alloc(tot_sz);
             mat->read_all(arrs[i], true);
           } else {
             if (is_vec)
@@ -550,7 +549,8 @@ namespace CTF {
               v->operator[]("i") += mat_list[i]->operator[]("i");
             redist_mats[i] = v;
             arrs[i] = (dtype*)v->data;
-            cmdt.bcast(v->data,v->size,T->sr->mdtype(),0);
+            if (i != mode)
+              cmdt.bcast(v->data,v->size,T->sr->mdtype(),0);
           } else {
 
             Matrix<dtype> * m = new Matrix<dtype>(nrow, ncol, mat_idx, par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
@@ -559,7 +559,8 @@ namespace CTF {
             redist_mats[i] = m;
             arrs[i] = (dtype*)m->data;
 
-            cmdt.bcast(m->data,m->size,T->sr->mdtype(),0);
+            if (i != mode)
+              cmdt.bcast(m->data,m->size,T->sr->mdtype(),0);
             if (aux_mode_first){
               mat_strides[2*i+0] = kd;
               mat_strides[2*i+1] = 1;
@@ -571,8 +572,6 @@ namespace CTF {
         }
         
       }
-      //if (T->wrld->rank == 0)
-      //  printf("Completed redistribution in MTTKRP\n");
       {
         if (is_vec){
           for (int64_t i=0; i<npair; i++){
@@ -585,7 +584,7 @@ namespace CTF {
               }
             }
             int64_t ke = key/ldas[mode];
-            arrs[mode][(key%T->lens[mode])/phys_phase[mode]] += d;
+            arrs[mode][(ke%T->lens[mode])/phys_phase[mode]] += d;
           }
         } else {
           int * inds = (int*)malloc(T->order*sizeof(int));
@@ -613,10 +612,14 @@ namespace CTF {
           int red_len = T->wrld->np/phys_phase[j];
           if (red_len > 1){
             int64_t sz;
-            if (is_vec)
-              sz = T->lens[j];
-            else
-              sz = T->lens[j]*kd;
+            if (redist_mats[j] == NULL){
+              if (is_vec)
+                sz = T->lens[j];
+              else
+                sz = T->lens[j]*kd;
+            } else {
+              sz = redist_mats[j]->size;
+            }
             int jr = T->edge_map[j].calc_phys_rank(T->topo);
             MPI_Comm cm;
             MPI_Comm_split(T->wrld->comm, jr, T->wrld->rank, &cm);
@@ -631,7 +634,9 @@ namespace CTF {
             MPI_Comm_free(&cm);
           }
           if (redist_mats[j] != NULL){
+            mat_list[j]->set_zero();
             mat_list[j]->operator[]("ij") += redist_mats[j]->operator[]("ij");
+            delete redist_mats[j];
           } else {
             IASSERT((dtype*)mat_list[j]->data == arrs[j]);
           }
@@ -653,6 +658,8 @@ namespace CTF {
     free(phys_phase);
     free(ldas);
     free(arrs);
+    if (!T->is_sparse)
+      T->sr->pair_dealloc((char*)pairs);
     t_mttkrp.stop();
   }
 }
