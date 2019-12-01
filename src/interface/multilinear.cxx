@@ -421,7 +421,8 @@ namespace CTF {
     if (!is_vec)
       k = mat_list[0]->lens[1-aux_mode_first];
     for (int i=0; i<T->order; i++){
-      ASSERT(T->lens[i] = mat_list[i]->lens[aux_mode_first]);
+      IASSERT(is_vec || T->lens[i] == mat_list[i]->lens[aux_mode_first]);
+      IASSERT(!mat_list[i]->is_sparse);
     }
     dtype ** arrs = (dtype**)malloc(sizeof(dtype*)*T->order);
     int64_t * ldas = (int64_t*)malloc(T->order*sizeof(int64_t));
@@ -493,12 +494,19 @@ namespace CTF {
             mat_strides[2*i+1] = T->lens[i];
           }
         }
-
+        int nrow, ncol;
+        if (aux_mode_first){
+          nrow = kd;
+          ncol = T->lens[i];
+        } else {
+          nrow = T->lens[i];
+          ncol = kd;
+        }
         if (phys_phase[i] == 1){
           redist_mats[i] = NULL;
           if (T->wrld->np == 1){
             IASSERT(div == 1);
-            arrs[i] = mat->data;
+            arrs[i] = (dtype*)mat_list[i]->data;
           } else if (i != mode){
             int64_t sz;
             if (is_vec)
@@ -508,17 +516,24 @@ namespace CTF {
             arrs[i] = (dtype*)T->sr->alloc(sz);
             mat->read_all(arrs[i], true);
           } else {
-            if (is_vec){
-              redist_mats[i] = new Vector<dtype>(mat_list[i]->lens[0], "", par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
+            if (is_vec)
+              redist_mats[i] = new Vector<dtype>(mat_list[i]->lens[0], 'a'-1, par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
             else
               redist_mats[i] = new Matrix<dtype>(nrow, ncol, "", par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
-            arrs[i] = redist_mats[i]->data
+            arrs[i] = (dtype*)redist_mats[i]->data;
           }
         } else {
-          int nrow, ncol;
           int topo_dim = T->edge_map[i].cdt;
           IASSERT(T->edge_map[i].type == CTF_int::PHYSICAL_MAP);
           IASSERT(!T->edge_map[i].has_child || T->edge_map[i].child->type != CTF_int::PHYSICAL_MAP);
+          if (aux_mode_first){
+            mat_idx[0] = 'a';
+            mat_idx[1] = par_idx[topo_dim];
+          } else {
+            mat_idx[0] = par_idx[topo_dim];
+            mat_idx[1] = 'a';
+          }
+
           int comm_lda = 1;
           for (int l=0; l<topo_dim; l++){
             comm_lda *= T->topo->dim_comm[l].np;
@@ -532,17 +547,7 @@ namespace CTF {
             arrs[i] = (dtype*)v->data;
             cmdt.bcast(v->data,v->size,T->sr->mdtype(),0);
           } else {
-            if (aux_mode_first){
-              nrow = kd;
-              ncol = T->lens[i];
-              mat_idx[0] = 'a';
-              mat_idx[1] = par_idx[topo_dim];
-            } else {
-              nrow = T->lens[i];
-              ncol = kd;
-              mat_idx[0] = par_idx[topo_dim];
-              mat_idx[1] = 'a';
-            }
+
             Matrix<dtype> * m = new Matrix<dtype>(nrow, ncol, mat_idx, par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
             if (i != mode)
               m->operator[]("ij") += mat->operator[]("ij");
@@ -607,23 +612,23 @@ namespace CTF {
               sz = T->lens[j];
             else
               sz = T->lens[j]*kd;
-            int jr = T->edge_map[j].calc_phys_rank();
+            int jr = T->edge_map[j].calc_phys_rank(T->topo);
             MPI_Comm cm;
-            MPI_Comm_split(T->wrld->cm, jr, T->wrld->rank, &cm);
+            MPI_Comm_split(T->wrld->comm, jr, T->wrld->rank, &cm);
             int cmr;
             MPI_Comm_rank(cm, &cmr);
             if (cmr == 0)
-              MPI_Reduce(MPI_IN_PLACE, arr[j], sz, T->sr->mdtype(), T->sr->addmop(), 0, cm);
+              MPI_Reduce(MPI_IN_PLACE, arrs[j], sz, T->sr->mdtype(), T->sr->addmop(), 0, cm);
             else {
-              MPI_Reduce(arr[j], NULL, sz, T->sr->mdtype(), T->sr->addmop(), 0, cm);
-              std::fill(arr[j], arr[j]+sz, *((dtype*)T->sr->addid()));
+              MPI_Reduce(arrs[j], NULL, sz, T->sr->mdtype(), T->sr->addmop(), 0, cm);
+              std::fill(arrs[j], arrs[j]+sz, *((dtype*)T->sr->addid()));
             }
             MPI_Comm_free(&cm);
           }
           if (redist_mats[j] != NULL){
-            mat[j]->operator[]("ij") += redist_mats[j]->operator[]("ij");
+            mat_list[j]->operator[]("ij") += redist_mats[j]->operator[]("ij");
           } else {
-            IASSERT(mat[j]->data == arrs[j]);
+            IASSERT((dtype*)mat_list[j]->data == arrs[j]);
           }
         } else {
           if (redist_mats[j] != NULL){
@@ -631,7 +636,7 @@ namespace CTF {
               T->sr->dealloc((char*)arrs[j]);
             delete redist_mats[j];
           } else {
-            if (arrs[j] != mat[j]->data)
+            if (arrs[j] != (dtype*)mat_list[j]->data)
               T->sr->dealloc((char*)arrs[j]);
           }
         }

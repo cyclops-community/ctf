@@ -123,6 +123,25 @@ class KnowValues(unittest.TestCase):
         c1 = ctf.einsum('ijklm,ijn->', a1, b1)
         self.assertTrue(allclose(c0, c1))
 
+    def test_MTTKRP_vec(self):
+        for N in range(2,5):
+            lens = numpy.random.randint(2, 4, N)
+            A = ctf.random.random(lens)
+            mats = []
+            for i in range(N):
+                mats.append(ctf.random.random([lens[i]]))
+            for i in range(N):
+                ctr = A.i("ijklm"[0:N])
+                for j in range(N):
+                    if i != j:
+                        #ctr *= mats[j].i("ijklm"[j]+"r")
+                        ctr *= mats[j].i("ijklm"[j])
+                ans = ctf.zeros(mats[i].shape)
+                ans.i("ijklm"[i]) << ctr
+                ctf.MTTKRP(A, mats, i)
+                self.assertTrue(allclose(ans, mats[i]))
+
+
     def test_TTTP_vec(self):
         A = numpy.random.random((4, 3, 5))
         u = numpy.random.random((4,))

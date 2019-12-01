@@ -5733,8 +5733,7 @@ def MTTKRP(tensor A, mat_list, mode):
     for i in range(len(mat_list))[::-1]:
         t = tensor(copy=mat_list[i])
         tsr_list.append(t)
-        tsrs[imode] = <Tensor[double]*>t.dt
-        imode += 1
+        tsrs[i] = <Tensor[double]*>t.dt
         if mat_list[i].ndim == 1:
             if k != -1:
                 raise ValueError('CTF PYTHON ERROR: mat_list must contain only vectors or only matrices')
