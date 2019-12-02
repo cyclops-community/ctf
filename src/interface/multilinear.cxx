@@ -492,7 +492,7 @@ namespace CTF {
           }
           mmat = mat_list[i]->slice(slice_st, slice_end);
           mat = &mmat;
-        } else if(!is_vec) {
+        } else if (!is_vec) {
           if (aux_mode_first){
             mat_strides[2*i+0] = k;
             mat_strides[2*i+1] = 1;
@@ -522,8 +522,12 @@ namespace CTF {
           } else {
             if (is_vec)
               redist_mats[i] = new Vector<dtype>(mat_list[i]->lens[0], 'a'-1, par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
-            else
-              redist_mats[i] = new Matrix<dtype>(nrow, ncol, "", par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
+            else {
+              char nonastr[2];
+              nonastr[0] = 'a'-1;
+              nonastr[1] = 'a'-2;
+              redist_mats[i] = new Matrix<dtype>(nrow, ncol, nonastr, par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
+            }
             arrs[i] = (dtype*)redist_mats[i]->data;
           }
         } else {
