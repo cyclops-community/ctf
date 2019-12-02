@@ -1849,6 +1849,7 @@ namespace CTF_int {
         return PairIterator(sr,tA.read_all_pairs(num_pair, false).ptr);
       }
     }*/
+    TAU_FSTART(read_all_pairs);
     alloc_ptr(numPes*sizeof(int), (void**)&nXs);
     alloc_ptr(numPes*sizeof(int), (void**)&pXs);
     pXs[0] = 0;
@@ -1879,6 +1880,7 @@ namespace CTF_int {
       sr->pair_dealloc(my_pairs);
     }
     *num_pair = nval;
+    TAU_FSTOP(read_all_pairs);
     return ipr.ptr;
   }
 

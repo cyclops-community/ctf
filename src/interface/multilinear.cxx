@@ -465,6 +465,8 @@ namespace CTF {
       kd = k/div + (d < k%div);
       int k_end = k_start + kd;
 
+      Timer t_mttkrp_remap("MTTKRP_remap_mats");
+      t_mttkrp_remap.start();
       for (int i=0; i<T->order; i++){
         Tensor<dtype> mmat;
         Tensor<dtype> * mat = mat_list[i];
@@ -576,6 +578,10 @@ namespace CTF {
         }
         
       }
+      t_mttkrp_remap.stop();
+
+      Timer t_mttkrp_red("MTTKRP_work");
+      t_mttkrp_red.start();
       {
         if (is_vec){
           for (int64_t i=0; i<npair; i++){
@@ -611,6 +617,7 @@ namespace CTF {
           free(inds);
         }
       }
+      t_mttkrp_red.stop();
       for (int j=0; j<T->order; j++){
         if (j == mode){
           int red_len = T->wrld->np/phys_phase[j];
@@ -629,12 +636,16 @@ namespace CTF {
             MPI_Comm_split(T->wrld->comm, jr, T->wrld->rank, &cm);
             int cmr;
             MPI_Comm_rank(cm, &cmr);
+
+            Timer t_mttkrp_red("MTTKRP_Reduce");
+            t_mttkrp_red.start();
             if (cmr == 0)
               MPI_Reduce(MPI_IN_PLACE, arrs[j], sz, T->sr->mdtype(), T->sr->addmop(), 0, cm);
             else {
               MPI_Reduce(arrs[j], NULL, sz, T->sr->mdtype(), T->sr->addmop(), 0, cm);
               std::fill(arrs[j], arrs[j]+sz, *((dtype*)T->sr->addid()));
             }
+            t_mttkrp_red.stop();
             MPI_Comm_free(&cm);
           }
           if (redist_mats[j] != NULL){
