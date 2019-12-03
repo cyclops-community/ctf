@@ -3378,7 +3378,6 @@ namespace CTF_int {
     assert(A->sr->el_size == B->sr->el_size);
     bivar_function * func = A->sr->get_elementwise_smaller();
     this->operator[](str) = func->operator()(A->operator[](str),B->operator[](str));
-    this->operator[](str) += func->operator()(A->operator[](str),B->operator[](str));
     delete func;
 	}
 
