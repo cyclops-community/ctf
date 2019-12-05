@@ -584,7 +584,7 @@ namespace CTF {
       t_mttkrp_work.start();
       {
         if (mode == 0 && !is_vec){
-          ((Semiring<dtype>*)T->sr)->MTTKRP(T->order, T->lens, kd, npair, mode, aux_mode_first, pairs, arrs, arrs[mode]);
+          ((Semiring<dtype>*)T->sr)->MTTKRP(T->order, T->lens, phys_phase, kd, npair, mode, aux_mode_first, pairs, arrs, arrs[mode]);
         } else {
           if (is_vec){
             for (int64_t i=0; i<npair; i++){

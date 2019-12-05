@@ -1144,6 +1144,7 @@ namespace CTF {
 
       void MTTKRP(int                   order,
                   int64_t *             lens,
+                  int *                 phys_phase,
                   int64_t               k,
                   int64_t               nnz,
                   int                   out_mode,
@@ -1161,7 +1162,7 @@ namespace CTF {
               int64_t fiber_idx = tsr_data[idx].k/lens[0];
               int64_t fi = fiber_idx;
               for (int i=0; i<order-1; i++){
-                inds[i] = fi % lens[i+1];
+                inds[i] = (fi % lens[i+1])/phys_phase[i+1];
                 fi = fi / lens[i+1];
               }
               int64_t fiber_nnz = 1;
@@ -1174,7 +1175,7 @@ namespace CTF {
                 }
               }
               for (int64_t i=idx; i<idx+fiber_nnz; i++){
-                int64_t kk = (tsr_data[i].k%lens[0]);
+                int64_t kk = (tsr_data[i].k%lens[0])/phys_phase[0];
                 for (int j=0; j<k; j++){
                   out_mat[j+kk*k] += tsr_data[i].d*buffer[j];
                 }
