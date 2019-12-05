@@ -22,52 +22,6 @@ namespace CTF {
    * @{
    */
   /**
-   * \brief index-value pair used for tensor data input
-   */
-  template<typename dtype=double>
-  class Pair  {
-    public:
-      /** \brief key, global index [i1,i2,...] specified as i1+len[0]*i2+... */
-      int64_t k;
-
-      /** \brief tensor value associated with index */
-      dtype d;
-
-      /**
-       * \brief constructor builds pair
-       * \param[in] k_ key
-       * \param[in] d_ value
-       */
-      Pair(int64_t k_, dtype d_){
-        this->k = k_;
-        d = d_;
-      }
-
-      /**
-       * \brief default constructor
-       */
-      Pair(){
-        //k=0;
-        //d=0; //(not possible if type has no zero!)
-      }
-
-      /**
-       * \brief determines pair ordering
-       */
-      bool operator<(Pair<dtype> other) const {
-        return k<other.k;
-      }
-
-  };
-
-  template<typename dtype>
-  inline bool comp_pair(Pair<dtype> i,
-                        Pair<dtype> j) {
-    return (i.k<j.k);
-  }
-
-
-  /**
    * \brief an instance of a tensor within a CTF world
    */
   template <typename dtype=double>

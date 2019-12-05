@@ -1142,6 +1142,54 @@ namespace CTF {
         }
       }
 
+      void MTTKRP(int                   order,
+                  int64_t *             lens,
+                  int64_t               k,
+                  int64_t               nnz,
+                  int                   out_mode,
+                  bool                  aux_mode_first,
+                  CTF::Pair<dtype> const *   tsr_data,
+                  dtype const * const * op_mats,
+                  dtype *               out_mat){
+        if (aux_mode_first){
+          if (out_mode == 0){
+  
+            dtype * buffer = (dtype*)this->alloc(k);
+            int64_t * inds = (int64_t*)malloc(sizeof(int64_t)*(order-1));
+            int64_t idx = 0;
+            while (idx < nnz){
+              int64_t fiber_idx = tsr_data[idx].k/lens[0];
+              int64_t fi = fiber_idx;
+              for (int i=0; i<order-1; i++){
+                inds[i] = fi % lens[i+1];
+                fi = fi / lens[i+1];
+              }
+              int64_t fiber_nnz = 1;
+              while (idx+fiber_nnz < nnz && tsr_data[idx+fiber_nnz].k/lens[0] == fiber_idx)
+                fiber_nnz++;
+              for (int j=0; j<k; j++){
+                buffer[j] = op_mats[1][j+inds[0]*k];
+                for (int i=1; i<order-1; i++){
+                  buffer[j] *= op_mats[i+1][j+inds[i]*k];
+                }
+              }
+              for (int64_t i=idx; i<idx+fiber_nnz; i++){
+                int64_t kk = (tsr_data[i].k%lens[0]);
+                for (int j=0; j<k; j++){
+                  out_mat[j+kk*k] += tsr_data[i].d*buffer[j];
+                }
+              }
+              idx += fiber_nnz;
+            }
+            this->dealloc((char*)buffer);
+            free(inds);
+          } else {
+            IASSERT(0);
+          }
+        } else {
+          IASSERT(0);
+        }
+      }
   };
   /**
    * @}
