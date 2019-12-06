@@ -1153,21 +1153,20 @@ namespace CTF {
                   dtype const * const * op_mats,
                   dtype *               out_mat){
         if (aux_mode_first){
-          if (out_mode == 0){
-  
-            dtype * buffer = (dtype*)this->alloc(k);
-            int64_t * inds = (int64_t*)malloc(sizeof(int64_t)*(order-1));
-            int64_t idx = 0;
-            while (idx < nnz){
-              int64_t fiber_idx = tsr_data[idx].k/lens[0];
-              int64_t fi = fiber_idx;
-              for (int i=0; i<order-1; i++){
-                inds[i] = (fi % lens[i+1])/phys_phase[i+1];
-                fi = fi / lens[i+1];
-              }
-              int64_t fiber_nnz = 1;
-              while (idx+fiber_nnz < nnz && tsr_data[idx+fiber_nnz].k/lens[0] == fiber_idx)
-                fiber_nnz++;
+          dtype * buffer = (dtype*)this->alloc(k);
+          int64_t * inds = (int64_t*)malloc(sizeof(int64_t)*(order-1));
+          int64_t idx = 0;
+          while (idx < nnz){
+            int64_t fiber_idx = tsr_data[idx].k/lens[0];
+            int64_t fi = fiber_idx;
+            for (int i=0; i<order-1; i++){
+              inds[i] = (fi % lens[i+1])/phys_phase[i+1];
+              fi = fi / lens[i+1];
+            }
+            int64_t fiber_nnz = 1;
+            while (idx+fiber_nnz < nnz && tsr_data[idx+fiber_nnz].k/lens[0] == fiber_idx)
+              fiber_nnz++;
+            if (out_mode == 0){
               for (int j=0; j<k; j++){
                 buffer[j] = op_mats[1][j+inds[0]*k];
                 for (int i=1; i<order-1; i++){
@@ -1180,13 +1179,31 @@ namespace CTF {
                   out_mat[j+kk*k] += tsr_data[i].d*buffer[j];
                 }
               }
-              idx += fiber_nnz;
+            } else {
+              int64_t ok = inds[out_mode-1];
+              for (int j=0; j<k; j++){
+                if (out_mode > 1)
+                  buffer[j] = op_mats[1][j+inds[0]*k];
+                else if (order > 2)
+                  buffer[j] = op_mats[2][j+inds[1]*k];
+                else
+                  buffer[j] = this->tmulid;
+                for (int i=1+(out_mode==1); i<order-1; i++){
+                  if (out_mode != i+1)
+                    buffer[j] *= op_mats[i+1][j+inds[i]*k];
+                }
+              }
+              for (int64_t i=idx; i<idx+fiber_nnz; i++){
+                int64_t kk = (tsr_data[i].k%lens[0])/phys_phase[0];
+                for (int j=0; j<k; j++){
+                  out_mat[j+ok*k] += tsr_data[i].d*op_mats[0][j+kk*k]*buffer[j];
+                }
+              }
             }
-            this->dealloc((char*)buffer);
-            free(inds);
-          } else {
-            IASSERT(0);
+            idx += fiber_nnz;
           }
+          this->dealloc((char*)buffer);
+          free(inds);
         } else {
           IASSERT(0);
         }
