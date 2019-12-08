@@ -1154,6 +1154,9 @@ namespace CTF {
                   dtype *               out_mat){
         if (aux_mode_first){
           dtype * buffer = (dtype*)this->alloc(k);
+          dtype * out_buffer;
+          if (out_mode != 0)
+            out_buffer = (dtype*)this->alloc(k);
           int64_t * inds = (int64_t*)malloc(sizeof(int64_t)*(order-1));
           int64_t idx = 0;
           while (idx < nnz){
@@ -1175,9 +1178,10 @@ namespace CTF {
               }
               for (int64_t i=idx; i<idx+fiber_nnz; i++){
                 int64_t kk = (tsr_data[i].k%lens[0])/phys_phase[0];
-                for (int j=0; j<k; j++){
-                  out_mat[j+kk*k] += tsr_data[i].d*buffer[j];
-                }
+                //for (int j=0; j<k; j++){
+                //  out_mat[j+kk*k] += tsr_data[i].d*buffer[j];
+                //}
+                this->faxpy(k, tsr_data[i].d, buffer, 1, out_mat+kk*k, 1);
               }
             } else {
               int64_t ok = inds[out_mode-1];
@@ -1193,15 +1197,31 @@ namespace CTF {
                     buffer[j] *= op_mats[i+1][j+inds[i]*k];
                 }
               }
-              for (int64_t i=idx; i<idx+fiber_nnz; i++){
+              //for (int64_t i=idx; i<idx+fiber_nnz; i++){
+              //  int64_t kk = (tsr_data[i].k%lens[0])/phys_phase[0];
+              //  for (int j=0; j<k; j++){
+              //    out_mat[j+ok*k] += tsr_data[i].d*op_mats[0][j+kk*k]*buffer[j];
+              //  }
+              //}
+              int64_t kk = (tsr_data[idx].k%lens[0])/phys_phase[0];
+              for (int j=0; j<k; j++){
+                out_buffer[j] = tsr_data[idx].d*op_mats[0][j+kk*k];
+              }
+              for (int64_t i=idx+1; i<idx+fiber_nnz; i++){
                 int64_t kk = (tsr_data[i].k%lens[0])/phys_phase[0];
-                for (int j=0; j<k; j++){
-                  out_mat[j+ok*k] += tsr_data[i].d*op_mats[0][j+kk*k]*buffer[j];
-                }
+                //for (int j=0; j<k; j++){
+                //  out_buffer[j] += tsr_data[i].d*op_mats[0][j+kk*k];
+                //}
+                this->faxpy(k, tsr_data[i].d, op_mats[0] + kk*k, 1, out_buffer, 1);
+              }
+              for (int j=0; j<k; j++){
+                out_mat[j+ok*k] += out_buffer[j]*buffer[j];
               }
             }
             idx += fiber_nnz;
           }
+          if (out_mode != 0)
+            this->dealloc((char*)out_buffer);
           this->dealloc((char*)buffer);
           free(inds);
         } else {
