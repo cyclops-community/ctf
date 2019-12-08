@@ -190,6 +190,29 @@ namespace CTF_int {
     CTF_BLAS::ZSCAL(&n,&alpha,X,&incX);
   }
 
+#if USE_MKL
+
+  template <>
+  void default_vec_mul<float>(float const * a, float const * b, float * c, int64_t n){
+    CTF_BLAS::MKL_VSMUL(&n, a, b, c);
+  }
+
+  template <>
+  void default_vec_mul<double>(double const * a, double const * b, double * c, int64_t n){
+    CTF_BLAS::MKL_VDMUL(&n, a, b, c);
+  }
+  template <>
+  void default_vec_mul<std::complex<float>>(std::complex<float> const * a, std::complex<float> const * b, std::complex<float> * c, int64_t n){
+    CTF_BLAS::MKL_VCMUL(&n, a, b, c);
+  }
+
+  template <>
+  void default_vec_mul<std::complex<double>>(std::complex<double> const * a, std::complex<double> const * b, std::complex<double> * c, int64_t n){
+    CTF_BLAS::MKL_VZMUL(&n, a, b, c);
+  }
+
+#endif
+
 #define DEF_COOMM_KERNEL()                                \
     for (int j=0; j<n; j++){                              \
       for (int i=0; i<m; i++){                            \

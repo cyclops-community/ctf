@@ -18,6 +18,13 @@ namespace CTF_int {
   }
 
   template <typename dtype>
+  void default_vec_mul(dtype const * a, dtype const * b, dtype * c, int64_t n){
+    for (int64_t i=0; i<n; i++){
+      c[i] = a[i]*b[i];
+    }
+  }
+
+  template <typename dtype>
   void default_axpy(int           n,
                     dtype         alpha,
                     dtype const * X,
@@ -365,6 +372,7 @@ namespace CTF {
       void (*fscal)(int,dtype,dtype*,int);
       void (*faxpy)(int,dtype,dtype const*,int,dtype*,int);
       dtype (*fmul)(dtype a, dtype b);
+      void (*fvmul)(dtype const * a, dtype const * b, dtype * c, int64_t n);
       void (*fgemm)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*);
       void (*fcoomm)(int,int,int,dtype,dtype const*,int const*,int const*,int,dtype const*,dtype,dtype*);
       void (*fgemm_batch)(char,char,int,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*);
@@ -377,6 +385,7 @@ namespace CTF {
         this->fscal       = other.fscal;
         this->faxpy       = other.faxpy;
         this->fmul        = other.fmul;
+        this->fvmul       = other.fvmul;
         this->fgemm       = other.fgemm;
         this->fcoomm      = other.fcoomm;
         this->is_def      = other.is_def;
@@ -394,6 +403,7 @@ namespace CTF {
        * \param[in] addmop_ MPI_Op operation for addition
        * \param[in] mulid_ multiplicative identity
        * \param[in] fmul_ binary multiplication function
+       * \param[in] fvmul_ binary vector multiplication function
        * \param[in] gemm_ block matrix multiplication function
        * \param[in] axpy_ vector sum function
        * \param[in] scal_ vector scale function
@@ -404,6 +414,7 @@ namespace CTF {
                MPI_Op       addmop_,
                dtype        mulid_,
                dtype (*fmul_)(dtype a, dtype b),
+               void (*fvmul_)(dtype const * a, dtype const * b, dtype * c, int64_t n),
                void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=NULL,
                void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=NULL,
                void (*scal_)(int,dtype,dtype*,int)=NULL,
@@ -411,6 +422,7 @@ namespace CTF {
                void (*fgemm_batch_)(char,char,int,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=NULL)
                 : Monoid<dtype, is_ord>(addid_, fadd_, addmop_) {
         fmul        = fmul_;
+        fvmul       = fvmul_;
         fgemm       = gemm_;
         faxpy       = axpy_;
         fscal       = scal_;
@@ -428,6 +440,7 @@ namespace CTF {
       Semiring() : Monoid<dtype,is_ord>()  {
         tmulid      = dtype(1);
         fmul        = &CTF_int::default_mul<dtype>;
+        fvmul       = &CTF_int::default_vec_mul<dtype>;
         fgemm       = &CTF_int::default_gemm<dtype>;
         faxpy       = &CTF_int::default_axpy<dtype>;
         fscal       = &CTF_int::default_scal<dtype>;
@@ -1170,53 +1183,36 @@ namespace CTF {
             while (idx+fiber_nnz < nnz && tsr_data[idx+fiber_nnz].k/lens[0] == fiber_idx)
               fiber_nnz++;
             if (out_mode == 0){
-              for (int j=0; j<k; j++){
-                buffer[j] = op_mats[1][j+inds[0]*k];
-                for (int i=1; i<order-1; i++){
-                  buffer[j] *= op_mats[i+1][j+inds[i]*k];
-                }
+              memcpy(buffer, op_mats[1] + inds[0]*k, k*sizeof(dtype));
+              for (int i=1; i<order-1; i++){
+                fvmul(buffer, op_mats[i+1]+inds[i]*k, buffer, k);
               }
               for (int64_t i=idx; i<idx+fiber_nnz; i++){
                 int64_t kk = (tsr_data[i].k%lens[0])/phys_phase[0];
-                //for (int j=0; j<k; j++){
-                //  out_mat[j+kk*k] += tsr_data[i].d*buffer[j];
-                //}
                 this->faxpy(k, tsr_data[i].d, buffer, 1, out_mat+kk*k, 1);
               }
             } else {
               int64_t ok = inds[out_mode-1];
-              for (int j=0; j<k; j++){
-                if (out_mode > 1)
-                  buffer[j] = op_mats[1][j+inds[0]*k];
-                else if (order > 2)
-                  buffer[j] = op_mats[2][j+inds[1]*k];
-                else
-                  buffer[j] = this->tmulid;
-                for (int i=1+(out_mode==1); i<order-1; i++){
-                  if (out_mode != i+1)
-                    buffer[j] *= op_mats[i+1][j+inds[i]*k];
-                }
+              if (out_mode > 1)
+                memcpy(buffer, op_mats[1] + inds[0]*k, k*sizeof(dtype));
+              else if (order > 2)
+                memcpy(buffer, op_mats[2] + inds[1]*k, k*sizeof(dtype));
+              else
+                std::fill(buffer, buffer+k, this->tmulid);
+              for (int i=1+(out_mode==1); i<order-1; i++){
+                if (out_mode != i+1)
+                  fvmul(buffer, op_mats[i+1] + inds[i]*k, buffer, k);
               }
-              //for (int64_t i=idx; i<idx+fiber_nnz; i++){
-              //  int64_t kk = (tsr_data[i].k%lens[0])/phys_phase[0];
-              //  for (int j=0; j<k; j++){
-              //    out_mat[j+ok*k] += tsr_data[i].d*op_mats[0][j+kk*k]*buffer[j];
-              //  }
-              //}
-              int64_t kk = (tsr_data[idx].k%lens[0])/phys_phase[0];
-              for (int j=0; j<k; j++){
-                out_buffer[j] = tsr_data[idx].d*op_mats[0][j+kk*k];
-              }
-              for (int64_t i=idx+1; i<idx+fiber_nnz; i++){
+              std::fill(out_buffer, out_buffer+k, this->taddid);
+              for (int64_t i=idx; i<idx+fiber_nnz; i++){
                 int64_t kk = (tsr_data[i].k%lens[0])/phys_phase[0];
-                //for (int j=0; j<k; j++){
-                //  out_buffer[j] += tsr_data[i].d*op_mats[0][j+kk*k];
-                //}
                 this->faxpy(k, tsr_data[i].d, op_mats[0] + kk*k, 1, out_buffer, 1);
               }
-              for (int j=0; j<k; j++){
-                out_mat[j+ok*k] += out_buffer[j]*buffer[j];
-              }
+              fvmul(out_buffer, buffer, out_buffer, k);
+              this->faxpy(k, this->tmulid, out_buffer, 1, out_mat + ok*k, 1);
+              //for (int j=0; j<k; j++){
+              //  out_mat[j+ok*k] += out_buffer[j]*buffer[j];
+              //}
             }
             idx += fiber_nnz;
           }
