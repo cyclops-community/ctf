@@ -414,12 +414,12 @@ namespace CTF {
                MPI_Op       addmop_,
                dtype        mulid_,
                dtype (*fmul_)(dtype a, dtype b),
-               void (*fvmul_)(dtype const * a, dtype const * b, dtype * c, int64_t n),
                void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=NULL,
                void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=NULL,
                void (*scal_)(int,dtype,dtype*,int)=NULL,
                void (*coomm_)(int,int,int,dtype,dtype const*,int const*,int const*,int,dtype const*,dtype,dtype*)=NULL,
-               void (*fgemm_batch_)(char,char,int,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=NULL)
+               void (*fgemm_batch_)(char,char,int,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=NULL,
+               void (*fvmul_)(dtype const * a, dtype const * b, dtype * c, int64_t n)=NULL)
                 : Monoid<dtype, is_ord>(addid_, fadd_, addmop_) {
         fmul        = fmul_;
         fvmul       = fvmul_;
@@ -1155,16 +1155,16 @@ namespace CTF {
         }
       }
 
-      void MTTKRP(int                   order,
-                  int64_t *             lens,
-                  int *                 phys_phase,
-                  int64_t               k,
-                  int64_t               nnz,
-                  int                   out_mode,
-                  bool                  aux_mode_first,
-                  CTF::Pair<dtype> const *   tsr_data,
-                  dtype const * const * op_mats,
-                  dtype *               out_mat){
+      void MTTKRP(int                      order,
+                  int64_t *                lens,
+                  int *                    phys_phase,
+                  int64_t                  k,
+                  int64_t                  nnz,
+                  int                      out_mode,
+                  bool                     aux_mode_first,
+                  CTF::Pair<dtype> const * tsr_data,
+                  dtype const * const *    op_mats,
+                  dtype *                  out_mat){
         if (aux_mode_first){
           dtype * buffer = (dtype*)this->alloc(k);
           dtype * out_buffer;
@@ -1224,6 +1224,61 @@ namespace CTF {
           IASSERT(0);
         }
       }
+
+      void MTTKRP(int                      order,
+                  int64_t *                lens,
+                  int *                    phys_phase,
+                  int64_t                  nnz,
+                  int                      out_mode,
+                  CTF::Pair<dtype> const * tsr_data,
+                  dtype const * const *    op_vecs,
+                  dtype *                  out_vec){
+        int64_t * inds = (int64_t*)malloc(sizeof(int64_t)*(order-1));
+        int64_t idx = 0;
+        while (idx < nnz){
+          int64_t fiber_idx = tsr_data[idx].k/lens[0];
+          int64_t fi = fiber_idx;
+          for (int i=0; i<order-1; i++){
+            inds[i] = (fi % lens[i+1])/phys_phase[i+1];
+            fi = fi / lens[i+1];
+          }
+          int64_t fiber_nnz = 1;
+          while (idx+fiber_nnz < nnz && tsr_data[idx+fiber_nnz].k/lens[0] == fiber_idx)
+            fiber_nnz++;
+          if (out_mode == 0){
+            dtype buf_val = op_vecs[1][inds[0]];
+            for (int i=1; i<order-1; i++){
+              buf_val *= op_vecs[i+1][inds[i]];
+            }
+            for (int64_t i=idx; i<idx+fiber_nnz; i++){
+              int64_t kk = (tsr_data[i].k%lens[0])/phys_phase[0];
+              out_vec[kk] += tsr_data[i].d*buf_val;
+            }
+          } else {
+            int64_t ok = inds[out_mode-1];
+            dtype buf_val = op_vecs[1][inds[0]];
+            if (out_mode > 1)
+              buf_val = op_vecs[1][inds[0]];
+            else if (order > 2)
+              buf_val = op_vecs[2][inds[1]];
+            else
+              buf_val = this->tmulid;
+            for (int i=1+(out_mode==1); i<order-1; i++){
+              if (out_mode != i+1)
+                buf_val *= op_vecs[i+1][inds[i]];
+            }
+            dtype buf_val2 = this->taddid;
+            for (int64_t i=idx; i<idx+fiber_nnz; i++){
+              int64_t kk = (tsr_data[i].k%lens[0])/phys_phase[0];
+              buf_val2 += tsr_data[i].d*op_vecs[0][kk];
+            }
+            out_vec[ok] += buf_val*buf_val2;
+          }
+          idx += fiber_nnz;
+        }
+        free(inds);
+      }
+
   };
   /**
    * @}
