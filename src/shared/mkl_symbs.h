@@ -3,10 +3,10 @@
 
 #include <complex>
 #if FTN_UNDERSCORE
-#define MKL_VSMUL mkl_vsMul_
-#define MKL_VDMUL mkl_vdMul_
-#define MKL_VCMUL mkl_vcMul_
-#define MKL_VZMUL mkl_vzMul_
+#define MKL_VSMUL vsmul_
+#define MKL_VDMUL vdmul_
+#define MKL_VCMUL vcmul_
+#define MKL_VZMUL vzmul_
 #define MKL_SCOOMM mkl_scoomm_
 #define MKL_DCOOMM mkl_dcoomm_
 #define MKL_CCOOMM mkl_ccoomm_
@@ -32,10 +32,10 @@
 #define MKL_CCSRMULTCSR mkl_ccsrmultcsr_
 #define MKL_ZCSRMULTCSR mkl_zcsrmultcsr_
 #else
-#define MKL_VSMUL mkl_vsMul
-#define MKL_VDMUL mkl_vdMul
-#define MKL_VCMUL mkl_vcMul
-#define MKL_VZMUL mkl_vzMul
+#define MKL_VSMUL vsmul
+#define MKL_VDMUL vdmul
+#define MKL_VCMUL vcmul
+#define MKL_VZMUL vzmul
 #define MKL_SCOOMM mkl_scoomm
 #define MKL_DCOOMM mkl_dcoomm
 #define MKL_CCOOMM mkl_ccoomm
@@ -64,13 +64,13 @@
 namespace CTF_BLAS {
 
   extern "C"
-  void MKL_VSMUL(int n, float const * a, float const * b, float * c);
+  void MKL_VSMUL(int * n, float const * a, float const * b, float * c);
   extern "C"
-  void MKL_VDMUL(int n, double const * a, double const * b, double * c);
+  void MKL_VDMUL(int * n, double const * a, double const * b, double * c);
   extern "C"
-  void MKL_VCMUL(int n, std::complex<float> const * a, std::complex<float> const * b, std::complex<float> * c);
+  void MKL_VCMUL(int * n, std::complex<float> const * a, std::complex<float> const * b, std::complex<float> * c);
   extern "C"
-  void MKL_VZMUL(int n, std::complex<double> const * a, std::complex<double> const * b, std::complex<double> * c);
+  void MKL_VZMUL(int * n, std::complex<double> const * a, std::complex<double> const * b, std::complex<double> * c);
 
   extern "C"
   void MKL_SCOOMM(char *        transa,

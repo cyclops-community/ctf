@@ -194,21 +194,25 @@ namespace CTF_int {
 
   template <>
   void default_vec_mul<float>(float const * a, float const * b, float * c, int64_t n){
-    CTF_BLAS::MKL_VSMUL(&n, a, b, c);
+    int nn = n;
+    CTF_BLAS::MKL_VSMUL(&nn, a, b, c);
   }
 
   template <>
   void default_vec_mul<double>(double const * a, double const * b, double * c, int64_t n){
-    CTF_BLAS::MKL_VDMUL(&n, a, b, c);
+    int nn = n;
+    CTF_BLAS::MKL_VDMUL(&nn, a, b, c);
   }
   template <>
   void default_vec_mul<std::complex<float>>(std::complex<float> const * a, std::complex<float> const * b, std::complex<float> * c, int64_t n){
-    CTF_BLAS::MKL_VCMUL(&n, a, b, c);
+    int nn = n;
+    CTF_BLAS::MKL_VCMUL(&nn, a, b, c);
   }
 
   template <>
   void default_vec_mul<std::complex<double>>(std::complex<double> const * a, std::complex<double> const * b, std::complex<double> * c, int64_t n){
-    CTF_BLAS::MKL_VZMUL(&n, a, b, c);
+    int nn = n;
+    CTF_BLAS::MKL_VZMUL(&nn, a, b, c);
   }
 
 #endif
