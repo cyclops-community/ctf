@@ -5711,7 +5711,7 @@ def MTTKRP(tensor A, mat_list, mode):
     """
     MTTKRP(A, mat_list, mode)
     Compute Matricized Tensor Times Khatri Rao Product with output mode given as mode, e.g.
-    MTTKRP(A, [U,V,W,Z], 2) gives W = einsum("ijkl,ij,jr,lr->kr",A,U,V,Z).
+    MTTKRP(A, [U,V,W,Z], 2) gives W = einsum("ijkl,ir,jr,lr->kr",A,U,V,Z).
     This routine is generally much faster then einsum when A is sparse.
 
     Parameters
