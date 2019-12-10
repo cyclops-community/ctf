@@ -580,44 +580,49 @@ namespace CTF {
       }
       t_mttkrp_remap.stop();
 
-      Timer t_mttkrp_red("MTTKRP_work");
-      t_mttkrp_red.start();
+      Timer t_mttkrp_work("MTTKRP_work");
+      t_mttkrp_work.start();
       {
-        if (is_vec){
-          for (int64_t i=0; i<npair; i++){
-            int64_t key = pairs[i].k;
-            dtype d = pairs[i].d;
-            for (int j=0; j<T->order; j++){
-              if (j != mode){
-                int64_t ke = key/ldas[j];
-                d *= arrs[j][(ke%T->lens[j])/phys_phase[j]];
-              }
-            }
-            int64_t ke = key/ldas[mode];
-            arrs[mode][(ke%T->lens[mode])/phys_phase[mode]] += d;
-          }
+        if (!is_vec){
+          ((Semiring<dtype>*)T->sr)->MTTKRP(T->order, T->lens, phys_phase, kd, npair, mode, aux_mode_first, pairs, arrs, arrs[mode]);
         } else {
-          int * inds = (int*)malloc(T->order*sizeof(int));
-          for (int64_t i=0; i<npair; i++){
-            int64_t key = pairs[i].k;
-            for (int j=0; j<T->order; j++){
-              int64_t ke = key/ldas[j];
-              inds[j] = (ke%T->lens[j])/phys_phase[j];
-            }
-            for (int kk=0; kk<kd; kk++){
-              dtype d = pairs[i].d;
-              //dtype a = arrs[0][inds[0]*mat_strides[0]+kk*mat_strides[1]];
-              for (int j=0; j<T->order; j++){
-                if (j != mode)
-                  d *= arrs[j][inds[j]*mat_strides[2*j]+kk*mat_strides[2*j+1]];
-              }
-              arrs[mode][inds[mode]*mat_strides[2*mode]+kk*mat_strides[2*mode+1]] += d;
-            }
-          }
-          free(inds);
+          ((Semiring<dtype>*)T->sr)->MTTKRP(T->order, T->lens, phys_phase, npair, mode, pairs, arrs, arrs[mode]);
+          //if (is_vec){
+          //  for (int64_t i=0; i<npair; i++){
+          //    int64_t key = pairs[i].k;
+          //    dtype d = pairs[i].d;
+          //    for (int j=0; j<T->order; j++){
+          //      if (j != mode){
+          //        int64_t ke = key/ldas[j];
+          //        d *= arrs[j][(ke%T->lens[j])/phys_phase[j]];
+          //      }
+          //    }
+          //    int64_t ke = key/ldas[mode];
+          //    arrs[mode][(ke%T->lens[mode])/phys_phase[mode]] += d;
+          //  }
+          //} else {
+          //  int * inds = (int*)malloc(T->order*sizeof(int));
+          //  for (int64_t i=0; i<npair; i++){
+          //    int64_t key = pairs[i].k;
+          //    for (int j=0; j<T->order; j++){
+          //      int64_t ke = key/ldas[j];
+          //      inds[j] = (ke%T->lens[j])/phys_phase[j];
+          //    }
+          //    for (int kk=0; kk<kd; kk++){
+          //      dtype d = pairs[i].d;
+          //      //dtype a = arrs[0][inds[0]*mat_strides[0]+kk*mat_strides[1]];
+          //      for (int j=0; j<T->order; j++){
+          //        if (j != mode)
+          //          d *= arrs[j][inds[j]*mat_strides[2*j]+kk*mat_strides[2*j+1]];
+          //      }
+          //      arrs[mode][inds[mode]*mat_strides[2*mode]+kk*mat_strides[2*mode+1]] += d;
+          //    }
+          //  }
+          //  free(inds);
+          //}
         }
       }
-      t_mttkrp_red.stop();
+      t_mttkrp_work.stop();
       for (int j=0; j<T->order; j++){
         if (j == mode){
           int red_len = T->wrld->np/phys_phase[j];

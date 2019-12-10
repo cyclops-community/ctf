@@ -18,6 +18,13 @@ namespace CTF_int {
   }
 
   template <typename dtype>
+  void default_vec_mul(dtype const * a, dtype const * b, dtype * c, int64_t n){
+    for (int64_t i=0; i<n; i++){
+      c[i] = a[i]*b[i];
+    }
+  }
+
+  template <typename dtype>
   void default_axpy(int           n,
                     dtype         alpha,
                     dtype const * X,
@@ -365,6 +372,7 @@ namespace CTF {
       void (*fscal)(int,dtype,dtype*,int);
       void (*faxpy)(int,dtype,dtype const*,int,dtype*,int);
       dtype (*fmul)(dtype a, dtype b);
+      void (*fvmul)(dtype const * a, dtype const * b, dtype * c, int64_t n);
       void (*fgemm)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*);
       void (*fcoomm)(int,int,int,dtype,dtype const*,int const*,int const*,int,dtype const*,dtype,dtype*);
       void (*fgemm_batch)(char,char,int,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*);
@@ -377,6 +385,7 @@ namespace CTF {
         this->fscal       = other.fscal;
         this->faxpy       = other.faxpy;
         this->fmul        = other.fmul;
+        this->fvmul       = other.fvmul;
         this->fgemm       = other.fgemm;
         this->fcoomm      = other.fcoomm;
         this->is_def      = other.is_def;
@@ -394,6 +403,7 @@ namespace CTF {
        * \param[in] addmop_ MPI_Op operation for addition
        * \param[in] mulid_ multiplicative identity
        * \param[in] fmul_ binary multiplication function
+       * \param[in] fvmul_ binary vector multiplication function
        * \param[in] gemm_ block matrix multiplication function
        * \param[in] axpy_ vector sum function
        * \param[in] scal_ vector scale function
@@ -408,9 +418,11 @@ namespace CTF {
                void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=NULL,
                void (*scal_)(int,dtype,dtype*,int)=NULL,
                void (*coomm_)(int,int,int,dtype,dtype const*,int const*,int const*,int,dtype const*,dtype,dtype*)=NULL,
-               void (*fgemm_batch_)(char,char,int,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=NULL)
+               void (*fgemm_batch_)(char,char,int,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=NULL,
+               void (*fvmul_)(dtype const * a, dtype const * b, dtype * c, int64_t n)=NULL)
                 : Monoid<dtype, is_ord>(addid_, fadd_, addmop_) {
         fmul        = fmul_;
+        fvmul       = fvmul_;
         fgemm       = gemm_;
         faxpy       = axpy_;
         fscal       = scal_;
@@ -428,6 +440,7 @@ namespace CTF {
       Semiring() : Monoid<dtype,is_ord>()  {
         tmulid      = dtype(1);
         fmul        = &CTF_int::default_mul<dtype>;
+        fvmul       = &CTF_int::default_vec_mul<dtype>;
         fgemm       = &CTF_int::default_gemm<dtype>;
         faxpy       = &CTF_int::default_axpy<dtype>;
         fscal       = &CTF_int::default_scal<dtype>;
@@ -1140,6 +1153,130 @@ namespace CTF {
         } else {
           this->gen_csrmultcsr(m,n,k,((dtype const*)alpha)[0],(dtype const*)A,JA,IA,nnz_A,(dtype const*)B,JB,IB,nnz_B,((dtype const*)beta)[0],C_CSR);
         }
+      }
+
+      void MTTKRP(int                      order,
+                  int64_t *                lens,
+                  int *                    phys_phase,
+                  int64_t                  k,
+                  int64_t                  nnz,
+                  int                      out_mode,
+                  bool                     aux_mode_first,
+                  CTF::Pair<dtype> const * tsr_data,
+                  dtype const * const *    op_mats,
+                  dtype *                  out_mat){
+        if (aux_mode_first){
+          dtype * buffer = (dtype*)this->alloc(k);
+          dtype * out_buffer;
+          if (out_mode != 0)
+            out_buffer = (dtype*)this->alloc(k);
+          int64_t * inds = (int64_t*)malloc(sizeof(int64_t)*(order-1));
+          int64_t idx = 0;
+          while (idx < nnz){
+            int64_t fiber_idx = tsr_data[idx].k/lens[0];
+            int64_t fi = fiber_idx;
+            for (int i=0; i<order-1; i++){
+              inds[i] = (fi % lens[i+1])/phys_phase[i+1];
+              fi = fi / lens[i+1];
+            }
+            int64_t fiber_nnz = 1;
+            while (idx+fiber_nnz < nnz && tsr_data[idx+fiber_nnz].k/lens[0] == fiber_idx)
+              fiber_nnz++;
+            if (out_mode == 0){
+              memcpy(buffer, op_mats[1] + inds[0]*k, k*sizeof(dtype));
+              for (int i=1; i<order-1; i++){
+                fvmul(buffer, op_mats[i+1]+inds[i]*k, buffer, k);
+              }
+              for (int64_t i=idx; i<idx+fiber_nnz; i++){
+                int64_t kk = (tsr_data[i].k%lens[0])/phys_phase[0];
+                this->faxpy(k, tsr_data[i].d, buffer, 1, out_mat+kk*k, 1);
+              }
+            } else {
+              int64_t ok = inds[out_mode-1];
+              if (out_mode > 1)
+                memcpy(buffer, op_mats[1] + inds[0]*k, k*sizeof(dtype));
+              else if (order > 2)
+                memcpy(buffer, op_mats[2] + inds[1]*k, k*sizeof(dtype));
+              else
+                std::fill(buffer, buffer+k, this->tmulid);
+              for (int i=1+(out_mode==1); i<order-1; i++){
+                if (out_mode != i+1)
+                  fvmul(buffer, op_mats[i+1] + inds[i]*k, buffer, k);
+              }
+              std::fill(out_buffer, out_buffer+k, this->taddid);
+              for (int64_t i=idx; i<idx+fiber_nnz; i++){
+                int64_t kk = (tsr_data[i].k%lens[0])/phys_phase[0];
+                this->faxpy(k, tsr_data[i].d, op_mats[0] + kk*k, 1, out_buffer, 1);
+              }
+              fvmul(out_buffer, buffer, out_buffer, k);
+              this->faxpy(k, this->tmulid, out_buffer, 1, out_mat + ok*k, 1);
+              //for (int j=0; j<k; j++){
+              //  out_mat[j+ok*k] += out_buffer[j]*buffer[j];
+              //}
+            }
+            idx += fiber_nnz;
+          }
+          if (out_mode != 0)
+            this->dealloc((char*)out_buffer);
+          this->dealloc((char*)buffer);
+          free(inds);
+        } else {
+          IASSERT(0);
+        }
+      }
+
+      void MTTKRP(int                      order,
+                  int64_t *                lens,
+                  int *                    phys_phase,
+                  int64_t                  nnz,
+                  int                      out_mode,
+                  CTF::Pair<dtype> const * tsr_data,
+                  dtype const * const *    op_vecs,
+                  dtype *                  out_vec){
+        int64_t * inds = (int64_t*)malloc(sizeof(int64_t)*(order-1));
+        int64_t idx = 0;
+        while (idx < nnz){
+          int64_t fiber_idx = tsr_data[idx].k/lens[0];
+          int64_t fi = fiber_idx;
+          for (int i=0; i<order-1; i++){
+            inds[i] = (fi % lens[i+1])/phys_phase[i+1];
+            fi = fi / lens[i+1];
+          }
+          int64_t fiber_nnz = 1;
+          while (idx+fiber_nnz < nnz && tsr_data[idx+fiber_nnz].k/lens[0] == fiber_idx)
+            fiber_nnz++;
+          if (out_mode == 0){
+            dtype buf_val = op_vecs[1][inds[0]];
+            for (int i=1; i<order-1; i++){
+              buf_val *= op_vecs[i+1][inds[i]];
+            }
+            for (int64_t i=idx; i<idx+fiber_nnz; i++){
+              int64_t kk = (tsr_data[i].k%lens[0])/phys_phase[0];
+              out_vec[kk] += tsr_data[i].d*buf_val;
+            }
+          } else {
+            int64_t ok = inds[out_mode-1];
+            dtype buf_val = op_vecs[1][inds[0]];
+            if (out_mode > 1)
+              buf_val = op_vecs[1][inds[0]];
+            else if (order > 2)
+              buf_val = op_vecs[2][inds[1]];
+            else
+              buf_val = this->tmulid;
+            for (int i=1+(out_mode==1); i<order-1; i++){
+              if (out_mode != i+1)
+                buf_val *= op_vecs[i+1][inds[i]];
+            }
+            dtype buf_val2 = this->taddid;
+            for (int64_t i=idx; i<idx+fiber_nnz; i++){
+              int64_t kk = (tsr_data[i].k%lens[0])/phys_phase[0];
+              buf_val2 += tsr_data[i].d*op_vecs[0][kk];
+            }
+            out_vec[ok] += buf_val*buf_val2;
+          }
+          idx += fiber_nnz;
+        }
+        free(inds);
       }
 
   };

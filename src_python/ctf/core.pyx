@@ -5611,12 +5611,13 @@ def TTTP(tensor A, mat_list):
     modes = <int*>malloc(len(mat_list)*sizeof(int))
     tsrs = <Tensor[double]**>malloc(len(mat_list)*sizeof(ctensor*))
     imode = 0
-    tsr_list = []
+    cdef tensor t
+    ntsrs = 0
     for i in range(len(mat_list))[::-1]:
         if mat_list[i] is not None:
+            ntsrs += 1
             modes[imode] = len(mat_list)-i-1
-            t = tensor(copy=mat_list[i])
-            tsr_list.append(t)
+            t = mat_list[i]
             tsrs[imode] = <Tensor[double]*>t.dt
             imode += 1
             if mat_list[i].ndim == 1:
@@ -5634,10 +5635,9 @@ def TTTP(tensor A, mat_list):
                     if k != mat_list[i].shape[1]:
                         raise ValueError('CTF PYTHON ERROR: mat_list second mode lengths of tensor must match')
                 #exp = exp*mat_list[i].i(s[i]+s[-1])
-    #B.i(s[:-1]) << exp
     B = tensor(copy=A)
     if A.dtype == np.float64:
-        TTTP_[double](<Tensor[double]*>B.dt,len(tsr_list),modes,tsrs,1)
+        TTTP_[double](<Tensor[double]*>B.dt,ntsrs,modes,tsrs,1)
     else:
         raise ValueError('CTF PYTHON ERROR: TTTP does not support this dtype')
     free(modes)
@@ -5650,7 +5650,7 @@ def MTTKRP(tensor A, mat_list, mode):
     """
     MTTKRP(A, mat_list, mode)
     Compute Matricized Tensor Times Khatri Rao Product with output mode given as mode, e.g.
-    MTTKRP(A, [U,V,W,Z], 2) gives W = einsum("ijkl,ij,jr,lr->kr",A,U,V,Z).
+    MTTKRP(A, [U,V,W,Z], 2) gives W = einsum("ijkl,ir,jr,lr->kr",A,U,V,Z).
     This routine is generally much faster then einsum when A is sparse.
 
     Parameters
@@ -5667,11 +5667,11 @@ def MTTKRP(tensor A, mat_list, mode):
         raise ValueError('CTF PYTHON ERROR: mat_list argument to MTTKRP must be of same length as ndim')
     k = -1
     tsrs = <Tensor[double]**>malloc(len(mat_list)*sizeof(ctensor*))
-    tsr_list = []
+    #tsr_list = []
     imode = 0
+    cdef tensor t
     for i in range(len(mat_list))[::-1]:
-        t = tensor(copy=mat_list[i])
-        tsr_list.append(t)
+        t = mat_list[i]
         tsrs[imode] = <Tensor[double]*>t.dt
         imode += 1
         if mat_list[i].ndim == 1:
@@ -5693,7 +5693,6 @@ def MTTKRP(tensor A, mat_list, mode):
         MTTKRP_[double](<Tensor[double]*>B.dt,tsrs,A.ndim-mode-1,1)
     else:
         raise ValueError('CTF PYTHON ERROR: MTTKRP does not support this dtype')
-    mat_list[mode] = tsr_list[A.ndim-mode-1]
     free(tsrs)
     t_mttkrp.stop()
 
