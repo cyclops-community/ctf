@@ -3381,7 +3381,40 @@ namespace CTF_int {
     delete func;
 	}
 
+  void tensor::elementwise_smaller_or_equal(tensor * A, tensor * B){
+    char str[this->order];
+    for (int i=0; i<this->order; i++){
+      str[i] = 'a'+i;
+    }
+    ASSERT(A->sr->el_size == B->sr->el_size);
+    assert(A->sr->el_size == B->sr->el_size);
+    bivar_function * func = A->sr->get_elementwise_smaller_or_equal();
+    this->operator[](str) = func->operator()(A->operator[](str),B->operator[](str));
+    delete func;
+	}
 
+  void tensor::elementwise_is_equal(tensor * A, tensor * B){
+    char str[this->order];
+    for (int i=0; i<this->order; i++){
+      str[i] = 'a'+i;
+    }
+    ASSERT(A->sr->el_size == B->sr->el_size);
+    assert(A->sr->el_size == B->sr->el_size);
+    bivar_function * func = A->sr->get_elementwise_is_equal();
+    this->operator[](str) = func->operator()(A->operator[](str),B->operator[](str));
+    delete func;
+	}
 
+  void tensor::elementwise_is_not_equal(tensor * A, tensor * B){
+    char str[this->order];
+    for (int i=0; i<this->order; i++){
+      str[i] = 'a'+i;
+    }
+    ASSERT(A->sr->el_size == B->sr->el_size);
+    assert(A->sr->el_size == B->sr->el_size);
+    bivar_function * func = A->sr->get_elementwise_is_not_equal();
+    this->operator[](str) = func->operator()(A->operator[](str),B->operator[](str));
+    delete func;
+	}
 }
 

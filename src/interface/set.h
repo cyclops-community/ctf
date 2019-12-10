@@ -651,7 +651,17 @@ namespace CTF {
       return new Bivar_Function<dtype,dtype,bool>([](dtype a, dtype b){ return !CTF_int::default_isequal<dtype>(CTF_int::default_max<dtype,is_ord>(a,b), a);});  
     }
 
+    CTF_int::bivar_function * get_elementwise_smaller_or_equal() const {
+      return new Bivar_Function<dtype,dtype,bool>([](dtype a, dtype b){ return CTF_int::default_isequal<dtype>(CTF_int::default_max<dtype,is_ord>(a,b), b);});  
+    }
 
+    CTF_int::bivar_function * get_elementwise_is_equal() const {
+      return new Bivar_Function<dtype,dtype,bool>([](dtype a, dtype b){ return CTF_int::default_isequal<dtype>(a, b);});  
+    }
+
+    CTF_int::bivar_function * get_elementwise_is_not_equal() const {
+      return new Bivar_Function<dtype,dtype,bool>([](dtype a, dtype b){ return !CTF_int::default_isequal<dtype>(a, b);});  
+    }
 
 /*
       void copy(int64_t      m,
