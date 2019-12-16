@@ -9,6 +9,7 @@
 #include <float.h>
 using namespace CTF;
 
+
 /**
  * \brief (if test) tests and (if bench) benchmarks m*n*k matrix multiplication with matrices of specified symmetry and sparsity fraction
  * \param[in] m number of rows in C, A
@@ -119,6 +120,7 @@ int matmul(int     m,
 
     if (dw.rank == 0){
       printf("Starting %d benchmarking iterations of matrix multiplication with specified attributes...\n", niter);
+      initialize_flops_counter();
     }
     min_time = DBL_MAX;
     max_time = 0.0;
@@ -142,7 +144,7 @@ int matmul(int     m,
     smatmul.end();
     
     if (dw.rank == 0){
-      printf("iterations completed.\n");
+      printf("iterations completed, did %ld flops.\n",CTF::get_estimated_flops());
       printf("All iterations times: ");
       for (int i=0; i<niter; i++){
         printf("%lf ", times[i]);

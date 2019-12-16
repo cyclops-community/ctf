@@ -103,6 +103,7 @@ namespace CTF_int {
   #endif
     print();
 #endif
+    add_estimated_flops((int64_t)this->estimate_num_flops());
     //if (A->wrld->cdt.cm == MPI_COMM_WORLD){
 //      update_all_models(A->wrld->cdt.cm);
     //}
@@ -195,7 +196,7 @@ namespace CTF_int {
   }
 
   double contraction::estimate_num_dense_flops(){
-    double dense_flops = 1.;
+    double dense_flops = 2.;
     int num_tot;
     int * idx_arr;
 
@@ -234,7 +235,7 @@ namespace CTF_int {
       flops *= ((double)B->nnz_tot)/B->size/B->wrld->np;
     if (C->is_sparse)
       flops += C->nnz_tot;
-    else
+    else if (A->is_sparse || B->is_sparse)
       flops += ((double)C->size)*C->wrld->np;
 
     return flops;

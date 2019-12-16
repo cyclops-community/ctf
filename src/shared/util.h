@@ -135,7 +135,7 @@ namespace CTF_int {
 
   #define CTF_COUNT_FLOPS
   #ifdef CTF_COUNT_FLOPS
-  #define CTF_FLOPS_ADD(n) CTF_int::flops_add(n)
+  #define CTF_FLOPS_ADD(n) CTF_int::add_computed_flops(n)
   #else
   #define CTF_FLOPS_ADD(n) 
   #endif

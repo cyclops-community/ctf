@@ -8,8 +8,24 @@
 #define MPI_CXX_DOUBLE_COMPLEX MPI::DOUBLE_COMPLEX
 #endif
 
+
+namespace CTF_int {
+  int64_t computed_flop_count = 0;
+  int64_t estimated_flop_count = 0;
+}
+
+
 namespace CTF {
   int DGTOG_SWITCH = 1;
+
+  void initialize_flops_counter(){
+    CTF_int::estimated_flop_count = 0;
+  }
+
+  int64_t get_estimated_flops(){
+    return CTF_int::estimated_flop_count;
+  }
+
 }
 
 namespace CTF_int {
@@ -191,14 +207,12 @@ namespace CTF_int {
     return iarr;
   }
 
-  int64_t total_flop_count = 0;
-
-  void flops_add(int64_t n){
-    total_flop_count+=n;
+  void add_computed_flops(int64_t n){
+    computed_flop_count+=n;
   }
 
-  int64_t get_flops(){
-    return total_flop_count;
+  void add_estimated_flops(int64_t n){
+    estimated_flop_count+=n;
   }
 
   void handler() {

@@ -158,7 +158,7 @@ namespace CTF {
 
   int World::initialize(int                   argc,
                         const char * const *  argv){
-    char * size, * stack_size, * mem_size, * ppn;
+    char * size, * mem_size, * ppn;
     if (comm == MPI_COMM_WORLD && universe_exists){
       delete phys_topology;
       *this = universe;
@@ -224,7 +224,6 @@ namespace CTF {
         CTF_int::load_all_models(coeff_file);
       }
     
-      stack_size = getenv("CTF_STACK_SIZE");
       mem_size = getenv("CTF_MEMORY_SIZE");
       if (mem_size != NULL){
         int64_t imem_size = strtoull(mem_size,NULL,0);

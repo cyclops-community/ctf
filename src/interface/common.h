@@ -50,6 +50,12 @@ namespace CTF {
    */
   enum OP { OP_SUM, OP_SUMABS, OP_SUMSQ, OP_MAX, OP_MIN, OP_MAXABS, OP_MINABS};
 
+  // sets flops counters to 0
+  void initialize_flops_counter();
+
+  // get analytically estimated flops, which are effectual flops in dense case, but estimates based on aggregate nonzero density for sparse case
+  int64_t get_estimated_flops();
+
   /**
    * @}
    */
@@ -126,9 +132,14 @@ namespace CTF_int {
 
   int64_t * copy_int64(int64_t const * arr, int len);
 
-  void flops_add(int64_t n);
+  // accumulates computed flops (targeted for internal use)
+  void add_computed_flops(int64_t n);
 
-  int64_t get_flops();
+  // get computed flops
+  int64_t get_computed_flops();
+
+  // accumulates computed flops (targeted for internal use)
+  void add_estimated_flops(int64_t n);
 
   class CommData {
     public:
