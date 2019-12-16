@@ -207,6 +207,10 @@ namespace CTF_int {
     return iarr;
   }
 
+  int64_t get_computed_flops(){
+    return computed_flop_count;
+  }
+
   void add_computed_flops(int64_t n){
     computed_flop_count+=n;
   }
