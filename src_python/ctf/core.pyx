@@ -118,13 +118,10 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
         void get_raw_data(char **, int64_t * size)
         int permute(ctensor * A, int ** permutation_A, char * alpha, int ** permutation_B, char * beta)
         void conv_type[dtype_A,dtype_B](ctensor * B)
-        void compare_elementwise[dtype](ctensor * A, ctensor * B)
-        void not_equals[dtype](ctensor * A, ctensor * B)
-        void smaller_than[dtype](ctensor * A, ctensor * B)
         void elementwise_smaller(ctensor * A, ctensor * B)
-        void smaller_equal_than[dtype](ctensor * A, ctensor * B)
-        void larger_than[dtype](ctensor * A, ctensor * B)
-        void larger_equal_than[dtype](ctensor * A, ctensor * B)
+        void elementwise_smaller_or_equal(ctensor * A, ctensor * B)
+        void elementwise_is_equal(ctensor * A, ctensor * B)
+        void elementwise_is_not_equal(ctensor * A, ctensor * B)
         void exp_helper[dtype_A,dtype_B](ctensor * A)
         void read_dense_from_file(char *)
         void write_dense_to_file(char *)
@@ -3175,86 +3172,28 @@ cdef class tensor:
             return c
         # <=
         if op == 1:
-            if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                c.dt.smaller_equal_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                c.dt.smaller_equal_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
-            else:
-                raise ValueError('CTF PYTHON ERROR: bad dtype')
+            c.dt.elementwise_smaller_or_equal(<ctensor*>self.dt,<ctensor*>b.dt)
             return c
 
         # ==
         if op == 2:
-            if self.dtype == np.float64:
-                c.dt.compare_elementwise[double](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.float32:
-                c.dt.compare_elementwise[float](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.complex64:
-                c.dt.compare_elementwise[complex64_t](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.complex128:
-                c.dt.compare_elementwise[complex128_t](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.int64:
-                c.dt.compare_elementwise[int64_t](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.int32:
-                c.dt.compare_elementwise[int32_t](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.int16:
-                c.dt.compare_elementwise[int16_t](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.int8:
-                c.dt.compare_elementwise[int8_t](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.bool:
-                c.dt.compare_elementwise[bool](<ctensor*>self.dt,<ctensor*>b.dt)
-            else:
-                raise ValueError('CTF PYTHON ERROR: bad dtype')
+            c.dt.elementwise_is_equal(<ctensor*>self.dt,<ctensor*>b.dt)
             return c
 
         # !=
         if op == 3:
-            if self.dtype == np.float64:
-                c.dt.not_equals[double](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.bool:
-                c.dt.not_equals[bool](<ctensor*>self.dt,<ctensor*>b.dt)
-            else:
-                raise ValueError('CTF PYTHON ERROR: bad dtype')
+            c.dt.elementwise_is_not_equal(<ctensor*>self.dt,<ctensor*>b.dt)
             return c
 
         # >
         if op == 4:
-            if self.dtype == np.float64:
-                c.dt.larger_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.bool:
-                c.dt.larger_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
-            else:
-                raise ValueError('CTF PYTHON ERROR: bad dtype')
+            c.dt.elementwise_smaller(<ctensor*>b.dt,<ctensor*>self.dt)
             return c
 
         # >=
         if op == 5:
-            if self.dtype == np.float64:
-                c.dt.larger_equal_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.bool:
-                c.dt.larger_equal_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
-            else:
-                raise ValueError('CTF PYTHON ERROR: bad dtype')
+            c.dt.elementwise_smaller_or_equal(<ctensor*>b.dt,<ctensor*>self.dt)
             return c
-
-        #cdef int * inds
-        #cdef function[equate_type] fbf
-        #if op == 2:#Py_EQ
-            #t = tensor(self.shape, np.bool)
-            #inds = <int*>malloc(len(self.shape))
-            #for i in range(len(self.shape)):
-                #inds[i] = i
-            #fbf = function[equate_type](equate)
-            #f = Bivar_Transform[double,double,bool](fbf)
-            #c = contraction(self.dt, inds, b.dt, inds, NULL, t.dt, inds, NULL, bf)
-            #c.execute()
-            #return t
-        #if op == 3:#Py_NE
-        #    return not x.__is_equal(y)
-        #else:
-            #assert False
 
 def _trilSquare(tensor A):
     if not isinstance(A, tensor):

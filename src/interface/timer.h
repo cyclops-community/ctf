@@ -55,7 +55,7 @@ namespace CTF {
       int original;
     
     public:
-      Timer(char const * name);
+      Timer(const char * name, bool init_timing=false);
       ~Timer();
       void stop();
       void start();

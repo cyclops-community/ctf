@@ -1275,6 +1275,8 @@ $SPMKL_COMMENT
 ### Optional: PROFILING AND TUNING
 #uncomment below to enable performance profiling
 #DEFS       += -DPROFILE -DPMPI
+#also uncomment below to enable performance profiling without epochs (started when first CTF World created and stopped when destroyed)
+#DEFS       += -DAUTO_PROFILE
 #uncomment below to enable automatic performance tuning (loses reproducibility of results)
 #recommended usage is to run model_trainer with -DTUNE at scale for suitable duration to obtain suitable architecutral parameters, 
 #then recompile with parameters without -DTUNE

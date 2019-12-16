@@ -400,6 +400,38 @@ class KnowValues(unittest.TestCase):
         b = ctf.ones(2, dtype=int) == ctf.ones(2, dtype=float)
         self.assertTrue(numpy.all(a==b.to_nparray()))
 
+        a = numpy.ones(2, dtype=int) <= 1.0
+        b = ctf.ones(2, dtype=int) <= 1.0
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.zeros(2, dtype=numpy.float32) <= numpy.ones(2, dtype=numpy.float64)
+        b = ctf.zeros(2, dtype=numpy.float32) <= ctf.ones(2, dtype=numpy.float64)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.ones(2, dtype=int) == numpy.ones(2, dtype=float)
+        b = ctf.ones(2, dtype=int) == ctf.ones(2, dtype=float)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+
+        a = numpy.ones(2, dtype=int) > 1.0
+        b = ctf.ones(2, dtype=int) > 1.0
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.zeros(2, dtype=numpy.float32) > numpy.ones(2, dtype=numpy.float64)
+        b = ctf.zeros(2, dtype=numpy.float32) > ctf.ones(2, dtype=numpy.float64)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.ones(2, dtype=int) == numpy.ones(2, dtype=float)
+        b = ctf.ones(2, dtype=int) == ctf.ones(2, dtype=float)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+
+        a = numpy.ones(2, dtype=int) >= 1.0
+        b = ctf.ones(2, dtype=int) >= 1.0
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.zeros(2, dtype=numpy.float32) >= numpy.ones(2, dtype=numpy.float64)
+        b = ctf.zeros(2, dtype=numpy.float32) >= ctf.ones(2, dtype=numpy.float64)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.ones(2, dtype=int) == numpy.ones(2, dtype=float)
+        b = ctf.ones(2, dtype=int) == ctf.ones(2, dtype=float)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+
+
+
 
 def run_tests():
     numpy.random.seed(5330);

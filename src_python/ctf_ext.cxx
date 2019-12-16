@@ -806,34 +806,6 @@ CONV_FCOMPLEX_INST(double,double)
   // get the imag number
   template void get_imag<double>(tensor * A, tensor * B);
 
-  // == (add more dtype)
-  template void tensor::compare_elementwise<float>(tensor * A, tensor * B);
-  template void tensor::compare_elementwise<double>(tensor * A, tensor * B);
-  template void tensor::compare_elementwise< std::complex<double> >(tensor * A, tensor * B);
-  template void tensor::compare_elementwise< std::complex<float> >(tensor * A, tensor * B);
-   template void tensor::compare_elementwise<bool>(tensor * A, tensor * B);
-
-  // != (add more dtype)
-   template void tensor::not_equals<double>(tensor * A, tensor * B);
-   template void tensor::not_equals<bool>(tensor * A, tensor * B);
-
-  // < (add more dtype)
-   template void tensor::smaller_than<double>(tensor * A, tensor * B);
-   template void tensor::smaller_than<bool>(tensor * A, tensor * B);
-
-  // <= (add more dtype)
-   template void tensor::smaller_equal_than<double>(tensor * A, tensor * B);
-   template void tensor::smaller_equal_than<bool>(tensor * A, tensor * B);
-
-  // > (add more dtype)
-   template void tensor::larger_than<double>(tensor * A, tensor * B);
-   template void tensor::larger_than<bool>(tensor * A, tensor * B);
-
-  // >= (add more dtype)
-   template void tensor::larger_equal_than<double>(tensor * A, tensor * B);
-   template void tensor::larger_equal_than<bool>(tensor * A, tensor * B);
-
-
   // exp_helper
   template void tensor::exp_helper<int16_t, float>(tensor* A);
   template void tensor::exp_helper<int32_t, double>(tensor* A);

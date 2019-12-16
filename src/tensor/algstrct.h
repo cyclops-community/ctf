@@ -400,6 +400,21 @@ namespace CTF_int {
        * \brief returns function for elementwise comparison
        */
       virtual bivar_function * get_elementwise_smaller() const;
+
+      /**
+       * \brief returns function for elementwise comparison
+       */
+      virtual bivar_function * get_elementwise_smaller_or_equal() const;
+
+      /**
+       * \brief returns function for elementwise comparison
+       */
+      virtual bivar_function * get_elementwise_is_equal() const;
+
+      /**
+       * \brief returns function for elementwise comparison
+       */
+      virtual bivar_function * get_elementwise_is_not_equal() const;
   };
 
   class PairIterator;
