@@ -788,6 +788,12 @@ namespace CTF {
     //  CTF_int::cdealloc(s);
     //  CTF_int::cdealloc(work);
     //} else {
+    int64_t nflops;
+    if (m >= (10./3.)*n)
+      nflops = 6.*(((int64_t)m)*n)*n+8.*(((int64_t)n)*n)*n;
+    else
+      nflops = 8.*(((int64_t)m)*n)*n+(4./3.)*(((int64_t)n)*n)*n;
+    CTF_int::add_estimated_flops(nflops);
     dtype * s = (dtype*)CTF_int::alloc(sizeof(dtype)*k);
     CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
     lwork = CTF_SCALAPACK::get_int_fromreal<dtype>(dlwork);
