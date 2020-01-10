@@ -938,6 +938,101 @@ namespace CTF_int {
 
   }
 
+  void tensor::dense_slice(int64_t const * offsets_B,
+                           int64_t const * ends_B,
+                           char const *    beta,
+                           tensor *        A,
+                           int64_t const * offsets_A,
+                           int64_t const * ends_A,
+                           char const *    alpha){
+    TAU_FSTART(dense_slice);
+    ASSERT(this->is_mapped);
+    ASSERT(AA->is_mapped);
+    for (int i=0; i<this->order; i++){
+      ASSERT(A->sym[i] == NS);
+      ASSERT(this->sym[i] == NS);
+    }
+    ASSERT(this->wrld == AA->wrld);
+
+    bool cut_up_A = false;
+    for (int i=0; i<this->order; i++){
+      if (offsets_A[i] != 0 || ends_A[i] != AA->lens[i])
+        cut_up_A = true;
+    }
+    tensor * A_init = AA;
+    if (cut_up_A){
+      //make function extract A slice
+      int64_t A_slice_lens = (int*)sizeof(A->order*sizeof(int));
+      for (int i=0; i<this->order; i++){
+        A_init = new tensor(AA->sr, AA->order, AA->is_sparse, A_slice_lens, AA->sym, AA->wrld, true, NULL, 1, AA->is_sparse);
+      }
+      //TODO implement
+      A_init->sr->extract_slice(AA->order, A_init->lens, offsets_A, ends_A, AA->is_sparse, AA->sym);
+    }
+    //tensor * T_big, * T_small_init;
+    //int64_t * offsets_big, * ends_big;
+    //int64_t * offsets_small, * ends_small;
+    //if (B->size > A->size){
+    //  T_big = B;
+    //  T_small_init = A;
+    //  offset_big = offsets_B;
+    //  ends_big = ends_B;
+    //  offset_small = offsets_A;
+    //  ends_small = ends_A;
+    //} else {
+    //  T_big = A;
+    //  T_small_init = B;
+    //  offset_big = offsets_A;
+    //  ends_big = ends_A;
+    //  offset_small = offsets_B;
+    //  ends_small = ends_B;
+    //}
+    //tensor * T_small = T_small_init;
+    bool need_remap = false;
+    if (B->topology == A_init->topology){
+      for (int i=0; i<B->order; i++){
+        if (comp_dim_map(B->mapping[i],A_init->mapping[i])){
+          need_remap = true;
+        }
+      }
+    } else need_remap = true;
+    if (need_remap){
+      int part_dims = (int*)sizeof(B->order*sizeof(int));
+      char part_idx = (char*)sizeof(B->order*sizeof(char));
+      char tsr_idx  = (char*)sizeof(B->order*sizeof(char));
+      CTF::Partition pgrid(B->topo->order, A_init->lens);
+      for (int i=0; i<B->topo->order; i++){
+        part_idx[i] = 'a' + i;
+      }
+      for (int i=0; i<B->order; i++){
+        if (B->mapping[i].type == PHYSICAL_MAP){
+          ASSERT(B->mapping[i].has_child == false);
+          tsr_idx[i] = 'a' + B->mapping[i].cdt;
+        } else {
+          ASSERT(B->mapping[i].type == NOT_MAPPED);
+          tsr_idx[i] = 'a' + B->topo->order + i;
+        }
+      }
+      A = new tensor(A_init->sr, A_init->order, A_init->is_sparse, A_init->lens, A_init->sym, tsr_idx, A_init->wrld, pgrid[part_idx], Idx_Partition());
+      if (A_init == A)
+        A->operator()[tsr_idx] += A_init->operator()[tsr_idx];
+      free(part_dims);
+      free(part_idx);
+      free(tsr_idx);
+    }
+    int * pe_idx_offset_B = (int*)sizeof(B->order*sizeof(int));
+    int * pe_idx_offset_A = (int*)sizeof(B->order*sizeof(int));
+    for (int i=0 i<B->order; i++){
+      pe_idx_offset_B[i] = offsets_B[i] % B->mapping[i].np;
+      pe_idx_offset_A[i] = offsets_A[i] % A->mapping[i].np;
+    }
+    int pe_nbr = this->wrld->rank;
+    for (int i=0 i<B->order; i++){
+      pe_nbr += ((pe_idx_offset_B[i] - pe_idx_offset_A[i]) % B->mapping[i].np) * B->topo->lda[i];
+    } 
+    TAU_FSTOP(dense_slice);
+  }
+
   void tensor::slice(int64_t const * offsets_B,
                      int64_t const * ends_B,
                      char const *    beta,
