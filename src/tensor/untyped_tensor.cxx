@@ -965,12 +965,21 @@ namespace CTF_int {
     tensor * A_init = AA;
     if (need_slice_A){
       //make function extract A slice
-      int64_t A_slice_lens = (int*)sizeof(A->order*sizeof(int));
+      int64_t A_slice_lens = (int64_t*)sizeof(A->order*sizeof(int64_t));
       for (int i=0; i<this->order; i++){
-        A_init = new tensor(AA->sr, AA->order, AA->is_sparse, A_slice_lens, AA->sym, AA->wrld, true, NULL, 1, AA->is_sparse);
+        A_slice_lens[i] = ends_A[i] - offsets_A[i];
       }
-      //TODO implement
-      A_init->sr->extract_slice(AA->order, A_init->lens, offsets_A, ends_A, AA->is_sparse, AA->sym);
+      A_init = new tensor(AA->sr, AA->order, AA->is_sparse, A_slice_lens, AA->sym, AA->wrld, true, NULL, 1, AA->is_sparse);
+      }
+      if (AA->is_sparse)
+        //TODO implement
+      else {
+        int64_t * loc_offsets_A, * loc_ends_A;
+        for (int i=0; i<this->order; i++){
+          loc_offsets_A[i] = offsets_A[i]/A_init->mapping[i].calc_phys_phase();
+          loc_ends_A[i] = ends_A[i]/A_init->mapping[i].calc_phys_phase();
+        }
+        A_init->sr->extract_slice(AA->order, A_init->pad_edge_len, loc_offsets_A, loc_ends_A, AA->sym, AA->data, A_init->data);
     }
     //tensor * T_big, * T_small_init;
     //int64_t * offsets_big, * ends_big;
