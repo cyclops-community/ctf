@@ -133,6 +133,8 @@ namespace CTF {
       char * csr_add(char * cA, char * cB, bool is_ccsr) const {
         return CTF_int::algstrct::csr_add(cA, cB, is_ccsr);
       }
+
+
   };
   template <>
   char * Monoid<double,1>::csr_add(char *, char *, bool) const;

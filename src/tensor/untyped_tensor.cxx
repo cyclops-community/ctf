@@ -939,163 +939,6 @@ namespace CTF_int {
 
   }
 
-  void tensor::push_slice(int64_t const * offsets_B,
-                          int64_t const * ends_B,
-                          char const *    beta,
-                          tensor *        AA,
-                          int64_t const * offsets_A,
-                          int64_t const * ends_A,
-                          char const *    alpha){
-    TAU_FSTART(push_slice);
-    ASSERT(this->is_mapped);
-    ASSERT(AA->is_mapped);
-    for (int i=0; i<this->order; i++){
-      ASSERT(A->sym[i] == NS);
-      ASSERT(this->sym[i] == NS);
-    }
-    ASSERT(this->wrld == AA->wrld);
-
-    bool need_slice_A = false;
-    bool need_slice_B = false;
-    for (int i=0; i<this->order; i++){
-      if (offsets_A[i] != 0 || ends_A[i] != AA->lens[i])
-        need_slice_A = true;
-      if (offsets_B[i] != 0 || ends_B[i] != BB->lens[i])
-        need_slice_B = true;
-    }
-    tensor * A_init = AA;
-    if (need_slice_A){
-      //make function extract A slice
-      int64_t A_slice_lens = (int64_t*)sizeof(A->order*sizeof(int64_t));
-      for (int i=0; i<this->order; i++){
-        A_slice_lens[i] = ends_A[i] - offsets_A[i];
-      }
-      A_init = new tensor(AA->sr, AA->order, AA->is_sparse, A_slice_lens, AA->sym, AA->wrld, true, NULL, 1, AA->is_sparse);
-      }
-      if (AA->is_sparse)
-        //TODO implement
-      else {
-        int64_t * loc_offsets_A, * loc_ends_A;
-        for (int i=0; i<this->order; i++){
-          loc_offsets_A[i] = offsets_A[i]/A_init->mapping[i].calc_phys_phase();
-          loc_ends_A[i] = ends_A[i]/A_init->mapping[i].calc_phys_phase();
-        }
-        extract_slice(AA->order, A_init->pad_edge_len, loc_offsets_A, loc_ends_A, AA->sym, AA->data, A_init->data);
-    }
-    //tensor * T_big, * T_small_init;
-    //int64_t * offsets_big, * ends_big;
-    //int64_t * offsets_small, * ends_small;
-    //if (B->size > A->size){
-    //  T_big = B;
-    //  T_small_init = A;
-    //  offset_big = offsets_B;
-    //  ends_big = ends_B;
-    //  offset_small = offsets_A;
-    //  ends_small = ends_A;
-    //} else {
-    //  T_big = A;
-    //  T_small_init = B;
-    //  offset_big = offsets_A;
-    //  ends_big = ends_A;
-    //  offset_small = offsets_B;
-    //  ends_small = ends_B;
-    //}
-    //tensor * T_small = T_small_init;
-    bool need_remap = false;
-    if (B->topology == A_init->topology){
-      for (int i=0; i<B->order; i++){
-        if (comp_dim_map(B->mapping[i],A_init->mapping[i])){
-          need_remap = true;
-        }
-      }
-    } else need_remap = true;
-    if (need_remap){
-      int part_dims = (int*)sizeof(B->order*sizeof(int));
-      char part_idx = (char*)sizeof(B->order*sizeof(char));
-      char tsr_idx  = (char*)sizeof(B->order*sizeof(char));
-      CTF::Partition pgrid(B->topo->order, A_init->lens);
-      for (int i=0; i<B->topo->order; i++){
-        part_idx[i] = 'a' + i;
-      }
-      for (int i=0; i<B->order; i++){
-        if (B->mapping[i].type == PHYSICAL_MAP){
-          ASSERT(B->mapping[i].has_child == false);
-          tsr_idx[i] = 'a' + B->mapping[i].cdt;
-        } else {
-          ASSERT(B->mapping[i].type == NOT_MAPPED);
-          tsr_idx[i] = 'a' + B->topo->order + i;
-        }
-      }
-      A = new tensor(A_init->sr, A_init->order, A_init->is_sparse, A_init->lens, A_init->sym, tsr_idx, A_init->wrld, pgrid[part_idx], Idx_Partition());
-      if (A_init == A)
-        A->operator()[tsr_idx] += A_init->operator()[tsr_idx];
-      free(part_dims);
-      free(part_idx);
-      free(tsr_idx);
-    }
-    int * pe_idx_offset_B = (int*)sizeof(B->order*sizeof(int));
-    int * pe_idx_offset_A = (int*)sizeof(B->order*sizeof(int));
-    for (int i=0 i<B->order; i++){
-      pe_idx_offset_B[i] = offsets_B[i] % B->mapping[i].np;
-      pe_idx_offset_A[i] = offsets_A[i] % A->mapping[i].np;
-    }
-    int pe_nbr_send = this->wrld->rank;
-    int pe_nbr_recv = this->wrld->rank;
-    for (int i=0 i<B->order; i++){
-      pe_nbr_send += ((pe_idx_offset_B[i] - pe_idx_offset_A[i]) % B->mapping[i].np) * B->topo->lda[i];
-      pe_nbr_recv += ((pe_idx_offset_A[i] - pe_idx_offset_B[i]) % B->mapping[i].np) * B->topo->lda[i];
-    }
-
-    char * A_data = A->data;
-    int64_t nnz
-    if (pe_nbr_send != this->wrld->rank){
-      int64_t data_size;
-      MPI_Datatype typ;
-      MPI_Status stat;
-      if (A->is_sparse){
-        num_vals = nnz_loc*A->sr->pair_size();
-        data_size = num_vals;
-        typ = MPI_CHAR; //FIXME: better to use MPI_Datatype for pair
-        int64_t nrcv;
-        MPI_Sendrecv(&num_vals, 1, MPI_INT_64_T, pe_nbr_send, 7, 
-                     &nrcv, 1, MPI_INT_64_T, pe_nbr_recv, 7, A->wrld->cm, &stat);
-        A_data = A->sr->pair_alloc(nnz_loc);
-        MPI_Sendrecv(AA->data, num_vals, typ, pe_nbr_send, 7, 
-                      A_data,  nrcv, typ, pe_nbr_recv, 7, A->wrld->cm, &stat);
-        int64_t nnew;
-        char * pprs_new;
-        spspsum(A->sr, nrcv, ConstPairIterator(A->sr, A_data, beta, B->sr, B->nnz_loc, B->data, alpha, nnew, pprs_new, 1);
-        A->sr->pair_dealloc(A_data);
-      } else {
-        data_size = A->size*A->sr->el_size;
-        typ = A->sr->mdtype();
-        if (A == AA){
-          A_data = A->sr->alloc(A->size);
-          MPI_Sendrecv(AA->data, A->size, typ, pe_nbr_send, 7, 
-                       A_data,   A->size, typ, pe_nbr_recv, 7, A->wrld->cm, &stat);
-        } else {
-          MPI_Sendrecv(MPI_IN_PLACE, A->size, typ, pe_nbr_send, 7, 
-                       AA->data,  A->size, typ, pe_nbr_recv, 7, A->wrld->cm, &stat);
-          A_data = AA->data;
-        }
-        if (need_slice_B){
-          //FIXME: implement
-          B->sr->accumulate_local_slice(BB->order, B_init->lens, offsets_B, ends_B, BB->is_sparse, BB->sym, A_data, alpha, BB->data, beta);
-        } else {
-          if (B->sr->isequal(beta, B->sr->mulid()))
-            B->sr->axpy(A->size, alpha, A_data, 1, B->data, 1);
-          else {
-            B->sr->scal(A->size, beta, B->data, 1);
-            B->sr->axpy(A->size, alpha, A_data, 1, B->data, 1);
-          }
-        }
-        if (A == AA)
-          A->sr->dealloc(A_data);
-      } 
-    }
-    TAU_FSTOP(push_slice);
-  }
-
   void tensor::slice(int64_t const * offsets_B,
                      int64_t const * ends_B,
                      char const *    beta,
@@ -1141,7 +984,17 @@ namespace CTF_int {
       TAU_FSTOP(slice);
       return;
     }
-   // bool tsr_A_has_sym = false;
+    bool tsr_has_sym = false;
+
+    for (int i=0; i<this->order; i++){
+      if (A->sym[i] != NS || this->sym[i] != NS)
+        tsr_has_sym = true;
+    }
+    if (!tsr_has_sym && !this->is_sparse && !A->is_sparse){
+      push_slice(this, offsets_B, ends_B, beta, A, offsets_A, ends_A, alpha);
+      return;
+    }
+
 
     if (tsr_B->wrld->np <= tsr_A->wrld->np && !tsr_A->is_sparse){
       //usually 'read' elements of B from A, since B may be smalelr than A
