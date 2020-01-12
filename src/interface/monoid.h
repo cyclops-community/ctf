@@ -133,31 +133,6 @@ namespace CTF {
       char * csr_add(char * cA, char * cB, bool is_ccsr) const {
         return CTF_int::algstrct::csr_add(cA, cB, is_ccsr);
       }
-
-      void extract_slice(int order,
-                         int64_t * lens,
-                         int const * sym,
-                         int64_t const * offsets,
-                         int64_t const * ends,
-                         char const * tensor_data,
-                         char * slice_data){
-        dtype const * tdata = (dtype const*)tensor_data;
-        dtype * sdata = (dtype*)slice_data;
-        if (order == 1){
-          std:copy(tdata, tdata+ends[0]-offsets[0], sdata+offsets[0]);
-        else {
-          int64_t lda_tensor = 1;
-          int64_t lda_slice = 1;
-          for (int64_t i=0; i<order-1; i++){
-            lda_tensor *= lens[i]
-            lda_slice *= ends[i]-offsets[0];
-          }
-          for (int64_t i=offsets[order-1]; i<ends[order-1]; i++){
-            extract_slice(order-1, lens,sym, offsets, ends, (char const*)(tdata + i*lda_tensor), (char *)(sdata + i*lda_slice));
-          }
-        }
-      }
-
   };
   template <>
   char * Monoid<double,1>::csr_add(char *, char *, bool) const;

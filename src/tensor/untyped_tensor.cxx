@@ -13,6 +13,7 @@
 #include "../redistribution/redist.h"
 #include "../redistribution/cyclic_reshuffle.h"
 #include "../redistribution/dgtog_redist.h"
+#include "../redistribution/slice.h"
 #include "../sparse_formats/ccsr.h"
 
 
@@ -979,7 +980,7 @@ namespace CTF_int {
           loc_offsets_A[i] = offsets_A[i]/A_init->mapping[i].calc_phys_phase();
           loc_ends_A[i] = ends_A[i]/A_init->mapping[i].calc_phys_phase();
         }
-        A_init->sr->extract_slice(AA->order, A_init->pad_edge_len, loc_offsets_A, loc_ends_A, AA->sym, AA->data, A_init->data);
+        extract_slice(AA->order, A_init->pad_edge_len, loc_offsets_A, loc_ends_A, AA->sym, AA->data, A_init->data);
     }
     //tensor * T_big, * T_small_init;
     //int64_t * offsets_big, * ends_big;
