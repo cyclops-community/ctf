@@ -13,16 +13,16 @@ namespace CTF_int {
                      char const * tensor_data,
                      char * slice_data){
     if (order == 1){
-      memcpy(slice_data+sr->el_size*offsets[0], tensor_data, sr->el_size*(ends[0]-offsets[0]));
+      memcpy(slice_data, tensor_data+sr->el_size*offsets[0], sr->el_size*(ends[0]-offsets[0]));
     } else {
       int64_t lda_tensor = 1;
       int64_t lda_slice = 1;
       for (int64_t i=0; i<order-1; i++){
         lda_tensor *= lens[i];
-        lda_slice *= ends[i]-offsets[0];
+        lda_slice *= ends[i]-offsets[i];
       }
       for (int64_t i=offsets[order-1]; i<ends[order-1]; i++){
-        extract_slice(sr, order-1, lens,sym, offsets, ends, tensor_data + sr->el_size*i*lda_tensor, slice_data + sr->el_size*i*lda_slice);
+        extract_slice(sr, order-1, lens,sym, offsets, ends, tensor_data + sr->el_size*i*lda_tensor, slice_data + sr->el_size*(i-offsets[order-1])*lda_slice);
       }
     }
   }
@@ -46,7 +46,17 @@ namespace CTF_int {
       ASSERT(B->sym[i] == NS);
     }
     ASSERT(B->wrld == AA->wrld);
-
+    printf("[%ld:%ld (%ld),%ld:%ld (%ld)] <- [%ld:%ld (%ld),%ld:%ld (%ld)]\n",
+    printf("alpha is ");
+    AA->sr->print(alpha);
+    printf("\n");
+    printf("beta is ");
+    B->sr->print(beta);
+    printf("\n");
+    offsets_B[0], ends_B[0], B->lens[0],
+    offsets_B[1], ends_B[1], B->lens[1],
+    offsets_A[0], ends_A[0], AA->lens[0],
+    offsets_A[1], ends_A[1], AA->lens[1]);
     bool need_slice_A = false;
     bool need_slice_B = false;
     for (int i=0; i<B->order; i++){
@@ -56,9 +66,10 @@ namespace CTF_int {
         need_slice_B = true;
     }
     tensor * A_init = AA;
+    int64_t * A_slice_lens = AA->lens;
     if (need_slice_A){
       //make function extract A slice
-      int64_t * A_slice_lens = (int64_t*)malloc(AA->order*sizeof(int64_t));
+      A_slice_lens = (int64_t*)malloc(AA->order*sizeof(int64_t));
       for (int i=0; i<B->order; i++){
         A_slice_lens[i] = ends_A[i] - offsets_A[i];
       }
@@ -66,7 +77,8 @@ namespace CTF_int {
       if (AA->is_sparse){
         //TODO implement
       } else {
-        int64_t * loc_offsets_A, * loc_ends_A;
+        int64_t * loc_offsets_A = (int64_t*)malloc(AA->order*sizeof(int64_t));
+        int64_t * loc_ends_A  = (int64_t*)malloc(AA->order*sizeof(int64_t));
         for (int i=0; i<B->order; i++){
           loc_offsets_A[i] = offsets_A[i]/A_init->edge_map[i].calc_phys_phase();
           loc_ends_A[i] = ends_A[i]/A_init->edge_map[i].calc_phys_phase();
@@ -74,6 +86,10 @@ namespace CTF_int {
         extract_slice(AA->sr, AA->order, A_init->pad_edge_len, AA->sym, loc_offsets_A, loc_ends_A, AA->data, A_init->data);
       }
     }
+    printf("AA is:\n");
+    AA->print();
+    printf("B is:\n");
+    B->print();
     //tensor * T_big, * T_small_init;
     //int64_t * offsets_big, * ends_big;
     //int64_t * offsets_small, * ends_small;
@@ -119,7 +135,7 @@ namespace CTF_int {
           tsr_idx[i] = 'a' + B->topo->order + i;
         }
       }
-      A = new tensor(A_init->sr, A_init->order, A_init->is_sparse, A_init->lens, A_init->sym, A_init->wrld, tsr_idx, pgrid[part_idx], CTF::Idx_Partition());
+      A = new tensor(A_init->sr, A_init->order, A_init->is_sparse, A_slice_lens, A_init->sym, A_init->wrld, tsr_idx, pgrid[part_idx], CTF::Idx_Partition());
       A->operator[](tsr_idx) += A_init->operator[](tsr_idx);
       free(part_dims);
       free(part_idx);
@@ -134,8 +150,10 @@ namespace CTF_int {
     int pe_nbr_send = B->wrld->rank;
     int pe_nbr_recv = B->wrld->rank;
     for (int i=0; i<B->order; i++){
-      pe_nbr_send += ((pe_idx_offset_B[i] - pe_idx_offset_A[i]) % B->edge_map[i].np) * B->topo->lda[i];
-      pe_nbr_recv += ((pe_idx_offset_A[i] - pe_idx_offset_B[i]) % B->edge_map[i].np) * B->topo->lda[i];
+      if (B->edge_map[i].type == PHYSICAL_MAP){
+        pe_nbr_send += ((pe_idx_offset_B[i] - pe_idx_offset_A[i]) % B->edge_map[i].np) * B->topo->lda[B->edge_map[i].cdt];
+        pe_nbr_recv += ((pe_idx_offset_A[i] - pe_idx_offset_B[i]) % B->edge_map[i].np) * B->topo->lda[B->edge_map[i].cdt];
+      }
     }
 
     char * A_data = A->data;
@@ -170,21 +188,24 @@ namespace CTF_int {
                        AA->data,  A->size, typ, pe_nbr_recv, 7, A->wrld->comm, &stat);
           A_data = AA->data;
         }
-        if (need_slice_B){
-          //B->sr->accumulate_local_slice(B->order, B->lens, B->sym, offsets_B, ends_B, B->is_sparse, A_data, alpha, B->data, beta);
-          B->sr->accumulate_local_slice(B->order, B->lens, B->sym, offsets_B, ends_B, A_data, alpha, B->data, beta);
-        } else {
-          if (B->sr->isequal(beta, B->sr->mulid()))
-            B->sr->axpy(A->size, alpha, A_data, 1, B->data, 1);
-          else {
-            B->sr->scal(A->size, beta, B->data, 1);
-            B->sr->axpy(A->size, alpha, A_data, 1, B->data, 1);
-          }
-        }
-        if (A == AA)
-          A->sr->dealloc(A_data);
-      } 
+      }
     }
+    if (need_slice_B){
+      //B->sr->accumulate_local_slice(B->order, B->lens, B->sym, offsets_B, ends_B, B->is_sparse, A_data, alpha, B->data, beta);
+      B->sr->accumulate_local_slice(B->order, B->lens, B->sym, offsets_B, ends_B, A_data, alpha, B->data, beta);
+    } else {
+      if (B->sr->isequal(beta, B->sr->mulid()))
+        B->sr->axpy(A->size, alpha, A_data, 1, B->data, 1);
+      else {
+        B->sr->scal(A->size, beta, B->data, 1);
+        B->sr->axpy(A->size, alpha, A_data, 1, B->data, 1);
+      }
+    }
+    if (pe_nbr_send != B->wrld->rank && A == AA)
+      A->sr->dealloc(A_data);
+    
+    printf("B is:\n");
+    B->print();
     TAU_FSTOP(push_slice);
   }
 
