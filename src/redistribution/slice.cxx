@@ -47,16 +47,16 @@ namespace CTF_int {
     }
     ASSERT(B->wrld == AA->wrld);
     printf("[%ld:%ld (%ld),%ld:%ld (%ld)] <- [%ld:%ld (%ld),%ld:%ld (%ld)]\n",
+      offsets_B[0], ends_B[0], B->lens[0],
+      offsets_B[1], ends_B[1], B->lens[1],
+      offsets_A[0], ends_A[0], AA->lens[0],
+      offsets_A[1], ends_A[1], AA->lens[1]);
     printf("alpha is ");
     AA->sr->print(alpha);
     printf("\n");
     printf("beta is ");
     B->sr->print(beta);
     printf("\n");
-    offsets_B[0], ends_B[0], B->lens[0],
-    offsets_B[1], ends_B[1], B->lens[1],
-    offsets_A[0], ends_A[0], AA->lens[0],
-    offsets_A[1], ends_A[1], AA->lens[1]);
     bool need_slice_A = false;
     bool need_slice_B = false;
     for (int i=0; i<B->order; i++){
@@ -73,7 +73,24 @@ namespace CTF_int {
       for (int i=0; i<B->order; i++){
         A_slice_lens[i] = ends_A[i] - offsets_A[i];
       }
-      A_init = new tensor(AA->sr, AA->order, A_slice_lens, AA->sym, AA->wrld, true, NULL, 1, AA->is_sparse);
+      int * part_dims = (int*)malloc(AA->order*sizeof(int));
+      char * part_idx = (char*)malloc(AA->order*sizeof(char));
+      char * tsr_idx  = (char*)malloc(AA->order*sizeof(char));
+      CTF::Partition pgrid(AA->topo->order, AA->topo->lens);
+      for (int i=0; i<AA->topo->order; i++){
+        part_idx[i] = 'a' + i;
+      }
+      for (int i=0; i<AA->order; i++){
+        if (AA->edge_map[i].type == PHYSICAL_MAP){
+          ASSERT(AA->edge_map[i].has_child == false);
+          tsr_idx[i] = 'a' + AA->edge_map[i].cdt;
+        } else {
+          ASSERT(AA->edge_map[i].type == NOT_MAPPED);
+          tsr_idx[i] = 'a' + AA->topo->order + i;
+        }
+      }
+      //A_init = new tensor(AA->sr, AA->order, A_slice_lens, AA->sym, AA->wrld, true, NULL, 1, AA->is_sparse);
+      A_init = new tensor(AA->sr, AA->order, AA->is_sparse, A_slice_lens, AA->sym, AA->wrld, tsr_idx, pgrid[part_idx], CTF::Idx_Partition());
       if (AA->is_sparse){
         //TODO implement
       } else {
@@ -83,7 +100,20 @@ namespace CTF_int {
           loc_offsets_A[i] = offsets_A[i]/A_init->edge_map[i].calc_phys_phase();
           loc_ends_A[i] = ends_A[i]/A_init->edge_map[i].calc_phys_phase();
         }
-        extract_slice(AA->sr, AA->order, A_init->pad_edge_len, AA->sym, loc_offsets_A, loc_ends_A, AA->data, A_init->data);
+
+        int64_t * sub_edge_len;
+        CTF_int::alloc_ptr(AA->order*sizeof(int64_t), (void**)&sub_edge_len);
+        calc_dim(AA->order, AA->size, AA->pad_edge_len, AA->edge_map,
+                 NULL, sub_edge_len, NULL);
+        printf("%ld %ld %d %ld %ld %d %ld\n",      loc_offsets_A[0] , offsets_A[0],A_init->edge_map[0].calc_phys_phase(),
+          loc_ends_A[0], ends_A[0],A_init->edge_map[0].calc_phys_phase(), AA->pad_edge_len[0]);
+        printf("%ld %ld %d %ld %ld %d %ld\n",      loc_offsets_A[1] , offsets_A[1],A_init->edge_map[1].calc_phys_phase(),
+          loc_ends_A[1], ends_A[1],A_init->edge_map[1].calc_phys_phase(), AA->pad_edge_len[1]);
+        extract_slice(AA->sr, AA->order, sub_edge_len, AA->sym, loc_offsets_A, loc_ends_A, AA->data, A_init->data);
+
+        CTF_int::cdealloc(sub_edge_len);
+        CTF_int::cdealloc(loc_offsets_A);
+        CTF_int::cdealloc(loc_ends_A);
       }
     }
     printf("AA is:\n");
@@ -192,7 +222,20 @@ namespace CTF_int {
     }
     if (need_slice_B){
       //B->sr->accumulate_local_slice(B->order, B->lens, B->sym, offsets_B, ends_B, B->is_sparse, A_data, alpha, B->data, beta);
-      B->sr->accumulate_local_slice(B->order, B->lens, B->sym, offsets_B, ends_B, A_data, alpha, B->data, beta);
+      int64_t * loc_offsets_B = (int64_t*)malloc(B->order*sizeof(int64_t));
+      int64_t * loc_ends_B  = (int64_t*)malloc(B->order*sizeof(int64_t));
+      for (int i=0; i<B->order; i++){
+        loc_offsets_B[i] = offsets_B[i]/B->edge_map[i].calc_phys_phase();
+        loc_ends_B[i] = ends_B[i]/B->edge_map[i].calc_phys_phase();
+      }
+      int64_t * sub_edge_len;
+      CTF_int::alloc_ptr(B->order*sizeof(int64_t), (void**)&sub_edge_len);
+      calc_dim(B->order, B->size, B->pad_edge_len, B->edge_map,
+               NULL, sub_edge_len, NULL);
+      B->sr->accumulate_local_slice(B->order, sub_edge_len, B->sym, loc_offsets_B, loc_ends_B, A_data, alpha, B->data, beta);
+      CTF_int::cdealloc(sub_edge_len);
+      CTF_int::cdealloc(loc_offsets_B);
+      CTF_int::cdealloc(loc_ends_B);
     } else {
       if (B->sr->isequal(beta, B->sr->mulid()))
         B->sr->axpy(A->size, alpha, A_data, 1, B->data, 1);
