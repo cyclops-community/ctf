@@ -990,7 +990,7 @@ namespace CTF_int {
       if (A->sym[i] != NS || this->sym[i] != NS)
         tsr_has_sym = true;
     }
-    if (!tsr_has_sym && !this->is_sparse && !A->is_sparse){
+    if (tsr_B->wrld->np == tsr_A->wrld->np && !tsr_has_sym && !this->is_sparse && !A->is_sparse){
       push_slice(this, offsets_B, ends_B, beta, A, offsets_A, ends_A, alpha);
       return;
     }

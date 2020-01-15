@@ -46,17 +46,17 @@ namespace CTF_int {
       ASSERT(B->sym[i] == NS);
     }
     ASSERT(B->wrld == AA->wrld);
-    printf("[%ld:%ld (%ld),%ld:%ld (%ld)] <- [%ld:%ld (%ld),%ld:%ld (%ld)]\n",
-      offsets_B[0], ends_B[0], B->lens[0],
-      offsets_B[1], ends_B[1], B->lens[1],
-      offsets_A[0], ends_A[0], AA->lens[0],
-      offsets_A[1], ends_A[1], AA->lens[1]);
-    printf("alpha is ");
-    AA->sr->print(alpha);
-    printf("\n");
-    printf("beta is ");
-    B->sr->print(beta);
-    printf("\n");
+    //printf("[%ld:%ld (%ld),%ld:%ld (%ld)] <- [%ld:%ld (%ld),%ld:%ld (%ld)]\n",
+    //  offsets_B[0], ends_B[0], B->lens[0],
+    //  offsets_B[1], ends_B[1], B->lens[1],
+    //  offsets_A[0], ends_A[0], AA->lens[0],
+    //  offsets_A[1], ends_A[1], AA->lens[1]);
+    //printf("alpha is ");
+    //AA->sr->print(alpha);
+    //printf("\n");
+    //printf("beta is ");
+    //B->sr->print(beta);
+    //printf("\n");
     bool need_slice_A = false;
     bool need_slice_B = false;
     for (int i=0; i<B->order; i++){
@@ -98,17 +98,21 @@ namespace CTF_int {
         int64_t * loc_ends_A  = (int64_t*)malloc(AA->order*sizeof(int64_t));
         for (int i=0; i<B->order; i++){
           loc_offsets_A[i] = offsets_A[i]/A_init->edge_map[i].calc_phys_phase();
+          if (offsets_A[i]%A_init->edge_map[i].calc_phys_phase() >= A_init->edge_map[i].calc_phys_rank(A_init->topo))
+            loc_offsets_A[i]++;
           loc_ends_A[i] = ends_A[i]/A_init->edge_map[i].calc_phys_phase();
+          if (ends_A[i]%A_init->edge_map[i].calc_phys_phase() >= A_init->edge_map[i].calc_phys_rank(A_init->topo))
+            loc_ends_A[i]++;
         }
 
         int64_t * sub_edge_len;
         CTF_int::alloc_ptr(AA->order*sizeof(int64_t), (void**)&sub_edge_len);
         calc_dim(AA->order, AA->size, AA->pad_edge_len, AA->edge_map,
                  NULL, sub_edge_len, NULL);
-        printf("%ld %ld %d %ld %ld %d %ld\n",      loc_offsets_A[0] , offsets_A[0],A_init->edge_map[0].calc_phys_phase(),
-          loc_ends_A[0], ends_A[0],A_init->edge_map[0].calc_phys_phase(), AA->pad_edge_len[0]);
-        printf("%ld %ld %d %ld %ld %d %ld\n",      loc_offsets_A[1] , offsets_A[1],A_init->edge_map[1].calc_phys_phase(),
-          loc_ends_A[1], ends_A[1],A_init->edge_map[1].calc_phys_phase(), AA->pad_edge_len[1]);
+        //printf("%ld %ld %d %ld %ld %d %ld\n",      loc_offsets_A[0] , offsets_A[0],A_init->edge_map[0].calc_phys_phase(),
+        //  loc_ends_A[0], ends_A[0],A_init->edge_map[0].calc_phys_phase(), AA->pad_edge_len[0]);
+        //printf("%ld %ld %d %ld %ld %d %ld\n",      loc_offsets_A[1] , offsets_A[1],A_init->edge_map[1].calc_phys_phase(),
+        //  loc_ends_A[1], ends_A[1],A_init->edge_map[1].calc_phys_phase(), AA->pad_edge_len[1]);
         extract_slice(AA->sr, AA->order, sub_edge_len, AA->sym, loc_offsets_A, loc_ends_A, AA->data, A_init->data);
 
         CTF_int::cdealloc(sub_edge_len);
@@ -116,10 +120,10 @@ namespace CTF_int {
         CTF_int::cdealloc(loc_ends_A);
       }
     }
-    printf("AA is:\n");
-    AA->print();
-    printf("B is:\n");
-    B->print();
+    //printf("AA is:\n");
+    //AA->print();
+    //printf("B is:\n");
+    //B->print();
     //tensor * T_big, * T_small_init;
     //int64_t * offsets_big, * ends_big;
     //int64_t * offsets_small, * ends_small;
@@ -177,16 +181,17 @@ namespace CTF_int {
       pe_idx_offset_B[i] = offsets_B[i] % B->edge_map[i].np;
       pe_idx_offset_A[i] = offsets_A[i] % A->edge_map[i].np;
     }
-    int pe_nbr_send = B->wrld->rank;
-    int pe_nbr_recv = B->wrld->rank;
+    int pe_nbr_send = 0;
+    int pe_nbr_recv = 0;
     for (int i=0; i<B->order; i++){
       if (B->edge_map[i].type == PHYSICAL_MAP){
-        pe_nbr_send += ((pe_idx_offset_B[i] - pe_idx_offset_A[i]) % B->edge_map[i].np) * B->topo->lda[B->edge_map[i].cdt];
-        pe_nbr_recv += ((pe_idx_offset_A[i] - pe_idx_offset_B[i]) % B->edge_map[i].np) * B->topo->lda[B->edge_map[i].cdt];
+        pe_nbr_send += ((B->edge_map[i].np + B->edge_map[i].calc_phys_rank(B->topo) + pe_idx_offset_B[i] - pe_idx_offset_A[i]) % B->edge_map[i].np) * B->topo->lda[B->edge_map[i].cdt];
+        pe_nbr_recv += ((B->edge_map[i].np + B->edge_map[i].calc_phys_rank(B->topo) + pe_idx_offset_A[i] - pe_idx_offset_B[i]) % B->edge_map[i].np) * B->topo->lda[B->edge_map[i].cdt];
       }
     }
 
     char * A_data = A->data;
+    printf("[%d] sending to %d receiving from %d\n",B->wrld->rank,pe_nbr_send,pe_nbr_recv);
     if (pe_nbr_send != B->wrld->rank){
       int64_t data_size;
       MPI_Datatype typ;
@@ -219,6 +224,7 @@ namespace CTF_int {
           A_data = AA->data;
         }
       }
+      printf("[%d] finished sending to %d receiving from %d\n",B->wrld->rank,pe_nbr_send,pe_nbr_recv);
     }
     if (need_slice_B){
       //B->sr->accumulate_local_slice(B->order, B->lens, B->sym, offsets_B, ends_B, B->is_sparse, A_data, alpha, B->data, beta);
@@ -226,7 +232,11 @@ namespace CTF_int {
       int64_t * loc_ends_B  = (int64_t*)malloc(B->order*sizeof(int64_t));
       for (int i=0; i<B->order; i++){
         loc_offsets_B[i] = offsets_B[i]/B->edge_map[i].calc_phys_phase();
+        if (offsets_B[i]%B->edge_map[i].calc_phys_phase() > B->edge_map[i].calc_phys_rank(B->topo))
+          loc_offsets_B[i]++;
         loc_ends_B[i] = ends_B[i]/B->edge_map[i].calc_phys_phase();
+        if (ends_B[i]%B->edge_map[i].calc_phys_phase() > B->edge_map[i].calc_phys_rank(B->topo))
+          loc_ends_B[i]++;
       }
       int64_t * sub_edge_len;
       CTF_int::alloc_ptr(B->order*sizeof(int64_t), (void**)&sub_edge_len);
@@ -247,8 +257,8 @@ namespace CTF_int {
     if (pe_nbr_send != B->wrld->rank && A == AA)
       A->sr->dealloc(A_data);
     
-    printf("B is:\n");
-    B->print();
+    //printf("B is:\n");
+    //B->print();
     TAU_FSTOP(push_slice);
   }
 
