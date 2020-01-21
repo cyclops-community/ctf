@@ -98,10 +98,10 @@ namespace CTF_int {
         int64_t * loc_ends_A  = (int64_t*)malloc(AA->order*sizeof(int64_t));
         for (int i=0; i<B->order; i++){
           loc_offsets_A[i] = offsets_A[i]/A_init->edge_map[i].calc_phys_phase();
-          if (offsets_A[i]%A_init->edge_map[i].calc_phys_phase() >= A_init->edge_map[i].calc_phys_rank(A_init->topo))
+          if (offsets_A[i]%A_init->edge_map[i].calc_phys_phase() > A_init->edge_map[i].calc_phys_rank(A_init->topo))
             loc_offsets_A[i]++;
           loc_ends_A[i] = ends_A[i]/A_init->edge_map[i].calc_phys_phase();
-          if (ends_A[i]%A_init->edge_map[i].calc_phys_phase() >= A_init->edge_map[i].calc_phys_rank(A_init->topo))
+          if (ends_A[i]%A_init->edge_map[i].calc_phys_phase() > A_init->edge_map[i].calc_phys_rank(A_init->topo))
             loc_ends_A[i]++;
         }
 
