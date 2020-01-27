@@ -348,9 +348,6 @@ class KnowValues(unittest.TestCase):
         a2 = ctf.astensor(numpy.ones((2,5))+0j)
         self.assertTrue(ctf.hstack((a1, a2)).shape == (2,9))
         na2 = numpy.ones((2,5))+0j
-        print(ctf.hstack((a1, a2)))
-        print(numpy.hstack((a1,na2)))
-        print(ctf.hstack((a1, a2)) == numpy.hstack((a1,na2)))
         self.assertTrue(ctf.all(ctf.hstack((a1, a2)) == numpy.hstack((a1,na2))))
 
         a1 = ctf.astensor(numpy.ones(4))

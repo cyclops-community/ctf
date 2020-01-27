@@ -1157,6 +1157,7 @@ namespace CTF {
 
       void accumulate_local_slice(int order,
                                   int64_t * lens,
+                                  int64_t * lens_slice,
                                   int const * sym,
                                   int64_t const * offsets,
                                   int64_t const * ends,
@@ -1170,7 +1171,6 @@ namespace CTF {
           dtype a = ((dtype*)alpha)[0];
           dtype b = ((dtype*)beta)[0];
           for (int64_t i=offsets[0]; i<ends[0]; i++){
-            //tdata[i] = this->fadd(this->fmul(b,tdata[i]),this->fmul(a,sdata[i-offsets[0]]));
             tdata[i] = this->fadd(this->fmul(b,tdata[i]),this->fmul(a,sdata[i-offsets[0]]));
           }
         } else {
@@ -1178,10 +1178,10 @@ namespace CTF {
           int64_t lda_slice = 1;
           for (int64_t i=0; i<order-1; i++){
             lda_tensor *= lens[i];
-            lda_slice *= ends[i]-offsets[i];
+            lda_slice *= lens_slice[i];
           }
           for (int64_t i=offsets[order-1]; i<ends[order-1]; i++){
-            this->accumulate_local_slice(order-1, lens, sym, offsets, ends, (char const*)(sdata + (i-offsets[order-1])*lda_slice), alpha, (char *)(tdata + i*lda_tensor), beta);
+            this->accumulate_local_slice(order-1, lens, lens_slice, sym, offsets, ends, (char const*)(sdata + (i-offsets[order-1])*lda_slice), alpha, (char *)(tdata + i*lda_tensor), beta);
           }
         }
       }

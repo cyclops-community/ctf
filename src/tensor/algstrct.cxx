@@ -736,12 +736,13 @@ namespace CTF_int {
  
   void algstrct::accumulate_local_slice(int order,
                                         int64_t * lens,
+                                        int64_t * lens_slice,
                                         int const * sym,
                                         int64_t const * offsets,
                                         int64_t const * ends,
-                                        char const * tensor_data,
+                                        char const * slice_data,
                                         char const * alpha,
-                                        char * slice_data,
+                                        char * tensor_data,
                                         char const * beta) const {
       printf("CTF ERROR: slice accumulation not present for this algebraic structure\n");
     }
