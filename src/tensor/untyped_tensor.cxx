@@ -1687,11 +1687,11 @@ namespace CTF_int {
       if (!did_lens_change){
         bool is_map_changed = false;
         if (topo != old_tsr->topo) is_map_changed = true;
-        topo = old_tsr->topo;
+        //topo = old_tsr->topo;
         for (int i=0; i<order; i++){
           if (!comp_dim_map(edge_map+i, old_tsr->edge_map+i)){
-            edge_map[i].clear();
-            copy_mapping(1, old_tsr->edge_map+i, edge_map+i);
+            //edge_map[i].clear();
+            //copy_mapping(1, old_tsr->edge_map+i, edge_map+i);
             is_map_changed = true;
           }
         }
