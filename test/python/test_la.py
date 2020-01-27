@@ -99,7 +99,7 @@ class KnowValues(unittest.TestCase):
             rs2 = ctf.vecnorm(A - ctf.dot(U2*S2,VT2))
             rA = ctf.vecnorm(A)
             self.assertTrue(rs1 < rA)
-            self.assertTrue(rs2 < rs1)
+            self.assertTrue((rs2 < rs1) or numpy.abs(rs1-rs2) < 1.e-4)
             self.assertTrue(numpy.abs(rs1 - rs2)<3.e-1)
 
     def test_tsvd(self):
