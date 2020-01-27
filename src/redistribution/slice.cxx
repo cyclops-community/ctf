@@ -93,6 +93,8 @@ namespace CTF_int {
         }
       }
       A_init = new tensor(AA->sr, AA->order, AA->is_sparse, A_slice_lens, AA->sym, AA->wrld, tsr_idx, pgrid[part_idx], CTF::Idx_Partition());
+      free(part_idx);
+      free(tsr_idx);
       if (AA->is_sparse){
         //TODO implement
       } else {
@@ -245,6 +247,7 @@ namespace CTF_int {
       }
       B->sr->accumulate_local_slice(B->order, sub_edge_len, sub_edge_len_slice, B->sym, loc_offsets_B, loc_ends_B, A_data, alpha, B->data, beta);
       CTF_int::cdealloc(sub_edge_len);
+      CTF_int::cdealloc(sub_edge_len_slice);
       CTF_int::cdealloc(loc_offsets_B);
       CTF_int::cdealloc(loc_ends_B);
     } else {
@@ -257,7 +260,8 @@ namespace CTF_int {
     }
     if (pe_nbr_send != B->wrld->rank && A == AA)
       A->sr->dealloc(A_data);
-
+    if (A_init != AA)
+      delete A_init;
     TAU_FSTOP(push_slice);
   }
 

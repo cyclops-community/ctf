@@ -955,10 +955,6 @@ namespace CTF_int {
     tsr_A = A;
     tsr_B = this;
 
-    int64_t * padding_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_A->order);
-    int64_t * toffset_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_A->order);
-    int64_t * padding_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_B->order);
-    int64_t * toffset_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_B->order);
     for (i=0,j=0; i<this->order && j<A->order; i++, j++){
       if (ends_A[j] - offsets_A[j] != ends_B[i] - offsets_B[i]){
         if (ends_B[i] - offsets_B[i] == 1){ j--; continue; } // continue with i+1,j
@@ -995,6 +991,10 @@ namespace CTF_int {
       return;
     }
 
+    int64_t * padding_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_A->order);
+    int64_t * toffset_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_A->order);
+    int64_t * padding_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_B->order);
+    int64_t * toffset_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_B->order);
 
     if (tsr_B->wrld->np <= tsr_A->wrld->np && !tsr_A->is_sparse){
       //usually 'read' elements of B from A, since B may be smalelr than A
