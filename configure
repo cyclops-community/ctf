@@ -1368,7 +1368,7 @@ echo 'A setup.py file has been created (to adjust all settings edit the setup.py
 
 echo $PARAMS >> $BUILDDIR/how-did-i-configure
 NUMOFLINES=$(wc -l < "$BUILDDIR/how-did-i-configure")
-if [ $NUMOFLINES -ge 10 ]; then
+if [ $NUMOFLINES -ge 100 ]; then
     tail -n +2 "$BUILDDIR/how-did-i-configure" > $BUILDDIR/how-did-i-configure.tmp
     mv $BUILDDIR/how-did-i-configure.tmp $BUILDDIR/how-did-i-configure
 fi 
