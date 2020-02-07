@@ -266,6 +266,8 @@ cdef extern from "ctf.hpp" namespace "CTF":
 cdef extern from "ctf.hpp" namespace "CTF":
     cdef void TTTP_ "CTF::TTTP"[dtype](Tensor[dtype] * T, int num_ops, int * modes, Tensor[dtype] ** mat_list, bool aux_mode_first)
     cdef void MTTKRP_ "CTF::MTTKRP"[dtype](Tensor[dtype] * T, Tensor[dtype] ** mat_list, int mode, bool aux_mode_first)
+    cdef void initialize_flops_counter_ "CTF::initialize_flops_counter"()
+    cdef int64_t get_estimated_flops_ "CTF::get_estimated_flops"()
 
 
 #from enum import Enum
@@ -6376,5 +6378,23 @@ def arange(start, stop, step=1, dtype=None):
     else: 
         raise ValueError('CTF PYTHON ERROR: unsupported starting value type for numpy arange')
     return t
+
+def initialize_flops_counter():
+    """
+    Set the flops counter to 0.
+    """
+    initialize_flops_counter_()
+
+def get_estimated_flops():
+    """
+    Get analytically estimated flops, which are effectual flops in dense case,
+    but estimates based on aggregate nonzero density for sparse case.
+
+    Returns
+    -------
+    out: int
+        The number of estimated flops
+    """
+    return get_estimated_flops_()
 
 
