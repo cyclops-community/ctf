@@ -2866,7 +2866,7 @@ namespace CTF_int {
     if (global_comm.rank == 0)
       printf("nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
   #endif
-    TAU_FSTOP(init_select_ctr_map);
+//    TAU_FSTOP(init_select_ctr_map);
     for (int i=0; i<(int)wrld->topovec.size(); i++){
 //      int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
       int tnum_choices = get_num_map_variants(wrld->topovec[i]);
@@ -2988,7 +2988,7 @@ namespace CTF_int {
     World * wrld = A->wrld;
     CommData global_comm = wrld->cdt;
    
-    TAU_FSTART(init_select_ctr_map);
+//    TAU_FSTART(init_select_ctr_map);
   #if BEST_VOL
     CTF_int::alloc_ptr(sizeof(int64_t)*A->order, (void**)&virt_blk_len_A);
     CTF_int::alloc_ptr(sizeof(int64_t)*B->order, (void**)&virt_blk_len_B);
