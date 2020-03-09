@@ -73,12 +73,12 @@ namespace CTF_int {
     int64_t * A_slice_lens = AA->lens;
     if (need_slice_A){
       //make function extract A slice
-      A_slice_lens = (int64_t*)malloc(AA->order*sizeof(int64_t));
+      A_slice_lens = (int64_t*)CTF_int::alloc(AA->order*sizeof(int64_t));
       for (int i=0; i<B->order; i++){
         A_slice_lens[i] = ends_A[i] - offsets_A[i];
       }
-      char * part_idx = (char*)malloc(AA->order*sizeof(char));
-      char * tsr_idx  = (char*)malloc(AA->order*sizeof(char));
+      char * part_idx = (char*)CTF_int::alloc(AA->order*sizeof(char));
+      char * tsr_idx  = (char*)CTF_int::alloc(AA->order*sizeof(char));
       CTF::Partition pgrid(AA->topo->order, AA->topo->lens);
       for (int i=0; i<AA->topo->order; i++){
         part_idx[i] = 'a' + i;
@@ -93,8 +93,8 @@ namespace CTF_int {
         }
       }
       A_init = new tensor(AA->sr, AA->order, AA->is_sparse, A_slice_lens, AA->sym, AA->wrld, tsr_idx, pgrid[part_idx], CTF::Idx_Partition());
-      free(part_idx);
-      free(tsr_idx);
+      CTF_int::cdealloc(part_idx);
+      CTF_int::cdealloc(tsr_idx);
       if (AA->is_sparse){
         //TODO implement
       } else {
@@ -107,8 +107,8 @@ namespace CTF_int {
         calc_dim(A_init->order, A_init->size, A_init->pad_edge_len, A_init->edge_map,
                  NULL, sub_edge_len_slice, NULL);
 
-        int64_t * loc_offsets_A = (int64_t*)malloc(AA->order*sizeof(int64_t));
-        int64_t * loc_ends_A  = (int64_t*)malloc(AA->order*sizeof(int64_t));
+        int64_t * loc_offsets_A = (int64_t*)CTF_int::alloc(AA->order*sizeof(int64_t));
+        int64_t * loc_ends_A  = (int64_t*)CTF_int::alloc(AA->order*sizeof(int64_t));
         for (int i=0; i<B->order; i++){
           loc_offsets_A[i] = offsets_A[i]/A_init->edge_map[i].calc_phys_phase();
           if (offsets_A[i]%A_init->edge_map[i].calc_phys_phase() > A_init->edge_map[i].calc_phys_rank(A_init->topo))
@@ -121,7 +121,7 @@ namespace CTF_int {
 
         extract_slice(AA->sr, AA->order, sub_edge_len, sub_edge_len_slice, AA->sym, loc_offsets_A, loc_ends_A, AA->data, A_init->data);
         bool need_shift = false;
-        int * pe_idx_offset_AA = (int*)malloc(AA->order*sizeof(int));
+        int * pe_idx_offset_AA = (int*)CTF_int::alloc(AA->order*sizeof(int));
         int pe_shift_nbr_send = 0;
         int pe_shift_nbr_recv = 0;
         for (int i=0; i<AA->order; i++){
@@ -131,7 +131,7 @@ namespace CTF_int {
             pe_shift_nbr_recv += ((AA->edge_map[i].np + AA->edge_map[i].calc_phys_rank(AA->topo) + pe_idx_offset_AA[i]) % AA->edge_map[i].np) * AA->topo->lda[AA->edge_map[i].cdt];
           }
         }
-        free(pe_idx_offset_AA);
+        CTF_int::cdealloc(pe_idx_offset_AA);
         if (pe_shift_nbr_send != AA->wrld->rank){
           MPI_Datatype typ;
           MPI_Status stat;
@@ -156,8 +156,8 @@ namespace CTF_int {
     } else need_remap = true;
     tensor * A = A_init;
     if (need_remap){
-      char * part_idx = (char*)malloc(B->order*sizeof(char));
-      char * tsr_idx  = (char*)malloc(B->order*sizeof(char));
+      char * part_idx = (char*)CTF_int::alloc(B->order*sizeof(char));
+      char * tsr_idx  = (char*)CTF_int::alloc(B->order*sizeof(char));
       CTF::Partition pgrid(B->topo->order, B->topo->lens);
       for (int i=0; i<B->topo->order; i++){
         part_idx[i] = 'a' + i;
@@ -173,12 +173,12 @@ namespace CTF_int {
       }
       A = new tensor(A_init->sr, A_init->order, A_init->is_sparse, A_slice_lens, A_init->sym, A_init->wrld, tsr_idx, pgrid[part_idx], CTF::Idx_Partition());
       A->operator[](tsr_idx) += A_init->operator[](tsr_idx);
-      free(part_idx);
-      free(tsr_idx);
+      CTF_int::cdealloc(part_idx);
+      CTF_int::cdealloc(tsr_idx);
     }
     if (A_slice_lens != AA->lens)
-      free(A_slice_lens);
-    int * pe_idx_offset_B = (int*)malloc(B->order*sizeof(int));
+      CTF_int::cdealloc(A_slice_lens);
+    int * pe_idx_offset_B = (int*)CTF_int::alloc(B->order*sizeof(int));
     for (int i=0; i<B->order; i++){
       pe_idx_offset_B[i] = offsets_B[i] % B->edge_map[i].np;
     }
@@ -190,7 +190,7 @@ namespace CTF_int {
         pe_nbr_recv += ((B->edge_map[i].np + B->edge_map[i].calc_phys_rank(B->topo) - pe_idx_offset_B[i]) % B->edge_map[i].np) * B->topo->lda[B->edge_map[i].cdt];
       }
     }
-    free(pe_idx_offset_B);
+    CTF_int::cdealloc(pe_idx_offset_B);
 
     char * A_data = A->data;
     if (pe_nbr_send != B->wrld->rank){
@@ -235,8 +235,8 @@ namespace CTF_int {
       calc_dim(A->order, A->size, A->pad_edge_len, A->edge_map,
                NULL, sub_edge_len_slice, NULL);
 
-      int64_t * loc_offsets_B = (int64_t*)malloc(B->order*sizeof(int64_t));
-      int64_t * loc_ends_B  = (int64_t*)malloc(B->order*sizeof(int64_t));
+      int64_t * loc_offsets_B = (int64_t*)CTF_int::alloc(B->order*sizeof(int64_t));
+      int64_t * loc_ends_B  = (int64_t*)CTF_int::alloc(B->order*sizeof(int64_t));
       for (int i=0; i<B->order; i++){
         loc_offsets_B[i] = offsets_B[i]/B->edge_map[i].calc_phys_phase();
         if (offsets_B[i]%B->edge_map[i].calc_phys_phase() > B->edge_map[i].calc_phys_rank(B->topo))

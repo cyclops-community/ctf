@@ -980,15 +980,26 @@ namespace CTF_int {
       TAU_FSTOP(slice);
       return;
     }
-    bool tsr_has_sym = false;
+    if (this->order == A->order){
+      bool tsr_has_sym = false;
+      bool tsr_has_virt = false;
 
-    for (int i=0; i<this->order; i++){
-      if (A->sym[i] != NS || this->sym[i] != NS)
-        tsr_has_sym = true;
-    }
-    if (tsr_B->order == tsr_A->order && tsr_B->wrld->np == tsr_A->wrld->np && !tsr_has_sym && !this->is_sparse && !A->is_sparse){
-      push_slice(this, offsets_B, ends_B, beta, A, offsets_A, ends_A, alpha);
-      return;
+      for (int i=0; i<this->order; i++){
+        if (A->sym[i] != NS || this->sym[i] != NS)
+          tsr_has_sym = true;
+        if (A->edge_map[i].type == VIRTUAL_MAP || (A->edge_map[i].has_child && A->edge_map[i].child->type == VIRTUAL_MAP)){
+          tsr_has_virt = true;
+        }
+        if (tsr_B->edge_map[i].type == VIRTUAL_MAP || (tsr_B->edge_map[i].has_child && tsr_B->edge_map[i].child->type == VIRTUAL_MAP)){
+          tsr_has_virt = true;
+        }
+      }
+      int nvirt_A = tsr_A->calc_nvirt();
+      int nvirt_B = tsr_B->calc_nvirt();
+      if (tsr_B->wrld->np == tsr_A->wrld->np && !tsr_has_sym && !this->is_sparse && !A->is_sparse && nvirt_A == 1 && nvirt_B == 1 && !tsr_has_virt){
+        push_slice(this, offsets_B, ends_B, beta, A, offsets_A, ends_A, alpha);
+        return;
+      }
     }
 
     int64_t * padding_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_A->order);

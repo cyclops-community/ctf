@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <list>
 #include <algorithm>
+#include <map>
 #ifdef BGP
 #include <spi/kernel_interface.h>
 #include <common/bgp_personality.h>
@@ -52,6 +53,12 @@ namespace CTF_int {
   int64_t mem_used[MAX_THREADS];
   int64_t tot_mem_used;
   int64_t tot_mem_available = -1;
+  int64_t mem_prof_current = 0;
+  int64_t mem_prof_max = 0;
+  int64_t mem_prof_last_print = 0;
+  int64_t mem_prof_rank = 0;
+  bool mem_prof_on = false;
+  std::map<void*,int64_t> alloc_sizes;
 
   void inc_tot_mem_used(int64_t a){
     tot_mem_used += a;
@@ -125,8 +132,27 @@ namespace CTF_int {
         printf("allocating block of size %ld bytes, padding %ld bytes\n", len, (int64_t)ALIGN_BYTES);
     }
 #endif*/
+#ifdef PROFILE_MEMORY
+    if (mem_prof_on){
+  #if PROFILE_MEMORY > 1
+      if (mem_prof_current+len-mem_prof_last_print >= 1000000){
+        if (mem_prof_rank ==0)
+          printf("Allocating %ld bytes to try to use %ld memory as part of contraction\n", len, len+mem_prof_current);
+      }
+      mem_prof_last_print = mem_prof_current + len;
+  #endif
+      mem_prof_current += len;
+      if (mem_prof_current > mem_prof_max)
+        mem_prof_max = mem_prof_current;
+    }
+#endif
     int pm = posix_memalign(ptr, (int64_t)ALIGN_BYTES, len);
     ASSERT(pm==0);
+#ifdef PROFILE_MEMORY
+    if (mem_prof_on){
+      alloc_sizes.insert(std::pair<void*, int64_t>(*ptr, len)); 
+    }
+#endif
     return CTF_int::SUCCESS;
 
   }
@@ -157,6 +183,21 @@ namespace CTF_int {
    * \param[in] tid thread id from whose stack pointer needs to be freed
    */
   int cdealloc(void * ptr, int const tid){
+#ifdef PROFILE_MEMORY
+    if (mem_prof_on){
+      auto iter = alloc_sizes.find(ptr); 
+      if (iter == alloc_sizes.end()){
+        printf("CTF ERROR, did not find allocated poitner\n");
+      } else {
+        int64_t len = iter->second;
+        mem_prof_current -= len;
+        if (mem_prof_current < mem_prof_last_print){
+          mem_prof_last_print = mem_prof_current;
+        }
+        alloc_sizes.erase(iter);
+      }
+    }
+#endif
     free(ptr);
     return CTF_int::SUCCESS;
   }
@@ -198,6 +239,21 @@ namespace CTF_int {
    * \param[in,out] ptr pointer to set to address to free
    */
   int cdealloc(void * ptr){ 
+#ifdef PROFILE_MEMORY
+    if (mem_prof_on){
+      auto iter = alloc_sizes.find(ptr); 
+      if (iter == alloc_sizes.end()){
+        printf("CTF ERROR, did not find allocated poitner\n");
+      } else {
+        int64_t len = iter->second;
+        mem_prof_current -= len;
+        if (mem_prof_current < mem_prof_last_print){
+          mem_prof_last_print = mem_prof_current;
+        }
+        alloc_sizes.erase(iter);
+      }
+    }
+#endif
     free(ptr);
     return CTF_int::SUCCESS;
   }
@@ -310,6 +366,36 @@ namespace CTF_int {
 
     return memcap*ptotal-pused;
 #endif
+  }
+
+  void start_memprof(int rank){
+#ifdef PROFILE_MEMORY
+    mem_prof_on = true;
+    mem_prof_rank = rank;
+#endif
+  }
+
+  void stop_memprof(){
+#ifdef PROFILE_MEMORY
+    mem_prof_on = false;
+    mem_prof_current = 0;
+    mem_prof_last_print = 0;
+    mem_prof_max = 0;
+    mem_prof_rank = -1;
+    if (alloc_sizes.size()>0){
+      printf("CTF error: did not deallocate something via cdealloc\n");
+    }
+    alloc_sizes.clear();
+#endif
+  }
+
+  int64_t get_max_memprof(MPI_Comm cm){
+    int64_t glb_mem = 0;
+#ifdef PROFILE_MEMORY
+    MPI_Allreduce(&mem_prof_max, &glb_mem, 1, MPI_INT64_T, MPI_MAX, cm);
+#endif
+    return glb_mem;
+
   }
 }
 

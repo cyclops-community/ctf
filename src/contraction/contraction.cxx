@@ -4392,6 +4392,9 @@ namespace CTF_int {
     TAU_FSTOP(pre_ctr_func_barrier);
   #endif
     TAU_FSTART(ctr_func);
+  #ifdef PROFILE_MEMORY
+    start_memprof(C->wrld->rank);
+  #endif
     /* Invoke the contraction algorithm */
     A->topo->activate();
     if (is_sparse()){
@@ -4463,6 +4466,13 @@ namespace CTF_int {
       }
     } else
       ctrf->run(A->data, B->data, C->data);
+  #ifdef PROFILE_MEMORY
+    int64_t mem = get_max_memprof(C->wrld->comm);
+    if (C->wrld->rank == 0){
+      printf("Contraction actually used %E memory\n", (double)mem);
+    }
+    stop_memprof();
+  #endif
     A->topo->deactivate();
 
   #ifdef PROFILE
