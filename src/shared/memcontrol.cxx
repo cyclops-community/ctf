@@ -58,7 +58,7 @@ namespace CTF_int {
   int64_t mem_prof_last_print = 0;
   int64_t mem_prof_rank = 0;
   bool mem_prof_on = false;
-  std::map<void*,int64_t> alloc_sizes;
+  std::map<void*,int64_t> alloc_sizes = std::map<void*,int64_t>();
 
   void inc_tot_mem_used(int64_t a){
     tot_mem_used += a;
@@ -149,8 +149,19 @@ namespace CTF_int {
     int pm = posix_memalign(ptr, (int64_t)ALIGN_BYTES, len);
     ASSERT(pm==0);
 #ifdef PROFILE_MEMORY
-    if (mem_prof_on){
-      alloc_sizes.insert(std::pair<void*, int64_t>(*ptr, len)); 
+    if (len > 10000){
+      if (alloc_sizes.size() == 0)
+        alloc_sizes = std::map<void*,int64_t>();
+      auto iter = alloc_sizes.find(*ptr); 
+      if (iter != alloc_sizes.end()){
+        printf("CTF: Lost track of a pointer %p of size %ld (did not deallocate something via cdealloc), replacing with one of size %ld\n",iter->first,iter->second,len);
+        alloc_sizes.erase(iter);
+        //printf("CTF ERROR, found pointer that is trying to be allocated (did not deallocate something via cdealloc)\n");
+        //ASSERT(0);
+      } else {
+        //printf("alloc_sizes size is %d ptr is %p len is %ld\n",(int)alloc_sizes.size(),ptr,len);
+        alloc_sizes.insert(std::pair<void*, int64_t>(*ptr, len)); 
+      }
     }
 #endif
     return CTF_int::SUCCESS;
@@ -176,7 +187,6 @@ namespace CTF_int {
     return CTF_int::SUCCESS;
   }
 
-    
   /**
    * \brief free abstraction
    * \param[in,out] ptr pointer to set to address to free
@@ -184,20 +194,29 @@ namespace CTF_int {
    */
   int cdealloc(void * ptr, int const tid){
 #ifdef PROFILE_MEMORY
-    if (mem_prof_on){
-      auto iter = alloc_sizes.find(ptr); 
-      if (iter == alloc_sizes.end()){
-        printf("CTF ERROR, did not find allocated poitner\n");
-      } else {
-        int64_t len = iter->second;
-        mem_prof_current -= len;
-        if (mem_prof_current < mem_prof_last_print){
-          mem_prof_last_print = mem_prof_current;
-        }
-        alloc_sizes.erase(iter);
-      }
-    }
+    ASSERT(0);
+//    if (mem_prof_on){
+//      auto iter = alloc_sizes.find(ptr); 
+//      if (iter == alloc_sizes.end()){
+//        ASSERT(0);
+//        printf("CTF ERROR, did not find allocated pointer\n");
+//      } else {
+//        int64_t len = iter->second;
+//        mem_prof_current -= len;
+//        if (mem_prof_current < mem_prof_last_print){
+//          mem_prof_last_print = mem_prof_current;
+//        }
+//        alloc_sizes.erase(iter);
+//      }
+//    }
 #endif
+    //auto iter = alloc_sizes.find(ptr); 
+    //if (iter == alloc_sizes.end()){
+    //  printf("CTF ERROR, did not find allocated pointer %p\n",ptr);
+    //  ASSERT(0);
+    //} else {
+    //  alloc_sizes.erase(iter);
+    //}
     free(ptr);
     return CTF_int::SUCCESS;
   }
@@ -234,26 +253,36 @@ namespace CTF_int {
     return CTF_int::SUCCESS;
   }
 
-  /**
-   * \brief free abstraction
-   * \param[in,out] ptr pointer to set to address to free
-   */
-  int cdealloc(void * ptr){ 
+  void memprof_dealloc(void * ptr){
 #ifdef PROFILE_MEMORY
-    if (mem_prof_on){
+    if (ptr != NULL){
+      if (alloc_sizes.size() == 0)
+        alloc_sizes = std::map<void*,int64_t>();
       auto iter = alloc_sizes.find(ptr); 
-      if (iter == alloc_sizes.end()){
-        printf("CTF ERROR, did not find allocated poitner\n");
-      } else {
-        int64_t len = iter->second;
-        mem_prof_current -= len;
-        if (mem_prof_current < mem_prof_last_print){
-          mem_prof_last_print = mem_prof_current;
+      //if (iter == alloc_sizes.end()){
+      //  printf("CTF ERROR, did not find allocated pointer %p\n",ptr);
+      //  ASSERT(0);
+      //} else {
+      if (iter != alloc_sizes.end()){
+        if (mem_prof_on){
+          int64_t len = iter->second;
+          mem_prof_current -= len;
+          if (mem_prof_current < mem_prof_last_print){
+            mem_prof_last_print = mem_prof_current;
+          }
         }
         alloc_sizes.erase(iter);
       }
     }
 #endif
+  }
+
+  /**
+   * \brief free abstraction
+   * \param[in,out] ptr pointer to set to address to free
+   */
+  int cdealloc(void * ptr){ 
+    memprof_dealloc(ptr);
     free(ptr);
     return CTF_int::SUCCESS;
   }
@@ -382,10 +411,10 @@ namespace CTF_int {
     mem_prof_last_print = 0;
     mem_prof_max = 0;
     mem_prof_rank = -1;
-    if (alloc_sizes.size()>0){
-      printf("CTF error: did not deallocate something via cdealloc\n");
-    }
-    alloc_sizes.clear();
+    //if (alloc_sizes.size()>0){
+    //  printf("CTF error: did not deallocate %d items via cdealloc\n",alloc_sizes.size());
+    //}
+    //alloc_sizes.clear();
 #endif
   }
 

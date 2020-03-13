@@ -3164,15 +3164,17 @@ namespace CTF_int {
     A->set_padding();
     B->set_padding();
     C->set_padding();
-#if (VERBOSE >= 1 || DEBUG >= 1)
+#if (VERBOSE >= 1 || DEBUG >= 1 || PROFILE_MEMORY >= 1)
 
     int64_t memuse;
     double est_time;
 
     detail_estimate_mem_and_time(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, memuse, est_time);
     if (global_comm.rank == 0){
-      VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory (already used %E) and take an estimated of %E sec\n",
+#if (VERBOSE >= 1 || DEBUG >= 1 || PROFILE_MEMORY >= 1)
+      printf("Contraction will use %E bytes per processor out of %E available memory (already used %E) and take an estimated of %E sec\n",
               (double)memuse,(double)proc_bytes_available(),(double)proc_bytes_used(),std::min(gbest_time_sel,gbest_time_exh));
+#endif
     }
     if (est_time != std::min(gbest_time_sel,gbest_time_exh))
       printf("Times are %E %E %E ttopo is %d,old_off = %ld,j = %d\n",est_time,gbest_time_sel,gbest_time_exh,ttopo, old_off, j_g);
@@ -4291,6 +4293,10 @@ namespace CTF_int {
     MPI_Barrier(global_comm.cm);
     TAU_FSTOP(pre_map_barrier);
   #endif
+
+  #ifdef PROFILE_MEMORY
+    start_memprof(C->wrld->rank);
+  #endif
   #if REDIST
     //stat = map_tensors(type, fftsr, felm, alpha, beta, &ctrf);
     stat = map(&ctrf);
@@ -4345,6 +4351,7 @@ namespace CTF_int {
     TAU_FSTOP(pre_fold_barrier);
   #endif
   #endif
+
     //ASSERT(check_mapping());
     bool is_inner = false;
   #if FOLD_TSR
@@ -4392,9 +4399,6 @@ namespace CTF_int {
     TAU_FSTOP(pre_ctr_func_barrier);
   #endif
     TAU_FSTART(ctr_func);
-  #ifdef PROFILE_MEMORY
-    start_memprof(C->wrld->rank);
-  #endif
     /* Invoke the contraction algorithm */
     A->topo->activate();
     if (is_sparse()){
@@ -4842,8 +4846,8 @@ namespace CTF_int {
       if (tnsr_B != B) delete tnsr_B;
       for (int i=nst_C-1; i>=0; i--){
         dstack_tsr_C[i]->extract_diag(dstack_map_C[i], 0, tnsr_C, &new_idx);
-        free(dstack_map_C[i]);
-        free(new_idx);
+        cdealloc(dstack_map_C[i]);
+        cdealloc(new_idx);
         delete tnsr_C;
         tnsr_C = dstack_tsr_C[i];
       }
@@ -5097,7 +5101,7 @@ namespace CTF_int {
         strcpy(nname, X->name);
         strcat(nname, d);
         tensor * X2 = new tensor(X->sr, X->order+1, lensX, symX, X->wrld, 1, nname, X->profile, 1);
-        free(nname);
+        cdealloc(nname);
         summation s(X, nidxX, X->sr->mulid(), X2, sidxX, X->sr->mulid());
         s.execute();
         contraction * nc;
@@ -5111,11 +5115,11 @@ namespace CTF_int {
         nc->execute(); 
         delete nc;
         delete X2;
-        free(symX);
-        free(lensX);
-        free(sidxX);
-        free(nidxX);
-        free(cidxX);
+        cdealloc(symX);
+        cdealloc(lensX);
+        cdealloc(sidxX);
+        cdealloc(nidxX);
+        cdealloc(cidxX);
         return SUCCESS;
       }
     }
@@ -5315,7 +5319,7 @@ namespace CTF_int {
       }
      
       if (npres > 1){
-        free(idx_arr);
+        cdealloc(idx_arr);
         return true;
       }
     }
@@ -5336,11 +5340,11 @@ namespace CTF_int {
         npres++;
       }
       if (npres > 1){
-        free(idx_arr);
+        cdealloc(idx_arr);
         return true;
       }
     }
-    free(idx_arr);
+    cdealloc(idx_arr);
     return false;
   }
 

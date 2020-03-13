@@ -69,7 +69,7 @@ namespace CTF_int {
           else sr->pair_dealloc(home_buffer);
         }
       }
-      if (is_sparse) cdealloc(nnz_blk);
+      if (is_mapped && is_sparse) cdealloc(nnz_blk);
       order = -2;
       delete sr;
       cdealloc(name);

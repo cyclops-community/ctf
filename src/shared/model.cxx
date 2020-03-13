@@ -122,7 +122,7 @@ namespace CTF_int {
     is_active = true;
     //copy initial static coefficients to initialzie model (defined in init_model.cxx)
     memcpy(coeff_guess, init_guess, nparam*sizeof(double));
-    name = (char*)alloc(strlen(name_)+1);
+    name = (char*)malloc(strlen(name_)+1);
     name[0] = '\0';
     strcpy(name, name_);
 #ifdef TUNE
@@ -131,7 +131,7 @@ namespace CTF_int {
     }*/
     hist_size = hist_size_;
     mat_lda = nparam+1;
-    time_param_mat = (double*)alloc(mat_lda*hist_size*sizeof(double));
+    time_param_mat = (double*)malloc(mat_lda*hist_size*sizeof(double));
     nobs = 0;
     is_tuned = false;
     tot_time = 0.0;
@@ -155,9 +155,9 @@ namespace CTF_int {
 
   template <int nparam>
   LinModel<nparam>::~LinModel(){
-    if (name != NULL) cdealloc(name);
+    if (name != NULL) free(name);
 #ifdef TUNE
-    if (time_param_mat != NULL) cdealloc(time_param_mat);
+    if (time_param_mat != NULL) free(time_param_mat);
 #endif
   }
 
@@ -249,7 +249,7 @@ namespace CTF_int {
     int nrcol = std::min(nobs,(int64_t)hist_size);
     //max of the number of local observations and nparam (will usually be the former)
     int ncol = std::max(nrcol, nparam);
-    /*  time_param * sort_mat = (time_param*)alloc(sizeof(time_param)*ncol);
+    /*  time_param * sort_mat = (time_param*)malloc(sizeof(time_param)*ncol);
       memcpy(sort_mat, time_param_mat, sizeof(time_param)*ncol);
       std::sort(sort_mat, sort_mat+ncol, &comp_time_param);*/
     int tot_nrcol;
@@ -266,8 +266,8 @@ namespace CTF_int {
       //not do any local tuning
       if (nrcol >= nparam) ncol += nparam;
 
-      double * R = (double*)alloc(sizeof(double)*nparam*nparam);
-      double * b = (double*)alloc(sizeof(double)*ncol);
+      double * R = (double*)malloc(sizeof(double)*nparam*nparam);
+      double * b = (double*)malloc(sizeof(double)*ncol);
       //if number of local observations less than than nparam don't do local QR
       if (nrcol < nparam){
         std::fill(R, R+nparam*nparam, 0.0);
@@ -278,7 +278,7 @@ namespace CTF_int {
         }*/
       } else {
         //define tall-skinny matrix A that is almost the transpose of time_param, but excludes the first row of time_param (that has execution times that we will put into b
-        double * A = (double*)alloc(sizeof(double)*nparam*ncol);
+        double * A = (double*)malloc(sizeof(double)*nparam*ncol);
         int i_st = 0;
 
         //figure out the maximum execution time any observation recorded
@@ -353,15 +353,15 @@ namespace CTF_int {
           cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, &dlwork, -1, &liwork, &info);
           assert(info == 0);
           lwork = (int)dlwork;
-          work = (double*)alloc(sizeof(double)*lwork);
-          iwork = (int*)alloc(sizeof(int)*liwork);
+          work = (double*)malloc(sizeof(double)*lwork);
+          iwork = (int*)malloc(sizeof(int)*liwork);
           std::fill(iwork, iwork+liwork, 0);
           cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, work, lwork, iwork, &info);
           //cdgeqrf(
           assert(info == 0);
-          cdealloc(work);
-          cdealloc(iwork);
-          cdealloc(A);
+          free(work);
+          free(iwork);
+          free(A);
           memcpy(coeff_guess, b, nparam*sizeof(double));
           /*print();
           double max_resd_sq = 0.0;
@@ -374,18 +374,18 @@ namespace CTF_int {
             max_err = std::max(max_err, fabs(est_time(time_param_mat+i*mat_lda+1)-time_param_mat[i*mat_lda]));
           }
           printf("%s max error is %lf\n",name,max_err);*/
-          cdealloc(b);
+          free(b);
           return;
         }
 
         //otherwise on the ith processor compute Q_iR_i=A_i and y_i=Q_i^Tb_i
-        double * tau = (double*)alloc(sizeof(double)*nparam);
+        double * tau = (double*)malloc(sizeof(double)*nparam);
         int lwork;
         int info;
         double dlwork;
         cdgeqrf(ncol, nparam, A, ncol, tau, &dlwork, -1, &info);
         lwork = (int)dlwork;
-        double * work = (double*)alloc(sizeof(double)*lwork);
+        double * work = (double*)malloc(sizeof(double)*lwork);
         cdgeqrf(ncol, nparam, A, ncol, tau, work, lwork, &info);
         lda_cpy(sizeof(double), nparam, nparam, ncol, nparam, (const char *)A, (char*)R);
         for (int i=0; i<nparam; i++){
@@ -396,13 +396,13 @@ namespace CTF_int {
         //query how much space dormqr which computes Q_i^Tb_i needs
         cdormqr('L', 'T', ncol, 1, nparam, A, ncol, tau, b, ncol, &dlwork, -1, &info);
         lwork = (int)dlwork;
-        cdealloc(work);
-        work = (double*)alloc(sizeof(double)*lwork);
+        free(work);
+        work = (double*)malloc(sizeof(double)*lwork);
         //actually run dormqr which computes Q_i^Tb_i needs
         cdormqr('L', 'T', ncol, 1, nparam, A, ncol, tau, b, ncol, work, lwork, &info);
-        cdealloc(work);
-        cdealloc(tau);
-        cdealloc(A);
+        free(work);
+        free(tau);
+        free(A);
       }
       int sub_np = np; //std::min(np,32);
       MPI_Comm sub_comm;
@@ -411,20 +411,20 @@ namespace CTF_int {
       //FIXME: can be smarter but not clear if necessary
       if (rk < sub_np){
         //all_R will have the Rs from each processor vertically stacked as [R_1^T .. R_32^T]^T
-        double * all_R = (double*)alloc(sizeof(double)*nparam*nparam*sub_np);
+        double * all_R = (double*)malloc(sizeof(double)*nparam*nparam*sub_np);
         //all_b will have the bs from each processor vertically stacked as [b_1^T .. b_32^T]^T
-        double * all_b = (double*)alloc(sizeof(double)*nparam*sub_np);
+        double * all_b = (double*)malloc(sizeof(double)*nparam*sub_np);
         //gather all Rs from all the processors
         MPI_Allgather(R, nparam*nparam, MPI_DOUBLE, all_R, nparam*nparam, MPI_DOUBLE, sub_comm);
-        double * Rs = (double*)alloc(sizeof(double)*nparam*nparam*sub_np);
+        double * Rs = (double*)malloc(sizeof(double)*nparam*nparam*sub_np);
         for (int i=0; i<sub_np; i++){
           lda_cpy(sizeof(double), nparam, nparam, nparam, sub_np*nparam, (const char *)(all_R+i*nparam*nparam), (char*)(Rs+i*nparam));
         }
         //gather all bs from all the processors
         MPI_Allgather(b, nparam, MPI_DOUBLE, all_b, nparam, MPI_DOUBLE, sub_comm);
-        cdealloc(b);
-        cdealloc(all_R);
-        cdealloc(R);
+        free(b);
+        free(all_R);
+        free(R);
         ncol = sub_np*nparam;
         b = all_b;
         double * A = Rs;
@@ -446,15 +446,15 @@ namespace CTF_int {
         cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, &dlwork, -1, &liwork, &info);
         assert(info == 0);
         lwork = (int)dlwork;
-        work = (double*)alloc(sizeof(double)*lwork);
-        iwork = (int*)alloc(sizeof(int)*liwork);
+        work = (double*)malloc(sizeof(double)*lwork);
+        iwork = (int*)malloc(sizeof(int)*liwork);
         std::fill(iwork, iwork+liwork, 0);
         cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, work, lwork, iwork, &info);
         //cdgeqrf(
         assert(info == 0);
-        cdealloc(work);
-        cdealloc(iwork);
-        cdealloc(A);
+        free(work);
+        free(iwork);
+        free(A);
         //double step = 1.;
         //for (int ii=0; ii<nparam; ii++){
         //  if (b[ii] <= 0.){
@@ -481,7 +481,7 @@ namespace CTF_int {
           max_err = std::max(max_err, fabs(est_time(time_param_mat+i*mat_lda+1)-time_param_mat[i*mat_lda]));
         }
         printf("%s max error is %lf\n",name,max_err);*/
-        cdealloc(b);
+        free(b);
       }
       MPI_Comm_free(&sub_comm);
       //broadcast new coefficient guess

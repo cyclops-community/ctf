@@ -119,7 +119,7 @@ namespace CTF_int {
   dtype ** get_grp_ptrs(int64_t          grp_sz,
                         int64_t          ngrp,
                         dtype const *    data){
-    dtype ** data_ptrs = (dtype**)alloc(sizeof(dtype*)*ngrp);
+    dtype ** data_ptrs = (dtype**)malloc(sizeof(dtype*)*ngrp);
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif

@@ -268,6 +268,7 @@ namespace CTF {
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
     *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
     *data = (dtype*)sr->alloc((*npair));
+    CTF_int::memprof_dealloc(*global_idx);
     CTF_int::PairIterator pairs(sr, cpairs);
 #ifdef _OPENMP
     #pragma omp parallel for
@@ -295,6 +296,7 @@ namespace CTF {
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
     *inds = (int64_t*)CTF_int::alloc(this->order*(*npair)*sizeof(int64_t));
     *data = (dtype*)sr->alloc((*npair));
+    CTF_int::memprof_dealloc(*inds);
     CTF_int::PairIterator pairs(sr, cpairs);
 #ifdef _OPENMP
     #pragma omp parallel for
@@ -326,6 +328,7 @@ namespace CTF {
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
     *inds = (int*)CTF_int::alloc(this->order*(*npair)*sizeof(int));
     *data = (dtype*)sr->alloc((*npair));
+    CTF_int::memprof_dealloc(*inds);
     CTF_int::PairIterator pairs(sr, cpairs);
 #ifdef _OPENMP
     #pragma omp parallel for
@@ -352,6 +355,8 @@ namespace CTF {
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
     *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
     *data = (dtype*)CTF_int::alloc((*npair)*sizeof(dtype));
+    CTF_int::memprof_dealloc(*global_idx);
+    CTF_int::memprof_dealloc(*data);
     CTF_int::PairIterator pairs(sr, cpairs);
 
 #ifdef _OPENMP

@@ -715,11 +715,11 @@ namespace CTF_int {
   }
 
   char * algstrct::pair_alloc(int64_t n) const {
-    return (char*)CTF_int::alloc(n*pair_size());
+    return (char*)malloc(n*pair_size());
   }    
 
   char * algstrct::alloc(int64_t n) const {
-    return (char*)CTF_int::alloc(n*el_size);
+    return (char*)malloc(n*el_size);
   }    
  
   void algstrct::dealloc(char * ptr) const {

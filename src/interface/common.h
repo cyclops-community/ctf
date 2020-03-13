@@ -247,6 +247,7 @@ namespace CTF_int {
   void * alloc(int64_t len);
   void * mst_alloc(int64_t len);
   int cdealloc(void * ptr);
+  void memprof_dealloc(void * ptr);
 
 
   void cvrt_idx(int             order,
