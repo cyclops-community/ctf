@@ -929,6 +929,7 @@ namespace CTF_int {
             }
           }
         }
+    
         A->spmatricize(iprm.m, iprm.k, nrow_idx, all_fdim_A, all_flen_A, csr_or_coo, use_ccsr);
       }
       if (!B->is_sparse){
@@ -2715,7 +2716,7 @@ namespace CTF_int {
   }
 
 
-  void contraction::get_best_sel_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time){
+  void contraction::get_best_sel_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int & idx, double & time){
     int ret, j;
     double best_time;
     int btopo;
@@ -2726,8 +2727,6 @@ namespace CTF_int {
 
     TAU_FSTART(evaluate_mappings)
     int64_t max_memuse = proc_bytes_available();
-    double nnz_frac_A, nnz_frac_B, nnz_frac_C;
-    this->calc_nnz_frac(nnz_frac_A, nnz_frac_B, nnz_frac_C);
   #if VERBOSE >= 1
     if (global_comm.rank == 0)
       printf("nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
@@ -2844,7 +2843,7 @@ namespace CTF_int {
 
   }
 
-  void contraction::get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time, double init_best_time=DBL_MAX){
+  void contraction::get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int & idx, double & time, double init_best_time=DBL_MAX){
     double best_time;
     int btopo;
     World * wrld = A->wrld;
@@ -2860,8 +2859,6 @@ namespace CTF_int {
     int64_t valid_mappings = 0;
     int64_t choice_offset = 0;
     int64_t max_memuse = proc_bytes_available();
-    double nnz_frac_A, nnz_frac_B, nnz_frac_C;
-    this->calc_nnz_frac(nnz_frac_A, nnz_frac_B, nnz_frac_C);
   #if VERBOSE >= 1
     if (global_comm.rank == 0)
       printf("nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
@@ -3007,6 +3004,15 @@ namespace CTF_int {
       C->print_map();
     #endif
     }
+
+    // must calculate nnz_frac in initial layout 
+    double nnz_frac_A, nnz_frac_B, nnz_frac_C;
+    this->calc_nnz_frac(nnz_frac_A, nnz_frac_B, nnz_frac_C);
+  #if VERBOSE >= 1
+    if (global_comm.rank == 0)
+      printf("In map nnz_tot_A is %ld nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",A->nnz_tot,nnz_frac_A,nnz_frac_B,nnz_frac_C);
+  #endif
+
     A->unfold();
     B->unfold();
     C->unfold();
@@ -3039,16 +3045,8 @@ namespace CTF_int {
     //bmemuse = UINT64_MAX;
     int ttopo, ttopo_sel, ttopo_exh;
     double gbest_time_sel, gbest_time_exh;
- 
-    double nnz_frac_A, nnz_frac_B, nnz_frac_C;
-    this->calc_nnz_frac(nnz_frac_A, nnz_frac_B, nnz_frac_C);
-
-  #if VERBOSE >= 1
-    if (global_comm.rank == 0)
-      printf("In map nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
-  #endif
     TAU_FSTART(get_best_sel_map);
-    get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_sel, gbest_time_sel);
+    get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, ttopo_sel, gbest_time_sel);
     TAU_FSTOP(get_best_sel_map);
 
     A->clear_mapping();
@@ -3062,7 +3060,7 @@ namespace CTF_int {
       ttopo_exh = ttopo_sel;
     } else {
       TAU_FSTART(get_best_exh_map);
-      get_best_exh_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_exh, gbest_time_exh, gbest_time_sel);
+      get_best_exh_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, ttopo_exh, gbest_time_exh, gbest_time_sel);
       TAU_FSTOP(get_best_exh_map);
     }
     if (gbest_time_sel <= gbest_time_exh){

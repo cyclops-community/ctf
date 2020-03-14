@@ -173,6 +173,8 @@ namespace CTF_int {
       }
       A = new tensor(A_init->sr, A_init->order, A_init->is_sparse, A_slice_lens, A_init->sym, A_init->wrld, tsr_idx, pgrid[part_idx], CTF::Idx_Partition());
       A->operator[](tsr_idx) += A_init->operator[](tsr_idx);
+      delete A_init;
+      A_init = A;
       CTF_int::cdealloc(part_idx);
       CTF_int::cdealloc(tsr_idx);
     }

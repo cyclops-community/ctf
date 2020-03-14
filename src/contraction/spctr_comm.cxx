@@ -284,6 +284,8 @@ namespace CTF_int {
                      C, nblk_C,     size_blk_C,
                  new_C);
     TAU_FSTART(spctr_replicate);
+    if (is_sparse_A && buf_A != A) cdealloc(buf_A);
+    if (is_sparse_B && buf_B != B) cdealloc(buf_B);
     /*for (i=0; i<size_C; i++){
       printf("P%d C[%d]  = %lf\n",crank,i, ((double*)C)[i]);
     }*/
@@ -323,8 +325,6 @@ namespace CTF_int {
       }
     }
 
-    if (is_sparse_A && buf_A != A) cdealloc(buf_A);
-    if (is_sparse_B && buf_B != B) cdealloc(buf_B);
     if (!is_sparse_A && arank != 0){
       this->sr_A->set(A, this->sr_A->addid(), size_A);
     }

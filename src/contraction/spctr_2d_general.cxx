@@ -499,7 +499,6 @@ namespace CTF_int {
 
     new_C = C;
     up_C = NULL;
-
     for (ib=iidx_lyr; ib<edge_len; ib+=inum_lyr){
       op_A = bcast_step(edge_len, A, is_sparse_A, move_A, sr_A, b_A, s_A, buf_A, cdt_A, ctr_sub_lda_A, ctr_lda_A, nblk_A, size_blk_A, new_nblk_A, new_size_blk_A, offsets_A, ib);
       op_B = bcast_step(edge_len, B, is_sparse_B, move_B, sr_B, b_B, s_B, buf_B, cdt_B, ctr_sub_lda_B, ctr_lda_B, nblk_B, size_blk_B, new_nblk_B, new_size_blk_B, offsets_B, ib);
@@ -522,8 +521,6 @@ namespace CTF_int {
       if (is_sparse_B && ((move_B && (cdt_B->rank != (ib % cdt_B->np) || b_B != 1)) || (!move_B && ctr_sub_lda_B != 0 && ctr_lda_B != 1))){
         cdealloc(op_B);
       }
-      reduce_step_post(edge_len, C, is_sparse_C, move_C, sr_C, b_C, s_C, buf_C, cdt_C, ctr_sub_lda_C, ctr_lda_C, nblk_C, size_blk_C, new_nblk_C, new_size_blk_C, offsets_C, ib, rec_ctr->beta, this->beta, up_C, new_C, n_new_C_grps, i_new_C_grp, new_C_grps, this->is_ccsr_C);
-      
       if (new_size_blk_A != size_blk_A)
         cdealloc(new_size_blk_A);
       if (new_size_blk_B != size_blk_B)
@@ -536,9 +533,14 @@ namespace CTF_int {
         cdealloc(buf_B);
         buf_B = NULL;
       }
+      reduce_step_post(edge_len, C, is_sparse_C, move_C, sr_C, b_C, s_C, buf_C, cdt_C, ctr_sub_lda_C, ctr_lda_C, nblk_C, size_blk_C, new_nblk_C, new_size_blk_C, offsets_C, ib, rec_ctr->beta, this->beta, up_C, new_C, n_new_C_grps, i_new_C_grp, new_C_grps, this->is_ccsr_C);
+      
+
       if (new_size_blk_C != size_blk_C)
         cdealloc(new_size_blk_C);
     }
+    if (buf_A != NULL) CTF_int::cdealloc(buf_A);
+    if (buf_B != NULL) CTF_int::cdealloc(buf_B);
 #if 0 //def OFFLOAD
     if (alloc_host_buf){
       host_pinned_free(buf_A);
@@ -613,8 +615,6 @@ namespace CTF_int {
     }
     if (0){
     } else {
-      if (buf_A != NULL) CTF_int::cdealloc(buf_A);
-      if (buf_B != NULL) CTF_int::cdealloc(buf_B);
       if (buf_C != NULL) CTF_int::cdealloc(buf_C);
       CTF_int::cdealloc(buf_aux);
     }
