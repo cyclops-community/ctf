@@ -317,7 +317,7 @@ int main(int argc, char ** argv){
   } else test = 1;
 
   if (rank == 0){
-    printf("Running sparse (%lf zeros) third-order Moller-Plesset perturbation theory (MP3) method on %d virtual and %d occupied orbitals and T sparsity turned ot %d\n",sp,nv,no,sparse_T);
+    printf("Running sparse (%lf zeros) third-order Moller-Plesset perturbation theory (MP3) method on %d virtual and %d occupied orbitals and T sparsity turned to %d\n",sp,nv,no,sparse_T);
   }
 
   {

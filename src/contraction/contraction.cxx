@@ -47,6 +47,7 @@ namespace CTF_int {
     func      = other.func;
     alpha = other.alpha;
     beta  = other.beta;
+    output_nnz_frac = other.output_nnz_frac;
   }
 
   contraction::contraction(tensor *               A_,
@@ -162,10 +163,17 @@ namespace CTF_int {
         break;
     }
   }
+  
+  void contraction::set_output_nnz_frac(double nnz_frac){
+    //assert(nnz_frac >= 0. && nnz_frac <= 1.);
+    this->output_nnz_frac = nnz_frac;
+  }
 
   double contraction::estimate_output_nnz_frac(){
     int num_tot;
     int * idx_arr;
+
+    if (output_nnz_frac != -1.) return output_nnz_frac;
 
     inv_idx(A->order, idx_A,
             B->order, idx_B,
@@ -1019,6 +1027,7 @@ namespace CTF_int {
       nB = new tensor(B, 0, 0);
       nC = new tensor(C, 0, 0);
       nctr = new contraction(nA, idx_A, nB, idx_B, alpha, nC, idx_C, beta, func);
+      nctr->set_output_nnz_frac(this->output_nnz_frac);
       *new_contraction = nctr;
 
       nA->clear_mapping();
@@ -2570,9 +2579,9 @@ namespace CTF_int {
     nnz_frac_A = 1.0;
     nnz_frac_B = 1.0;
     nnz_frac_C = 1.0;
-    if (A->is_sparse) nnz_frac_A = std::min(1.,2.*((((double)A->nnz_tot)/A->size)/A->calc_npe()));
-    if (B->is_sparse) nnz_frac_B = std::min(1.,2.*((((double)B->nnz_tot)/B->size)/B->calc_npe()));
-    nnz_frac_C = std::min(1.,4.*estimate_output_nnz_frac());
+    if (A->is_sparse) nnz_frac_A = std::min(1.,((((double)A->nnz_tot)/A->size)/A->calc_npe()));
+    if (B->is_sparse) nnz_frac_B = std::min(1.,((((double)B->nnz_tot)/B->size)/B->calc_npe()));
+    nnz_frac_C = std::min(1.,estimate_output_nnz_frac());
     assert(nnz_frac_A>=0.);
     assert(nnz_frac_B>=0.);
     assert(nnz_frac_C>=0.);
@@ -2727,10 +2736,6 @@ namespace CTF_int {
 
     TAU_FSTART(evaluate_mappings)
     int64_t max_memuse = proc_bytes_available();
-  #if VERBOSE >= 1
-    if (global_comm.rank == 0)
-      printf("nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
-  #endif
     for (j=0; j<6; j++){
       // Attempt to map to all possible permutations of processor topology
   #if DEBUG > 4
@@ -2859,10 +2864,6 @@ namespace CTF_int {
     int64_t valid_mappings = 0;
     int64_t choice_offset = 0;
     int64_t max_memuse = proc_bytes_available();
-  #if VERBOSE >= 1
-    if (global_comm.rank == 0)
-      printf("nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
-  #endif
 //    TAU_FSTOP(init_select_ctr_map);
     for (int i=0; i<(int)wrld->topovec.size(); i++){
 //      int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
@@ -3010,7 +3011,7 @@ namespace CTF_int {
     this->calc_nnz_frac(nnz_frac_A, nnz_frac_B, nnz_frac_C);
   #if VERBOSE >= 1
     if (global_comm.rank == 0)
-      printf("In map nnz_tot_A is %ld nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",A->nnz_tot,nnz_frac_A,nnz_frac_B,nnz_frac_C);
+      printf("In map nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
   #endif
 
     A->unfold();
@@ -4687,6 +4688,7 @@ namespace CTF_int {
       nst_C++;
       tnsr_C = new_tsr;
       map_C = new_idx;
+      this->set_output_nnz_frac(-1.);
     }
 
     bivar_function const * fptr;
@@ -4694,6 +4696,7 @@ namespace CTF_int {
     else fptr = NULL;
 
     contraction new_ctr = contraction(tnsr_A, map_A, tnsr_B, map_B, alpha, tnsr_C, map_C, beta, fptr);
+    new_ctr.set_output_nnz_frac(this->output_nnz_frac);
     tnsr_A->unfold();
     tnsr_B->unfold();
     tnsr_C->unfold();
@@ -4983,6 +4986,7 @@ namespace CTF_int {
     if (!A->is_sparse && B->is_sparse){
       assert(this->func==NULL); // currently if contracting two tensors with special function and one is sparse, first operand of the two must be the sparse one
       contraction new_ctr = contraction(this->B,this->idx_B,this->A,this->idx_A,this->alpha,this->C,this->idx_C,this->beta,this->func);
+      new_ctr.set_output_nnz_frac(this->output_nnz_frac);
       new_ctr.execute();
       return SUCCESS;
     }
@@ -5105,9 +5109,11 @@ namespace CTF_int {
         contraction * nc;
         if (A->is_sparse && (!B->is_sparse || A_sz < B_sz)){
           nc = new contraction(X2, cidxX, B, idx_B, alpha, C, idx_C, beta, func);
+          nc->set_output_nnz_frac(this->output_nnz_frac);
           nc->idx_B[iB] = num_tot;
         } else {
           nc = new contraction(A, idx_A, X2, cidxX, alpha, C, idx_C, beta, func);
+          nc->set_output_nnz_frac(this->output_nnz_frac);
           nc->idx_A[iA] = num_tot;
         }
         nc->execute(); 

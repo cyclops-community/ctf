@@ -38,6 +38,9 @@ namespace CTF_int {
       /** \brief function to execute on elements */
       bivar_function const * func;
 
+      /** \brief predefined output nonzero density */
+      double output_nnz_frac = -1.;
+
       /** \brief lazy constructor */
       contraction(){ idx_A = NULL; idx_B = NULL; idx_C=NULL; is_custom=0; alpha=NULL; beta=NULL; };
       
@@ -107,6 +110,11 @@ namespace CTF_int {
       /** \brief run contraction */
       void execute();
       
+      /** \brief set output sparsity fraction
+        * \param[in] nnz_frac density of nonzeros, in [0,1]
+        */
+      void set_output_nnz_frac(double nnz_frac);
+
       /** \brief predicts sparsityu fraction of output */
       double estimate_output_nnz_frac();
 

@@ -120,7 +120,6 @@ namespace CTF_int {
         }
 
         extract_slice(AA->sr, AA->order, sub_edge_len, sub_edge_len_slice, AA->sym, loc_offsets_A, loc_ends_A, AA->data, A_init->data);
-        bool need_shift = false;
         int * pe_idx_offset_AA = (int*)CTF_int::alloc(AA->order*sizeof(int));
         int pe_shift_nbr_send = 0;
         int pe_shift_nbr_recv = 0;
@@ -173,7 +172,7 @@ namespace CTF_int {
       }
       A = new tensor(A_init->sr, A_init->order, A_init->is_sparse, A_slice_lens, A_init->sym, A_init->wrld, tsr_idx, pgrid[part_idx], CTF::Idx_Partition());
       A->operator[](tsr_idx) += A_init->operator[](tsr_idx);
-      delete A_init;
+      if (A_init != AA) delete A_init;
       A_init = A;
       CTF_int::cdealloc(part_idx);
       CTF_int::cdealloc(tsr_idx);
@@ -207,8 +206,8 @@ namespace CTF_int {
         A_data = A->sr->pair_alloc(A->nnz_loc);
         MPI_Sendrecv(AA->data, num_vals, typ, pe_nbr_send, 7, 
                       A_data,  nrcv, typ, pe_nbr_recv, 7, A->wrld->comm, &stat);
-        int64_t nnew;
-        char * pprs_new;
+        //int64_t nnew;
+        //char * pprs_new;
         //spspsum(A->sr, nrcv, ConstPairIterator(A->sr, A_data), beta, B->sr, B->nnz_loc, B->data, alpha, nnew, pprs_new, 1);
         ASSERT(0);
         A->sr->pair_dealloc(A_data);
