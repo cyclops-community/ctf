@@ -140,6 +140,14 @@ namespace CTF_int {
       /** \brief nonzero elements in each block owned locally */
       int64_t * nnz_blk;
 
+      /** \brief Save the topo for the home_buffer before computing the map */
+      topology *home_topo;
+      /** \brief Save the edge_map for the home_buffer before computing the map */
+      mapping *home_edge_map;
+      /** \brief Save the home status of the tensor */
+      // TODO: Using this bool can be avoided
+      bool was_home;
+      
       /**
        * \brief associated an index map with the tensor for future operation
        * \param[in] idx_map index assignment for this tensor

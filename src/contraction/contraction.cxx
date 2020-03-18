@@ -48,6 +48,7 @@ namespace CTF_int {
     alpha = other.alpha;
     beta  = other.beta;
     output_nnz_frac = other.output_nnz_frac;
+    persistent = other.persistent;
   }
 
   contraction::contraction(tensor *               A_,
@@ -58,7 +59,8 @@ namespace CTF_int {
                            tensor *               C_,
                            int const *            idx_C_,
                            char const *           beta_,
-                           bivar_function const * func_){
+                           bivar_function const * func_,
+                           bool                   persistent_){
     A = A_;
     B = B_;
     C = C_;
@@ -67,6 +69,7 @@ namespace CTF_int {
     func = func_;
     alpha = alpha_;
     beta  = beta_;
+    persistent = persistent_;
    
     idx_A = (int*)alloc(sizeof(int)*A->order);
     idx_B = (int*)alloc(sizeof(int)*B->order);
@@ -84,7 +87,8 @@ namespace CTF_int {
                            tensor *               C_,
                            char const *           cidx_C,
                            char const *           beta_,
-                           bivar_function const * func_){
+                           bivar_function const * func_,
+                           bool                   persistent_){
     A = A_;
     B = B_;
     C = C_;
@@ -93,6 +97,7 @@ namespace CTF_int {
     func = func_;
     alpha = alpha_;
     beta  = beta_;
+    persistent = persistent_;
    
     conv_idx(A->order, cidx_A, &idx_A, B->order, cidx_B, &idx_B, C->order, cidx_C, &idx_C);
   }
@@ -717,7 +722,7 @@ namespace CTF_int {
                            fB->order, fidx_B, &sidx_B,
                            fC->order, fidx_C, &sidx_C);
 
-    fold_ctr = new contraction(fA, sidx_A, fB, sidx_B, alpha, fC, sidx_C, beta, func);
+    fold_ctr = new contraction(fA, sidx_A, fB, sidx_B, alpha, fC, sidx_C, beta, func, persistent);
 
     CTF_int::cdealloc(sidx_A);
     CTF_int::cdealloc(sidx_B);
@@ -1026,7 +1031,7 @@ namespace CTF_int {
       nA = new tensor(A, 0, 0);
       nB = new tensor(B, 0, 0);
       nC = new tensor(C, 0, 0);
-      nctr = new contraction(nA, idx_A, nB, idx_B, alpha, nC, idx_C, beta, func);
+      nctr = new contraction(nA, idx_A, nB, idx_B, alpha, nC, idx_C, beta, func, persistent);
       nctr->set_output_nnz_frac(this->output_nnz_frac);
       *new_contraction = nctr;
 
@@ -4187,7 +4192,7 @@ namespace CTF_int {
     if (B->is_sparse && !A->is_sparse){
 //      ASSERT(!A->is_sparse);
       //FIXME ASSERT that commitative
-      contraction CBA(B,idx_B,A,idx_A,alpha,C,idx_C,beta,func);
+      contraction CBA(B,idx_B,A,idx_A,alpha,C,idx_C,beta,func,persistent);
       CBA.contract();
       return SUCCESS;
     }
@@ -4320,10 +4325,22 @@ namespace CTF_int {
       }
   #endif
     }
-    stat = map(&ctrf);
-    if (stat == ERROR) {
-      printf("Failed to map tensors to physical grid\n");
-      return ERROR;
+    if (!persistent) {
+      stat = map(&ctrf);
+      if (stat == ERROR) {
+        printf("Failed to map tensors to physical grid\n");
+        return ERROR;
+      }
+    }
+    else {
+      if (can_fold()){
+        iparam prm = map_fold(false);
+        ctrf = construct_ctr(1, &prm);
+        //A->remove_fold();
+        //B->remove_fold();
+        //C->remove_fold();
+      } else
+        ctrf = construct_ctr();
     }
 #if (VERBOSE >= 1 || DEBUG >= 1)
     if (global_comm.rank == 0){
@@ -4695,7 +4712,7 @@ namespace CTF_int {
     if (is_custom) fptr = func;
     else fptr = NULL;
 
-    contraction new_ctr = contraction(tnsr_A, map_A, tnsr_B, map_B, alpha, tnsr_C, map_C, beta, fptr);
+    contraction new_ctr = contraction(tnsr_A, map_A, tnsr_B, map_B, alpha, tnsr_C, map_C, beta, fptr, persistent);
     new_ctr.set_output_nnz_frac(this->output_nnz_frac);
     tnsr_A->unfold();
     tnsr_B->unfold();
@@ -4985,7 +5002,7 @@ namespace CTF_int {
     // if multiplying A and B with one sparse, make first sparse
     if (!A->is_sparse && B->is_sparse){
       assert(this->func==NULL); // currently if contracting two tensors with special function and one is sparse, first operand of the two must be the sparse one
-      contraction new_ctr = contraction(this->B,this->idx_B,this->A,this->idx_A,this->alpha,this->C,this->idx_C,this->beta,this->func);
+      contraction new_ctr = contraction(this->B,this->idx_B,this->A,this->idx_A,this->alpha,this->C,this->idx_C,this->beta,this->func,this->persistent);
       new_ctr.set_output_nnz_frac(this->output_nnz_frac);
       new_ctr.execute();
       return SUCCESS;
@@ -5108,11 +5125,11 @@ namespace CTF_int {
         s.execute();
         contraction * nc;
         if (A->is_sparse && (!B->is_sparse || A_sz < B_sz)){
-          nc = new contraction(X2, cidxX, B, idx_B, alpha, C, idx_C, beta, func);
+          nc = new contraction(X2, cidxX, B, idx_B, alpha, C, idx_C, beta, func, persistent);
           nc->set_output_nnz_frac(this->output_nnz_frac);
           nc->idx_B[iB] = num_tot;
         } else {
-          nc = new contraction(A, idx_A, X2, cidxX, alpha, C, idx_C, beta, func);
+          nc = new contraction(A, idx_A, X2, cidxX, alpha, C, idx_C, beta, func, persistent);
           nc->set_output_nnz_frac(this->output_nnz_frac);
           nc->idx_A[iA] = num_tot;
         }
@@ -5467,6 +5484,267 @@ namespace CTF_int {
       iV += std::max(npres-1, 0);
     }
     cdealloc(idx_arr);
+  }
+
+  void contraction::prepare() {
+    int stat;
+    CommData global_comm = C->wrld->cdt;
+    int rank = C->wrld->rank;
+    ctr * ctrf;
+
+    if (A->has_zero_edge_len || B->has_zero_edge_len
+        || C->has_zero_edge_len){
+      if (!C->sr->isequal(beta,C->sr->mulid()) && !C->has_zero_edge_len){
+        // TODO: scaling()
+        IASSERT(0);
+      }
+    }
+
+    if (A == B || A == C){
+      // TODO: need to make a copy of A, and set new_ctr.A to the new tensor
+      // new_ctr.contract()
+      IASSERT(0);
+    }
+    if (B == C){
+      // TODO: need to make a copy of B, and set new_ctr.B to the new tensor
+      // new_ctr.contract()
+      IASSERT(0);
+    }
+    if (B->is_sparse && !A->is_sparse){
+      //contraction CBA(B,idx_B,A,idx_A,alpha,C,idx_C,beta,func);
+      //CBA.contract();
+      IASSERT(0);
+    }
+    
+    A->was_home = A->is_home;
+    B->was_home = B->is_home;
+    C->was_home = C->is_home;
+    
+    mapping *home_map_A = new mapping[A->order];
+    copy_mapping(A->order, A->edge_map, home_map_A);
+    mapping *home_map_B = new mapping[B->order];
+    copy_mapping(B->order, B->edge_map, home_map_B);
+    mapping *home_map_C = new mapping[C->order];
+    copy_mapping(C->order, C->edge_map, home_map_C);
+
+    topology *home_topo_A = A->topo;
+    topology *home_topo_B = B->topo;
+    topology *home_topo_C = C->topo;
+    
+    stat = map(&ctrf);
+    if (stat == ERROR) {
+      printf("Failed to map tensors to physical grid\n");
+      IASSERT(0);
+    }
+    bool is_inner = false;
+    
+    if (A->was_home && !A->is_home) {
+      // if (rank == 0) printf("A is leaving home\n");
+      A->home_edge_map = home_map_A;
+      A->home_topo = home_topo_A;
+      if (A->is_sparse){
+        A->sr->pair_dealloc(A->home_buffer);
+      }
+      else {
+        A->sr->dealloc(A->home_buffer);
+      }
+    }
+    else {
+      delete [] home_map_A;
+    }
+    if (B->was_home && !B->is_home) {
+      // if (rank == 0) printf("B is leaving home\n");
+      B->home_edge_map = home_map_B;
+      B->home_topo = home_topo_B;
+      if (B->is_sparse){
+        B->sr->pair_dealloc(B->home_buffer);
+      }
+      else {
+        B->sr->dealloc(B->home_buffer);
+      }
+    }
+    else {
+      delete [] home_map_B;
+    }
+    if (C->was_home && !C->is_home) {
+      IASSERT(!C->is_home);
+      //if (rank == 0) printf("C is leaving home\n");
+      C->home_edge_map = home_map_C;
+      C->home_topo = home_topo_C;
+      C->sr->dealloc(C->home_buffer);
+    }
+    else {
+      delete [] home_map_C;
+    }
+    ctrf_persistent = ctrf;
+  }
+
+  void contraction::prepareA(tensor *     A_,
+                             char const * idx_A_) {
+    
+    int rank = A->wrld->rank;
+    tensor * sA = A_; // subsitute Tensor A
+    IASSERT(A->order == sA->order); // TODO: remove this assert
+
+    if (!sA->is_home) {
+      IASSERT(0);
+      // TODO: sA is not home, and might have to bring it back?
+    }
+
+    // Check if sA needs to be redistributed
+    // TODO: should be enough to only check if !A->home, and would need redistribution
+    bool need_remap = 0;
+    if (A->topo == sA->topo){
+      for (int d = 0; d < A->order; d++){
+        if (!comp_dim_map(&A->edge_map[d], &sA->edge_map[d]))
+          need_remap = 1;
+      }
+    } else {
+      need_remap = 1;
+    }
+
+    if (need_remap) {
+      sA->was_home = sA->is_home;
+      distribution *home_dsA = new distribution(sA);
+      mapping *home_map_sA = new mapping[sA->order];
+      copy_mapping(sA->order, sA->edge_map, home_map_sA);
+      topology *home_topo_sA = sA->topo;
+      
+      copy_mapping(sA->order, A->edge_map, sA->edge_map);
+      sA->topo = A->topo;
+      sA->set_padding();
+      sA->redistribute(*(home_dsA));
+      delete home_dsA;
+
+      if (sA->was_home && !sA->is_home) {
+        // if (rank == 0) printf("sA (A_) is leaving home\n");
+        sA->home_edge_map = home_map_sA;
+        sA->home_topo = home_topo_sA;
+        if (sA->is_sparse){
+          sA->sr->pair_dealloc(sA->home_buffer);
+        }
+        else {
+          sA->sr->dealloc(sA->home_buffer);
+        }
+      }
+      else {
+        // TODO: The below 3 lines might not be needed - recheck
+        copy_mapping(sA->order, home_map_sA, sA->edge_map);
+        sA->topo = home_topo_sA;
+        sA->set_padding();
+        delete [] home_map_sA;
+      }
+    }
+   
+    releaseA();
+    // replace A with sA in this contraction
+    this->A = sA;
+  }
+  
+  void contraction::prepareB(tensor *     B_,
+                             char const * idx_B_) {
+    // TODO: Avoid duplication; merge with prepareA()
+  }
+  
+  void contraction::prepareC(tensor *     C_,
+                             char const * idx_C_) {
+    // TODO: Avoid duplication; merge with prepareA()
+  }
+
+  void contraction::execute_persistent() {
+    IASSERT(ctrf_persistent != nullptr);
+    A->topo->activate();
+    ctrf_persistent->run(A->data, B->data, C->data);
+    A->topo->deactivate();
+  }
+
+  // TODO: release A, B, C functions can be clubbed
+  void contraction::release() {
+    releaseC();
+    
+    if (A != C){
+      releaseA();
+    }
+    if (B != A && B != C){
+      releaseB();
+    }
+  }
+
+  void contraction::releaseA() {
+    bool was_home_A = A->was_home;
+    if (was_home_A) A->unfold();
+    
+    if (was_home_A && !A->is_home){
+      A->has_home = 0;
+      distribution *current_dA = new distribution(A);
+      copy_mapping(A->order, A->home_edge_map, A->edge_map);
+      A->topo = A->home_topo;
+      A->set_padding();
+      A->redistribute(*(current_dA));
+      delete current_dA;
+      if (A->is_sparse) {
+        A->home_buffer = nullptr;
+      }
+      else {
+        A->home_buffer = A->data;
+      }
+      A->is_home = 1;
+      A->has_home = 1;
+
+      delete [] A->home_edge_map;
+      A->home_topo = nullptr;
+    }
+  }
+
+  void contraction::releaseB() {
+    // TODO: Avoid duplication; merge with releaseA()
+    bool was_home_B = B->was_home;
+    if (was_home_B && A != B) B->unfold();
+    
+    if (was_home_B && !B->is_home){
+      B->has_home = 0;
+      distribution *current_dB = new distribution(B);
+      copy_mapping(B->order, B->home_edge_map, B->edge_map);
+      B->topo = B->home_topo;
+      B->set_padding();
+      B->redistribute(*(current_dB));
+      delete current_dB;
+      if (B->is_sparse) {
+        B->home_buffer = nullptr;
+      }
+      else {
+        B->home_buffer = B->data;
+      }
+      B->is_home = 1;
+      B->has_home = 1;
+
+      delete [] B->home_edge_map;
+      B->home_topo = nullptr;
+    }
+  }
+  
+  void contraction::releaseC() {
+    // TODO: Avoid duplication; merge with releaseA()
+    bool was_home_C = C->was_home;
+    if (was_home_C) C->unfold();
+
+    if (was_home_C && !C->is_home){
+      IASSERT(!C->is_sparse);
+      distribution *current_dC = new distribution(C);
+      C->topo = C->home_topo;
+      copy_mapping(C->order, C->home_edge_map, C->edge_map);
+      C->set_padding();
+      C->redistribute(*(current_dC));
+      delete current_dC;
+      C->home_buffer = C->data;
+      C->is_home = 1;
+      C->has_home = 1;
+      
+      delete [] C->home_edge_map;
+      C->home_topo = nullptr;
+    } else if (was_home_C) {
+      IASSERT(C->data == C->home_buffer);
+    }
   }
 
   void contraction::print(){

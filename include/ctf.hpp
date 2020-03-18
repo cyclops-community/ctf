@@ -19,6 +19,7 @@
 #include "../src/interface/timer.h"
 #include "../src/interface/back_comp.h"
 #include "../src/interface/kernel.h"
+#include "../src/interface/contract.h"
 
 #endif
 

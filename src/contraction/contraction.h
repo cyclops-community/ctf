@@ -37,12 +37,16 @@ namespace CTF_int {
       bool is_custom;
       /** \brief function to execute on elements */
       bivar_function const * func;
+      /** \brief enable persistence */
+      bool persistent;
+      /** \brief store relevant contract parameters for persistence */
+      ctr * ctrf_persistent;
 
       /** \brief predefined output nonzero density */
       double output_nnz_frac = -1.;
 
       /** \brief lazy constructor */
-      contraction(){ idx_A = NULL; idx_B = NULL; idx_C=NULL; is_custom=0; alpha=NULL; beta=NULL; };
+      contraction(){ idx_A = NULL; idx_B = NULL; idx_C=NULL; is_custom=0; alpha=NULL; beta=NULL; persistent=false; };
       
       /** \brief destructor */
       ~contraction();
@@ -95,7 +99,8 @@ namespace CTF_int {
                   tensor *               C,
                   int const *            idx_C,
                   char const *           beta,
-                  bivar_function const * func=NULL);
+                  bivar_function const * func=NULL,
+                  bool                   persistent=false);
       contraction(tensor *               A,
                   char const *           idx_A,
                   tensor *               B,
@@ -104,9 +109,47 @@ namespace CTF_int {
                   tensor *               C,
                   char const *           idx_C,
                   char const *           beta,
-                  bivar_function const * func=NULL);
+                  bivar_function const * func=NULL,
+                  bool                   persistent=false);
+      
+      /**
+       * \brief prepare the operands to map to a physical grid
+       */
+      void prepare();
+      
+      /**
+       * \brief prepare tensor A to map to a physical grid using the existing distribution
+       */
+      void prepareA(tensor *     A_,
+                    char const * idx_A_);
+      
+      /**
+       * \brief prepare tensor B to map to a physical grid using the existing distribution
+       */
+      void prepareB(tensor *     B_,
+                    char const * idx_B_);
+      
+      /**
+       * \brief prepare tensor C to map to a physical grid using the existing distribution
+       */
+      void prepareC(tensor *     C_,
+                    char const * idx_C_);
+      
+      /** \brief run contraction on persistent tensors */
+      void execute_persistent();
+      
+      /** \brief release holding persistent data and remap back the tensors */
+      void release();
 
+      /** \brief release holding persistent data and remap back the tensor A */
+      void releaseA();
+      
+      /** \brief release holding persistent data and remap back the tensor B */
+      void releaseB();
 
+      /** \brief release holding persistent data and remap back the tensor C */
+      void releaseC();
+      
       /** \brief run contraction */
       void execute();
       
