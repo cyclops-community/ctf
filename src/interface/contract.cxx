@@ -18,7 +18,7 @@ namespace CTF {
       printf("CTF ERROR: worlds of contracted tensors must match\n");
       IASSERT(0);
     }
-    pctr = new CTF_int::contraction(&A, idx_A, &B, idx_B, (char const *)&alpha, &C, idx_C, (char const *)&beta, nullptr, true);
+    pctr = new CTF_int::contraction(&A, idx_A, &B, idx_B, (char const *)&alpha, &C, idx_C, (char const *)&beta, nullptr);
     pctr->prepare();
   }
   
@@ -36,36 +36,29 @@ namespace CTF {
       printf("CTF ERROR: worlds of contracted tensors must match\n");
       IASSERT(0);
     }
-    pctr = new CTF_int::contraction(&A, idx_A, &B, idx_B, (char const *)&alpha, &C, idx_C, (char const *)&beta, &func, true);
+    pctr = new CTF_int::contraction(&A, idx_A, &B, idx_B, (char const *)&alpha, &C, idx_C, (char const *)&beta, &func);
     pctr->prepare();
   }
 
-  // TODO: can do away with this function
-  template<typename dtype>
-  void Contract<dtype>::prepare() {
-    IASSERT(pctr != nullptr);
-    pctr->prepare();
-  }
- 
   template<typename dtype>
   void Contract<dtype>::prepareA(CTF_int::tensor& A,
                                  const char *     idx_A) {
     IASSERT(pctr != nullptr);
-    pctr->prepareA(&A, idx_A);
+    pctr->prepareT(&A, pctr->A, pctr->cm_topo_A, pctr->cm_edge_map_A, idx_A);
   }
 
   template<typename dtype>
   void Contract<dtype>::prepareB(CTF_int::tensor& B,
                                  const char *     idx_B) {
     IASSERT(pctr != nullptr);
-    pctr->prepareB(&B, idx_B);
+    pctr->prepareT(&B, pctr->B, pctr->cm_topo_B, pctr->cm_edge_map_B, idx_B);
   }
   
   template<typename dtype>
   void Contract<dtype>::prepareC(CTF_int::tensor& C,
                                  const char *     idx_C) {
     IASSERT(pctr != nullptr);
-    pctr->prepareC(&C, idx_C);
+    pctr->prepareT(&C, pctr->C, pctr->cm_topo_C, pctr->cm_edge_map_C, idx_C);
   }
   
   template<typename dtype>
@@ -74,35 +67,33 @@ namespace CTF {
     pctr->execute_persistent();
   }
   
-  // TODO: can do away with this function
-  template<typename dtype>
-  void Contract<dtype>::release() {
-    IASSERT(pctr != nullptr);
-    pctr->release();
-  }
-  
   template<typename dtype>
   void Contract<dtype>::releaseA() {
     IASSERT(pctr != nullptr);
-    pctr->releaseA();
+    pctr->releaseT(pctr->A);
   }
   
   template<typename dtype>
   void Contract<dtype>::releaseB() {
     IASSERT(pctr != nullptr);
-    pctr->releaseB();
+    IASSERT(pctr->A != pctr->B);
+    pctr->releaseT(pctr->B);
   }
 
   template<typename dtype>
   void Contract<dtype>::releaseC() {
     IASSERT(pctr != nullptr);
-    pctr->releaseC();
+    pctr->releaseT(pctr->C);
   }
 
   template<typename dtype> 
   Contract<dtype>::~Contract() {
     IASSERT(pctr != nullptr);
     pctr->release();
+    // TODO: should we cleanup here?
+    delete [] pctr->cm_edge_map_A;
+    delete [] pctr->cm_edge_map_B;
+    delete [] pctr->cm_edge_map_C;
     delete pctr;
   }
 }

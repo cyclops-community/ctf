@@ -37,7 +37,7 @@ int matmul(int     m,
            double  sp_C=1.,
            bool    test=true,
            int     bench=false,
-           int     niter=1){
+           int     niter=3){
   assert(test || bench);
 
   /*
@@ -81,13 +81,13 @@ int matmul(int     m,
 
     for (int i = 0; i < niter; i++) {
       C0.contract(1.0, A0, "ij", B0, "jk", 0.0, "ik");
-      B0["ij"] = C0["ij"];
+      A0["ij"] = C0["ij"];
     }
 
     /* ----------------------------------------------------------------------------------------- */
 
     /* contract using persistence call */
-    Matrix<> A1(m, k, dw);
+    Matrix<> A1(m, k, dw, "A1");
     Matrix<> B1(k, n, dw);
     Matrix<> C1(m, n, dw, "C1");
     A1["ij"] = ref_A["ij"];
@@ -98,21 +98,24 @@ int matmul(int     m,
     x = new Contract<>(1.0, A1, "ij", B1, "jk", 0.0, C1, "ik");
     for (int i = 0; i < niter; i++) {
       x->execute();
-      B1["ij"] = C1["ij"];
+      A1["ij"] = C1["ij"];
     }
-    delete x; // Release A, B, C
+    delete x; // Release A1, B1, C1
 
     /* compute difference in answer */
     C1["ij"] -= C0["ij"];
     err = C1.norm2();
     pass = err <= 1.E-6;
+    assert(pass);
     /* check if tensors A and B have corrupted data after releaseA() and releaseB() */
     A1["ij"] -= A0["ij"];
     err = A1.norm2();
     pass = (pass == true) ? (err <= 1.E-6) : false;
+    assert(pass);
     B1["ij"] -= B0["ij"];
     err = B1.norm2();
     pass = (pass == true) ? (err <= 1.E-6) : false;
+    assert(pass);
     if (dw.rank == 0) {
       printf("Error when execute() is called for %d iterations is: %lf\n", niter, err);
     }
@@ -129,22 +132,35 @@ int matmul(int     m,
 
     Contract<> *y;
     y = new Contract<>(1.0, A2, "ij", B2, "jk", 0.0, C2, "ik");
+    
     Matrix<> *AA = new Matrix<>(m, k, dw);
     (*AA)["ij"] = ref_A["ij"];
-    Matrix<> *temp = nullptr;
-    for (int i = 0; i < niter; i++) {
-      y->execute();
-      B2["ij"] = C2["ij"];
+    Matrix<> *BB = new Matrix<>(k, n, dw);
+    (*BB)["ij"] = ref_B["ij"];
+    
+    Matrix<> *tempA = nullptr;
+    Matrix<> *tempB = nullptr;
+    
+    for (int i = 0; i < niter; i++) {      
       y->prepareA(*AA, "ij"); // upload AA in place of A2, and then release A2
-      if (temp != nullptr) {
-        delete temp;
-      }
-      temp = AA;
+      y->prepareB(*BB, "ij"); // upload BB in place of B2, and then release B2
+      
+      y->execute();
+     
+      if (tempA != nullptr) delete tempA;
+      tempA = AA;
       AA = new Matrix<>(m, k, dw); // create a new Matrix to be uploaded in the next iteration
-      (*AA)["ij"] = ref_A["ij"];
+      (*AA)["ij"] = C2["ij"];
+      
+      if (tempB != nullptr) delete tempB;
+      tempB = BB;
+      BB = new Matrix<>(k, n, dw); // create a new Matrix to be uploaded in the next iteration
+      (*BB)["ij"] = ref_B["ij"];
     }
     delete y; // Release A, B, C
+    A2["ij"] = (*AA)["ij"];
     delete AA;
+    delete BB;
 
     /* compute difference in answer */
     C2["ij"] -= C0["ij"];
@@ -155,12 +171,13 @@ int matmul(int     m,
     A2["ij"] -= A0["ij"];
     err = A2.norm2();
     pass = (pass == true) ? (err <= 1.E-6) : false;
+    assert(pass);
     B2["ij"] -= B0["ij"];
     err = B2.norm2();
     assert(pass);
     pass = (pass == true) ? (err <= 1.E-6) : false;
     if (dw.rank == 0) {
-      printf("Error when execute() followed by prepareA() is called for %d iterations is: %lf\n", niter, err);
+      printf("Error when execute() followed by calls prepareA() and prepareB() for %d iterations is: %lf\n", niter, err);
     }
     /* ----------------------------------------------------------------------------------------- */
   }
@@ -197,8 +214,8 @@ int main(int argc, char ** argv){
 
   if (getCmdOption(input_str, input_str+in_num, "-n")){
     n = atoi(getCmdOption(input_str, input_str+in_num, "-n"));
-    if (n < 0) n = 32;
-  } else n = 32;
+    if (n < 0) n = 9;
+  } else n = 9;
 
   if (getCmdOption(input_str, input_str+in_num, "-k")){
     k = atoi(getCmdOption(input_str, input_str+in_num, "-k"));
@@ -223,7 +240,7 @@ int main(int argc, char ** argv){
   if (getCmdOption(input_str, input_str+in_num, "-niter")){
     niter = atoi(getCmdOption(input_str, input_str+in_num, "-niter"));
     if (niter < 0) niter = 1;
-  } else niter = 1;
+  } else niter = 4;
 
   if (getCmdOption(input_str, input_str+in_num, "-bench")){
     bench = atoi(getCmdOption(input_str, input_str+in_num, "-bench"));

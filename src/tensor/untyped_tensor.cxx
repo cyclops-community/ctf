@@ -384,6 +384,8 @@ namespace CTF_int {
     this->is_ccsr           = false;
     this->nrow_idx          = -1;
     this->left_home_transp  = 0;
+    this->home_topo         = nullptr;
+    this->home_edge_map     = nullptr;
 //    this->nnz_loc_max       = 0;
     this->registered_alloc_size = 0;
     if (name_ != NULL){

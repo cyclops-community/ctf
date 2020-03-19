@@ -31,8 +31,6 @@ namespace CTF {
                char const *          idx_C,
                Bivar_Function<dtype> func);
       
-      void prepare();
-      
       void prepareA(CTF_int::tensor& A,
                     const char *     idx_A);
 
@@ -44,8 +42,6 @@ namespace CTF {
       
       void execute();
       
-      void release();
-
       void releaseA();
       
       void releaseB();

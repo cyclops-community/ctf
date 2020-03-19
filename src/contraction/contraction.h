@@ -37,8 +37,18 @@ namespace CTF_int {
       bool is_custom;
       /** \brief function to execute on elements */
       bivar_function const * func;
-      /** \brief enable persistence */
-      bool persistent;
+      /** \brief Save the computed topo for the left operand */
+      topology *cm_topo_A;
+      /** \brief Save the computed edge_map for the left operand */
+      mapping *cm_edge_map_A;
+      /** \brief Save the computed topo for the right operand */
+      topology *cm_topo_B;
+      /** \brief Save the computed edge_map for the right operand */
+      mapping *cm_edge_map_B;
+      /** \brief Save the computed topo for the output */
+      topology *cm_topo_C;
+      /** \brief Save the computed edge_map for the output */
+      mapping *cm_edge_map_C;
       /** \brief store relevant contract parameters for persistence */
       ctr * ctrf_persistent;
 
@@ -46,7 +56,7 @@ namespace CTF_int {
       double output_nnz_frac = -1.;
 
       /** \brief lazy constructor */
-      contraction(){ idx_A = NULL; idx_B = NULL; idx_C=NULL; is_custom=0; alpha=NULL; beta=NULL; persistent=false; };
+      contraction(){ idx_A = NULL; idx_B = NULL; idx_C=NULL; is_custom=0; alpha=NULL; beta=NULL; };
       
       /** \brief destructor */
       ~contraction();
@@ -99,8 +109,7 @@ namespace CTF_int {
                   tensor *               C,
                   int const *            idx_C,
                   char const *           beta,
-                  bivar_function const * func=NULL,
-                  bool                   persistent=false);
+                  bivar_function const * func=NULL);
       contraction(tensor *               A,
                   char const *           idx_A,
                   tensor *               B,
@@ -109,8 +118,7 @@ namespace CTF_int {
                   tensor *               C,
                   char const *           idx_C,
                   char const *           beta,
-                  bivar_function const * func=NULL,
-                  bool                   persistent=false);
+                  bivar_function const * func=NULL);
       
       /**
        * \brief prepare the operands to map to a physical grid
@@ -118,22 +126,13 @@ namespace CTF_int {
       void prepare();
       
       /**
-       * \brief prepare tensor A to map to a physical grid using the existing distribution
+       * \brief prepare tensor sT to map to a physical grid using the existing distribution in place of tensor T
        */
-      void prepareA(tensor *     A_,
+      void prepareT(tensor *     sT,
+                    tensor *     T,
+                    topology *   cm_topo,
+                    mapping *    cm_edge_map,
                     char const * idx_A_);
-      
-      /**
-       * \brief prepare tensor B to map to a physical grid using the existing distribution
-       */
-      void prepareB(tensor *     B_,
-                    char const * idx_B_);
-      
-      /**
-       * \brief prepare tensor C to map to a physical grid using the existing distribution
-       */
-      void prepareC(tensor *     C_,
-                    char const * idx_C_);
       
       /** \brief run contraction on persistent tensors */
       void execute_persistent();
@@ -141,14 +140,13 @@ namespace CTF_int {
       /** \brief release holding persistent data and remap back the tensors */
       void release();
 
-      /** \brief release holding persistent data and remap back the tensor A */
-      void releaseA();
-      
-      /** \brief release holding persistent data and remap back the tensor B */
-      void releaseB();
-
       /** \brief release holding persistent data and remap back the tensor C */
-      void releaseC();
+      void releaseT(tensor * T);
+  
+      /** \brief redistribute tensor back to the persistent mapping */
+      void redistribute_for_saved_contraction(tensor *     T,
+                                              topology *   cm_topo,
+                                              mapping *    cm_edge_map);
       
       /** \brief run contraction */
       void execute();
