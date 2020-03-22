@@ -15,6 +15,8 @@ namespace CTF_int {
   void start_memprof(int rank);
   void stop_memprof();
   int64_t get_max_memprof(MPI_Comm cm);
+  void memprof_alloc_pre(int64_t len);
+  void memprof_alloc_post(int64_t len, void ** const ptr);
 }
 
 

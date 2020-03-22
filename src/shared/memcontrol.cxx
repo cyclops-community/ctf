@@ -117,37 +117,24 @@ namespace CTF_int {
     //assert(instance_counter >= 0);
   }
 
-  /**
-   * \brief alloc abstraction
-   * \param[in] len_ number of bytes
-   * \param[in,out] ptr pointer to set to new allocation address
-   */
-  int alloc_ptr(int64_t const len_, void ** const ptr){
-    int64_t len = MAX(4,len_);
-/*#if DEBUG >= 2
-    if (len_ >= 1E8){
-      int rank;
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      if (rank == 0)
-        printf("allocating block of size %ld bytes, padding %ld bytes\n", len, (int64_t)ALIGN_BYTES);
-    }
-#endif*/
+  void memprof_alloc_pre(int64_t len){
 #ifdef PROFILE_MEMORY
     if (mem_prof_on){
   #if PROFILE_MEMORY > 1
       if (mem_prof_current+len-mem_prof_last_print >= 1000000){
         if (mem_prof_rank ==0)
-          printf("Allocating %ld bytes to try to use %ld memory as part of contraction\n", len, len+mem_prof_current);
+          printf("Allocating %E bytes to try to use %E memory as part of contraction\n", (double)len, (double)(len+mem_prof_current));
+        mem_prof_last_print = mem_prof_current + len;
       }
-      mem_prof_last_print = mem_prof_current + len;
   #endif
       mem_prof_current += len;
       if (mem_prof_current > mem_prof_max)
         mem_prof_max = mem_prof_current;
     }
 #endif
-    int pm = posix_memalign(ptr, (int64_t)ALIGN_BYTES, len);
-    ASSERT(pm==0);
+  }
+
+  void memprof_alloc_post(int64_t len, void ** const ptr){
 #ifdef PROFILE_MEMORY
     if (len > 10000){
       if (alloc_sizes.size() == 0)
@@ -164,6 +151,30 @@ namespace CTF_int {
       }
     }
 #endif
+  }
+
+
+  /**
+   * \brief alloc abstraction
+   * \param[in] len_ number of bytes
+   * \param[in,out] ptr pointer to set to new allocation address
+   */
+  int alloc_ptr(int64_t const len_, void ** const ptr){
+    int64_t len = MAX(4,len_);
+    memprof_alloc_pre(len);
+/*#if DEBUG >= 2
+    if (len_ >= 1E8){
+      int rank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      if (rank == 0)
+        printf("allocating block of size %ld bytes, padding %ld bytes\n", len, (int64_t)ALIGN_BYTES);
+    }
+#endif*/
+
+    int pm = posix_memalign(ptr, (int64_t)ALIGN_BYTES, len);
+    memprof_alloc_post(len,ptr);
+    ASSERT(pm==0);
+
     return CTF_int::SUCCESS;
 
   }
@@ -264,8 +275,15 @@ namespace CTF_int {
       //  ASSERT(0);
       //} else {
       if (iter != alloc_sizes.end()){
+        int64_t len = iter->second;
+  #if PROFILE_MEMORY > 1
+        if (mem_prof_last_print-(mem_prof_current-len) >= 1000000){
+          if (mem_prof_rank ==0)
+            printf("Dellocating %E bytes to use %E memory as part of contraction\n", (double)len, (double)(mem_prof_current-len));
+          mem_prof_last_print = mem_prof_current - len;
+        }
+  #endif
         if (mem_prof_on){
-          int64_t len = iter->second;
           mem_prof_current -= len;
           if (mem_prof_current < mem_prof_last_print){
             mem_prof_last_print = mem_prof_current;

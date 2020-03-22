@@ -6,6 +6,7 @@
 //#include <stdint.h>
 #include <limits>
 #include <inttypes.h>
+#include "../shared/memcontrol.h"
 
 namespace CTF {
   /**
@@ -598,19 +599,27 @@ namespace CTF {
 
       char * pair_alloc(int64_t n) const {
         //assert(sizeof(std::pair<int64_t,dtype>[n])==(uint64_t)(pair_size()*n));
-        return (char*)(new std::pair<int64_t,dtype>[n]);
+        CTF_int::memprof_alloc_pre(n*sizeof(std::pair<int64_t,dtype>));
+        char * ptr = (char*)(new std::pair<int64_t,dtype>[n]);
+        CTF_int::memprof_alloc_post(n*sizeof(std::pair<int64_t,dtype>),(void**)&ptr);
+        return ptr;
       }
 
       char * alloc(int64_t n) const {
         //assert(sizeof(dtype[n])==(uint64_t)(el_size*n));
-        return (char*)(new dtype[n]);
+        CTF_int::memprof_alloc_pre(n*sizeof(dtype));
+        char * ptr = (char*)(new dtype[n]);
+        CTF_int::memprof_alloc_post(n*sizeof(dtype),(void**)&ptr);
+        return ptr;
       }
 
       void dealloc(char * ptr) const {
+        CTF_int::memprof_dealloc(ptr);
         return delete [] (dtype*)ptr;
       }
 
       void pair_dealloc(char * ptr) const {
+        CTF_int::memprof_dealloc(ptr);
         return delete [] (std::pair<int64_t,dtype>*)ptr;
       }
 

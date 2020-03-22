@@ -8,6 +8,7 @@
 #include "../sparse_formats/ccsr.h"
 #include <climits>
 
+
 namespace CTF_int {
 
   spctr_2d_general::~spctr_2d_general() {
@@ -125,13 +126,19 @@ namespace CTF_int {
     int64_t b_A, b_B, b_C, s_A, s_B, s_C, aux_size;
     find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, aux_size);
     int64_t mem_usage = 0;
-    if (is_sparse_A) mem_usage += (sr_A->pair_size()*s_A)*nnz_frac_A;
-    else mem_usage += sr_A->el_size*s_A;
-    if (is_sparse_B) mem_usage += (sr_B->pair_size()*s_B)*nnz_frac_B;
-    else mem_usage += sr_B->el_size*s_B;
-    if (is_sparse_C) mem_usage += (3*sr_C->pair_size()*s_C)*nnz_frac_C;
-    else mem_usage += sr_C->el_size*s_C;
+    if (is_sparse_A){
+      if (move_A || (ctr_sub_lda_A != 0 && ctr_lda_A != 1))
+        mem_usage += (sr_A->pair_size()*s_A)*nnz_frac_A*dns_vrt_sz_A;
+    } else mem_usage += sr_A->el_size*s_A;
+    if (is_sparse_B){
+      if (move_B || (ctr_sub_lda_B != 0 && ctr_lda_B != 1))
+        mem_usage += (sr_B->pair_size()*s_B)*nnz_frac_B*dns_vrt_sz_B;
+    } else mem_usage += sr_B->el_size*s_B;
 
+    if (is_sparse_C){
+      if (move_C || (ctr_sub_lda_C != 0 && ctr_lda_C != 1))
+        mem_usage += (3.*sr_C->pair_size()*s_C)*nnz_frac_C*dns_vrt_sz_C;
+    } else mem_usage += sr_C->el_size*s_C;
     return mem_usage;
   }
 
@@ -140,8 +147,8 @@ namespace CTF_int {
     find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, aux_size);
     int64_t mem_usage = 0;
     if (move_C){
-      if (is_sparse_C) mem_usage += (3*sr_C->pair_size()*s_C)*nnz_frac_C;
-      else mem_usage += sr_C->el_size*s_C;
+      if (is_sparse_C) mem_usage += (sr_C->pair_size()*s_C)*nnz_frac_C*dns_vrt_sz_C;
+      //else mem_usage += sr_C->el_size*s_C;
     }
 
     return mem_usage;
@@ -151,7 +158,7 @@ namespace CTF_int {
     return std::max(spmem_tmp(nnz_frac_A, nnz_frac_B, nnz_frac_C), rec_ctr->spmem_rec(nnz_frac_A, nnz_frac_B, nnz_frac_C)) + spmem_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
-  char * bcast_step(int64_t edge_len, char * A, bool is_sparse_A, bool move_A, algstrct const * sr_A, int64_t b_A, int64_t s_A, char * buf_A, CommData * cdt_A, int64_t ctr_sub_lda_A, int64_t ctr_lda_A, int nblk_A, int64_t const * size_blk_A, int & new_nblk_A, int64_t *& new_size_blk_A, int64_t * offsets_A, int ib){
+  char * bcast_step(int64_t edge_len, char * A, bool is_sparse_A, bool move_A, algstrct const * sr_A, int64_t b_A, int64_t s_A, char *& buf_A, CommData * cdt_A, int64_t ctr_sub_lda_A, int64_t ctr_lda_A, int nblk_A, int64_t const * size_blk_A, int & new_nblk_A, int64_t *& new_size_blk_A, int64_t * offsets_A, int ib){
     int ret;
     char * op_A = NULL;
     new_size_blk_A = (int64_t*)size_blk_A;
@@ -387,7 +394,7 @@ namespace CTF_int {
                              char *& new_C){
     int ret, n_new_C_grps;
     int64_t ib;
-    char * buf_A, * buf_B, * buf_C, * buf_aux, * up_C;
+    char * buf_A, * buf_B, * buf_C, * up_C;
     char ** new_C_grps; 
     char * op_A = NULL;
     char * op_B = NULL;
@@ -461,8 +468,8 @@ namespace CTF_int {
         ASSERT(ret==0);
       } else buf_C = NULL;
     }
-    ret = CTF_int::alloc_ptr(aux_size, (void**)&buf_aux);
-    ASSERT(ret==0);
+    //ret = CTF_int::alloc_ptr(aux_size, (void**)&buf_aux);
+    //ASSERT(ret==0);
 
     int64_t * offsets_A;
     if (is_sparse_A){
@@ -515,12 +522,12 @@ namespace CTF_int {
       /*for (int i=0; i<ctr_sub_lda_C*ctr_lda_C; i++){
         printf("[%d] P%d up_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)up_C)[i]);
       }*/
-      if (is_sparse_A && ((move_A && (cdt_A->rank != (ib % cdt_A->np) || b_A != 1)) || (!move_A && ctr_sub_lda_A != 0 && ctr_lda_A != 1))){
-        cdealloc(op_A);
-      }
-      if (is_sparse_B && ((move_B && (cdt_B->rank != (ib % cdt_B->np) || b_B != 1)) || (!move_B && ctr_sub_lda_B != 0 && ctr_lda_B != 1))){
-        cdealloc(op_B);
-      }
+      //if (is_sparse_A && ((move_A && (cdt_A->rank != (ib % cdt_A->np) || b_A != 1)) || (!move_A && ctr_sub_lda_A != 0 && ctr_lda_A != 1))){
+      //  cdealloc(op_A);
+      //}
+      //if (is_sparse_B && ((move_B && (cdt_B->rank != (ib % cdt_B->np) || b_B != 1)) || (!move_B && ctr_sub_lda_B != 0 && ctr_lda_B != 1))){
+      //  cdealloc(op_B);
+      //}
       if (new_size_blk_A != size_blk_A)
         cdealloc(new_size_blk_A);
       if (new_size_blk_B != size_blk_B)
@@ -616,7 +623,7 @@ namespace CTF_int {
     if (0){
     } else {
       if (buf_C != NULL) CTF_int::cdealloc(buf_C);
-      CTF_int::cdealloc(buf_aux);
+      //CTF_int::cdealloc(buf_aux);
     }
     if (is_sparse_A){
       cdealloc(offsets_A);
