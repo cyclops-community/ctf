@@ -1478,7 +1478,7 @@ NORM_INFTY_INST(double)
     IASSERT(0);
   }
 
-  template <typename dtype>
+  template <typename dtype, typename rtype>
   void fill_random_base(dtype rmin, dtype rmax, Tensor<dtype> & T){
     if (T.is_sparse){
       printf("CTF ERROR: fill_random should not be called on a sparse tensor, use fill_random_sp instead\n");
@@ -1486,40 +1486,40 @@ NORM_INFTY_INST(double)
       return;
     }
     for (int64_t i=0; i<T.size; i++){
-      ((dtype*)T.data)[i] = ((dtype)CTF_int::get_rand48())*(rmax-rmin)+rmin;
+      ((dtype*)T.data)[i] = ((dtype)((rtype)CTF_int::get_rand48()*(rmax-rmin)))+rmin;
     }
     T.zero_out_padding();
   }
 
   template<>
   inline void Tensor<double>::fill_random(double rmin, double rmax){
-    fill_random_base<double>(rmin, rmax, *this);
+    fill_random_base<double, double>(rmin, rmax, *this);
   }
 
   template<>
   inline void Tensor<float>::fill_random(float rmin, float rmax){
-    fill_random_base<float>(rmin, rmax, *this);
+    fill_random_base<float, float>(rmin, rmax, *this);
   }
 
   template<>
   inline void Tensor<std::complex<double>>::fill_random(std::complex<double> rmin, std::complex<double> rmax){
-    fill_random_base<std::complex<double>>(rmin, rmax, *this);
+    fill_random_base<std::complex<double>, double>(rmin, rmax, *this);
   }
 
   template<>
   inline void Tensor<std::complex<float>>::fill_random(std::complex<float> rmin, std::complex<float> rmax){
-    fill_random_base<std::complex<float>>(rmin, rmax, *this);
+    fill_random_base<std::complex<float>, float>(rmin, rmax, *this);
   }
 
 
   template<>
   inline void Tensor<int64_t>::fill_random(int64_t rmin, int64_t rmax){
-    fill_random_base<int64_t>(rmin, rmax, *this);
+    fill_random_base<int64_t, double>(rmin, rmax, *this);
   }
 
   template<>
   inline void Tensor<int>::fill_random(int rmin, int rmax){
-    fill_random_base<int>(rmin, rmax, *this);
+    fill_random_base<int, double>(rmin, rmax, *this);
   }
 
 
