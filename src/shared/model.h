@@ -1,7 +1,11 @@
 #ifndef __MODEL_H__
 #define __MODEL_H__
 
+#ifdef CRITTER
+#include "critter.h"
+#else
 #include <mpi.h>
+#endif
 #include "init_models.h"
 
 #include <fstream>

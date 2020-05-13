@@ -2883,7 +2883,7 @@ namespace CTF_int {
     int64_t valid_mappings = 0;
     int64_t choice_offset = 0;
     int64_t max_memuse = proc_bytes_available();
-    double nnz_frac_A, nnz_frac_B, nnz_frac_C;
+    //double nnz_frac_A, nnz_frac_B, nnz_frac_C;
     this->calc_nnz_frac(nnz_frac_A, nnz_frac_B, nnz_frac_C);
   #if VERBOSE >= 1
     if (global_comm.rank == 0)
