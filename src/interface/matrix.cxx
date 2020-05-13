@@ -36,6 +36,24 @@ namespace CTF_int{
       return i;
     }
   };
+
+  inline int64_t estimate_qr_flops(int nrow, int ncol) {
+    int64_t m = std::max(nrow, ncol);
+    int64_t n = std::min(nrow, ncol);
+    int64_t nflops = 2.*m*n*n-(2./3.)*n*n*n;
+    return nflops;
+  }
+
+  inline int64_t estimate_svd_flops(int nrow, int ncol) {
+    int64_t m = std::max(nrow, ncol);
+    int64_t n = std::min(nrow, ncol);
+    int64_t nflops;
+    if (m >= (10./3.)*n)
+      nflops = 6.*m*n*n+8.*n*n*n;
+    else
+      nflops = 8.*m*n*n+(4./3.)*n*n*n;
+    return nflops;
+  }
 }
 
 
@@ -66,6 +84,9 @@ namespace CTF {
         break;
       case SY:
         symm=SY;
+        break;
+      case SH:
+        symm=SH;
         break;
       case AS:
         symm=AS;
@@ -665,6 +686,7 @@ namespace CTF {
     int64_t mpr = m/pr + (m % pr != 0);
     int64_t npc = n/pc + (n % pc != 0);
 
+    CTF_int::add_estimated_flops(CTF_int::estimate_qr_flops(m, n));
 
     dtype * A = (dtype*)malloc(mpr*npc*sizeof(dtype));
 
@@ -785,6 +807,9 @@ namespace CTF {
     //  CTF_int::cdealloc(s);
     //  CTF_int::cdealloc(work);
     //} else {
+
+    CTF_int::add_estimated_flops(CTF_int::estimate_svd_flops(m, n));
+
     dtype * s = (dtype*)CTF_int::alloc(sizeof(dtype)*k);
     CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
     lwork = CTF_SCALAPACK::get_int_fromreal<dtype>(dlwork);

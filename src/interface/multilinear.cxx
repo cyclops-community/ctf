@@ -412,4 +412,274 @@ namespace CTF {
     free(lens_VT);
   }
 
+  template<typename dtype>
+  void MTTKRP(Tensor<dtype> * T, Tensor<dtype> ** mat_list, int mode, bool aux_mode_first){
+    Timer t_mttkrp("MTTKRP");
+    t_mttkrp.start();
+    int k = -1;
+    bool is_vec = mat_list[0]->order == 1;
+    if (!is_vec)
+      k = mat_list[0]->lens[1-aux_mode_first];
+    IASSERT(mode >= 0 && mode < T->order);
+    for (int i=0; i<T->order; i++){
+      IASSERT(is_vec || T->lens[i] == mat_list[i]->lens[aux_mode_first]);
+      IASSERT(!mat_list[i]->is_sparse);
+    }
+    dtype ** arrs = (dtype**)malloc(sizeof(dtype*)*T->order);
+    int64_t * ldas = (int64_t*)malloc(T->order*sizeof(int64_t));
+    int * phys_phase = (int*)malloc(T->order*sizeof(int));
+    int * mat_strides = NULL;
+    if (!is_vec)
+      mat_strides = (int*)malloc(2*T->order*sizeof(int));
+    for (int i=0; i<T->order; i++){
+      phys_phase[i] = T->edge_map[i].calc_phys_phase();
+    }
+
+    int64_t npair;
+    Pair<dtype> * pairs;
+    if (T->is_sparse){
+      pairs = (Pair<dtype>*)T->data;
+      npair = T->nnz_loc;
+    } else
+      T->get_local_pairs(&npair, &pairs, true, false);
+
+    ldas[0] = 1;
+    for (int i=1; i<T->order; i++){
+      ldas[i] = ldas[i-1] * T->lens[i-1];
+    }
+
+    Tensor<dtype> ** redist_mats = (Tensor<dtype>**)malloc(sizeof(Tensor<dtype>*)*T->order);
+    Partition par(T->topo->order, T->topo->lens);
+    char * par_idx = (char*)malloc(sizeof(char)*T->topo->order);
+    for (int i=0; i<T->topo->order; i++){
+      par_idx[i] = 'a'+i+1;
+    }
+    char mat_idx[2];
+    int slice_st[2];
+    int slice_end[2];
+    int k_start = 0;
+    int kd = 0;
+    int div = 1;
+    for (int d=0; d<div; d++){
+      k_start += kd;
+      kd = k/div + (d < k%div);
+      int k_end = k_start + kd;
+
+      Timer t_mttkrp_remap("MTTKRP_remap_mats");
+      t_mttkrp_remap.start();
+      for (int i=0; i<T->order; i++){
+        Tensor<dtype> mmat;
+        Tensor<dtype> * mat = mat_list[i];
+
+        int64_t tot_sz;
+        if (is_vec)
+          tot_sz = T->lens[i];
+        else
+          tot_sz = T->lens[i]*kd;
+        if (div>1){
+          if (aux_mode_first){
+            slice_st[0] = k_start;
+            slice_st[1] = 0;
+            slice_end[0] = k_end;
+            slice_end[1] = T->lens[i];
+            mat_strides[2*i+0] = kd;
+            mat_strides[2*i+1] = 1;
+          } else {
+            slice_st[1] = k_start;
+            slice_st[0] = 0;
+            slice_end[1] = k_end;
+            slice_end[0] = T->lens[i];
+            mat_strides[2*i+0] = 1;
+            mat_strides[2*i+1] = T->lens[i];
+          }
+          mmat = mat_list[i]->slice(slice_st, slice_end);
+          mat = &mmat;
+        } else if (!is_vec) {
+          if (aux_mode_first){
+            mat_strides[2*i+0] = k;
+            mat_strides[2*i+1] = 1;
+          } else {
+            mat_strides[2*i+0] = 1;
+            mat_strides[2*i+1] = T->lens[i];
+          }
+        }
+        int nrow, ncol;
+        if (aux_mode_first){
+          nrow = kd;
+          ncol = T->lens[i];
+        } else {
+          nrow = T->lens[i];
+          ncol = kd;
+        }
+        if (phys_phase[i] == 1){
+          redist_mats[i] = NULL;
+          if (T->wrld->np == 1){
+            IASSERT(div == 1);
+            arrs[i] = (dtype*)mat_list[i]->data;
+            if (i == mode)
+              std::fill(arrs[i], arrs[i]+mat_list[i]->size, *((dtype*)T->sr->addid()));
+          } else if (i != mode){
+            arrs[i] = (dtype*)T->sr->alloc(tot_sz);
+            mat->read_all(arrs[i], true);
+          } else {
+            if (is_vec)
+              redist_mats[i] = new Vector<dtype>(mat_list[i]->lens[0], 'a'-1, par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
+            else {
+              char nonastr[2];
+              nonastr[0] = 'a'-1;
+              nonastr[1] = 'a'-2;
+              redist_mats[i] = new Matrix<dtype>(nrow, ncol, nonastr, par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
+            }
+            arrs[i] = (dtype*)redist_mats[i]->data;
+          }
+        } else {
+          int topo_dim = T->edge_map[i].cdt;
+          IASSERT(T->edge_map[i].type == CTF_int::PHYSICAL_MAP);
+          IASSERT(!T->edge_map[i].has_child || T->edge_map[i].child->type != CTF_int::PHYSICAL_MAP);
+          if (aux_mode_first){
+            mat_idx[0] = 'a';
+            mat_idx[1] = par_idx[topo_dim];
+          } else {
+            mat_idx[0] = par_idx[topo_dim];
+            mat_idx[1] = 'a';
+          }
+
+          int comm_lda = 1;
+          for (int l=0; l<topo_dim; l++){
+            comm_lda *= T->topo->dim_comm[l].np;
+          }
+          CTF_int::CommData cmdt(T->wrld->rank-comm_lda*T->topo->dim_comm[topo_dim].rank,T->topo->dim_comm[topo_dim].rank,T->wrld->cdt);
+          if (is_vec){
+            Vector<dtype> * v = new Vector<dtype>(mat_list[i]->lens[0], par_idx[topo_dim], par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
+            if (i != mode)
+              v->operator[]("i") += mat_list[i]->operator[]("i");
+            redist_mats[i] = v;
+            arrs[i] = (dtype*)v->data;
+            if (i != mode)
+              cmdt.bcast(v->data,v->size,T->sr->mdtype(),0);
+          } else {
+
+            Matrix<dtype> * m = new Matrix<dtype>(nrow, ncol, mat_idx, par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
+            if (i != mode)
+              m->operator[]("ij") += mat->operator[]("ij");
+            redist_mats[i] = m;
+            arrs[i] = (dtype*)m->data;
+
+            if (i != mode)
+              cmdt.bcast(m->data,m->size,T->sr->mdtype(),0);
+            if (aux_mode_first){
+              mat_strides[2*i+0] = kd;
+              mat_strides[2*i+1] = 1;
+            } else {
+              mat_strides[2*i+0] = 1;
+              mat_strides[2*i+1] = m->pad_edge_len[0]/phys_phase[i];
+            }
+          }
+        }
+        
+      }
+      t_mttkrp_remap.stop();
+
+      Timer t_mttkrp_work("MTTKRP_work");
+      t_mttkrp_work.start();
+      {
+        if (!is_vec){
+          ((Semiring<dtype>*)T->sr)->MTTKRP(T->order, T->lens, phys_phase, kd, npair, mode, aux_mode_first, pairs, arrs, arrs[mode]);
+        } else {
+          ((Semiring<dtype>*)T->sr)->MTTKRP(T->order, T->lens, phys_phase, npair, mode, pairs, arrs, arrs[mode]);
+          //if (is_vec){
+          //  for (int64_t i=0; i<npair; i++){
+          //    int64_t key = pairs[i].k;
+          //    dtype d = pairs[i].d;
+          //    for (int j=0; j<T->order; j++){
+          //      if (j != mode){
+          //        int64_t ke = key/ldas[j];
+          //        d *= arrs[j][(ke%T->lens[j])/phys_phase[j]];
+          //      }
+          //    }
+          //    int64_t ke = key/ldas[mode];
+          //    arrs[mode][(ke%T->lens[mode])/phys_phase[mode]] += d;
+          //  }
+          //} else {
+          //  int * inds = (int*)malloc(T->order*sizeof(int));
+          //  for (int64_t i=0; i<npair; i++){
+          //    int64_t key = pairs[i].k;
+          //    for (int j=0; j<T->order; j++){
+          //      int64_t ke = key/ldas[j];
+          //      inds[j] = (ke%T->lens[j])/phys_phase[j];
+          //    }
+          //    for (int kk=0; kk<kd; kk++){
+          //      dtype d = pairs[i].d;
+          //      //dtype a = arrs[0][inds[0]*mat_strides[0]+kk*mat_strides[1]];
+          //      for (int j=0; j<T->order; j++){
+          //        if (j != mode)
+          //          d *= arrs[j][inds[j]*mat_strides[2*j]+kk*mat_strides[2*j+1]];
+          //      }
+          //      arrs[mode][inds[mode]*mat_strides[2*mode]+kk*mat_strides[2*mode+1]] += d;
+          //    }
+          //  }
+          //  free(inds);
+          //}
+        }
+      }
+      t_mttkrp_work.stop();
+      for (int j=0; j<T->order; j++){
+        if (j == mode){
+          int red_len = T->wrld->np/phys_phase[j];
+          if (red_len > 1){
+            int64_t sz;
+            if (redist_mats[j] == NULL){
+              if (is_vec)
+                sz = T->lens[j];
+              else
+                sz = T->lens[j]*kd;
+            } else {
+              sz = redist_mats[j]->size;
+            }
+            int jr = T->edge_map[j].calc_phys_rank(T->topo);
+            MPI_Comm cm;
+            MPI_Comm_split(T->wrld->comm, jr, T->wrld->rank, &cm);
+            int cmr;
+            MPI_Comm_rank(cm, &cmr);
+
+            Timer t_mttkrp_red("MTTKRP_Reduce");
+            t_mttkrp_red.start();
+            if (cmr == 0)
+              MPI_Reduce(MPI_IN_PLACE, arrs[j], sz, T->sr->mdtype(), T->sr->addmop(), 0, cm);
+            else {
+              MPI_Reduce(arrs[j], NULL, sz, T->sr->mdtype(), T->sr->addmop(), 0, cm);
+              std::fill(arrs[j], arrs[j]+sz, *((dtype*)T->sr->addid()));
+            }
+            t_mttkrp_red.stop();
+            MPI_Comm_free(&cm);
+          }
+          if (redist_mats[j] != NULL){
+            mat_list[j]->set_zero();
+            mat_list[j]->operator[]("ij") += redist_mats[j]->operator[]("ij");
+            delete redist_mats[j];
+          } else {
+            IASSERT((dtype*)mat_list[j]->data == arrs[j]);
+          }
+        } else {
+          if (redist_mats[j] != NULL){
+            if (redist_mats[j]->data != (char*)arrs[j])
+              T->sr->dealloc((char*)arrs[j]);
+            delete redist_mats[j];
+          } else {
+            if (arrs[j] != (dtype*)mat_list[j]->data)
+              T->sr->dealloc((char*)arrs[j]);
+          }
+        }
+      }
+    }
+    free(redist_mats);
+    if (mat_strides != NULL) free(mat_strides);
+    free(par_idx);
+    free(phys_phase);
+    free(ldas);
+    free(arrs);
+    if (!T->is_sparse)
+      T->sr->pair_dealloc((char*)pairs);
+    t_mttkrp.stop();
+  }
 }

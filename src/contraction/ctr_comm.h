@@ -15,11 +15,17 @@ namespace CTF_int{
    */
   class bivar_function {
     public:
+      /* whether function is created via Kernel, which takes as template argument elementwise functions */
       bool has_kernel;
+      /* whether function has offloadable implementation of matrix multiply */
       bool has_off_gemm;
+      /* whether f(a,b) = f(b,a) */
       bool commutative;
+      /* whether c*f(a,b) = f(c*a,b) */
       bool left_distributive;
+      /* whether f(a,b)*c = f(a,b*c) */
       bool right_distributive;
+      /* whether f(a,b) should yield 0 if f(a,b) is a or b are unstored zero element in a sparse tensor, even if f(0,b) or f(a,0) are not zero */
       bool intersect_only;
 
       /**

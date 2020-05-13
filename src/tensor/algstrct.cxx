@@ -733,7 +733,20 @@ namespace CTF_int {
   void algstrct::init(int64_t n, char * arr) const {
 
   }
-    
+ 
+  void algstrct::accumulate_local_slice(int order,
+                                        int64_t * lens,
+                                        int64_t * lens_slice,
+                                        int const * sym,
+                                        int64_t const * offsets,
+                                        int64_t const * ends,
+                                        char const * slice_data,
+                                        char const * alpha,
+                                        char * tensor_data,
+                                        char const * beta) const {
+      printf("CTF ERROR: slice accumulation not present for this algebraic structure\n");
+    }
+
 
 
   void algstrct::coomm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, bivar_function const * func) const {
@@ -798,6 +811,34 @@ namespace CTF_int {
 
     printf("CTF ERROR: csrmultcsr not present for this algebraic structure\n");
     ASSERT(0);
+  }
+
+  bivar_function * algstrct::get_elementwise_smaller() const {
+    printf("CTF ERROR: elementwise comparison function not available for the algebraic sturcture associated with this tensor\n");
+    ASSERT(0);
+    assert(0);
+    return NULL;
+  }
+
+  bivar_function * algstrct::get_elementwise_smaller_or_equal() const {
+    printf("CTF ERROR: elementwise comparison function not available for the algebraic sturcture associated with this tensor\n");
+    ASSERT(0);
+    assert(0);
+    return NULL;
+  }
+
+  bivar_function * algstrct::get_elementwise_is_equal() const {
+    printf("CTF ERROR: elementwise comparison function not available for the algebraic sturcture associated with this tensor\n");
+    ASSERT(0);
+    assert(0);
+    return NULL;
+  }
+
+  bivar_function * algstrct::get_elementwise_is_not_equal() const {
+    printf("CTF ERROR: elementwise comparison function not available for the algebraic sturcture associated with this tensor\n");
+    ASSERT(0);
+    assert(0);
+    return NULL;
   }
 
   ConstPairIterator::ConstPairIterator(PairIterator const & pi){

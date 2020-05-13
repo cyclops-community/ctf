@@ -889,8 +889,6 @@ namespace CTF_int {
 
     summation osum = summation(*this);
    
-    CTF_int::contract_mst();
-
     A->unfold();
     B->unfold();
     // FIXME: if custom function, we currently don't know whether its odd, even or neither, so unpack everything

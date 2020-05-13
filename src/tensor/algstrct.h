@@ -396,6 +396,37 @@ namespace CTF_int {
       /** \brief sets n elements of array of pairs a to value b */
       virtual void set_pairs(char * a, char const * b, int64_t n) const;
 
+      /** \brief accumulates tensor to local slice */
+      virtual void accumulate_local_slice(int order,
+                                          int64_t * lens,
+                                          int64_t * lens_slice,
+                                          int const * sym,
+                                          int64_t const * offsets,
+                                          int64_t const * ends,
+                                          char const * slice_data,
+                                          char const * alpha,
+                                          char * tensor_data,
+                                          char const * beta) const;
+
+      /**
+       * \brief returns function for elementwise comparison
+       */
+      virtual bivar_function * get_elementwise_smaller() const;
+
+      /**
+       * \brief returns function for elementwise comparison
+       */
+      virtual bivar_function * get_elementwise_smaller_or_equal() const;
+
+      /**
+       * \brief returns function for elementwise comparison
+       */
+      virtual bivar_function * get_elementwise_is_equal() const;
+
+      /**
+       * \brief returns function for elementwise comparison
+       */
+      virtual bivar_function * get_elementwise_is_not_equal() const;
   };
 
   class PairIterator;
@@ -526,6 +557,8 @@ namespace CTF_int {
        * \brief searches for pair op via std::lower_bound
        */
       int64_t lower_bound(int64_t n, ConstPairIterator op);
+
+
   };
 
 }

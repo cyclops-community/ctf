@@ -905,20 +905,32 @@ namespace CTF_int {
       void exp_helper(tensor * A);
 
       /**
-       * \brief do an elementwise comparison(==) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
+       * \brief do an elementwise comparison (<) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
        * \param[in] A first operand
        * \param[in] B second operand
        */
-      template <typename dtype>
-      void compare_elementwise(tensor * A, tensor * B);
-      
+      void elementwise_smaller(tensor * A, tensor * B);
+
       /**
-       * \brief do an elementwise comparison(!=) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
+       * \brief do an elementwise comparison (<=) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
        * \param[in] A first operand
        * \param[in] B second operand
        */
-      template <typename dtype>
-      void not_equals(tensor * A, tensor * B);
+      void elementwise_smaller_or_equal(tensor * A, tensor * B);
+
+      /**
+       * \brief do an elementwise comparison (==) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
+       * \param[in] A first operand
+       * \param[in] B second operand
+       */
+      void elementwise_is_equal(tensor * A, tensor * B);
+
+      /**
+       * \brief do an elementwise comparison (!=) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
+       * \param[in] A first operand
+       * \param[in] B second operand
+       */
+      void elementwise_is_not_equal(tensor * A, tensor * B);
 
       /**
        * \brief do an elementwise comparison(<) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)

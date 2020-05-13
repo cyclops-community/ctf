@@ -13,6 +13,7 @@
 #include "../redistribution/redist.h"
 #include "../redistribution/cyclic_reshuffle.h"
 #include "../redistribution/dgtog_redist.h"
+#include "../redistribution/slice.h"
 #include "../sparse_formats/ccsr.h"
 
 
@@ -954,10 +955,6 @@ namespace CTF_int {
     tsr_A = A;
     tsr_B = this;
 
-    int64_t * padding_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_A->order);
-    int64_t * toffset_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_A->order);
-    int64_t * padding_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_B->order);
-    int64_t * toffset_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_B->order);
     for (i=0,j=0; i<this->order && j<A->order; i++, j++){
       if (ends_A[j] - offsets_A[j] != ends_B[i] - offsets_B[i]){
         if (ends_B[i] - offsets_B[i] == 1){ j--; continue; } // continue with i+1,j
@@ -983,7 +980,32 @@ namespace CTF_int {
       TAU_FSTOP(slice);
       return;
     }
-   // bool tsr_A_has_sym = false;
+    if (this->order == A->order){
+      bool tsr_has_sym = false;
+      bool tsr_has_virt = false;
+
+      for (int i=0; i<this->order; i++){
+        if (A->sym[i] != NS || this->sym[i] != NS)
+          tsr_has_sym = true;
+        if (A->edge_map[i].type == VIRTUAL_MAP || (A->edge_map[i].has_child && A->edge_map[i].child->type == VIRTUAL_MAP)){
+          tsr_has_virt = true;
+        }
+        if (tsr_B->edge_map[i].type == VIRTUAL_MAP || (tsr_B->edge_map[i].has_child && tsr_B->edge_map[i].child->type == VIRTUAL_MAP)){
+          tsr_has_virt = true;
+        }
+      }
+      int nvirt_A = tsr_A->calc_nvirt();
+      int nvirt_B = tsr_B->calc_nvirt();
+      if (tsr_B->wrld->np == tsr_A->wrld->np && !tsr_has_sym && !this->is_sparse && !A->is_sparse && nvirt_A == 1 && nvirt_B == 1 && !tsr_has_virt){
+        push_slice(this, offsets_B, ends_B, beta, A, offsets_A, ends_A, alpha);
+        return;
+      }
+    }
+
+    int64_t * padding_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_A->order);
+    int64_t * toffset_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_A->order);
+    int64_t * padding_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_B->order);
+    int64_t * toffset_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_B->order);
 
     if (tsr_B->wrld->np <= tsr_A->wrld->np && !tsr_A->is_sparse){
       //usually 'read' elements of B from A, since B may be smalelr than A
@@ -1687,11 +1709,11 @@ namespace CTF_int {
       if (!did_lens_change){
         bool is_map_changed = false;
         if (topo != old_tsr->topo) is_map_changed = true;
-        topo = old_tsr->topo;
+        //topo = old_tsr->topo;
         for (int i=0; i<order; i++){
           if (!comp_dim_map(edge_map+i, old_tsr->edge_map+i)){
-            edge_map[i].clear();
-            copy_mapping(1, old_tsr->edge_map+i, edge_map+i);
+            //edge_map[i].clear();
+            //copy_mapping(1, old_tsr->edge_map+i, edge_map+i);
             is_map_changed = true;
           }
         }
@@ -1849,6 +1871,7 @@ namespace CTF_int {
         return PairIterator(sr,tA.read_all_pairs(num_pair, false).ptr);
       }
     }*/
+    TAU_FSTART(read_all_pairs);
     alloc_ptr(numPes*sizeof(int), (void**)&nXs);
     alloc_ptr(numPes*sizeof(int), (void**)&pXs);
     pXs[0] = 0;
@@ -1879,6 +1902,7 @@ namespace CTF_int {
       sr->pair_dealloc(my_pairs);
     }
     *num_pair = nval;
+    TAU_FSTOP(read_all_pairs);
     return ipr.ptr;
   }
 
@@ -3366,5 +3390,53 @@ namespace CTF_int {
     }
     return this;
   }
+
+  void tensor::elementwise_smaller(tensor * A, tensor * B){
+    char str[this->order];
+    for (int i=0; i<this->order; i++){
+      str[i] = 'a'+i;
+    }
+    ASSERT(A->sr->el_size == B->sr->el_size);
+    assert(A->sr->el_size == B->sr->el_size);
+    bivar_function * func = A->sr->get_elementwise_smaller();
+    this->operator[](str) = func->operator()(A->operator[](str),B->operator[](str));
+    delete func;
+	}
+
+  void tensor::elementwise_smaller_or_equal(tensor * A, tensor * B){
+    char str[this->order];
+    for (int i=0; i<this->order; i++){
+      str[i] = 'a'+i;
+    }
+    ASSERT(A->sr->el_size == B->sr->el_size);
+    assert(A->sr->el_size == B->sr->el_size);
+    bivar_function * func = A->sr->get_elementwise_smaller_or_equal();
+    this->operator[](str) = func->operator()(A->operator[](str),B->operator[](str));
+    delete func;
+	}
+
+  void tensor::elementwise_is_equal(tensor * A, tensor * B){
+    char str[this->order];
+    for (int i=0; i<this->order; i++){
+      str[i] = 'a'+i;
+    }
+    ASSERT(A->sr->el_size == B->sr->el_size);
+    assert(A->sr->el_size == B->sr->el_size);
+    bivar_function * func = A->sr->get_elementwise_is_equal();
+    this->operator[](str) = func->operator()(A->operator[](str),B->operator[](str));
+    delete func;
+	}
+
+  void tensor::elementwise_is_not_equal(tensor * A, tensor * B){
+    char str[this->order];
+    for (int i=0; i<this->order; i++){
+      str[i] = 'a'+i;
+    }
+    ASSERT(A->sr->el_size == B->sr->el_size);
+    assert(A->sr->el_size == B->sr->el_size);
+    bivar_function * func = A->sr->get_elementwise_is_not_equal();
+    this->operator[](str) = func->operator()(A->operator[](str),B->operator[](str));
+    delete func;
+	}
 }
 

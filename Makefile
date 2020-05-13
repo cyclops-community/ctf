@@ -23,6 +23,7 @@ $(INSTALL_DIR)/lib/libctf.so: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
 	if [ -d scalapack ]; then \
 		echo "WARNING: detected ScaLAPACK installation in scalapack/, you might need to also install it manually separately."; \
 	fi
+	mkdir -p $(INSTALL_DIR)/lib $(INSTALL_DIR)/include
 	cp $(BDIR)/lib/libctf.a $(INSTALL_DIR)/lib
 	cp $(BDIR)/lib_shared/libctf.so $(INSTALL_DIR)/lib
 	cd src/scripts && bash ./expand_includes.sh && cd ..

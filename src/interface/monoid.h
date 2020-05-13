@@ -24,6 +24,7 @@ namespace CTF_int {
     }
   }
 
+
   template <typename dtype>
   MPI_Op get_default_maddop(){
     //FIXME: assumes + operator commutes
@@ -132,6 +133,7 @@ namespace CTF {
       char * csr_add(char * cA, char * cB, bool is_ccsr) const {
         return CTF_int::algstrct::csr_add(cA, cB, is_ccsr);
       }
+
 
   };
   template <>

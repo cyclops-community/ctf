@@ -268,6 +268,7 @@ namespace CTF {
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
     *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
     *data = (dtype*)sr->alloc((*npair));
+    CTF_int::memprof_dealloc(*global_idx);
     CTF_int::PairIterator pairs(sr, cpairs);
 #ifdef _OPENMP
     #pragma omp parallel for
@@ -295,6 +296,7 @@ namespace CTF {
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
     *inds = (int64_t*)CTF_int::alloc(this->order*(*npair)*sizeof(int64_t));
     *data = (dtype*)sr->alloc((*npair));
+    CTF_int::memprof_dealloc(*inds);
     CTF_int::PairIterator pairs(sr, cpairs);
 #ifdef _OPENMP
     #pragma omp parallel for
@@ -326,6 +328,7 @@ namespace CTF {
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
     *inds = (int*)CTF_int::alloc(this->order*(*npair)*sizeof(int));
     *data = (dtype*)sr->alloc((*npair));
+    CTF_int::memprof_dealloc(*inds);
     CTF_int::PairIterator pairs(sr, cpairs);
 #ifdef _OPENMP
     #pragma omp parallel for
@@ -352,6 +355,8 @@ namespace CTF {
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
     *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
     *data = (dtype*)CTF_int::alloc((*npair)*sizeof(dtype));
+    CTF_int::memprof_dealloc(*global_idx);
+    CTF_int::memprof_dealloc(*data);
     CTF_int::PairIterator pairs(sr, cpairs);
 
 #ifdef _OPENMP
@@ -388,6 +393,16 @@ namespace CTF {
     cpairs = CTF_int::tensor::read_all_pairs(npair,unpack_sym,nonzeros_only);
     *pairs = (Pair<dtype>*)cpairs; //Pair<dtype>::cast_char_arr(cpairs, *npair, sr);
   }
+
+  template<typename dtype>
+  void Tensor<dtype>::get_all_data(int64_t * npair,
+                                   dtype **  data,
+                                   bool      unpack_sym) const {
+    char * cdata;
+    CTF_int::tensor::allread(npair, &cdata, unpack_sym);
+    *data = (dtype*)cdata;
+  }
+
 
   template<typename dtype>
   void Tensor<dtype>::read_local(int64_t *      npair,
@@ -1360,8 +1375,15 @@ NORM1_INST(double)
     sc[""] = cA[inds];
     dtype val = ((dtype*)sc.data)[0];
     MPI_Bcast((char *)&val, sizeof(dtype), MPI_CHAR, 0, A.wrld->comm);
-    nrm = std::abs(val);
+    nrm = std::sqrt(std::abs(val));
+  }
 
+
+  template<typename dtype>
+  double Tensor<dtype>::norm2(){
+    if (wrld->rank == 0)
+      printf("CTF ERROR: norm2 not available for the type of tensor %s\n",name);
+    IASSERT(0);
   }
 
 
@@ -1397,10 +1419,10 @@ NORM2_COMPLEX_INST(double)
 
 #define NORM2_INST(dtype) \
   template<> \
-  inline dtype Tensor<dtype>::norm2(){ \
+  inline double Tensor<dtype>::norm2(){ \
     double nrm = 0; \
     this->norm2(nrm); \
-    return (dtype)nrm; \
+    return nrm; \
   }
 
 
@@ -1456,7 +1478,7 @@ NORM_INFTY_INST(double)
     IASSERT(0);
   }
 
-  template <typename dtype>
+  template <typename dtype, typename rtype>
   void fill_random_base(dtype rmin, dtype rmax, Tensor<dtype> & T){
     if (T.is_sparse){
       printf("CTF ERROR: fill_random should not be called on a sparse tensor, use fill_random_sp instead\n");
@@ -1464,40 +1486,40 @@ NORM_INFTY_INST(double)
       return;
     }
     for (int64_t i=0; i<T.size; i++){
-      ((dtype*)T.data)[i] = ((dtype)CTF_int::get_rand48())*(rmax-rmin)+rmin;
+      ((dtype*)T.data)[i] = ((dtype)((rtype)CTF_int::get_rand48()*(rmax-rmin)))+rmin;
     }
     T.zero_out_padding();
   }
 
   template<>
   inline void Tensor<double>::fill_random(double rmin, double rmax){
-    fill_random_base<double>(rmin, rmax, *this);
+    fill_random_base<double, double>(rmin, rmax, *this);
   }
 
   template<>
   inline void Tensor<float>::fill_random(float rmin, float rmax){
-    fill_random_base<float>(rmin, rmax, *this);
+    fill_random_base<float, float>(rmin, rmax, *this);
   }
 
   template<>
   inline void Tensor<std::complex<double>>::fill_random(std::complex<double> rmin, std::complex<double> rmax){
-    fill_random_base<std::complex<double>>(rmin, rmax, *this);
+    fill_random_base<std::complex<double>, double>(rmin, rmax, *this);
   }
 
   template<>
   inline void Tensor<std::complex<float>>::fill_random(std::complex<float> rmin, std::complex<float> rmax){
-    fill_random_base<std::complex<float>>(rmin, rmax, *this);
+    fill_random_base<std::complex<float>, float>(rmin, rmax, *this);
   }
 
 
   template<>
   inline void Tensor<int64_t>::fill_random(int64_t rmin, int64_t rmax){
-    fill_random_base<int64_t>(rmin, rmax, *this);
+    fill_random_base<int64_t, double>(rmin, rmax, *this);
   }
 
   template<>
   inline void Tensor<int>::fill_random(int rmin, int rmax){
-    fill_random_base<int>(rmin, rmax, *this);
+    fill_random_base<int, double>(rmin, rmax, *this);
   }
 
 

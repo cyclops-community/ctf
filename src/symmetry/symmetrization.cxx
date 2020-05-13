@@ -89,7 +89,7 @@ namespace CTF_int {
 
     if (!nonsym_tsr->is_sparse)
       nonsym_tsr->data = nonsym_tsr->sr->alloc(nonsym_tsr->size);
-      //CTF_int::mst_alloc_ptr(nonsym_tsr->size*nonsym_tsr->sr->el_size, (void**)&nonsym_tsr->data);
+      //CTF_int::alloc_ptr(nonsym_tsr->size*nonsym_tsr->sr->el_size, (void**)&nonsym_tsr->data);
     nonsym_tsr->set_zero();
     //nonsym_tsr->sr->set(nonsym_tsr->data, nonsym_tsr->sr->addid(), nonsym_tsr->size);
 

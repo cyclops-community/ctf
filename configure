@@ -6,7 +6,7 @@ function usage
 {
   echo -e 'Usage: configure [options]'
   echo
-  echo -e '\t--install-dir=dir Specify where to install header and lib files (default is /usr/local/,'
+  echo -e '\t--install-dir=dir Specify where to install header and lib files (default is /usr/local,'
   echo -e '\t                  so headers will be installed to /usr/local/include and libs to /usr/local/lib)'
   echo
   echo -e '\t--build-dir=dir   Specify where to build object files, library, and executable (default is .)'
@@ -29,7 +29,7 @@ function usage
   echo
   echo -e '\t--verbose         Does not suppress tests of compile/link commands'
   echo
-  echo -e '\tLIB_PATH=-Ldir    Specify paths to static libraries, e.g. -L/usr/local/lib/ to be used for test executables'
+  echo -e '\tLIB_PATH=-Ldir    Specify paths to static libraries, e.g. -L/usr/local/lib to be used for test executables'
   echo
   echo -e '\tLD_LIB_PATH=-Ldir Specify paths to dynamic libraries to be used for test executables as part of LD_LIBRARY_PATH'
   echo
@@ -562,7 +562,7 @@ if [ "x$BUILDDIR" = "x" ]; then
 fi
 
 if [ "x$INSTALLDIR" = "x" ]; then
-	INSTALLDIR='/usr/local/'
+	INSTALLDIR='/usr/local'
 fi
 
 if [ "x$LIB_PATH" = "x" ]; then
@@ -1155,7 +1155,7 @@ if [ "x$NVCC" = "x" ]; then
     echo -n 'automatic nvcc setup requested... '
     NVCC='nvcc -ccbin g++ -x cu'
     NVCCFLAGS='-O2 -std=c++11 -m64'
-    LINKFLAGS="$LINKFLAGS -L/usr/local/cuda/lib64/ -lcuda -lcudart"
+    LINKFLAGS="$LINKFLAGS -L/usr/local/cuda/lib64 -lcuda -lcudart"
     if testnvcc $VERBOSE; then
       echo 'nvcc defaults work successfully.'
       DEFS="$DEFS -DOFFLOAD -DUSE_CUDA"
@@ -1275,6 +1275,8 @@ $SPMKL_COMMENT
 ### Optional: PROFILING AND TUNING
 #uncomment below to enable performance profiling
 #DEFS       += -DPROFILE -DPMPI
+#also uncomment below to enable performance profiling without epochs (started when first CTF World created and stopped when destroyed)
+#DEFS       += -DAUTO_PROFILE
 #uncomment below to enable automatic performance tuning (loses reproducibility of results)
 #recommended usage is to run model_trainer with -DTUNE at scale for suitable duration to obtain suitable architecutral parameters, 
 #then recompile with parameters without -DTUNE
@@ -1366,7 +1368,7 @@ echo 'A setup.py file has been created (to adjust all settings edit the setup.py
 
 echo $PARAMS >> $BUILDDIR/how-did-i-configure
 NUMOFLINES=$(wc -l < "$BUILDDIR/how-did-i-configure")
-if [ $NUMOFLINES -ge 10 ]; then
+if [ $NUMOFLINES -ge 100 ]; then
     tail -n +2 "$BUILDDIR/how-did-i-configure" > $BUILDDIR/how-did-i-configure.tmp
     mv $BUILDDIR/how-did-i-configure.tmp $BUILDDIR/how-did-i-configure
 fi 

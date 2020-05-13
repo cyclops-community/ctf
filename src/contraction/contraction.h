@@ -38,6 +38,9 @@ namespace CTF_int {
       /** \brief function to execute on elements */
       bivar_function const * func;
 
+      /** \brief predefined output nonzero density */
+      double output_nnz_frac = -1.;
+
       /** \brief lazy constructor */
       contraction(){ idx_A = NULL; idx_B = NULL; idx_C=NULL; is_custom=0; alpha=NULL; beta=NULL; };
       
@@ -107,6 +110,11 @@ namespace CTF_int {
       /** \brief run contraction */
       void execute();
       
+      /** \brief set output sparsity fraction
+        * \param[in] nnz_frac density of nonzeros, in [0,1]
+        */
+      void set_output_nnz_frac(double nnz_frac);
+
       /** \brief predicts sparsityu fraction of output */
       double estimate_output_nnz_frac();
 
@@ -286,9 +294,9 @@ namespace CTF_int {
 
       void detail_estimate_mem_and_time(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int64_t & memuse, double & est_time);
 
-      void get_best_sel_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time);
+      void get_best_sel_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int & idx, double & time);
 
-      void get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time, double init_best_time);
+      void get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int & idx, double & time, double init_best_time);
 
       /**
        * \brief find best possible mapping for contraction and redistribute tensors to this mapping

@@ -8,8 +8,24 @@
 #define MPI_CXX_DOUBLE_COMPLEX MPI::DOUBLE_COMPLEX
 #endif
 
+
+namespace CTF_int {
+  int64_t computed_flop_count = 0;
+  int64_t estimated_flop_count = 0;
+}
+
+
 namespace CTF {
   int DGTOG_SWITCH = 1;
+
+  void initialize_flops_counter(){
+    CTF_int::estimated_flop_count = 0;
+  }
+
+  int64_t get_estimated_flops(){
+    return CTF_int::estimated_flop_count;
+  }
+
 }
 
 namespace CTF_int {
@@ -191,14 +207,16 @@ namespace CTF_int {
     return iarr;
   }
 
-  int64_t total_flop_count = 0;
-
-  void flops_add(int64_t n){
-    total_flop_count+=n;
+  int64_t get_computed_flops(){
+    return computed_flop_count;
   }
 
-  int64_t get_flops(){
-    return total_flop_count;
+  void add_computed_flops(int64_t n){
+    computed_flop_count+=n;
+  }
+
+  void add_estimated_flops(int64_t n){
+    estimated_flop_count+=n;
   }
 
   void handler() {
@@ -511,10 +529,10 @@ namespace CTF_int {
       int * i32_recv_counts, * i32_recv_displs;
 
 
-      CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_send_counts);
-      CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_send_displs);
-      CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_recv_counts);
-      CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_recv_displs);
+      CTF_int::alloc_ptr(np*sizeof(int), (void**)&i32_send_counts);
+      CTF_int::alloc_ptr(np*sizeof(int), (void**)&i32_send_displs);
+      CTF_int::alloc_ptr(np*sizeof(int), (void**)&i32_recv_counts);
+      CTF_int::alloc_ptr(np*sizeof(int), (void**)&i32_recv_displs);
 
       for (int p=0; p<np; p++){
         i32_send_counts[p] = send_counts[p];

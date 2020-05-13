@@ -135,7 +135,7 @@ namespace CTF_int {
 
   #define CTF_COUNT_FLOPS
   #ifdef CTF_COUNT_FLOPS
-  #define CTF_FLOPS_ADD(n) CTF_int::flops_add(n)
+  #define CTF_FLOPS_ADD(n) CTF_int::add_computed_flops(n)
   #else
   #define CTF_FLOPS_ADD(n) 
   #endif
@@ -281,18 +281,15 @@ namespace CTF_int {
   #define TAU_FSTOP(ARG)
   #endif
   #define TIME(STRING) TAU_PROFILE(STRING, " ", TAU_DEFAULT)
-  #define MST_ALIGN_BYTES ALIGN_BYTES
 
   struct mem_transfer {
     void * old_ptr;
     void * new_ptr;
   };
 
-  std::list<mem_transfer> contract_mst();
   int untag_mem(void * ptr);
   int free_cond(void * ptr);
   void mem_create();
-  void mst_create(int64_t size);
   void mem_exit(int rank);
 
 

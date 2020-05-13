@@ -104,10 +104,13 @@ namespace CTF{
 
   static std::vector<Function_timer> * function_timers = NULL;
 
-  Timer::Timer(const char * name){
+  Timer::Timer(const char * name, bool init_timing){
   #ifdef PROFILE
     int i;
-    if (function_timers == NULL) {
+  #ifdef AUTO_PROFILE
+    init_timing=true;
+  #endif
+    if (function_timers == NULL && init_timing) {
       if (name[0] == 'M' && name[1] == 'P' && 
           name[2] == 'I' && name[3] == '_'){
         exited = 2;
@@ -119,7 +122,7 @@ namespace CTF{
       excl_time = 0.0;
       function_timers = new std::vector<Function_timer>();
       function_timers->push_back(Function_timer(name, MPI_Wtime(), 0.0)); 
-    } else {
+    } else if (function_timers != NULL) {
       for (i=0; i<(int)function_timers->size(); i++){
         if (strcmp((*function_timers)[i].name, name) == 0){
           /*(*function_timers)[i].start_time = MPI_Wtime();
@@ -130,39 +133,45 @@ namespace CTF{
       index = i;
       original = (index==0);
     }
-    if (index == (int)function_timers->size()) {
-      function_timers->push_back(Function_timer(name, MPI_Wtime(), excl_time)); 
+    if (function_timers != NULL){
+      if (index == (int)function_timers->size()) {
+        function_timers->push_back(Function_timer(name, MPI_Wtime(), excl_time)); 
+      }
+      timer_name = name;
+      exited = 0;
     }
-    timer_name = name;
-    exited = 0;
   #endif
   }
     
   void Timer::start(){
   #ifdef PROFILE
-    if (exited != 2){
-      exited = 0;
-      (*function_timers)[index].start_time = MPI_Wtime();
-      (*function_timers)[index].start_excl_time = excl_time;
+    if (function_timers != NULL){
+      if (exited != 2){
+        exited = 0;
+        (*function_timers)[index].start_time = MPI_Wtime();
+        (*function_timers)[index].start_excl_time = excl_time;
+      }
     }
   #endif
   }
 
   void Timer::stop(){
   #ifdef PROFILE
-    if (exited == 0){
-      int is_fin;
-      MPI_Finalized(&is_fin);
-      if (!is_fin && function_timers != NULL){
-        double delta_time = MPI_Wtime() - (*function_timers)[index].start_time;
-        (*function_timers)[index].acc_time += delta_time;
-        (*function_timers)[index].acc_excl_time += delta_time - 
-              (excl_time- (*function_timers)[index].start_excl_time); 
-        excl_time = (*function_timers)[index].start_excl_time + delta_time;
-        (*function_timers)[index].calls++;
+    if (function_timers != NULL){
+      if (exited == 0){
+        int is_fin;
+        MPI_Finalized(&is_fin);
+        if (!is_fin && function_timers != NULL){
+          double delta_time = MPI_Wtime() - (*function_timers)[index].start_time;
+          (*function_timers)[index].acc_time += delta_time;
+          (*function_timers)[index].acc_excl_time += delta_time - 
+                (excl_time- (*function_timers)[index].start_excl_time); 
+          excl_time = (*function_timers)[index].start_excl_time + delta_time;
+          (*function_timers)[index].calls++;
+        }
+        exit();
+        exited = 1;
       }
-      exit();
-      exited = 1;
     }
   #endif
   }
@@ -327,13 +336,15 @@ namespace CTF{
 
   void Timer_epoch::begin(){
   #ifdef PROFILE
-    tmr_outer = new Timer(name);
-    tmr_outer->start();
-    saved_function_timers = *function_timers;
-    save_excl_time = excl_time;
-    excl_time = 0.0;
-    function_timers->clear();
-    tmr_inner = new Timer(name);
+    if (function_timers != NULL){
+      tmr_outer = new Timer(name);
+      tmr_outer->start();
+      saved_function_timers = *function_timers;
+      save_excl_time = excl_time;
+      excl_time = 0.0;
+      function_timers->clear();
+    } else tmr_outer = NULL;
+    tmr_inner = new Timer(name,true);
     tmr_inner->start();
   #endif
   }
@@ -345,12 +356,14 @@ namespace CTF{
       function_timers->clear();
       delete function_timers;
     }
-    function_timers = new std::vector<Function_timer>();
-    *function_timers = saved_function_timers;
-    excl_time = save_excl_time;
-    tmr_outer->stop();
-    //delete tmr_inner;
-    delete tmr_outer;
+    if (tmr_outer != NULL){
+      function_timers = new std::vector<Function_timer>();
+      *function_timers = saved_function_timers;
+      excl_time = save_excl_time;
+      tmr_outer->stop();
+      //delete tmr_inner;
+      delete tmr_outer;
+    }
   #endif
   }
 }

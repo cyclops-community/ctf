@@ -2,9 +2,58 @@
 #define __SET_H__
 
 #include "../tensor/algstrct.h"
+#include "functions.h"
 //#include <stdint.h>
 #include <limits>
 #include <inttypes.h>
+#include "../shared/memcontrol.h"
+
+namespace CTF {
+  /**
+   * \brief index-value pair used for tensor data input
+   */
+  template<typename dtype=double>
+  class Pair  {
+    public:
+      /** \brief key, global index [i1,i2,...] specified as i1+len[0]*i2+... */
+      int64_t k;
+
+      /** \brief tensor value associated with index */
+      dtype d;
+
+      /**
+       * \brief constructor builds pair
+       * \param[in] k_ key
+       * \param[in] d_ value
+       */
+      Pair(int64_t k_, dtype d_){
+        this->k = k_;
+        d = d_;
+      }
+
+      /**
+       * \brief default constructor
+       */
+      Pair(){
+        //k=0;
+        //d=0; //(not possible if type has no zero!)
+      }
+
+      /**
+       * \brief determines pair ordering
+       */
+      bool operator<(Pair<dtype> other) const {
+        return k<other.k;
+      }
+
+  };
+
+  template<typename dtype>
+  inline bool comp_pair(Pair<dtype> i,
+                        Pair<dtype> j) {
+    return (i.k<j.k);
+  }
+}
 
 namespace CTF_int {
 
@@ -209,6 +258,17 @@ namespace CTF_int {
   }
 
   template <typename dtype>
+  bool default_isequal(dtype a, dtype b){
+    int sz = sizeof(dtype);
+    for (int i=0; i<sz; i++){
+      if (((char const *)&a)[i] != ((char const *)&b)[i]){
+        return false;
+      }
+    }
+    return true;
+  }
+
+  template <typename dtype>
   dtype default_addinv(dtype a){
     return -a;
   }
@@ -353,6 +413,27 @@ namespace CTF_int {
   INST_ORD_TYPE(int64_t)
   INST_ORD_TYPE(uint64_t)
 
+  #define INST_IET(typ) \
+    template <> \
+    inline bool default_isequal<typ>(typ a, typ b){ \
+      return a==b; \
+    } \
+
+  INST_IET(float)
+  INST_IET(double)
+  INST_IET(std::complex<float>)
+  INST_IET(std::complex<double>)
+  INST_IET(bool)
+  INST_IET(int)
+  INST_IET(int16_t)
+  INST_IET(int64_t)
+  INST_IET(uint16_t)
+  INST_IET(uint32_t)
+  INST_IET(uint64_t)
+  INST_IET(std::complex<long double>)
+  INST_IET(long double)
+
+
 }
 
 
@@ -491,7 +572,6 @@ namespace CTF {
         }
       }
 
-
       bool isequal(char const * a, char const * b) const {
         if (a == NULL && b == NULL) return true;
         if (a == NULL || b == NULL) return false;
@@ -519,19 +599,27 @@ namespace CTF {
 
       char * pair_alloc(int64_t n) const {
         //assert(sizeof(std::pair<int64_t,dtype>[n])==(uint64_t)(pair_size()*n));
-        return (char*)(new std::pair<int64_t,dtype>[n]);
+        CTF_int::memprof_alloc_pre(n*sizeof(std::pair<int64_t,dtype>));
+        char * ptr = (char*)(new std::pair<int64_t,dtype>[n]);
+        CTF_int::memprof_alloc_post(n*sizeof(std::pair<int64_t,dtype>),(void**)&ptr);
+        return ptr;
       }
 
       char * alloc(int64_t n) const {
         //assert(sizeof(dtype[n])==(uint64_t)(el_size*n));
-        return (char*)(new dtype[n]);
+        CTF_int::memprof_alloc_pre(n*sizeof(dtype));
+        char * ptr = (char*)(new dtype[n]);
+        CTF_int::memprof_alloc_post(n*sizeof(dtype),(void**)&ptr);
+        return ptr;
       }
 
       void dealloc(char * ptr) const {
+        CTF_int::memprof_dealloc(ptr);
         return delete [] (dtype*)ptr;
       }
 
       void pair_dealloc(char * ptr) const {
+        CTF_int::memprof_dealloc(ptr);
         return delete [] (std::pair<int64_t,dtype>*)ptr;
       }
 
@@ -615,6 +703,21 @@ namespace CTF {
       }
     }
 
+    CTF_int::bivar_function * get_elementwise_smaller() const {
+      return new Bivar_Function<dtype,dtype,bool>([](dtype a, dtype b){ return !CTF_int::default_isequal<dtype>(CTF_int::default_max<dtype,is_ord>(a,b), a);});  
+    }
+
+    CTF_int::bivar_function * get_elementwise_smaller_or_equal() const {
+      return new Bivar_Function<dtype,dtype,bool>([](dtype a, dtype b){ return CTF_int::default_isequal<dtype>(CTF_int::default_max<dtype,is_ord>(a,b), b);});  
+    }
+
+    CTF_int::bivar_function * get_elementwise_is_equal() const {
+      return new Bivar_Function<dtype,dtype,bool>([](dtype a, dtype b){ return CTF_int::default_isequal<dtype>(a, b);});  
+    }
+
+    CTF_int::bivar_function * get_elementwise_is_not_equal() const {
+      return new Bivar_Function<dtype,dtype,bool>([](dtype a, dtype b){ return !CTF_int::default_isequal<dtype>(a, b);});  
+    }
 
 /*
       void copy(int64_t      m,
@@ -890,8 +993,6 @@ namespace CTF {
     if (a == NULL || b == NULL) return false;
     return (( std::complex<long double> *)a)[0] == (( std::complex<long double> *)b)[0];
   }
-
-
 
   /**
    * @}

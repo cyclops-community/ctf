@@ -41,3 +41,9 @@ def add_arguments(parser):
         default=1.,
         metavar='float',
         help='Initial sparsity fraction (default: 1)')
+    parser.add_argument(
+        '--use_cust_MTTKRP',
+        type=int,
+        default=1,
+        metavar='int',
+        help='Whether to use MTTKRP routine (default: 1/True)')

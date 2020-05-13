@@ -118,12 +118,10 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
         void get_raw_data(char **, int64_t * size)
         int permute(ctensor * A, int ** permutation_A, char * alpha, int ** permutation_B, char * beta)
         void conv_type[dtype_A,dtype_B](ctensor * B)
-        void compare_elementwise[dtype](ctensor * A, ctensor * B)
-        void not_equals[dtype](ctensor * A, ctensor * B)
-        void smaller_than[dtype](ctensor * A, ctensor * B)
-        void smaller_equal_than[dtype](ctensor * A, ctensor * B)
-        void larger_than[dtype](ctensor * A, ctensor * B)
-        void larger_equal_than[dtype](ctensor * A, ctensor * B)
+        void elementwise_smaller(ctensor * A, ctensor * B)
+        void elementwise_smaller_or_equal(ctensor * A, ctensor * B)
+        void elementwise_is_equal(ctensor * A, ctensor * B)
+        void elementwise_is_not_equal(ctensor * A, ctensor * B)
         void exp_helper[dtype_A,dtype_B](ctensor * A)
         void read_dense_from_file(char *)
         void write_dense_to_file(char *)
@@ -174,6 +172,9 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef int64_t sum_bool_tsr(ctensor *);
     cdef void pow_helper[dtype](ctensor * A, ctensor * B, ctensor * C, char * idx_A, char * idx_B, char * idx_C);
     cdef void abs_helper[dtype](ctensor * A, ctensor * B);
+    cdef void helper_floor[dtype](ctensor * A, ctensor * B);
+    cdef void helper_ceil[dtype](ctensor * A, ctensor * B);
+    cdef void helper_round[dtype](ctensor * A, ctensor * B);
     cdef void all_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
     cdef void conj_helper[dtype](ctensor * A, ctensor * B);
     cdef void any_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
@@ -244,7 +245,7 @@ cdef extern from "ctf.hpp" namespace "CTF":
         void write(int64_t, int64_t *, dtype *)
         void write(int64_t, dtype, dtype, int64_t *, dtype *)
         dtype norm1()
-        dtype norm2() # Frobenius norm
+        double norm2() # Frobenius norm
         dtype norm_infty()
         
     cdef cppclass Vector[dtype](ctensor):
@@ -264,6 +265,9 @@ cdef extern from "ctf.hpp" namespace "CTF":
 
 cdef extern from "ctf.hpp" namespace "CTF":
     cdef void TTTP_ "CTF::TTTP"[dtype](Tensor[dtype] * T, int num_ops, int * modes, Tensor[dtype] ** mat_list, bool aux_mode_first)
+    cdef void MTTKRP_ "CTF::MTTKRP"[dtype](Tensor[dtype] * T, Tensor[dtype] ** mat_list, int mode, bool aux_mode_first)
+    cdef void initialize_flops_counter_ "CTF::initialize_flops_counter"()
+    cdef int64_t get_estimated_flops_ "CTF::get_estimated_flops"()
 
 
 #from enum import Enum
@@ -529,9 +533,12 @@ cdef class itensor(term):
             Indices indexing right singular vectors, should be subset of the string of this itensor, plus same auxiliary index as in U
     
         threshold: real double precision or None, optional
-           threshold for truncating singular values of the SVD, determines rank, if threshold ia also used, rank will be set to minimum of rank and number of singular values above threshold
+           threshold for truncating singular values of the SVD, determines rank, if threshold is also used, rank will be set to minimum of rank and number of singular values above threshold
 
-        niter: int or None, optional, default 1
+        use_svd_rand: bool, optional
+            If True, randomized method (orthogonal iteration) will be used to calculate a low-rank SVD. Is faster, especially for low-rank, but less robust than typical SVD.
+
+        num_iter: int or None, optional, default 1
             number of orthogonal iterations to perform (higher gives better accuracy)
 
         oversamp: int or None, optional, default 5
@@ -550,9 +557,11 @@ cdef class itensor(term):
         """
         t_svd = timer("pyTSVD")
         t_svd.start()
-        if rank == None:
+        if rank is None:
             rank = 0
-        if threshold == None:
+            if use_svd_rand:
+                raise ValueError('CTF PYTHON ERROR: rank must be specified when using randomized SVD')
+        if threshold is None:
             threshold = 0.
         cdef ctensor ** ctsrs = <ctensor**>malloc(sizeof(ctensor*)*3)
         if _ord_comp(self.tsr.order, 'F'):
@@ -600,8 +609,7 @@ def _rev_array(arr):
         return arr2
 
 def _get_num_str(n):
-    allstr = "abcdefghijklmonpqrstuvwzyx0123456789,./;'][=-`"
-    return allstr[0:n]
+    return "".join(chr(i) for i in range(39, 127))[0:n]
 
 
 cdef class timer_epoch:
@@ -2019,27 +2027,42 @@ cdef class tensor:
         """
         return ravel(self, order)
 
-    def read(self, init_inds, vals=None, a=None, b=None):
+    def read(self, inds, vals=None, a=None, b=None):
         """
-        read(init_inds, vals=None, a=None, b=None)
-        Helper function on reading a tensor.
+        read(inds, vals=None, a=None, b=None)
+
+        Retrieves and accumulates a set of values to a corresponding set of specified indices (a is scaling for vals and b is scaling for old vlaues in tensor).
+        vals[i] = b*vals[i] + a*T[inds[i]]
+        Each MPI process is expected to read a different subset of values and all MPI processes must participate (even if reading nothing).
+        However, the set of values read may overlap.
+        
+        Parameters
+        ----------
+        inds: array (1D or 2D)
+            If 1D array, each index specifies global index, e.g. access T[i,j,k] via n^2*i+n*j+n^2*k, if 2D array, a corresponding row would be [i,j,k]
+        vals: array
+            A 1D array specifying values to be accumulated to for each index, if None, this array will be returned
+        a: scalar
+            Scaling factor to apply to data in tensor (default is 1)
+        b: scalar
+            Scaling factor to apply to vals (default is 0)
         """
-        inds = np.asarray(init_inds)
+        iinds = np.asarray(inds)
         #if each index is a tuple, we have a 2D array, convert it to 1D array of global indices
-        if inds.ndim == 2:
+        if iinds.ndim == 2:
             mystrides = np.ones(self.ndim,dtype=np.int32)
             for i in range(1,self.ndim):
                 mystrides[self.ndim-i-1]=mystrides[self.ndim-i]*self.shape[self.ndim-i]
-            inds = np.dot(inds, np.asarray(mystrides) )
+            iinds = np.dot(iinds, np.asarray(mystrides) )
         cdef char * ca
         if vals is not None:
             if vals.dtype != self.dtype:
                 raise ValueError('CTF PYTHON ERROR: bad dtype of vals parameter to read')
         gvals = vals
         if vals is None:
-            gvals = np.zeros(len(inds),dtype=self.dtype)
-        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=_use_align_for_pair(self.dtype)))
-        buf['a'][:] = inds[:]
+            gvals = np.zeros(len(iinds),dtype=self.dtype)
+        cdef cnp.ndarray buf = np.empty(len(iinds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=_use_align_for_pair(self.dtype)))
+        buf['a'][:] = iinds[:]
         buf['b'][:] = gvals[:]
 
         cdef char * alpha
@@ -2059,7 +2082,7 @@ cdef class tensor:
             nb = np.array([b])
             for j in range(0,st):
                 beta[j] = nb.view(dtype=np.int8)[j]
-        (<ctensor*>self.dt).read(len(inds),<char*>alpha,<char*>beta,buf.data)
+        (<ctensor*>self.dt).read(len(iinds),<char*>alpha,<char*>beta,buf.data)
         gvals[:] = buf['b'][:]
         if a is not None:
             free(alpha)
@@ -2425,7 +2448,27 @@ cdef class tensor:
     def permute(self, tensor A, p_A=None, p_B=None, a=None, b=None):
         """
         permute(self, tensor A, p_A=None, p_B=None, a=None, b=None)
-        Permute the tensor.
+
+        Permute the tensor along each mode, so that
+            self[p_B[0,i_1],....,p_B[self.ndim-1,i_ndim]] = A[i_1,....,i_ndim]
+        or
+            B[i_1,....,i_ndim] = A[p_A[0,i_1],....,p_A[self.ndim-1,i_ndim]]
+        exactly one of p_A or p_B should be provided.
+
+        Parameters
+        ----------
+        A: CTF tensor
+            Tensor whose data will be permuted.
+        p_A: list of arrays
+            List of length A.ndim, the ith item of which is an array of slength A.shape[i], with values specifying the
+            permutation target of that index or -1 to denote that this index should be projected away.
+        p_B: list of arrays
+            List of length self.ndim, the ith item of which is an array of slength Aselfshape[i], with values specifying the
+            permutation target of that index or -1 to denote that this index should not be permuted to.
+        a: scalar
+            Scaling for values in a (default 1)
+        b: scalar
+            Scaling for values in self (default 0)
         """
         if p_A is None and p_B is None:
             raise ValueError("CTF PYTHON ERROR: permute must be called with either p_A or p_B defined")
@@ -2488,22 +2531,37 @@ cdef class tensor:
                 free(permutation_B[i])
             free(permutation_B)
 
-    def write(self, init_inds, init_vals, a=None, b=None):
+    def write(self, inds, vals, a=None, b=None):
         """
-        write(init_inds, init_vals, a=None, b=None)
-        Helper function on writing a tensor.
+        write(inds, vals, a=None, b=None)
+        
+        Accumulates a set of values to a corresponding set of specified indices (a is scaling for vals and b is scaling for old vlaues in tensor).
+        T[inds[i]] = b*T[inds[i]] + a*vals[i].
+        Each MPI process is expected to write a different subset of values and all MPI processes must participate (even if writing nothing).
+        However, the set of values written may overlap, in which case they will be accumulated.
+        
+        Parameters
+        ----------
+        inds: array (1D or 2D)
+            If 1D array, each index specifies global index, e.g. access T[i,j,k] via n^2*i+n*j+k, if 2D array, a corresponding row would be [i,j,k]
+        vals: array
+            A 1D array specifying values to write for each index
+        a: scalar
+            Scaling factor to apply to vals (default is 1)
+        b: scalar
+            Scaling factor to apply to existing data (default is 0)
         """
-        inds = np.asarray(init_inds)
-        vals = np.asarray(init_vals, dtype=self.dtype)
+        iinds = np.asarray(inds)
+        vvals = np.asarray(vals, dtype=self.dtype)
         #if each index is a tuple, we have a 2D array, convert it to 1D array of global indices
-        if inds.ndim == 2:
+        if iinds.ndim == 2:
             mystrides = np.ones(self.ndim,dtype=np.int32)
             for i in range(1,self.ndim):
                 #mystrides[i]=mystrides[i-1]*self.shape[i-1]
                 mystrides[self.ndim-i-1]=mystrides[self.ndim-i]*self.shape[self.ndim-i]
-            inds = np.dot(inds, np.asarray(mystrides))
+            iinds = np.dot(iinds, np.asarray(mystrides))
 
-#        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=False))
+#        cdef cnp.ndarray buf = np.empty(len(iinds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=False))
         cdef char * alpha
         cdef char * beta
     # if type is np.bool, assign the st with 1, since bool does not have itemsize in numpy
@@ -2525,10 +2583,10 @@ cdef class tensor:
             nb = np.array([b])
             for j in range(0,st):
                 beta[j] = nb.view(dtype=np.int8)[j]
-        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=_use_align_for_pair(self.dtype)))
-        buf['a'][:] = inds[:]
-        buf['b'][:] = vals[:]
-        self.dt.write(len(inds),alpha,beta,buf.data)
+        cdef cnp.ndarray buf = np.empty(len(iinds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=_use_align_for_pair(self.dtype)))
+        buf['a'][:] = iinds[:]
+        buf['b'][:] = vvals[:]
+        self.dt.write(len(iinds),alpha,beta,buf.data)
 
         if a is not None:
             free(alpha)
@@ -3052,7 +3110,14 @@ cdef class tensor:
 
     def __richcmp__(self, b, op):
         if isinstance(b,tensor):
-            return self._compare_tensors(b,op)
+            if b.dtype == self.dtype:
+                return self._compare_tensors(b,op)
+            else:
+                typ = _get_np_dtype([b.dtype,self.dtype])
+                if b.dtype != typ:
+                    return self._compare_tensors(astensor(b,dtype=typ),op)
+                else:
+                    return astensor(self,dtype=typ)._compare_tensors(b,op)
         elif isinstance(b,np.ndarray):
             return self._compare_tensors(astensor(b),op)
         else:
@@ -3091,117 +3156,46 @@ cdef class tensor:
     # change the operators "<","<=","==","!=",">",">=" when applied to tensors
     # also for each operator we need to add the template.
     def _compare_tensors(tensor self, tensor b, op):
+        new_shape = []
+        for i in range(min(self.ndim,b.ndim)):
+            new_shape.append(self.shape[i])
+            if b.shape[i] != new_shape[i]:
+                raise ValueError('CTF PYTHON ERROR: unable to perform comparison between tensors of different shape')
+        for i in range(min(self.ndim,b.ndim),max(self.ndim,b.ndim)):
+            if self.ndim > b.ndim:
+                new_shape.append(self.shape[i])
+            else:
+                new_shape.append(b.shape[i])
+
+        c = tensor(new_shape, dtype=np.bool, sp=self.sp)
         # <
         if op == 0:
-            if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                c.dt.smaller_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                c.dt.smaller_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
-            else:
-                raise ValueError('CTF PYTHON ERROR: bad dtype')
+            c.dt.elementwise_smaller(<ctensor*>self.dt,<ctensor*>b.dt)
             return c
         # <=
         if op == 1:
-            if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                c.dt.smaller_equal_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                c.dt.smaller_equal_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
-            else:
-                raise ValueError('CTF PYTHON ERROR: bad dtype')
+            c.dt.elementwise_smaller_or_equal(<ctensor*>self.dt,<ctensor*>b.dt)
             return c
 
         # ==
         if op == 2:
-            new_shape = []
-            for i in range(min(self.ndim,b.ndim)):
-                new_shape.append(self.shape[i])
-                if b.shape[i] != new_shape[i]:
-                    raise ValueError('CTF PYTHON ERROR: bad dtype')
-            for i in range(min(self.ndim,b.ndim),max(self.ndim,b.ndim)):
-                if self.ndim > b.ndim:
-                    new_shape.append(self.shape[i])
-                else:
-                    new_shape.append(b.shape[i])
-
-            c = tensor(new_shape, dtype=np.bool, sp=self.sp)
-            if self.dtype == np.float64:
-                c.dt.compare_elementwise[double](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.float32:
-                c.dt.compare_elementwise[float](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.complex64:
-                c.dt.compare_elementwise[complex64_t](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.complex128:
-                c.dt.compare_elementwise[complex128_t](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.int64:
-                c.dt.compare_elementwise[int64_t](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.int32:
-                c.dt.compare_elementwise[int32_t](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.int16:
-                c.dt.compare_elementwise[int16_t](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.int8:
-                c.dt.compare_elementwise[int8_t](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.bool:
-                c.dt.compare_elementwise[bool](<ctensor*>self.dt,<ctensor*>b.dt)
-            else:
-                raise ValueError('CTF PYTHON ERROR: bad dtype')
+            c.dt.elementwise_is_equal(<ctensor*>self.dt,<ctensor*>b.dt)
             return c
 
         # !=
         if op == 3:
-            if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                c.dt.not_equals[double](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                c.dt.not_equals[bool](<ctensor*>self.dt,<ctensor*>b.dt)
-            else:
-                raise ValueError('CTF PYTHON ERROR: bad dtype')
+            c.dt.elementwise_is_not_equal(<ctensor*>self.dt,<ctensor*>b.dt)
             return c
 
         # >
         if op == 4:
-            if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                c.dt.larger_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                c.dt.larger_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
-            else:
-                raise ValueError('CTF PYTHON ERROR: bad dtype')
+            c.dt.elementwise_smaller(<ctensor*>b.dt,<ctensor*>self.dt)
             return c
 
         # >=
         if op == 5:
-            if self.dtype == np.float64:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                c.dt.larger_equal_than[double](<ctensor*>self.dt,<ctensor*>b.dt)
-            elif self.dtype == np.bool:
-                c = tensor(self.shape, dtype=np.bool, sp=self.sp)
-                c.dt.larger_equal_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
-            else:
-                raise ValueError('CTF PYTHON ERROR: bad dtype')
+            c.dt.elementwise_smaller_or_equal(<ctensor*>b.dt,<ctensor*>self.dt)
             return c
-
-        #cdef int * inds
-        #cdef function[equate_type] fbf
-        #if op == 2:#Py_EQ
-            #t = tensor(self.shape, np.bool)
-            #inds = <int*>malloc(len(self.shape))
-            #for i in range(len(self.shape)):
-                #inds[i] = i
-            #fbf = function[equate_type](equate)
-            #f = Bivar_Transform[double,double,bool](fbf)
-            #c = contraction(self.dt, inds, b.dt, inds, NULL, t.dt, inds, NULL, bf)
-            #c.execute()
-            #return t
-        #if op == 3:#Py_NE
-        #    return not x.__is_equal(y)
-        #else:
-            #assert False
 
 def _trilSquare(tensor A):
     if not isinstance(A, tensor):
@@ -5316,20 +5310,20 @@ def ones(shape, dtype = None, order='F'):
         shape = (shape,)
     shape = np.asarray(shape)
     if dtype is not None:
+        dtype = _get_np_dtype([dtype])
         ret = tensor(shape, dtype = dtype)
         string = ""
         string_index = 33
         for i in range(len(shape)):
             string += chr(string_index)
             string_index += 1
-        if dtype == np.float64:
+        if dtype == np.float64 or dtype == np.complex128 or dtype == np.complex64 or dtype == np.float32:
             ret.i(string) << 1.0
-        elif dtype == np.complex128:
-            ret.i(string) << 1.0
-        elif dtype == np.int64:
+        elif dtype == np.bool or dtype == np.int64 or dtype == np.int32 or dtype == np.int16 or dtype == np.int8:
             ret.i(string) << 1
-        elif dtype == np.bool:
-            ret.i(string) << 1
+        else:
+            raise ValueError('CTF PYTHON ERROR: bad dtype')
+
         return ret
     else:
         ret = tensor(shape, dtype = np.float64)
@@ -5588,6 +5582,7 @@ def TTTP(tensor A, mat_list):
     """
     TTTP(A, mat_list)
     Compute updates to entries in tensor A based on matrices in mat_list (tensor times tensor products)
+    This routine is generally much faster then einsum when A is sparse.
 
     Parameters
     ----------
@@ -5618,12 +5613,13 @@ def TTTP(tensor A, mat_list):
     modes = <int*>malloc(len(mat_list)*sizeof(int))
     tsrs = <Tensor[double]**>malloc(len(mat_list)*sizeof(ctensor*))
     imode = 0
-    tsr_list = []
+    cdef tensor t
+    ntsrs = 0
     for i in range(len(mat_list))[::-1]:
         if mat_list[i] is not None:
+            ntsrs += 1
             modes[imode] = len(mat_list)-i-1
-            t = tensor(copy=mat_list[i])
-            tsr_list.append(t)
+            t = mat_list[i]
             tsrs[imode] = <Tensor[double]*>t.dt
             imode += 1
             if mat_list[i].ndim == 1:
@@ -5641,16 +5637,66 @@ def TTTP(tensor A, mat_list):
                     if k != mat_list[i].shape[1]:
                         raise ValueError('CTF PYTHON ERROR: mat_list second mode lengths of tensor must match')
                 #exp = exp*mat_list[i].i(s[i]+s[-1])
-    #B.i(s[:-1]) << exp
     B = tensor(copy=A)
     if A.dtype == np.float64:
-        TTTP_[double](<Tensor[double]*>B.dt,len(tsr_list),modes,tsrs,1)
+        TTTP_[double](<Tensor[double]*>B.dt,ntsrs,modes,tsrs,1)
     else:
         raise ValueError('CTF PYTHON ERROR: TTTP does not support this dtype')
     free(modes)
     free(tsrs)
     t_tttp.stop()
     return B
+
+
+def MTTKRP(tensor A, mat_list, mode):
+    """
+    MTTKRP(A, mat_list, mode)
+    Compute Matricized Tensor Times Khatri Rao Product with output mode given as mode, e.g.
+    MTTKRP(A, [U,V,W,Z], 2) gives W = einsum("ijkl,ir,jr,lr->kr",A,U,V,Z).
+    This routine is generally much faster then einsum when A is sparse.
+
+    Parameters
+    ----------
+    A: tensor_like
+       Input tensor of arbitrary ndim
+
+    mat_list: list of size A.ndim containing matrices that are n_i-by-R where n_i is dimension of ith mode of A,
+              on output mat_list[mode] will contain the output of the MTTKRP 
+    """
+    t_mttkrp = timer("pyMTTKRP")
+    t_mttkrp.start()
+    if len(mat_list) != A.ndim:
+        raise ValueError('CTF PYTHON ERROR: mat_list argument to MTTKRP must be of same length as ndim')
+    k = -1
+    tsrs = <Tensor[double]**>malloc(len(mat_list)*sizeof(ctensor*))
+    #tsr_list = []
+    imode = 0
+    cdef tensor t
+    for i in range(len(mat_list))[::-1]:
+        t = mat_list[i]
+        tsrs[imode] = <Tensor[double]*>t.dt
+        imode += 1
+        if mat_list[i].ndim == 1:
+            if k != -1:
+                raise ValueError('CTF PYTHON ERROR: mat_list must contain only vectors or only matrices')
+            if mat_list[i].shape[0] != A.shape[i]:
+                raise ValueError('CTF PYTHON ERROR: input vector to MTTKRP does not match the corresponding tensor dimension')
+            #exp = exp*mat_list[i].i(s[i])
+        else:
+            if mat_list[i].ndim != 2:
+                raise ValueError('CTF PYTHON ERROR: mat_list operands has invalid dimension')
+            if k == -1:
+                k = mat_list[i].shape[1]
+            else:
+                if k != mat_list[i].shape[1]:
+                    raise ValueError('CTF PYTHON ERROR: mat_list second mode lengths of tensor must match')
+    B = tensor(copy=A)
+    if A.dtype == np.float64:
+        MTTKRP_[double](<Tensor[double]*>B.dt,tsrs,A.ndim-mode-1,1)
+    else:
+        raise ValueError('CTF PYTHON ERROR: MTTKRP does not support this dtype')
+    free(tsrs)
+    t_mttkrp.stop()
 
 def svd(tensor A, rank=None, threshold=None):
     """
@@ -6122,8 +6168,10 @@ def abs(initA):
         abs_helper[float](<ctensor*>A.dt, <ctensor*>oA.dt)
     elif A.dtype == np.complex64:
         abs_helper[complex64_t](<ctensor*>A.dt, <ctensor*>oA.dt)
+        oA = tensor(copy=oA, dtype=np.float32)
     elif A.dtype == np.complex128:
         abs_helper[complex128_t](<ctensor*>A.dt, <ctensor*>oA.dt)
+        oA = tensor(copy=oA, dtype=np.float64)
     elif A.dtype == np.int64:
         abs_helper[int64_t](<ctensor*>A.dt, <ctensor*>oA.dt)
     elif A.dtype == np.int32:
@@ -6133,6 +6181,88 @@ def abs(initA):
     elif A.dtype == np.int8:
         abs_helper[int8_t](<ctensor*>A.dt, <ctensor*>oA.dt)
     return oA
+
+def floor(x, out=None):
+    """
+    floor(x, out=None)
+    Elementwise round to integer by dropping decimal fraction (output as floating point type).
+    Uses c-style round-to-greatest rule to break-tiies as opposed to numpy's round to nearest even
+
+    Parameters
+    ----------
+    x: tensor_like
+        Input tensor.
+
+    Returns
+    -------
+    out: tensor
+        A tensor of same structure and dtype as x with values rounded C-style to int
+
+    """
+    cdef tensor A = astensor(x)
+    cdef tensor oA = tensor(copy=A)
+    if A.dtype == np.float64:
+        helper_floor[double](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.float32:
+        helper_floor[float](<ctensor*>A.dt, <ctensor*>oA.dt)
+    else:
+        raise ValueError('CTF PYTHON ERROR: Unsupported dtype for floor()')
+    return oA
+   
+
+def ceil(x, out=None):
+    """
+    ceil(x, out=None)
+    Elementwise ceiling to integer (output as floating point type)
+
+    Parameters
+    ----------
+    x: tensor_like
+        Input tensor.
+
+    Returns
+    -------
+    out: tensor
+        A tensor of same structure and dtype as x with values ceil(f)
+
+    """
+    cdef tensor A = astensor(x)
+    cdef tensor oA = tensor(copy=A)
+    if A.dtype == np.float64:
+        helper_ceil[double](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.float32:
+        helper_ceil[float](<ctensor*>A.dt, <ctensor*>oA.dt)
+    else:
+        raise ValueError('CTF PYTHON ERROR: Unsupported dtype for ceil()')
+    return oA
+   
+
+def rint(x, out=None):
+    """
+    rint(x, out=None)
+    Elementwise round to nearest integer (output as floating point type)
+
+    Parameters
+    ----------
+    x: tensor_like
+        Input tensor.
+
+    Returns
+    -------
+    out: tensor
+        A tensor of same structure and dtype as x with values rounded to nearest integer
+
+    """
+    cdef tensor A = astensor(x)
+    cdef tensor oA = tensor(copy=A)
+    if A.dtype == np.float64:
+        helper_round[double](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.float32:
+        helper_round[float](<ctensor*>A.dt, <ctensor*>oA.dt)
+    else:
+        raise ValueError('CTF PYTHON ERROR: Unsupported dtype for rint()')
+    return oA
+   
 
 def _setgetitem_helper(obj, key_init):
     is_everything = 1
@@ -6248,3 +6378,23 @@ def arange(start, stop, step=1, dtype=None):
     else: 
         raise ValueError('CTF PYTHON ERROR: unsupported starting value type for numpy arange')
     return t
+
+def initialize_flops_counter():
+    """
+    Set the flops counter to 0.
+    """
+    initialize_flops_counter_()
+
+def get_estimated_flops():
+    """
+    Get analytically estimated flops, which are effectual flops in dense case,
+    but estimates based on aggregate nonzero density for sparse case.
+
+    Returns
+    -------
+    out: int
+        The number of estimated flops
+    """
+    return get_estimated_flops_()
+
+

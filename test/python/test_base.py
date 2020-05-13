@@ -357,6 +357,81 @@ class KnowValues(unittest.TestCase):
         a2 = ctf.astensor(numpy.ones((2,5,2)))
         self.assertTrue(ctf.hstack((a1, a2)).shape == (2,9,2))
 
+    def test_int_conv(self):
+        a = ctf.ones(2, dtype=float)
+        b = numpy.ones(2, dtype=float)
+        self.assertTrue(numpy.allclose(a.to_nparray(),b))
+
+        a = ctf.zeros(2, dtype=complex)
+        a[0] = 1
+        self.assertTrue(numpy.allclose([a.norm2()],[1.]))
+        a *= 2
+        self.assertTrue(numpy.allclose([a.norm2()],[2.]))
+
+    def test_rounding(self):
+        for dt in [numpy.float32, numpy.float64]:
+            a = numpy.arange(-5.,5.,.2,dtype=dt)
+            fa = numpy.floor(a)
+            ra = numpy.rint(a)
+            ca = numpy.ceil(a)
+            cfa = ctf.floor(a)
+            cra = ctf.rint(a)
+            cca = ctf.ceil(a)
+            self.assertTrue(numpy.allclose(cfa.to_nparray(),fa))
+            #Note this won't generallybe true due to different rounding rules e.g. for -3.5 
+            self.assertTrue(numpy.allclose(cra.to_nparray(),ra))
+            self.assertTrue(numpy.allclose(cca.to_nparray(),ca))
+
+    def test_complex(self):
+        for dt in [numpy.complex64, numpy.complex128, complex]:
+            a = abs(numpy.ones(2, dtype=dt))
+            b = abs(ctf.ones(2, dtype=dt))
+            self.assertTrue(a.dtype==b.dtype)
+            self.assertTrue(numpy.allclose(a,b.to_nparray()))
+
+    def test_mixtype_comp(self):
+        a = numpy.ones(2, dtype=int) < 1.0
+        b = ctf.ones(2, dtype=int) < 1.0
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.zeros(2, dtype=numpy.float32) < numpy.ones(2, dtype=numpy.float64)
+        b = ctf.zeros(2, dtype=numpy.float32) < ctf.ones(2, dtype=numpy.float64)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.ones(2, dtype=int) == numpy.ones(2, dtype=float)
+        b = ctf.ones(2, dtype=int) == ctf.ones(2, dtype=float)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+
+        a = numpy.ones(2, dtype=int) <= 1.0
+        b = ctf.ones(2, dtype=int) <= 1.0
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.zeros(2, dtype=numpy.float32) <= numpy.ones(2, dtype=numpy.float64)
+        b = ctf.zeros(2, dtype=numpy.float32) <= ctf.ones(2, dtype=numpy.float64)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.ones(2, dtype=int) == numpy.ones(2, dtype=float)
+        b = ctf.ones(2, dtype=int) == ctf.ones(2, dtype=float)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+
+        a = numpy.ones(2, dtype=int) > 1.0
+        b = ctf.ones(2, dtype=int) > 1.0
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.zeros(2, dtype=numpy.float32) > numpy.ones(2, dtype=numpy.float64)
+        b = ctf.zeros(2, dtype=numpy.float32) > ctf.ones(2, dtype=numpy.float64)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.ones(2, dtype=int) == numpy.ones(2, dtype=float)
+        b = ctf.ones(2, dtype=int) == ctf.ones(2, dtype=float)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+
+        a = numpy.ones(2, dtype=int) >= 1.0
+        b = ctf.ones(2, dtype=int) >= 1.0
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.zeros(2, dtype=numpy.float32) >= numpy.ones(2, dtype=numpy.float64)
+        b = ctf.zeros(2, dtype=numpy.float32) >= ctf.ones(2, dtype=numpy.float64)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+        a = numpy.ones(2, dtype=int) == numpy.ones(2, dtype=float)
+        b = ctf.ones(2, dtype=int) == ctf.ones(2, dtype=float)
+        self.assertTrue(numpy.all(a==b.to_nparray()))
+
+
+
 
 def run_tests():
     numpy.random.seed(5330);

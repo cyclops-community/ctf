@@ -99,7 +99,7 @@ class KnowValues(unittest.TestCase):
             rs2 = ctf.vecnorm(A - ctf.dot(U2*S2,VT2))
             rA = ctf.vecnorm(A)
             self.assertTrue(rs1 < rA)
-            self.assertTrue(rs2 < rs1)
+            self.assertTrue((rs2 < rs1) or numpy.abs(rs1-rs2) < 1.e-4)
             self.assertTrue(numpy.abs(rs1 - rs2)<3.e-1)
 
     def test_tsvd(self):
@@ -212,6 +212,11 @@ class KnowValues(unittest.TestCase):
             [D,X]=ctf.eigh(A)
             self.assertTrue(allclose(ctf.dot(A,X), X*D))
             self.assertTrue(allclose(ctf.eye(n), ctf.dot(X.conj().T(), X)))
+
+    def test_norm(self):
+        vec = ctf.zeros((20,20),dtype=numpy.float64)
+        vec.fill_random(-1,1)
+        self.assertTrue(numpy.allclose([ctf.norm(vec,2)],[numpy.linalg.norm(vec.to_nparray(),2)]))
 
 
 def run_tests():

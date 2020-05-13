@@ -12,6 +12,11 @@ namespace CTF_int {
   void set_memcap(double cap);
   void set_mem_size(int64_t size);
   int get_num_instances();
+  void start_memprof(int rank);
+  void stop_memprof();
+  int64_t get_max_memprof(MPI_Comm cm);
+  void memprof_alloc_pre(int64_t len);
+  void memprof_alloc_post(int64_t len, void ** const ptr);
 }
 
 

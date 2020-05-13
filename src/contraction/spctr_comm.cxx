@@ -174,9 +174,12 @@ namespace CTF_int {
 
   int64_t spctr_replicate::spmem_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
     int64_t mem_usage = 0;
-    if (is_sparse_A) mem_usage += nnz_frac_A*(size_A*sr_A->pair_size());
-    if (is_sparse_B) mem_usage += nnz_frac_B*(size_B*sr_B->pair_size());
-    if (is_sparse_C) mem_usage += 3.*nnz_frac_C*(size_C*sr_C->pair_size());
+    if (this->ncdt_A > 1)
+      if (is_sparse_A) mem_usage += nnz_frac_A*(size_A*sr_A->pair_size());
+    if (this->ncdt_B > 1)
+      if (is_sparse_B) mem_usage += nnz_frac_B*(size_B*sr_B->pair_size());
+    if (this->ncdt_C > 0)
+      if (is_sparse_C) mem_usage += 3.*nnz_frac_C*(size_C*sr_C->pair_size());
     return mem_usage;
   }
 
@@ -284,6 +287,8 @@ namespace CTF_int {
                      C, nblk_C,     size_blk_C,
                  new_C);
     TAU_FSTART(spctr_replicate);
+    if (is_sparse_A && buf_A != A) cdealloc(buf_A);
+    if (is_sparse_B && buf_B != B) cdealloc(buf_B);
     /*for (i=0; i<size_C; i++){
       printf("P%d C[%d]  = %lf\n",crank,i, ((double*)C)[i]);
     }*/
@@ -323,8 +328,6 @@ namespace CTF_int {
       }
     }
 
-    if (is_sparse_A && buf_A != A) cdealloc(buf_A);
-    if (is_sparse_B && buf_B != B) cdealloc(buf_B);
     if (!is_sparse_A && arank != 0){
       this->sr_A->set(A, this->sr_A->addid(), size_A);
     }

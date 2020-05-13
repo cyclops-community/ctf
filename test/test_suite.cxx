@@ -94,7 +94,8 @@ int main(int argc, char ** argv){
 
   {
     World dw(MPI_COMM_WORLD, argc, argv);
-
+    Timer_epoch te("TEST_SUITE");
+    te.begin();
     if (rank == 0)
       printf("Testing non-symmetric: NS = NS*NS weigh with n = %d:\n",n);
     pass.push_back(weigh_4D(n, NS, dw));
@@ -328,6 +329,7 @@ int main(int argc, char ** argv){
       printf("Testing MP3 calculation using sparse*sparse with %d occupied and %d virtual orbitals:\n",n,2*n);
     pass.push_back(sparse_mp3(2*n,n,dw,.8,1,0,0,0,1));
     
+    te.end();
     /*int logn = log2(n)+1;
     if (rank == 0)
       printf("Testing bitonic sorting with %d elements:\n",1<<logn);
