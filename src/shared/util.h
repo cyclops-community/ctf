@@ -277,8 +277,10 @@ namespace CTF_int {
   #define TAU_PROFILE_START(ARG)
   #define TAU_PROFILE_SET_NODE(ARG)
   #define TAU_PROFILE_SET_CONTEXT(ARG)
+  #ifndef CRITTER
   #define TAU_FSTART(ARG)
   #define TAU_FSTOP(ARG)
+  #endif
   #endif
   #define TIME(STRING) TAU_PROFILE(STRING, " ", TAU_DEFAULT)
 

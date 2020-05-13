@@ -1,7 +1,11 @@
 #ifndef __PMPI_H__
 #define __PMPI_H__
 
+#ifdef CRITTER
+#include "critter.h"
+#else
 #include <mpi.h>
+#endif
 #include "../interface/timer.h"
 namespace CTF {
   void set_context(MPI_Comm);

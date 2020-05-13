@@ -998,6 +998,7 @@ namespace CTF_int {
       int nvirt_B = tsr_B->calc_nvirt();
       if (tsr_B->wrld->np == tsr_A->wrld->np && !tsr_has_sym && !this->is_sparse && !A->is_sparse && nvirt_A == 1 && nvirt_B == 1 && !tsr_has_virt){
         push_slice(this, offsets_B, ends_B, beta, A, offsets_A, ends_A, alpha);
+        TAU_FSTOP(slice);
         return;
       }
     }

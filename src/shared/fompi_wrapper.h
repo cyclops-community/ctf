@@ -11,7 +11,11 @@ typedef foMPI_Win CTF_Win;
 #define MPI_Win_free(...) foMPI_Win_free(__VA_ARGS__)
 #define MPI_Put(...) foMPI_Put(__VA_ARGS__)
 #else
+#ifdef CRITTER
+#include "critter.h"
+#else
 #include <mpi.h>
+#endif
 typedef MPI_Win CTF_Win;
 #endif
 
