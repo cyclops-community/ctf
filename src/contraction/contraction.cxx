@@ -2883,12 +2883,6 @@ namespace CTF_int {
     int64_t valid_mappings = 0;
     int64_t choice_offset = 0;
     int64_t max_memuse = proc_bytes_available();
-    //double nnz_frac_A, nnz_frac_B, nnz_frac_C;
-    this->calc_nnz_frac(nnz_frac_A, nnz_frac_B, nnz_frac_C);
-  #if VERBOSE >= 1
-    if (global_comm.rank == 0)
-      printf("nnz_frac_A is %E, nnz_frac_B is %E, estimated nnz_frac_C is %E\n",nnz_frac_A,nnz_frac_B,nnz_frac_C);
-  #endif
 //    TAU_FSTOP(init_select_ctr_map);
     for (int i=0; i<(int)wrld->topovec.size(); i++){
 //      int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
