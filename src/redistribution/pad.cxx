@@ -371,6 +371,89 @@ namespace CTF_int {
     *new_size = pad_el;
   }
 */
+
+  void zero_padding_virtblock
+                   (int              order,
+                    int64_t          size,
+                    int64_t const *  virt_len,
+                    int64_t const *  padding,
+                    char *           vdata,
+                    algstrct const * sr){
+    int64_t stride = 1;
+
+    for (int i=0; i<order; i++){
+      if (padding[i] > 0){
+        int64_t num_ranges = 1;
+        for (int j=i+1; j<order; j++){
+          num_ranges *= virt_len[j];
+        }
+        #pragma omp parallel for
+        for (int64_t k=0; k<num_ranges; k++){
+          sr->set(vdata + (k*stride*virt_len[i] + stride*(virt_len[i]-padding[i]))*sr->el_size, sr->addid(), stride*padding[i]);
+        }
+      }
+      stride *= virt_len[i];
+    }
+  }
+
+
+  void zero_padding_nonsym
+                   (int              order,
+                    int64_t          size,
+                    int              nvirt,
+                    int64_t const *  edge_len,
+                    int64_t const *  padding,
+                    int const *      phase,
+                    int const *      phys_phase,
+                    int const *      virt_phase,
+                    int const *      cphase_rank,
+                    char *           vdata,
+                    algstrct const * sr){
+    TAU_FSTART(zero_padding_nonsym);
+    int64_t * virt_len;
+    int64_t * loc_padding;
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&virt_len);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&loc_padding);
+    for (int dim=0; dim<order; dim++){
+      virt_len[dim] = edge_len[dim]/phase[dim];
+    }
+    if (nvirt == 1){
+      for (int dim=0; dim<order; dim++){
+        loc_padding[dim] = padding[dim]/phase[dim] + (cphase_rank[dim] >= (phase[dim] - padding[dim]));
+      }
+      zero_padding_virtblock(order, size, virt_len, loc_padding, vdata, sr);
+    } else {
+      int * virt_rank, * phase_rank;
+      CTF_int::alloc_ptr(order*sizeof(int), (void**)&phase_rank);
+      CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_rank);
+      memcpy(phase_rank, cphase_rank, order*sizeof(int));
+      memset(virt_rank, 0, sizeof(int)*order);
+      for (int p=0; p<nvirt; p++){
+        char * data = vdata + sr->el_size*p*(size/nvirt);
+        p++;
+        for (int dim=0; dim<order; dim++){
+          loc_padding[dim] = (-padding[dim])/phase[dim] + (phase_rank[dim] >= phase[dim] + padding[dim]) - 1;
+        }
+        zero_padding_virtblock(order, size/nvirt, virt_len, loc_padding, data, sr);
+        for (int act_lda=0; act_lda < order; act_lda++){
+          phase_rank[act_lda] -= virt_rank[act_lda]*phys_phase[act_lda];
+          virt_rank[act_lda]++;
+          if (virt_rank[act_lda] >= virt_phase[act_lda])
+            virt_rank[act_lda] = 0;
+          phase_rank[act_lda] += virt_rank[act_lda]*phys_phase[act_lda];
+          if (virt_rank[act_lda] > 0)
+            break;
+        }
+      }
+      CTF_int::cdealloc(virt_rank);
+      CTF_int::cdealloc(phase_rank);
+    }
+    CTF_int::cdealloc(loc_padding);
+    CTF_int::cdealloc(virt_len);
+    TAU_FSTOP(zero_padding_nonsym);
+  }
+
+
   void zero_padding(int              order,
                     int64_t          size,
                     int              nvirt,
@@ -385,6 +468,11 @@ namespace CTF_int {
                     algstrct const * sr){
 
     if (order == 0) return;
+    bool has_sym = false;
+    for (int i=0; i<order; i++){
+      if (sym[i] != NS) has_sym = true;
+    }
+    if (!has_sym) return zero_padding_nonsym(order,size,nvirt,edge_len,padding,phase,phys_phase,virt_phase,cphase_rank,vdata,sr);
     TAU_FSTART(zero_padding);
     #ifdef USE_OMP
     #pragma omp parallel
