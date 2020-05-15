@@ -294,9 +294,9 @@ namespace CTF_int {
 
       void detail_estimate_mem_and_time(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int64_t & memuse, double & est_time);
 
-      void get_best_sel_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int & idx, double & time);
+      void get_best_sel_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int64_t & idx, double & time);
 
-      void get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int & idx, double & time, double init_best_time);
+      void get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int64_t & idx, double & time, double init_best_time);
 
       /**
        * \brief find best possible mapping for contraction and redistribute tensors to this mapping
@@ -364,6 +364,47 @@ namespace CTF_int {
       bool need_prescale_operands();
   };
 
+  class contraction_signature {
+    public:
+      int order_A;
+      int order_B;
+      int order_C;
+      int64_t * lens_A;
+      int64_t * lens_B; 
+      int64_t * lens_C;
+      int * idx_A;
+      int * idx_B;
+      int * idx_C;
+      int * sym_A;
+      int * sym_B;
+      int * sym_C;
+      int is_sparse_A;
+      int is_sparse_B;
+      int is_sparse_C;
+      int nnz_tot_A;
+      int nnz_tot_B;
+      int nnz_tot_C;
+      topology * topo_A;
+      topology * topo_B;
+      topology * topo_C;
+      mapping * edge_map_A;
+      mapping * edge_map_B;
+      mapping * edge_map_C;
+
+      contraction_signature(contraction const & ctr);
+      contraction_signature(contraction_signature const & other);
+      ~contraction_signature();
+      bool operator<(contraction_signature const & other) const;
+  };
+
+  class topo_info {
+    public:
+      int64_t ttopo;
+      bool is_exh;
+
+      topo_info(int64_t tt, bool ie);
+  };
+
 
   /**
    * \brief sets up a ctr_2d_general (2D SUMMA) level where A is not communicated
@@ -424,6 +465,8 @@ namespace CTF_int {
                         int64_t &                  blk_sz_C,
                         int const *                virt_blk_len_C,
                         int &                      load_phase_C);
+
+
 }
 
 #endif

@@ -73,7 +73,16 @@ namespace CTF_int {
        */
       void aug_virt(int tot_phase);
   };
-  
+   
+  /** \brief compares two mappings
+   * \param map_A first map
+   * \param map_B second map
+   * return 0 if mapping is exactly the same, 1 if map_A is ranked greater, -1 if map_B is ranked greater
+   */
+  int rank_dim_map(mapping const * map_A,
+                   mapping const * map_B);
+
+
   /** \brief compares two mappings
    * \param map_A first map
    * \param map_B second map

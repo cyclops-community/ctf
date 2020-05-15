@@ -139,20 +139,19 @@ namespace CTF_int {
     }
   }
 
-
-  int comp_dim_map(mapping const *  map_A,
+  int rank_dim_map(mapping const *  map_A,
                    mapping const *  map_B){
     if (map_A->type == NOT_MAPPED &&
-        map_B->type == NOT_MAPPED) return 1;
+        map_B->type == NOT_MAPPED) return 0;
   /*  if (map_A->type == NOT_MAPPED ||
         map_B->type == NOT_MAPPED) return 0;*/
     if (map_A->type == NOT_MAPPED){
-      if (map_B->type == VIRTUAL_MAP && map_B->np == 1) return 1;
-      else return 0;
+      if (map_B->type == VIRTUAL_MAP && map_B->np == 1) return 0;
+      else return 1;
     }
     if (map_B->type == NOT_MAPPED){
       if (map_A->type == VIRTUAL_MAP && map_A->np == 1) return 1;
-      else return 0;
+      else return -1;
     }
 
     if (map_A->type == PHYSICAL_MAP){
@@ -162,18 +161,18 @@ namespace CTF_int {
   /*      DEBUG_PRINTF("failed confirmation here [%d %d %d] != [%d] [%d] [%d]\n",
          map_A->type, map_A->cdt, map_A->np,
          map_B->type, map_B->cdt, map_B->np);*/
-        return 0;
+        return 1;
       }
       if (map_A->has_child){
         if (map_B->has_child != 1 || 
             comp_dim_map(map_A->child, map_B->child) != 1){ 
           DEBUG_PRINTF("failed confirmation here\n");
-          return 0;
+          return 1;
         }
       } else {
         if (map_B->has_child){
           DEBUG_PRINTF("failed confirmation here\n");
-          return 0;
+          return -1;
         }
       }
     } else {
@@ -181,10 +180,16 @@ namespace CTF_int {
       if (map_B->type != VIRTUAL_MAP ||
           map_B->np != map_A->np) {
         DEBUG_PRINTF("failed confirmation here\n");
-        return 0;
+        return -1;
       }
     }
-    return 1;
+    return 0;
+  }
+
+
+  int comp_dim_map(mapping const *  map_A,
+                   mapping const *  map_B){
+    return rank_dim_map(map_A,map_B) == 0;
   }
 
   void copy_mapping(int              order,
