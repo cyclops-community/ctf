@@ -26,6 +26,9 @@ namespace CTF_int {
 
   using namespace CTF;
 
+#define MAX_CTR_SIG_MAP_SIZE 10000
+  std::map<contraction_signature,topo_info> ctr_sig_map;
+
   contraction::~contraction(){
     if (idx_A != NULL) cdealloc(idx_A);
     if (idx_B != NULL) cdealloc(idx_B);
@@ -1546,7 +1549,6 @@ namespace CTF_int {
     CommData  * sub_phys_comm;
     mapping * weigh_map;
 
-    TAU_FSTART(map_weigh_indices);
 
     tsr_order = num_weigh;
 
@@ -1659,7 +1661,6 @@ namespace CTF_int {
     CTF_int::cdealloc(sub_phys_comm);
     CTF_int::cdealloc(comm_idx);
 
-    TAU_FSTOP(map_weigh_indices);
     return stat;
   }
   /**
@@ -1687,7 +1688,6 @@ namespace CTF_int {
     CommData  * sub_phys_comm;
     mapping * ctr_map;
 
-    TAU_FSTART(map_ctr_indices);
 
     tsr_order = num_ctr*2;
 
@@ -1808,7 +1808,6 @@ namespace CTF_int {
     CTF_int::cdealloc(sub_phys_comm);
     CTF_int::cdealloc(comm_idx);
 
-    TAU_FSTOP(map_ctr_indices);
     return stat;
   }
 
@@ -1834,7 +1833,6 @@ namespace CTF_int {
                      tensor *         C){
     int stat, i, inoctr, iA, iB, iC;
 
-    TAU_FSTART(map_noctr_indices);
 
   /*  for (i=0; i<num_no_ctr; i++){
       inoctr = idx_no_ctr[i];
@@ -1854,7 +1852,6 @@ namespace CTF_int {
     stat = A->map_tensor_rem(topo->order,  topo->dim_comm, 1);
     if (stat != SUCCESS){
       if (A->order != 0 || B->order != 0 || C->order != 0){
-        TAU_FSTOP(map_noctr_indices);
         return stat;
       }
     }
@@ -1874,7 +1871,6 @@ namespace CTF_int {
     }
     stat = C->map_tensor_rem(topo->order,  topo->dim_comm, 0);
     if (stat != SUCCESS){
-      TAU_FSTOP(map_noctr_indices);
       return stat;
     }
     for (i=0; i<num_no_ctr; i++){
@@ -1891,7 +1887,6 @@ namespace CTF_int {
         copy_mapping(1, C->edge_map + iC, B->edge_map + iB);
       }
     }
-    TAU_FSTOP(map_noctr_indices);
 
     return SUCCESS;
   }
@@ -2588,6 +2583,7 @@ namespace CTF_int {
   }
 
   void contraction::detail_estimate_mem_and_time(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int64_t & memuse, double & est_time){
+    TAU_FSTART(detail_estimate_mem_and_time);
     ctr * sctr;
     est_time = 0.;
     memuse = 0;
@@ -2603,6 +2599,7 @@ namespace CTF_int {
     if (can_fold()){
       est_time = est_time_fold();
       iparam prm = map_fold(false);
+    
       sctr = construct_ctr(1, &prm);
       if (this->is_sparse())
         est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
@@ -2738,13 +2735,14 @@ namespace CTF_int {
       //printf("dmemuse = %ld mem_ext = %ld mem_fold = %ld mem_fold_tmp = %ld, sctr->mem_rec() = %ld Asz = %E Bsz = %E Csz = %E\n",memuse,mem_ext,mem_fold,mem_fold_tmp,sctr->mem_rec(),A->size*nnz_frac_A*A->sr->el_size , B->size*nnz_frac_B*B->sr->el_size , C->size*nnz_frac_C*C->sr->el_size);
     }
     delete sctr;
+    TAU_FSTOP(detail_estimate_mem_and_time);
   }
 
 
-  void contraction::get_best_sel_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int & idx, double & time){
+  void contraction::get_best_sel_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int64_t & idx, double & time){
     int ret, j;
     double best_time;
-    int btopo;
+    int64_t btopo;
     World * wrld = A->wrld;
     CommData global_comm = wrld->cdt;
     btopo = -1;
@@ -2757,7 +2755,7 @@ namespace CTF_int {
   #if DEBUG > 4
       for (int t=1; t<(int)wrld->topovec.size()+8; t++){
   #else
-      for (int t=global_comm.rank+1; t<(int)wrld->topovec.size()+8; t+=global_comm.np){
+      for (int64_t t=global_comm.rank+1; t<(int)wrld->topovec.size()+8; t+=global_comm.np){
   #endif
         A->clear_mapping();
         B->clear_mapping();
@@ -2856,10 +2854,10 @@ namespace CTF_int {
     double gbest_time;
     MPI_Allreduce(&best_time, &gbest_time, 1, MPI_DOUBLE, MPI_MIN, global_comm.cm);
     if (best_time != gbest_time){
-      btopo = INT_MAX;
+      btopo = INT64_MAX;
     }
-    int ttopo;
-    MPI_Allreduce(&btopo, &ttopo, 1, MPI_INT, MPI_MIN, global_comm.cm);
+    int64_t ttopo;
+    MPI_Allreduce(&btopo, &ttopo, 1, MPI_INT64_T, MPI_MIN, global_comm.cm);
     TAU_FSTOP(all_select_ctr_map);
 
     idx=ttopo;
@@ -2867,9 +2865,9 @@ namespace CTF_int {
 
   }
 
-  void contraction::get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int & idx, double & time, double init_best_time=DBL_MAX){
+  void contraction::get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int64_t & idx, double & time, double init_best_time=DBL_MAX){
     double best_time;
-    int btopo;
+    int64_t btopo;
     World * wrld = A->wrld;
     CommData global_comm = wrld->cdt;
     btopo = -1;
@@ -2900,9 +2898,7 @@ namespace CTF_int {
         B->set_padding();
         C->set_padding();
         topology * topo_i = wrld->topovec[i];
-        TAU_FSTART(exh_map);
         bool br = exh_map_to_topo(topo_i, j);
-        TAU_FSTOP(exh_map);
         if (!br) DPRINTF(3,"exh_map_to_topo returned false\n");
         if (!br) continue;
         A->is_mapped = 1;
@@ -2912,20 +2908,14 @@ namespace CTF_int {
         B->topo = topo_i;
         C->topo = topo_i;
        
-        TAU_FSTART(switch_topo_perm);
         br = switch_topo_perm();
-        TAU_FSTOP(switch_topo_perm);
         if (!br){ DPRINTF(3,"switch topo perm returned false\n"); }
         if (!br) continue;
-        TAU_FSTART(check_ctr_mapping);
         if (check_mapping() == 0){
-          TAU_FSTOP(check_ctr_mapping);
           continue;
         }
-        TAU_FSTOP(check_ctr_mapping);
         valid_mappings++;
        
-        TAU_FSTART(est_ctr_map_time);
         A->set_padding();
         B->set_padding();
         C->set_padding();
@@ -2948,14 +2938,10 @@ namespace CTF_int {
 #endif
         ASSERT(est_time >= 0.0);
 
-        TAU_FSTOP(est_ctr_map_time);
-        TAU_FSTART(get_avail_res);
         if ((int64_t)memuse >= max_memuse){
           DPRINTF(3,"[EXH] Not enough memory available for topo %d with order %d memory %ld/%ld\n", i,j,memuse,max_memuse);
-          TAU_FSTOP(get_avail_res);
           continue;
         }
-        TAU_FSTOP(get_avail_res);
         if (((!A->is_sparse) && A->size > INT_MAX) ||
             ((!B->is_sparse) && B->size > INT_MAX) ||
             ((!C->is_sparse) && C->size > INT_MAX)){
@@ -2975,15 +2961,13 @@ namespace CTF_int {
     MPI_Allreduce(&valid_mappings, &tot_valid_mappings, 1, MPI_INT64_T, MPI_SUM, global_comm.cm);
     if (A->wrld->rank == 0) DPRINTF(2,"number valid mappings was %ld/%ld\n", tot_valid_mappings, tot_num_choices);
 #endif
-    TAU_FSTART(all_select_ctr_map);
     double gbest_time;
     MPI_Allreduce(&best_time, &gbest_time, 1, MPI_DOUBLE, MPI_MIN, global_comm.cm);
     if (best_time != gbest_time){
-      btopo = INT_MAX;
+      btopo = INT64_MAX;
     }
-    int ttopo;
-    MPI_Allreduce(&btopo, &ttopo, 1, MPI_INT, MPI_MIN, global_comm.cm);
-    TAU_FSTOP(all_select_ctr_map);
+    int64_t ttopo;
+    MPI_Allreduce(&btopo, &ttopo, 1, MPI_INT64_T, MPI_MIN, global_comm.cm);
 
     idx=ttopo;
     time=gbest_time;
@@ -3043,6 +3027,7 @@ namespace CTF_int {
     B->set_padding();
     C->set_padding();
     /* Save the current mappings of A, B, C */
+    contraction_signature sig(*this);
     dA = new distribution(A);
     dB = new distribution(B);
     dC = new distribution(C);
@@ -3066,40 +3051,63 @@ namespace CTF_int {
     B->set_padding();
     C->set_padding();
     //bmemuse = UINT64_MAX;
-    int ttopo, ttopo_sel, ttopo_exh;
-    double gbest_time_sel, gbest_time_exh;
-    TAU_FSTART(get_best_sel_map);
-    get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, ttopo_sel, gbest_time_sel);
-    TAU_FSTOP(get_best_sel_map);
 
-    A->clear_mapping();
-    B->clear_mapping();
-    C->clear_mapping();
-    A->set_padding();
-    B->set_padding();
-    C->set_padding();
-    if (gbest_time_sel < 100.){
-      gbest_time_exh = gbest_time_sel+1.;
-      ttopo_exh = ttopo_sel;
+
+    TAU_FSTART(ctr_sig_map_find);
+    auto search_sig = ctr_sig_map.find(sig);
+    TAU_FSTOP(ctr_sig_map_find);
+    topology * topo_g = NULL;
+    int j_g;
+    int64_t ttopo; 
+    bool is_exh;
+    if (search_sig != ctr_sig_map.end()){
+      ttopo = search_sig->second.ttopo;
+      is_exh = search_sig->second.is_exh;
     } else {
-      TAU_FSTART(get_best_exh_map);
-      get_best_exh_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, ttopo_exh, gbest_time_exh, gbest_time_sel);
-      TAU_FSTOP(get_best_exh_map);
-    }
-    if (gbest_time_sel <= gbest_time_exh){
-      ttopo = ttopo_sel;
-    } else {
-      ttopo = ttopo_exh;
-    }
+      int64_t ttopo_sel, ttopo_exh;
+      double gbest_time_sel, gbest_time_exh;
+      TAU_FSTART(get_best_sel_map);
+      get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, ttopo_sel, gbest_time_sel);
+      TAU_FSTOP(get_best_sel_map);
 
-    A->clear_mapping();
-    B->clear_mapping();
-    C->clear_mapping();
-    A->set_padding();
-    B->set_padding();
-    C->set_padding();
+      A->clear_mapping();
+      B->clear_mapping();
+      C->clear_mapping();
+      A->set_padding();
+      B->set_padding();
+      C->set_padding();
+      if (gbest_time_sel < 100.){
+        gbest_time_exh = gbest_time_sel+1.;
+        ttopo_exh = ttopo_sel;
+      } else {
+        TAU_FSTART(get_best_exh_map);
+        get_best_exh_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, ttopo_exh, gbest_time_exh, gbest_time_sel);
+        TAU_FSTOP(get_best_exh_map);
+      }
+      if (gbest_time_sel <= gbest_time_exh){
+        ttopo = ttopo_sel;
+      } else {
+        ttopo = ttopo_exh;
+      }
 
-    if (!do_remap || ttopo == INT_MAX || ttopo == -1){
+      A->clear_mapping();
+      B->clear_mapping();
+      C->clear_mapping();
+      A->set_padding();
+      B->set_padding();
+      C->set_padding();
+
+
+      is_exh = !(gbest_time_sel <= gbest_time_exh);
+      if (ctr_sig_map.size() == MAX_CTR_SIG_MAP_SIZE){
+        ctr_sig_map.clear();
+      }
+      CTF_int::topo_info ti(ttopo, is_exh);
+      TAU_FSTART(ctr_sig_map_insert);
+      ctr_sig_map.insert(std::pair<contraction_signature,topo_info>(sig,ti));
+      TAU_FSTOP(ctr_sig_map_insert);
+    }
+    if (!do_remap || ttopo == INT64_MAX || ttopo == -1){
       CTF_int::cdealloc(old_phase_A);
       CTF_int::cdealloc(old_phase_B);
       CTF_int::cdealloc(old_phase_C);
@@ -3110,17 +3118,14 @@ namespace CTF_int {
       delete dB;
       delete dC;
 
-      if (ttopo == INT_MAX || ttopo == -1){
+      if (ttopo == INT64_MAX || ttopo == -1){
         printf("ERROR: Failed to map contraction!\n");
         //ABORT;
         return ERROR;
       }
       return SUCCESS;
     }
-    topology * topo_g = NULL;
-    int j_g;
-    int64_t old_off = 0;
-    if (gbest_time_sel <= gbest_time_exh){
+    if (!is_exh){
       j_g = ttopo%6;
       if (ttopo < 48){
         if (((ttopo/6) & 1) > 0){
@@ -3139,22 +3144,7 @@ namespace CTF_int {
         assert(topo_g != NULL);
 
       } else topo_g = wrld->topovec[(ttopo-48)/6];
-    } else {
-      int64_t choice_offset = 0;
-      int i=0;
-      for (i=0; i<(int)wrld->topovec.size(); i++){
-        //int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
-        int tnum_choices = get_num_map_variants(wrld->topovec[i]);
-        old_off = choice_offset;
-        choice_offset += tnum_choices;
-        if (choice_offset > ttopo) break;
-      }
-      topo_g = wrld->topovec[i];
-      j_g = ttopo-old_off;
-    }
 
-   
-    if (gbest_time_sel <= gbest_time_exh){
       A->topo = topo_g;
       B->topo = topo_g;
       C->topo = topo_g;
@@ -3167,6 +3157,19 @@ namespace CTF_int {
         return ERROR;
       }
     } else {
+      int64_t old_off = 0;
+      int64_t choice_offset = 0;
+      int i=0;
+      for (i=0; i<(int)wrld->topovec.size(); i++){
+        //int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
+        int tnum_choices = get_num_map_variants(wrld->topovec[i]);
+        old_off = choice_offset;
+        choice_offset += tnum_choices;
+        if (choice_offset > ttopo) break;
+      }
+      topo_g = wrld->topovec[i];
+      j_g = ttopo-old_off;
+
       exh_map_to_topo(topo_g, j_g);
       A->topo = topo_g;
       B->topo = topo_g;
@@ -3193,14 +3196,14 @@ namespace CTF_int {
     detail_estimate_mem_and_time(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, memuse, est_time);
     if (global_comm.rank == 0){
       printf("Contraction will use %E bytes per processor out of %E available memory (already used %E) and take an estimated of %E sec\n",
-              (double)memuse,(double)proc_bytes_available(),(double)proc_bytes_used(),std::min(gbest_time_sel,gbest_time_exh));
+              (double)memuse,(double)proc_bytes_available(),(double)proc_bytes_used(),est_time);
     }
-#ifndef MIN_MEMORY
-    if (est_time != std::min(gbest_time_sel,gbest_time_exh))
-      printf("Times are %E %E %E ttopo is %d,old_off = %ld,j = %d\n",est_time,gbest_time_sel,gbest_time_exh,ttopo, old_off, j_g);
-
-    assert(est_time == std::min(gbest_time_sel,gbest_time_exh));
-#endif
+//#ifndef MIN_MEMORY
+//    if (est_time != std::min(gbest_time_sel,gbest_time_exh))
+//      printf("Times are %E %E %E ttopo is %ld,old_off = %ld,j = %d\n",est_time,gbest_time_sel,gbest_time_exh,ttopo, old_off, j_g);
+//
+//    assert(est_time == std::min(gbest_time_sel,gbest_time_exh));
+//#endif
 #endif
 
     if (can_fold()){
@@ -5633,4 +5636,202 @@ namespace CTF_int {
       }*/
     }
   }
+
+  contraction_signature::contraction_signature(contraction_signature const & other){
+    this->order_A = other.order_A;
+    this->order_B = other.order_B;
+    this->order_C = other.order_C;
+
+    this->lens_A = (int64_t*)alloc(sizeof(int64_t)*this->order_A);
+    memcpy(this->lens_A, other.lens_A, sizeof(int64_t)*this->order_A);
+    this->lens_B = (int64_t*)alloc(sizeof(int64_t)*this->order_B);
+    memcpy(this->lens_B, other.lens_B, sizeof(int64_t)*this->order_B);
+    this->lens_C = (int64_t*)alloc(sizeof(int64_t)*this->order_C);
+    memcpy(this->lens_C, other.lens_C, sizeof(int64_t)*this->order_C);
+
+    this->idx_A = (int*)alloc(sizeof(int)*this->order_A);
+    memcpy(this->idx_A, other.idx_A, sizeof(int)*this->order_A);
+    this->idx_B = (int*)alloc(sizeof(int)*this->order_B);
+    memcpy(this->idx_B, other.idx_B, sizeof(int)*this->order_B);
+    this->idx_C = (int*)alloc(sizeof(int)*this->order_C);
+    memcpy(this->idx_C, other.idx_C, sizeof(int)*this->order_C);
+
+    this->sym_A = (int*)alloc(sizeof(int)*this->order_A);
+    memcpy(this->sym_A, other.sym_A, sizeof(int)*this->order_A);
+    this->sym_B = (int*)alloc(sizeof(int)*this->order_B);
+    memcpy(this->sym_B, other.sym_B, sizeof(int)*this->order_B);
+    this->sym_C = (int*)alloc(sizeof(int)*this->order_C);
+    memcpy(this->sym_C, other.sym_C, sizeof(int)*this->order_C);
+
+    this->is_sparse_A = other.is_sparse_A;
+    this->is_sparse_B = other.is_sparse_B;
+    this->is_sparse_C = other.is_sparse_C;
+
+    this->nnz_tot_A = other.nnz_tot_A;
+    this->nnz_tot_B = other.nnz_tot_B;
+    this->nnz_tot_C = other.nnz_tot_C;
+
+    this->topo_A = new topology(*other.topo_A);
+    this->topo_B = new topology(*other.topo_B);
+    this->topo_C = new topology(*other.topo_C);
+    this->edge_map_A = new mapping[this->order_A];
+    copy_mapping(this->order_A, other.edge_map_A, this->edge_map_A);
+    this->edge_map_B = new mapping[this->order_B];
+    copy_mapping(this->order_B, other.edge_map_B, this->edge_map_B);
+    this->edge_map_C = new mapping[this->order_C];
+    copy_mapping(this->order_C, other.edge_map_C, this->edge_map_C);
+  }
+
+  contraction_signature::contraction_signature(contraction const & ctr){
+    this->order_A = ctr.A->order;
+    this->order_B = ctr.B->order;
+    this->order_C = ctr.C->order;
+
+    this->lens_A = (int64_t*)alloc(sizeof(int64_t)*this->order_A);
+    memcpy(this->lens_A, ctr.A->lens, sizeof(int64_t)*this->order_A);
+    this->lens_B = (int64_t*)alloc(sizeof(int64_t)*this->order_B);
+    memcpy(this->lens_B, ctr.B->lens, sizeof(int64_t)*this->order_B);
+    this->lens_C = (int64_t*)alloc(sizeof(int64_t)*this->order_C);
+    memcpy(this->lens_C, ctr.C->lens, sizeof(int64_t)*this->order_C);
+
+    this->idx_A = (int*)alloc(sizeof(int)*this->order_A);
+    memcpy(this->idx_A, ctr.idx_A, sizeof(int)*this->order_A);
+    this->idx_B = (int*)alloc(sizeof(int)*this->order_B);
+    memcpy(this->idx_B, ctr.idx_B, sizeof(int)*this->order_B);
+    this->idx_C = (int*)alloc(sizeof(int)*this->order_C);
+    memcpy(this->idx_C, ctr.idx_C, sizeof(int)*this->order_C);
+
+    this->sym_A = (int*)alloc(sizeof(int)*this->order_A);
+    memcpy(this->sym_A, ctr.A->sym, sizeof(int)*this->order_A);
+    this->sym_B = (int*)alloc(sizeof(int)*this->order_B);
+    memcpy(this->sym_B, ctr.B->sym, sizeof(int)*this->order_B);
+    this->sym_C = (int*)alloc(sizeof(int)*this->order_C);
+    memcpy(this->sym_C, ctr.C->sym, sizeof(int)*this->order_C);
+
+    this->is_sparse_A = ctr.A->is_sparse;
+    this->is_sparse_B = ctr.B->is_sparse;
+    this->is_sparse_C = ctr.C->is_sparse;
+
+    this->nnz_tot_A = ctr.A->nnz_tot;
+    this->nnz_tot_B = ctr.B->nnz_tot;
+    this->nnz_tot_C = ctr.C->nnz_tot;
+
+    this->topo_A = new topology(*ctr.A->topo);
+    this->topo_B = new topology(*ctr.B->topo);
+    this->topo_C = new topology(*ctr.C->topo);
+
+    this->edge_map_A = new mapping[this->order_A];
+    copy_mapping(this->order_A, ctr.A->edge_map, this->edge_map_A);
+    this->edge_map_B = new mapping[this->order_B];
+    copy_mapping(this->order_B, ctr.B->edge_map, this->edge_map_B);
+    this->edge_map_C = new mapping[this->order_C];
+    copy_mapping(this->order_C, ctr.C->edge_map, this->edge_map_C);
+  }
+
+  contraction_signature::~contraction_signature(){
+    cdealloc(lens_A);
+    cdealloc(lens_B);
+    cdealloc(lens_C);
+    cdealloc(idx_A);
+    cdealloc(idx_B);
+    cdealloc(idx_C);
+    cdealloc(sym_A);
+    cdealloc(sym_B);
+    cdealloc(sym_C);
+    delete topo_A;
+    delete topo_B;
+    delete topo_C;
+    delete [] edge_map_A;
+    delete [] edge_map_B;
+    delete [] edge_map_C;
+  }
+    
+  bool contraction_signature::operator<(contraction_signature const & other) const{
+    if (order_A > other.order_A) return true;
+    if (order_A < other.order_A) return false;
+    if (order_B > other.order_B) return true;
+    if (order_B < other.order_B) return false;
+    if (order_C > other.order_C) return true;
+    if (order_C < other.order_C) return false;
+    for (int i=0; i<order_A; i++){
+      if (lens_A[i] > other.lens_A[i]) return true;
+      if (lens_A[i] < other.lens_A[i]) return false; 
+    }
+    for (int i=0; i<order_B; i++){
+      if (lens_B[i] > other.lens_B[i]) return true;
+      if (lens_B[i] < other.lens_B[i]) return false; 
+    }
+    for (int i=0; i<order_C; i++){
+      if (lens_C[i] > other.lens_C[i]) return true;
+      if (lens_C[i] < other.lens_C[i]) return false; 
+    }
+    for (int i=0; i<order_A; i++){
+      if (idx_A[i] > other.idx_A[i]) return true;
+      if (idx_A[i] < other.idx_A[i]) return false; 
+    }
+    for (int i=0; i<order_B; i++){
+      if (idx_B[i] > other.idx_B[i]) return true;
+      if (idx_B[i] < other.idx_B[i]) return false; 
+    }
+    for (int i=0; i<order_C; i++){
+      if (idx_C[i] > other.idx_C[i]) return true;
+      if (idx_C[i] < other.idx_C[i]) return false; 
+    }
+    for (int i=0; i<order_A; i++){
+      if (sym_A[i] > other.sym_A[i]) return true;
+      if (sym_A[i] < other.sym_A[i]) return false; 
+    }
+    for (int i=0; i<order_B; i++){
+      if (sym_B[i] > other.sym_B[i]) return true;
+      if (sym_B[i] < other.sym_B[i]) return false; 
+    }
+    for (int i=0; i<order_C; i++){
+      if (sym_C[i] > other.sym_C[i]) return true;
+      if (sym_C[i] < other.sym_C[i]) return false; 
+    }
+    if (is_sparse_A > other.is_sparse_A) return true;
+    if (is_sparse_A < other.is_sparse_A) return false;
+    if (is_sparse_B > other.is_sparse_B) return true;
+    if (is_sparse_B < other.is_sparse_B) return false;
+    if (is_sparse_C > other.is_sparse_C) return true;
+    if (is_sparse_C < other.is_sparse_C) return false;
+    if (nnz_tot_A > other.nnz_tot_A) return true;
+    if (nnz_tot_A < other.nnz_tot_A) return false;
+    if (nnz_tot_B > other.nnz_tot_B) return true;
+    if (nnz_tot_B < other.nnz_tot_B) return false;
+    if (nnz_tot_C > other.nnz_tot_C) return true;
+    if (nnz_tot_C < other.nnz_tot_C) return false;
+    if (topo_A->order > other.topo_A->order) return true;
+    if (topo_A->order < other.topo_A->order) return false;
+    if (topo_B->order > other.topo_B->order) return true;
+    if (topo_B->order < other.topo_B->order) return false;
+    if (topo_C->order > other.topo_C->order) return true;
+    if (topo_C->order < other.topo_C->order) return false;
+    for (int i=0; i<topo_A->order; i++){
+      if (topo_A->lens[i] > other.topo_A->lens[i]) return true;
+      if (topo_A->lens[i] < other.topo_A->lens[i]) return false; 
+    }
+    for (int i=0; i<topo_B->order; i++){
+      if (topo_B->lens[i] > other.topo_B->lens[i]) return true;
+      if (topo_B->lens[i] < other.topo_B->lens[i]) return false; 
+    }
+    for (int i=0; i<topo_C->order; i++){
+      if (topo_C->lens[i] > other.topo_C->lens[i]) return true;
+      if (topo_C->lens[i] < other.topo_C->lens[i]) return false; 
+    }
+    for (int i=0; i<order_A; i++){
+      if (rank_dim_map(edge_map_A+i,other.edge_map_A+i) == 1) return true;
+      if (rank_dim_map(edge_map_A+i,other.edge_map_A+i) == -1) return false;
+    }
+    for (int i=0; i<order_B; i++){
+      if (rank_dim_map(edge_map_B+i,other.edge_map_B+i) == 1) return true;
+      if (rank_dim_map(edge_map_B+i,other.edge_map_B+i) == -1) return false;
+    }
+    for (int i=0; i<order_C; i++){
+      if (rank_dim_map(edge_map_C+i,other.edge_map_C+i) == 1) return true;
+      if (rank_dim_map(edge_map_C+i,other.edge_map_C+i) == -1) return false;
+    }
+    return false;
+  }
+  topo_info::topo_info(int64_t tt, bool ie) :  ttopo(tt), is_exh(ie) { }
 }
