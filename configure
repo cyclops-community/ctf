@@ -1315,6 +1315,14 @@ EOF
 fi
 echo 'A config.mk file has been created (to adjust all settings edit the config.mk file manually or rerun ./configure to create a new one).'
 
+if [ ! -e $BUILDDIR/requirements.txt ] ; then
+cat > $BUILDDIR/requirements.txt <<EOF
+cython>=0.22
+numpy
+EOF
+fi
+
+
 if [ -f $BUILDDIR/setup.py ] ; then
     if [ $BUILDDIR/setup.py -nt $BUILDDIR/how-did-i-configure ] ; then
         read -p "Execution will overwrite existing setup.py file with local modifications. Are you sure you ant to proceed "$'\n'""$'\n'"(Y/N)? " -n 1 -r

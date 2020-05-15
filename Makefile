@@ -130,7 +130,7 @@ pip: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES)
 	cd src_python; \
 	ln -sf $(BDIR)/setup.py setup.py; \
 	mkdir -p $(BDIR)/lib_python/ctf && cp ctf/__init__.py $(BDIR)/lib_python/ctf/; \
-	pip install -r requirements.txt --force -b $(BDIR)/lib_python/ . --upgrade; \
+	pip install -r $(BDIR)/requirements.txt --force -b $(BDIR)/lib_python/ . --upgrade; \
 	rm setup.py; \
 	cd ..;
 

@@ -1,2 +1,0 @@
-cython>=0.22
-numpy
