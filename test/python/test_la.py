@@ -218,6 +218,16 @@ class KnowValues(unittest.TestCase):
         vec.fill_random(-1,1)
         self.assertTrue(numpy.allclose([ctf.norm(vec,2)],[numpy.linalg.norm(vec.to_nparray(),2)]))
 
+    def test_solve(self):
+        n = 11
+        for k in [1, 4, 12, 15, 31]:
+            for dt in [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128]:
+                A = ctf.random.random((n,n),dtype=dt)
+                A = ctf.dot(A.T(),A)
+                C = ctf.random.random((k,n),dtype=dt)
+                Y = ctf.solve_spd(A,C)
+                self.assertTrue(allclose(ctf.dot(Y,A), C))
+
 
 def run_tests():
     numpy.random.seed(5330)

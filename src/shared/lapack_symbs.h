@@ -633,6 +633,31 @@ namespace CTF_SCALAPACK {
                      std::complex<double> * B, int IB, int JB, int * DESCB);
 
 
+  template <typename dtype>
+  void pposv(char UPLO, int N, int NRHS,
+             dtype * A, int IA, int JA, int * DESCA,
+             dtype * B, int IB, int JB, int * DESCB, int * info){
+    assert(0); // PTRSM not defined for this type
+  }
+
+  template <>
+  void pposv<float>(char UPLO, int N, int NRHS,
+             float * A, int IA, int JA, int * DESCA,
+             float * B, int IB, int JB, int * DESCB, int * info);
+  template <>
+  void pposv<double>(char UPLO, int N, int NRHS,
+             double * A, int IA, int JA, int * DESCA,
+             double * B, int IB, int JB, int * DESCB, int * info);
+  template <>
+  void pposv<std::complex<float>>(char UPLO, int N, int NRHS,
+             std::complex<float> * A, int IA, int JA, int * DESCA,
+             std::complex<float> * B, int IB, int JB, int * DESCB, int * info);
+  template <>
+  void pposv<std::complex<double>>(char UPLO, int N, int NRHS,
+             std::complex<double> * A, int IA, int JA, int * DESCA,
+             std::complex<double> * B, int IB, int JB, int * DESCB, int * info);
+
+
   void cdescinit( int *  desc,
                   int    m,
                   int    n,

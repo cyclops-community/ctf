@@ -59,7 +59,7 @@ namespace CTF_int{
 
 namespace CTF {
   template<typename dtype>
-  Matrix<dtype>::Matrix() : Tensor<dtype>() { 
+  Matrix<dtype>::Matrix() : Tensor<dtype>() {
     nrow = -1;
     ncol = -1;
   }
@@ -120,7 +120,7 @@ namespace CTF {
                         CTF_int::algstrct const & sr_,
                         char const *              name_,
                         int                       profile_)
-    : Tensor<dtype>(2, (atr_&4)>0, CTF_int::int64_t2(nrow_, ncol_), CTF_int::int2(atr_&3, NS), 
+    : Tensor<dtype>(2, (atr_&4)>0, CTF_int::int64_t2(nrow_, ncol_), CTF_int::int2(atr_&3, NS),
                            world_, sr_, name_, profile_) {
     nrow = nrow_;
     ncol = ncol_;
@@ -150,7 +150,7 @@ namespace CTF {
                         char const *              name_,
                         int                       profile_,
                         CTF_int::algstrct const & sr_)
-    : Tensor<dtype>(2, (atr_&4)>0, CTF_int::int64_t2(nrow_, ncol_), CTF_int::int2(atr_&3, NS), 
+    : Tensor<dtype>(2, (atr_&4)>0, CTF_int::int64_t2(nrow_, ncol_), CTF_int::int2(atr_&3, NS),
                            world_, sr_, name_, profile_) {
     nrow = nrow_;
     ncol = ncol_;
@@ -169,7 +169,7 @@ namespace CTF {
                         CTF_int::algstrct const & sr_,
                         char const *              name_,
                         int                       profile_)
-    : Tensor<dtype>(2, (atr_&4)>0, CTF_int::int64_t2(nrow_, ncol_), CTF_int::int2(atr_&3, NS), 
+    : Tensor<dtype>(2, (atr_&4)>0, CTF_int::int64_t2(nrow_, ncol_), CTF_int::int2(atr_&3, NS),
                            world_, idx, prl, blk, name_, profile_, sr_) {
     nrow = nrow_;
     ncol = ncol_;
@@ -324,7 +324,7 @@ namespace CTF {
           memcpy((char*)data_, this->data, sizeof(dtype)*this->size);
         } else {
           for (int64_t i=0; i<ncol/pc; i++){
-            memcpy((char*)(data_+i*lda), this->data+i*lda*sizeof(dtype), nrow*sizeof(dtype)/pr);
+            memcpy((char*)(data_+i*lda), this->data+i*(nrow/pr)*sizeof(dtype), nrow*sizeof(dtype)/pr);
           }
         }
       } else {
@@ -362,8 +362,8 @@ namespace CTF {
   void Matrix<dtype>::get_desc(int & ictxt, int *& desc, char & layout_order){
     IASSERT(this->sym[0] == NS);
     int pr, pc;
-    pr = this->edge_map[0].calc_phase();       
-    pc = this->edge_map[1].calc_phase();       
+    pr = this->edge_map[0].calc_phase();
+    pc = this->edge_map[1].calc_phase();
     IASSERT(this->wrld->np == pr*pc);
 
     layout_order = 'C';
@@ -434,7 +434,7 @@ namespace CTF {
     write_mat(mb,nb,pr,pc,layout_order,rsrc,csrc,lda,data);
   }
 
-  
+
 
   static inline Idx_Partition get_map_from_desc(int const * desc, char layout_order='C'){
 
@@ -566,7 +566,31 @@ namespace CTF {
     S.get_tri(L, lower);
     t_cholesky.stop();
   }
-      
+
+  template<typename dtype>
+  void map_matrix_to_my_context(Matrix<dtype> const * me, Matrix<dtype> & other, Matrix<dtype> & out){
+    Partition part(me->topo->order, me->topo->lens);
+    if (me->topo->order == 2){
+      if (me->edge_map[0].cdt == 0 &&
+          me->edge_map[1].cdt == 1){
+        out = Matrix<dtype>(other.nrow, other.ncol, "ij", part["ij"], Idx_Partition(), 0, *me->wrld, *me->sr);
+
+      } else {
+        IASSERT(me->edge_map[0].cdt == 1 &&
+                me->edge_map[1].cdt == 0);
+        out = Matrix<dtype>(other.nrow, other.ncol, "ij", part["ji"], Idx_Partition(), 0, *me->wrld, *me->sr);
+      }
+    } else {
+      IASSERT(me->topo->order == 1);
+      if (me->edge_map[0].type == CTF_int::PHYSICAL_MAP){
+        out = Matrix<dtype>(other.nrow, other.ncol, "ij", part["i"], Idx_Partition(), 0, *me->wrld, *me->sr);
+      } else {
+        out = Matrix<dtype>(other.nrow, other.ncol, "ij", part["j"], Idx_Partition(), 0, *me->wrld, *me->sr);
+      }
+    }
+    out["ij"] += other["ij"];
+  }
+
   template<typename dtype>
   void Matrix<dtype>::solve_tri(Matrix<dtype> & L, Matrix<dtype> & X, bool lower, bool from_left, bool transp_L){
     Timer t_solve_tri("solve_tri");
@@ -599,25 +623,7 @@ namespace CTF {
     if  (ictxt != ictxt2){
       Partition part(this->topo->order, this->topo->lens);
       Matrix<dtype> L_r;
-      if (this->topo->order == 2){
-        if (this->edge_map[0].cdt == 0 && 
-            this->edge_map[1].cdt == 1){ 
-          L_r = Matrix<dtype>(L.nrow, L.ncol, "ij", part["ij"], Idx_Partition(), 0, *this->wrld, *this->sr);
-  
-        } else {
-          IASSERT(this->edge_map[0].cdt == 1 && 
-                  this->edge_map[1].cdt == 0);
-          L_r = Matrix<dtype>(L.nrow, L.ncol, "ij", part["ji"], Idx_Partition(), 0, *this->wrld, *this->sr);
-        }
-      } else {
-        IASSERT(this->topo->order == 1);
-        if (this->edge_map[0].type == CTF_int::PHYSICAL_MAP){
-          L_r = Matrix<dtype>(L.nrow, L.ncol, "ij", part["i"], Idx_Partition(), 0, *this->wrld, *this->sr);
-        } else {
-          L_r = Matrix<dtype>(L.nrow, L.ncol, "ij", part["j"], Idx_Partition(), 0, *this->wrld, *this->sr);
-        }
-      }
-      L_r["ij"] += L["ij"];
+      map_matrix_to_my_context<dtype>(this, L, L_r);
       L_r.get_desc(ictxt2, descl, layout_order_L);
       IASSERT(ictxt == ictxt2);
       IASSERT(layout_order_A == layout_order_L);
@@ -650,12 +656,160 @@ namespace CTF {
     char DIAG = 'N';
 
     CTF_SCALAPACK::ptrsm<dtype>(SIDE, UPLO, TRANS, DIAG, m, n, 1., dL, 1, 1, descl, A, 1, 1, desca);
-    free(dL); 
+    free(dL);
     X = Matrix<dtype>(desca, A, layout_order_A, (*(this->wrld)));
     free(A);
     free(desca);
     free(descl);
     t_solve_tri.stop();
+  }
+
+  template<typename dtype>
+  void Matrix<dtype>::solve_spd(Matrix<dtype> & M, Matrix<dtype> & X){
+    Timer t_solve_spd("solve_spd");
+    t_solve_spd.start();
+    if (M.sym[0] != NS){
+      Matrix<dtype> MM(M.nrow, M.ncol, *M.wrld);
+      MM["ij"] = M.operator[]("ij");
+      return this->solve_spd(MM, X);
+    }
+
+    int info;
+    int m = M.nrow;
+    int n = M.ncol;
+    IASSERT(m==n);
+    int nrhs = this->ncol;
+
+    int * desca;// = (int*)malloc(9*sizeof(int));
+
+    int ictxt;
+    char layout_order;
+    M.get_desc(ictxt, desca, layout_order);
+
+    int * descb;// = (int*)malloc(9*sizeof(int));
+
+    int ictxt2;
+    char layout_order2;
+    this->get_desc(ictxt2, descb, layout_order2);
+
+    Matrix<dtype> * S;
+    Matrix<dtype> * B;
+
+    if (ictxt != ictxt2){
+      if (nrhs > 2*n){
+        S = &M;
+        B = new Matrix<dtype>();
+        map_matrix_to_my_context<dtype>(&M, *this, *B);
+      } else {
+        S = new Matrix<dtype>();
+        B = this;
+        map_matrix_to_my_context<dtype>(B, M, *S);
+      }
+      free(desca);
+      free(descb);
+      S->get_desc(ictxt, desca, layout_order);
+      B->get_desc(ictxt2, descb, layout_order2);
+    } else {
+      S = &M;
+      B = this;
+    }
+
+
+    IASSERT(ictxt == ictxt2);
+    IASSERT(layout_order == layout_order2);
+
+    int pr, pc;
+    pr = S->edge_map[0].calc_phase();
+    pc = S->edge_map[1].calc_phase();
+
+    int prB, pcB;
+    prB = B->edge_map[0].calc_phase();
+    pcB = B->edge_map[1].calc_phase();
+
+    //CTF_SCSLSPSCK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/(*(S->wrld)).np, &info);
+    int64_t mpr = m/pr + (m % pr != 0);
+    int64_t npc = n/pc + (n % pc != 0);
+    int64_t mprB = m/prB + (m % prB != 0);
+    int64_t nrhspcB = nrhs/pcB + (nrhs % pc != 0);
+
+    // select b to be ceil(k/ceil(k/b)) which is the smallest block size with the same number of block as block size 64
+
+#define SCALAPACK_BSIZE 1
+
+    int nloc_blk = ((mpr+SCALAPACK_BSIZE-1))/SCALAPACK_BSIZE;
+    // adjust to block size that does not require repadding if possible
+    if (nloc_blk > 1 && ((mpr)%nloc_blk) != 0 && ((mpr)%(nloc_blk-1)) == 0) nloc_blk--;
+    if (((m/pr)%nloc_blk) != 0 && ((mpr)%(nloc_blk+1)) == 0) nloc_blk++;
+    int mb = (mpr+nloc_blk-1)/nloc_blk;
+    int nb = std::min(mprB,std::min(npc,(int64_t)mb));
+
+    int64_t pad_mpr = ((mpr + mb - 1) / mb)*mb;
+    int64_t pad_npc = ((npc + nb - 1) / nb)*nb;
+
+    dtype * S_data_pad;
+    if (pad_mpr == mpr){
+      S_data_pad = (dtype*)S->data;
+    } else {
+      S_data_pad = (dtype*)malloc(pad_mpr*pad_npc*sizeof(dtype));
+      S->sr->copy(mpr, npc, (char const *)S->data, mb, (char*)S_data_pad, pad_mpr);
+    }
+
+    //dtype * A = (dtype*)malloc(pad_mpr*pad_npc*sizeof(dtype));
+    //S->read_mat(desca, A, layout_order);
+
+    //CTF_SCMLMPMCK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/(*(M->wrld)).np, &info);
+
+    int mbB = nb;
+    int nrhsbB = std::min(nrhspcB,(int64_t)nb);
+
+    int64_t pad_mprB = ((mprB + mbB - 1) / mbB)*mbB;
+    int64_t pad_nrhspcB = ((nrhspcB + nrhsbB - 1) / nrhsbB)*nrhsbB;
+
+    dtype * B_data_pad;
+    if (pad_mpr == mpr){
+      B_data_pad = (dtype*)B->data;
+    } else {
+      B_data_pad = (dtype*)malloc(pad_mprB*pad_nrhspcB*sizeof(dtype));
+      B->sr->copy(mprB, nrhspcB, (char const *)B->data, mprB, (char *)B_data_pad, pad_mprB);
+      if (B != this){
+        delete B;
+        B = this;
+      }
+    }
+
+    IASSERT(mb==mbB);
+
+    //Trick scalapack into treating the matrix as blocked and not cyclic
+    desca[4] = mb;
+    desca[5] = nb;
+    descb[4] = mbB;
+    descb[5] = nrhsbB;
+
+    CTF_SCALAPACK::pposv<dtype>('L',m,nrhs,S_data_pad,1,1,desca,B_data_pad,1,1,descb,&info);
+
+    desca[4] = 1;
+    desca[5] = 1;
+    descb[4] = 1;
+    descb[5] = 1;
+
+    if (S->data != (char*)S_data_pad) delete S_data_pad;
+    if (S != &M) delete S;
+
+    if (pad_mpr == mpr){
+      X = Matrix<dtype>(descb, B_data_pad, layout_order2, (*(this->wrld)));
+    } else {
+      dtype * X_data_pad = (dtype*)malloc(mprB*nrhspcB*sizeof(dtype));
+      B->sr->copy(mprB, nrhspcB, (char const *)B_data_pad, pad_mprB, (char *)X_data_pad, mprB);
+      X = Matrix<dtype>(descb, X_data_pad, layout_order2, (*(this->wrld)));
+    }
+    if (B != this){
+      delete B;
+      B = this;
+    }
+
+    free(desca);
+    free(descb);
+    t_solve_spd.stop();
   }
 
   template<typename dtype>
@@ -698,7 +852,7 @@ namespace CTF {
     int lwork = CTF_SCALAPACK::get_int_fromreal<dtype>(dlwork);
     dtype * work = (dtype*)malloc(((int64_t)lwork)*sizeof(dtype));
     CTF_SCALAPACK::pgeqrf<dtype>(m,n,A,1,1,desca,tau,work,lwork,&info);
- 
+
     dtype * dQ = (dtype*)malloc(mpr*npc*sizeof(dtype));
     memcpy(dQ,A,mpr*npc*sizeof(dtype));
     free(A);
@@ -776,7 +930,7 @@ namespace CTF {
 
     //if (typeid(dtype) == typeid(std::complex<float>)){
     //  float * s = (float*)CTF_int::alloc(sizeof(float)*k);
-    //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
+    //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);
     //  lwork = CTF_SCALAPACK::get_int_fromreal<dtype>(dlwork);
     //  float * work = (float*)CTF_int::alloc(sizeof(float)*((int64_t)lwork));
     //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
@@ -786,13 +940,13 @@ namespace CTF {
     //  if ((int)(this->wrld->rank) < phase){
     //    for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
     //      s_data[i/phase] = s[i];
-    //    } 
+    //    }
     //  }
     //  CTF_int::cdealloc(s);
     //  CTF_int::cdealloc(work);
     //} else if (typeid(dtype) == typeid(std::complex<double>)){
     //  double * s = (double*)CTF_int::alloc(sizeof(double)*k);
-    //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
+    //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);
     //  lwork = CTF_SCALAPACK::get_int_fromreal<dtype>(dlwork);
     //  double * work = (double*)CTF_int::alloc(sizeof(double)*((int64_t)lwork));
     //  CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
@@ -802,7 +956,7 @@ namespace CTF {
     //  if ((int)(this->wrld->rank) < phase){
     //    for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
     //      s_data[i/phase] = s[i];
-    //    } 
+    //    }
     //  }
     //  CTF_int::cdealloc(s);
     //  CTF_int::cdealloc(work);
@@ -811,7 +965,7 @@ namespace CTF {
     CTF_int::add_estimated_flops(CTF_int::estimate_svd_flops(m, n));
 
     dtype * s = (dtype*)CTF_int::alloc(sizeof(dtype)*k);
-    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
+    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);
     lwork = CTF_SCALAPACK::get_int_fromreal<dtype>(dlwork);
     dtype * work = (dtype*)CTF_int::alloc(sizeof(dtype)*((int64_t)lwork));
     CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);
@@ -830,7 +984,7 @@ namespace CTF {
     if ((int)(this->wrld->rank) < phase){
       for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
         s_data[i/phase] = s[i];
-      } 
+      }
     }
     CTF_int::cdealloc(s);
     CTF_int::cdealloc(work);
@@ -854,7 +1008,7 @@ namespace CTF {
 
   }
 
-    
+
   template<typename dtype>
   void Matrix<dtype>::svd_rand(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank, int iter, int oversamp, Matrix<dtype> * U_guess){
     Timer t_svd("SVD_rand");
@@ -1001,7 +1155,7 @@ namespace CTF {
     if ((int)(this->wrld->rank) < phase){
       for (int i = D.edge_map[0].calc_phys_rank(D.topo); i < n; i += phase) {
         d_data[i/phase] = d[i];
-      } 
+      }
     }
     CTF_int::cdealloc(d);
 
@@ -1015,3 +1169,4 @@ namespace CTF {
   }
 
 }
+
