@@ -114,6 +114,8 @@ namespace CTF_int{
   void matrix_cholesky_cmplx(tensor * A, tensor * L);
   void matrix_trsm(tensor * L, tensor * B, tensor * X, bool lower, bool from_left, bool transp_L);
   void matrix_trsm_cmplx(tensor * L, tensor * B, tensor * X, bool lower, bool from_left, bool transp_L);
+  void matrix_solve_spd(tensor * M, tensor * B, tensor * X);
+  void matrix_solve_spd_cmplx(tensor * M, tensor * B, tensor * X);
   void matrix_svd_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank);
   void matrix_qr(tensor * A, tensor * Q, tensor * R);
   void matrix_qr_cmplx(tensor * A, tensor * Q, tensor * R);

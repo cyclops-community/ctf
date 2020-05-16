@@ -8,31 +8,31 @@ namespace CTF {
    */
 
   /**
-   * \brief Matrix class which encapsulates a 2D tensor 
+   * \brief Matrix class which encapsulates a 2D tensor
    * \param[in] dtype specifies tensor element type
    */
 	//template<typename dtype>
 	//class Vector : public Tensor<dtype>;
 
-  template<typename dtype=double> 
+  template<typename dtype=double>
   class Matrix : public Tensor<dtype> {
     public:
       int64_t nrow, ncol;
       int symm;
-      /** 
+      /**
        * \brief default constructor for a matrix
        */
       Matrix();
 
 
-      /** 
+      /**
        * \brief copy constructor for a matrix
        * \param[in] A matrix to copy along with its data
        */
       Matrix(Matrix<dtype> const & A);
 
 
-      /** 
+      /**
        * \brief casts a tensor to a matrix
        * \param[in] A tensor object of order 2
        */
@@ -46,7 +46,7 @@ namespace CTF {
        * \param[in] sr defines the tensor arithmetic for this tensor
        * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
-       */ 
+       */
       Matrix(int64_t                   nrow,
              int64_t                   ncol,
              World &                   wrld,
@@ -62,7 +62,7 @@ namespace CTF {
        * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        * \param[in] sr defines the tensor arithmetic for this tensor
-       */ 
+       */
       Matrix(int64_t                   nrow,
              int64_t                   ncol,
              World &                   wrld,
@@ -81,7 +81,7 @@ namespace CTF {
        * \param[in] sr defines the tensor arithmetic for this tensor
        * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
-       */ 
+       */
       Matrix(int64_t                   nrow,
              int64_t                   ncol,
              int                       atr=0,
@@ -99,7 +99,7 @@ namespace CTF {
        * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        * \param[in] sr defines the tensor arithmetic for this tensor
-       */ 
+       */
       Matrix(int64_t                   nrow,
              int64_t                   ncol,
              int                       atr,
@@ -111,7 +111,7 @@ namespace CTF {
 
 
       /**
-       * \brief constructor for a matrix with a given guessial cyclic distribution 
+       * \brief constructor for a matrix with a given guessial cyclic distribution
        * \param[in] nrow number of matrix rows
        * \param[in] ncol number of matrix columns
        * \param[in] idx assignment of characters to each dim
@@ -122,7 +122,7 @@ namespace CTF {
        * \param[in] sr defines the tensor arithmetic for this tensor
        * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
-       */ 
+       */
       Matrix(int64_t                   nrow,
              int64_t                   ncol,
              char const *              idx,
@@ -159,7 +159,7 @@ namespace CTF {
                      dtype const * data);
 
 
- 
+
       /**
        * \brief constructor for a nonsymmetric matrix with a block-cyclic guessial distribution
        *        this is `cheap' if mb=nb=1, nrow%pr=0, ncol%pc=0, but is done via sparse read/write otherwise
@@ -195,7 +195,7 @@ namespace CTF {
              CTF_int::algstrct const & sr=Ring<dtype>(),
              char const *              name=NULL,
              int                       profile=0);
-     
+
 
       /**
        * \brief construct Matrix from ScaLAPACK array descriptor
@@ -242,7 +242,7 @@ namespace CTF {
                     int     lda,
                     dtype * data);
 
-  
+
       /**
        * \brief get a ScaLAPACK descriptor for this Matrix, will always be in pure cyclic layout
        * \param[out] ictxt index of newly created context
@@ -285,6 +285,14 @@ namespace CTF {
        * \param[in] lower if true L is lower triangular of false, upper
        */
       void cholesky(Matrix<dtype> & L, bool lower=true);
+
+      /*
+       * \calculates Solves symmetric positive definite systems of equations
+       * \param[in] M n-by-n symmetric/Hermitian positive definite matrix
+       * \param[out] X m-by-k matrix of right hand sides, of same dimensions as this matrix
+       * \param[in] from_left if true solve MX=this with m=n and k=nrhs and if false solve XM=this with k=n and m=nrhs
+       */
+      void solve_spd(Matrix<dtype> & A, Matrix<dtype> & X);
 
       /*
        * \calculates triangular solve with many right-hand sides, this matrix is the right or left-hand-side
@@ -338,3 +346,4 @@ namespace CTF {
 }
 #include "matrix.cxx"
 #endif
+

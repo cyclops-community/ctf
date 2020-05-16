@@ -185,6 +185,8 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void subsample(ctensor * A, double probability)
     cdef void matrix_cholesky(ctensor * A, ctensor * L)
     cdef void matrix_cholesky_cmplx(ctensor * A, ctensor * L)
+    cdef void matrix_solve_spd(ctensor * M, ctensor * B, ctensor * X)
+    cdef void matrix_solve_spd_cmplx(ctensor * M, ctensor * B, ctensor * X)
     cdef void matrix_trsm(ctensor * L, ctensor * B, ctensor * X, bool lower, bool from_left, bool transp_L)
     cdef void matrix_trsm_cmplx(ctensor * L, ctensor * B, ctensor * X, bool lower, bool from_left, bool transp_L)
     cdef void matrix_qr(ctensor * A, ctensor * Q, ctensor * R)
@@ -5905,6 +5907,40 @@ def solve_tri(tensor L, tensor B, lower=True, from_left=True, transp_L=False):
         matrix_trsm(L.dt, B.dt, X.dt, not lower, not from_left, transp_L)
     t_solve_tri.stop()
     return X
+
+def solve_spd(tensor M, tensor B):
+    """
+    solve_tri(M,B,from_left)
+
+    Parameters
+    ----------
+    M: tensor_like
+       Symmetric or Hermitian positive definite matrix
+
+    B: tensor_like
+       Left-hand sides
+
+    Returns
+    -------
+    X: tensor
+        CTF matrix containing solutions to triangular equations, same shape as B, solution to XM=B
+    """
+    t_solve_spd = timer("pysolve_spd")
+    t_solve_spd.start()
+    if not isinstance(M,tensor) or M.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: solve_spd called on invalid tensor, must be CTF matrix')
+    if not isinstance(B,tensor) or B.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: solve_spd called on invalid tensor, must be CTF matrix')
+    if M.dtype != B.dtype:
+        raise ValueError('CTF PYTHON ERROR: solve_spd dtype of B and M must match')
+    X = tensor(B.shape, dtype=B.dtype)
+    if B.dtype == np.float64 or B.dtype == np.float32:
+        matrix_solve_spd(M.dt, B.dt, X.dt)
+    elif B.dtype == np.complex128 or B.dtype == np.complex64:
+        matrix_solve_spd_cmplx(M.dt, B.dt, X.dt)
+    t_solve_spd.stop()
+    return X
+
 
 def eigh(tensor A):
     """

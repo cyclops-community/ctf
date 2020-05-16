@@ -32,6 +32,10 @@
 #define PDTRSM pdtrsm_
 #define PCTRSM pctrsm_
 #define PZTRSM pztrsm_
+#define PSPOSV psposv_
+#define PDPOSV pdposv_
+#define PCPOSV pcposv_
+#define PZPOSV pzposv_
 #define DESCINIT descinit_
 #define BLACS_GRIDINFO blacs_gridinfo_
 #define BLACS_GRIDINIT blacs_gridinit_
@@ -63,6 +67,10 @@
 #define PDTRSM pdtrsm
 #define PCTRSM pctrsm
 #define PZTRSM pztrsm
+#define PSPOSV psposv
+#define PDPOSV pdposv
+#define PCPOSV pcposv
+#define PZPOSV pzposv
 #define DESCINIT descinit
 #define BLACS_GRIDINFO blacs_gridinfo
 #define BLACS_GRIDINIT blacs_gridinit
@@ -499,6 +507,28 @@ namespace CTF_SCALAPACK{
               int * M, int * N, std::complex<double> * ALPHA,
               std::complex<double> * A, int * IA, int * JA, int * DESCA,
               std::complex<double> * B, int * IB, int * JB, int * DESCB);
+
+  extern "C"
+  void PSPOSV(char * UPLO, int * N, int * NRHS,
+             float * A, int * IA, int * JA, int * DESCA,
+             float * B, int * IB, int * JB, int * DESCB, int * info);
+
+  extern "C"
+  void PDPOSV(char * UPLO, int * N, int * NRHS,
+             double * A, int * IA, int * JA, int * DESCA,
+             double * B, int * IB, int * JB, int * DESCB, int * info);
+
+
+  extern "C"
+  void PCPOSV(char * UPLO, int * N, int * NRHS,
+             std::complex<float> * A, int * IA, int * JA, int * DESCA,
+             std::complex<float> * B, int * IB, int * JB, int * DESCB, int * info);
+
+
+  extern "C"
+  void PZPOSV(char * UPLO, int * N, int * NRHS,
+             std::complex<double> * A, int * IA, int * JA, int * DESCA,
+             std::complex<double> * B, int * IB, int * JB, int * DESCB, int * info);
 
 
   extern "C"
@@ -1233,6 +1263,51 @@ namespace CTF_SCALAPACK{
     assert(0);
 #endif
   }
+
+
+  template <>
+  void pposv<float>(char UPLO, int N, int NRHS,
+             float * A, int IA, int JA, int * DESCA,
+             float * B, int IB, int JB, int * DESCB, int * info){
+#ifdef USE_SCALAPACK
+    PSPOSV(&UPLO, &N, &NRHS, A, &IA, &JA, DESCA, B, &IB, &JB, DESCB, info);
+#else
+    assert(0);
+#endif
+  }
+  template <>
+  void pposv<double>(char UPLO, int N, int NRHS,
+             double * A, int IA, int JA, int * DESCA,
+             double * B, int IB, int JB, int * DESCB, int * info){
+#ifdef USE_SCALAPACK
+    PDPOSV(&UPLO, &N, &NRHS, A, &IA, &JA, DESCA, B, &IB, &JB, DESCB, info);
+#else
+    assert(0);
+#endif
+
+  }
+  template <>
+  void pposv<std::complex<float>>(char UPLO, int N, int NRHS,
+             std::complex<float> * A, int IA, int JA, int * DESCA,
+             std::complex<float> * B, int IB, int JB, int * DESCB, int * info){
+#ifdef USE_SCALAPACK
+    PCPOSV(&UPLO, &N, &NRHS, A, &IA, &JA, DESCA, B, &IB, &JB, DESCB, info);
+#else
+    assert(0);
+#endif
+  }
+  template <>
+  void pposv<std::complex<double>>(char UPLO, int N, int NRHS,
+             std::complex<double> * A, int IA, int JA, int * DESCA,
+             std::complex<double> * B, int IB, int JB, int * DESCB, int * info){
+#ifdef USE_SCALAPACK
+    PZPOSV(&UPLO, &N, &NRHS, A, &IA, &JA, DESCA, B, &IB, &JB, DESCB, info);
+#else
+    assert(0);
+#endif
+  }
+
+
 
   void cdescinit(int *  desc,
                  int    m,

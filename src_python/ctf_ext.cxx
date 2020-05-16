@@ -194,6 +194,68 @@ namespace CTF_int{
     }
   }
 
+  void matrix_solve_spd(tensor * M, tensor * B, tensor * X){
+   switch (B->sr->el_size){
+      case 4:
+        {
+          CTF::Matrix<float> mB(*B);
+          CTF::Matrix<float> mM(*M);
+          CTF::Matrix<float> mX;
+          mB.solve_spd(mM, mX);
+          (*X)["ij"] = mX["ij"];
+        }
+        break;
+
+
+      case 8:
+        {
+          CTF::Matrix<double> mB(*B);
+          CTF::Matrix<double> mM(*M);
+          CTF::Matrix<double> mX;
+          mB.solve_spd(mM, mX);
+          (*X)["ij"] = mX["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+
+  }
+  void matrix_solve_spd_cmplx(tensor * M, tensor * B, tensor * X){
+   switch (B->sr->el_size){
+      case 8:
+        {
+          CTF::Matrix<std::complex<float>> mB(*B);
+          CTF::Matrix<std::complex<float>> mM(*M);
+          CTF::Matrix<std::complex<float>> mX;
+          mB.solve_spd(mM, mX);
+          (*X)["ij"] = mX["ij"];
+        }
+        break;
+
+
+      case 16:
+        {
+          CTF::Matrix<std::complex<double>> mB(*B);
+          CTF::Matrix<std::complex<double>> mM(*M);
+          CTF::Matrix<std::complex<double>> mX;
+          mB.solve_spd(mM, mX);
+          (*X)["ij"] = mX["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+
+  }
+
+
   void matrix_cholesky(tensor * A, tensor * L){
    switch (A->sr->el_size){
       case 4:
