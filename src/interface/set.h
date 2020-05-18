@@ -7,6 +7,9 @@
 #include <limits>
 #include <inttypes.h>
 #include "../shared/memcontrol.h"
+#ifdef _OPENMP
+#include "omp.h"
+#endif
 
 namespace CTF {
   /**
@@ -653,6 +656,25 @@ namespace CTF {
       }
 
       void set(char * a, char const * b, int64_t n) const {
+        if (n >= 100) {
+#ifdef _OPENMP
+          dtype *ia = (dtype*)a;
+          dtype ib = *((dtype*)b);
+          #pragma omp parallel
+          {
+            int64_t tid = omp_get_thread_num();
+            int64_t chunksize = n / omp_get_num_threads();
+            dtype *begin = ia + chunksize * tid;
+            dtype *end;
+            if (tid == omp_get_num_threads() - 1)
+              end = ia + n;
+            else
+              end = begin + chunksize;
+            std::fill(begin, end, ib);
+          }
+          return;
+#endif
+        }
         std::fill((dtype*)a, ((dtype*)a)+n, *((dtype*)b));
       }
 
@@ -689,7 +711,7 @@ namespace CTF {
       }
 
     void init(int64_t n, char * arr) const {
-      std::fill((dtype*)arr,((dtype*)arr)+n,dtype());
+      set(arr, this->addid(), n);
     }
 
     /** \brief initialize n objects to zero
