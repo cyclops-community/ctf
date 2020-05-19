@@ -485,6 +485,7 @@ namespace CTF_int {
   int64_t choose(int64_t n, int64_t k);  
   void get_choice(int n, int k, int ch, int64_t * chs);
   int64_t chchoose(int64_t n, int64_t k);
+
 }
 #endif
 

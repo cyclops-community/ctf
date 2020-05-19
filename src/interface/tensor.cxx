@@ -660,7 +660,7 @@ namespace CTF {
                                     dtype           beta,
                                     int64_t const * inds,
                                     dtype const *   data) {
-    int ret, j;
+    int ret;
     int64_t i;
     char * cpairs = sr->pair_alloc(npair);
     Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
@@ -671,7 +671,7 @@ namespace CTF {
     for (i=0; i<npair; i++){
       int64_t k = 0;
       int64_t lda = 1;
-      for (j=0; j<this->order; j++){
+      for (int j=0; j<this->order; j++){
         k += inds[i*this->order+j] * lda;
         lda *= this->lens[j];
       }
@@ -687,7 +687,7 @@ namespace CTF {
   void Tensor<dtype>::write_aos_idx(int64_t         npair,
                                     int64_t const * inds,
                                     dtype const *   data) {
-    int ret, j;
+    int ret;
     int64_t i;
     char * cpairs = sr->pair_alloc(npair);
     Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
@@ -698,7 +698,7 @@ namespace CTF {
     for (i=0; i<npair; i++){
       int64_t k = 0;
       int64_t lda = 1;
-      for (j=0; j<this->order; j++){
+      for (int j=0; j<this->order; j++){
         k += inds[i*this->order+j] * lda;
         lda *= this->lens[j];
       }
@@ -739,7 +739,7 @@ namespace CTF {
                                     dtype           beta,
                                     int const *     inds,
                                     dtype const *   data) {
-    int64_t i, j;
+    int64_t i;
     int ret;
     char * cpairs = sr->pair_alloc(npair);
     Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
@@ -750,7 +750,7 @@ namespace CTF {
     for (i=0; i<npair; i++){
       int64_t k = 0;
       int64_t lda = 1;
-      for (j=0; j<this->order; j++){
+      for (int j=0; j<this->order; j++){
         k += inds[i*this->order+j] * lda;
         lda *= this->lens[j];
       }
@@ -766,7 +766,7 @@ namespace CTF {
   void Tensor<dtype>::write_aos_idx(int64_t         npair,
                                     int const *     inds,
                                     dtype const *   data) {
-    int ret, i, j;
+    int ret, i;
     char * cpairs = sr->pair_alloc(npair);
     Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
 
@@ -776,7 +776,7 @@ namespace CTF {
     for (i=0; i<npair; i++){
       int64_t k = 0;
       int64_t lda = 1;
-      for (j=0; j<this->order; j++){
+      for (int j=0; j<this->order; j++){
         k += inds[i*this->order+j] * lda;
         lda *= this->lens[j];
       }
@@ -1361,11 +1361,9 @@ NORM1_INST(double)
   static void manual_norm2(Tensor<dtype> & A, double & nrm, std::function<double(dtype)> cond_to_dbl){
 #ifdef _OPENMP
     double * nrm_parts = (double*)malloc(sizeof(double)*omp_get_max_threads());
-#endif
     for (int i=0; i<omp_get_max_threads(); i++){
       nrm_parts[i] = 0;
     }
-#ifdef _OPENMP
     #pragma omp parallel
 #endif
     {
@@ -1405,16 +1403,17 @@ NORM1_INST(double)
       nrm = loc_nrm;
 #endif
     }
+#pragma omp barrier
 #ifdef _OPENMP
     nrm = 0.;
     for (int i=0; i<omp_get_max_threads(); i++){
       nrm += nrm_parts[i];
     }
+    free(nrm_parts);
+#endif
     double glb_nrm;
     MPI_Allreduce(&nrm, &glb_nrm, 1, MPI_DOUBLE, MPI_SUM, A.wrld->comm);
-    nrm = glb_nrm;
-#endif
-    nrm = std::sqrt(nrm);
+    nrm = std::sqrt(glb_nrm);
   }
 
   template<typename dtype>
@@ -1470,7 +1469,7 @@ NORM1_INST(double)
 #define NORM2_REAL_INST(dtype) \
   template<> \
   inline void Tensor<dtype>::norm2(double & nrm){ \
-    if (this->has_symmetry()) \
+    if (has_symmetry()) \
       real_norm2<dtype>(*this, nrm); \
     else \
       manual_norm2<dtype>(*this, nrm, &to_dbl<dtype>); \
@@ -1479,7 +1478,7 @@ NORM1_INST(double)
 #define NORM2_COMPLEX_INST(dtype) \
   template<> \
   inline void Tensor< std::complex<dtype> >::norm2(double & nrm){ \
-    if (this->has_symmetry()) \
+    if (has_symmetry()) \
       complex_norm2< std::complex<dtype> >(*this, nrm); \
     else \
       manual_norm2< std::complex<dtype> >(*this, nrm, &cmplx_to_dbl< std::complex<dtype> >); \

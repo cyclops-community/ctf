@@ -8,6 +8,9 @@
 #include <inttypes.h>
 #include "../shared/memcontrol.h"
 
+#ifdef _OPENMP
+#include "omp.h"
+#endif
 namespace CTF {
   /**
    * \brief index-value pair used for tensor data input
@@ -69,26 +72,7 @@ namespace CTF_int {
       bool b = try_mkl_coo_to_csr(nz, nrow, (char*)csr_vs, csr_ja, csr_ia, (char const*)coo_vs, coo_rs, coo_cs, sz);
       if (b) return;
     }
-    csr_ia[0] = 1;
-#ifdef _OPENMP
-    #pragma omp parallel for
-#endif
-    for (int i=1; i<nrow+1; i++){
-      csr_ia[i] = 0;
-    }
-#ifdef _OPENMP
-    #pragma omp parallel for
-#endif
-    for (int64_t i=0; i<nz; i++){
-      csr_ia[coo_rs[i]]++;
-    }
-#ifdef _OPENMP
-    #pragma omp parallel for
-#endif
-    for (int i=0; i<nrow; i++){
-      csr_ia[i+1] += csr_ia[i];
-      //printf("csr_ia[%d/%d] = %d\n",i,nrow,csr_ia[i]);
-    }
+
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
@@ -130,7 +114,55 @@ namespace CTF_int {
     for (int64_t i=0; i<nz; i++){
       csr_ja[i] = coo_cs[csr_ja[i]];
     }
+    csr_ia[0] = 1;
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int i=1; i<nrow+1; i++){
+      csr_ia[i] = 0;
+    }
+#ifdef _OPENMP
+    int * scoo_rs = (int*)CTF_int::alloc(sizeof(int)*nz);
+    memcpy(scoo_rs, coo_rs, nz*sizeof(int));
+    std::sort(scoo_rs,scoo_rs+nz);
+    #pragma omp parallel 
+    {
+      int tid = omp_get_thread_num();
+      int ntd = omp_get_num_threads();
+      int64_t i_st = tid*(nz/ntd)+std::min(tid,(int)(nz%ntd));
+      int64_t i_end = (tid+1)*(nz/ntd)+std::min((tid+1),(int)(nz%ntd));
+      while (i_st > 0 && i_st < nz && scoo_rs[i_st] == scoo_rs[i_st-1]) i_st++;
+      while (i_end < nz && scoo_rs[i_end] == scoo_rs[i_end-1]) i_end++;
+      for (int64_t i=i_st; i<i_end; i++){
+        csr_ia[scoo_rs[i]]++;
+      }
+    }
+    CTF_int::cdealloc(scoo_rs);
+#else
+    for (int64_t i=0; i<nz; i++){
+      //printf("scoo_rs[%d]=%d\n",i,scoo_rs[i]);
+      csr_ia[coo_rs[i]]++;
+    }
+#endif
 
+#ifdef _OPENMP
+    //int * csr_ia2 = (int*)CTF_int::alloc(sizeof(int)*(nrow+1));
+    //CTF_int::prefix<int>(nrow+1, csr_ia, csr_ia2);
+    ////memcpy(csr_ia, csr_ia2, nrow*sizeof(int));
+    //#pragma omp parallel for
+    //for (int i=0; i<nrow+1; i++){
+    //  assert((i==0 && csr_ia2[i] == 0) || csr_ia[i-1] == csr_ia2[i]);
+    //  csr_ia[i] += csr_ia2[i];
+    //  printf("csr_ia[%d/%d] = %d\n",i,nrow,csr_ia[i]);
+    //}
+    //CTF_int::cdealloc(csr_ia2);
+    CTF_int::parallel_postfix<int>(nrow+1, 1, csr_ia);
+#else
+    for (int i=0; i<nrow; i++){
+      csr_ia[i+1] += csr_ia[i];
+      //printf("csr_ia[%d/%d] = %d\n",i,nrow,csr_ia[i]);
+    }
+#endif
   }
 
   template <typename dtype>

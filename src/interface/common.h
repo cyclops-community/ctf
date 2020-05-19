@@ -275,6 +275,88 @@ namespace CTF_int {
    */
   bool get_mpi_dt(int64_t count, int64_t datum_size, MPI_Datatype & dt);
 
+  /**
+   * \brief compute prefix sum
+   * \param[in] n integer length of array
+   * \param[in] A array of input data of size n
+   * \param[in,out] B initially zero array of size n, on output B[i] = sum_{j=0}^i/stride A[j*stride]
+   */
+  template <typename dtype>
+  void parallel_postfix(int64_t n, int64_t stride, dtype * B){
+    if ((n+stride-1)/stride <= 2){
+      if ((n+stride-1)/stride == 2)
+        B[stride] += B[0];
+    } else {
+      int64_t stride2 = 2*stride;
+#ifdef _OPENMP
+      #pragma omp parallel for
+#endif
+      for (int64_t i=stride; i<n; i+=stride2){
+        B[i] = B[i]+B[i-stride];
+      }
+      parallel_postfix(n-stride, stride2, B+stride);
+#ifdef _OPENMP
+      #pragma omp parallel for
+#endif
+      for (int64_t i=stride; i<n-stride; i+=stride2){
+        B[i+stride] += B[i];
+      }
+    }
+  }
+
+  /**
+   * \brief compute prefix sum
+   * \param[in] n integer length of array
+   * \param[in] A array of input data of size n
+   * \param[in,out] B initially zero array of size n, on output B[i] = sum_{j=0}^i/stride-1 A[j*stride]
+   */
+  template <typename dtype>
+  void parallel_prefix(int64_t n, int64_t stride, dtype * B){
+    if (n/stride < 2){
+      if ((n-1)/stride >= 1)
+        B[stride] = B[0];
+      B[0] = 0.;
+    } else {
+      int64_t stride2 = 2*stride;
+#ifdef _OPENMP
+      #pragma omp parallel for
+#endif
+      for (int64_t i=stride; i<n; i+=stride2){
+        B[i] = B[i]+B[i-stride];
+      }
+      int64_t nsub = (n+stride-1)/stride;
+      if (nsub % 2 != 0){
+        B[(nsub-1)*stride]  = B[(nsub-2)*stride];
+      }
+      parallel_prefix(n-stride, stride2, B+stride);
+      if (nsub % 2 != 0){
+        B[(nsub-1)*stride] += B[(nsub-2)*stride];
+      }
+#ifdef _OPENMP
+      #pragma omp parallel for
+#endif
+      for (int64_t i=stride; i<n; i+=stride2){
+        dtype num = B[i-stride];
+        B[i-stride] = B[i];
+        B[i] += num;
+      }
+    }
+  }
+
+  /**
+   * \brief compute prefix sum
+   * \param[in] n integer length of array
+   * \param[in] A array of input data of size n
+   * \param[in,out] B initially zero array of size n, on output B[i] = sum_{j=0}^i-1 A[j]
+   */
+  template <typename dtype>
+  void prefix(int64_t n, dtype const * A, dtype * B){
+    #pragma omp parallel for
+    for (int64_t i=0; i<n; i++){
+      B[i] = A[i];
+    }
+    CTF_int::parallel_prefix<dtype>(n, 1, B);
+  }
 
 }
 #endif

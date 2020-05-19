@@ -158,7 +158,7 @@ namespace CTF {
 
   int World::initialize(int                   argc,
                         const char * const *  argv){
-    char * size, * mem_size, * ppn;
+    char * mem_size, * ppn;
     if (comm == MPI_COMM_WORLD && universe_exists){
       delete phys_topology;
       *this = universe;

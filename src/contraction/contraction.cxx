@@ -2721,7 +2721,7 @@ namespace CTF_int {
       need_remap_C = 1;
     if (need_remap_C) {
       est_time += 2.*C->est_redist_time(*dC, nnz_frac_C);
-      mem_redist_tmp += C->get_redist_mem(*dB, nnz_frac_C);
+      mem_redist_tmp += C->get_redist_mem(*dC, nnz_frac_C);
       //mem_redist += (int64_t)(nnz_frac_C*C->size*C->sr->pair_size()) +C->get_redist_mem(*dC, nnz_frac_C);
     }
     assert(mem_fold_tmp >= 0);

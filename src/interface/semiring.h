@@ -6,7 +6,6 @@
 #include "../sparse_formats/ccsr.h"
 #include "../redistribution/nosym_transp.h"
 #include <iostream>
-
 using namespace std;
 
 namespace CTF_int {

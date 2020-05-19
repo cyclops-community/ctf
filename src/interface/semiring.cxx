@@ -373,9 +373,9 @@ namespace CTF_int {
     #pragma omp parallel for
 #endif
     for (int row_A=0; row_A<m; row_A++){
-#ifdef USE_OMP
-      #pragma omp parallel for
-#endif
+//#ifdef USE_OMP
+//      #pragma omp parallel for
+//#endif
       for (int col_B=0; col_B<n; col_B++){
         C[col_B*m+row_A] *= beta;
         if (IA[row_A] < IA[row_A+1]){

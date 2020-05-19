@@ -125,7 +125,7 @@ class KnowValues(unittest.TestCase):
 
     def test_MTTKRP_vec(self):
         for N in range(2,5):
-            lens = numpy.random.randint(2, 4, N)
+            lens = numpy.random.randint(3, 4, N)
             A = ctf.tensor(lens)
             A.fill_sp_random(-1.,1.,.5)
             mats = []
@@ -145,7 +145,7 @@ class KnowValues(unittest.TestCase):
     def test_MTTKRP_mat(self):
         k = 9
         for N in range(2,5):
-            lens = numpy.random.randint(2, 4, N)
+            lens = numpy.random.randint(3, 4, N)
             A = ctf.tensor(lens)
             A.fill_sp_random(-1.,1.,.5)
             mats = []
