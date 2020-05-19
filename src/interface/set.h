@@ -711,7 +711,8 @@ namespace CTF {
       }
 
     void init(int64_t n, char * arr) const {
-      set(arr, this->addid(), n);
+      dtype addid = dtype();
+      set(arr, (char const *)&addid, n);
     }
 
     /** \brief initialize n objects to zero
