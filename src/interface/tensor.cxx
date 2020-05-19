@@ -4,6 +4,9 @@
 #include "world.h"
 #include "idx_tensor.h"
 #include "../tensor/untyped_tensor.h"
+#ifdef _OPENMP
+#include "omp.h"
+#endif
 
 namespace CTF_int {
   int64_t proc_bytes_available();
@@ -1344,6 +1347,76 @@ NORM1_INST(int64_t)
 NORM1_INST(float)
 NORM1_INST(double)
 
+  template <typename dtype>
+  static double to_dbl(dtype a){
+    return (double)a;
+  }
+
+  template <typename dtype>
+  static double cmplx_to_dbl(dtype a){
+    return (double)std::abs(a);
+  }
+
+  template <typename dtype>
+  static void manual_norm2(Tensor<dtype> & A, double & nrm, std::function<double(dtype)> cond_to_dbl){
+#ifdef _OPENMP
+    double * nrm_parts = (double*)malloc(sizeof(double)*omp_get_max_threads());
+#endif
+    for (int i=0; i<omp_get_max_threads(); i++){
+      nrm_parts[i] = 0;
+    }
+#ifdef _OPENMP
+    #pragma omp parallel
+#endif
+    {
+#ifdef _OPENMP
+      int tid = omp_get_thread_num();
+      int ntd = omp_get_num_threads();
+#else
+      int tid = 0;
+      int ntd = 1;
+#endif
+      int64_t num_el;
+      if (A.is_sparse){
+        num_el = A.nnz_loc;
+      } else {
+        num_el = A.size;
+      }
+      double loc_nrm = 0;
+      int64_t i_st = tid*(num_el/ntd);
+      i_st += std::min((int64_t)tid,num_el%ntd);
+      int64_t i_end = (tid+1)*(num_el/ntd);
+      i_end += std::min((int64_t)(tid+1),num_el%ntd);
+      if (A.is_sparse){
+        CTF_int::ConstPairIterator pi(A.sr, A.data);
+        for (int64_t i=i_st; i<i_end; i++){
+          double val = cond_to_dbl((*((dtype*)(pi[i].d()))));
+          loc_nrm += val*val;
+        }
+      } else {
+        for (int64_t i=i_st; i<i_end; i++){
+          double val = cond_to_dbl(((dtype*)A.data)[i]);
+          loc_nrm += val*val;
+        }
+      }
+#ifdef _OPENMP
+      nrm_parts[tid] = loc_nrm;
+#else
+      nrm = loc_nrm;
+#endif
+    }
+#ifdef _OPENMP
+    nrm = 0.;
+    for (int i=0; i<omp_get_max_threads(); i++){
+      nrm += nrm_parts[i];
+    }
+    double glb_nrm;
+    MPI_Allreduce(&nrm, &glb_nrm, 1, MPI_DOUBLE, MPI_SUM, A.wrld->comm);
+    nrm = glb_nrm;
+#endif
+    nrm = std::sqrt(nrm);
+  }
+
   template<typename dtype>
   static void real_norm2(Tensor<dtype> & A, double & nrm){
     char inds[A.order];
@@ -1397,13 +1470,19 @@ NORM1_INST(double)
 #define NORM2_REAL_INST(dtype) \
   template<> \
   inline void Tensor<dtype>::norm2(double & nrm){ \
-    real_norm2<dtype>(*this, nrm); \
+    if (this->has_symmetry()) \
+      real_norm2<dtype>(*this, nrm); \
+    else \
+      manual_norm2<dtype>(*this, nrm, &to_dbl<dtype>); \
   }
 
 #define NORM2_COMPLEX_INST(dtype) \
   template<> \
   inline void Tensor< std::complex<dtype> >::norm2(double & nrm){ \
-    complex_norm2< std::complex<dtype> >(*this, nrm); \
+    if (this->has_symmetry()) \
+      complex_norm2< std::complex<dtype> >(*this, nrm); \
+    else \
+      manual_norm2< std::complex<dtype> >(*this, nrm, &cmplx_to_dbl< std::complex<dtype> >); \
   }
 
 
@@ -1784,6 +1863,7 @@ NORM_INFTY_INST(double)
   }
 
 }
+
 
 
 

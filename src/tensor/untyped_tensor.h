@@ -988,6 +988,12 @@ namespace CTF_int {
                            int         order_C=0,
                            int const * idx_C=NULL,
                            int **      new_idx_C=NULL);
+
+      /**
+       * \brief checks if there is any symmetry defined as part of sym
+       * \return true if sym[i] != NS for some i
+       */
+      bool has_symmetry();
   };
 }
 #endif// __UNTYPED_TENSOR_H__

@@ -3439,5 +3439,15 @@ namespace CTF_int {
     this->operator[](str) = func->operator()(A->operator[](str),B->operator[](str));
     delete func;
 	}
+
+  bool tensor::has_symmetry(){
+    bool is_nonsym=true;
+    for (int i=0; i<order; i++){
+      if (sym[i] != NS){
+        is_nonsym = false;
+      }
+    }
+    return !is_nonsym;
+  }
 }
 
