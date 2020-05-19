@@ -114,7 +114,7 @@ namespace CTF {
       }
 
       void init(int64_t n, char * arr) const {
-        std::fill((dtype*)arr,((dtype*)arr)+n,taddid);
+        this->set(arr, (char const *)&taddid, n);
       }
 
       void axpy(int          n,
