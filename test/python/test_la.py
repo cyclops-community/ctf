@@ -226,6 +226,8 @@ class KnowValues(unittest.TestCase):
                 A = ctf.dot(A.T(),A)
                 C = ctf.random.random((k,n),dtype=dt)
                 Y = ctf.solve_spd(A,C)
+                #print(C,Y)
+                #print(n,k)
                 self.assertTrue(allclose(ctf.dot(Y,A), C))
 
 
