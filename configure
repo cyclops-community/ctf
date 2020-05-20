@@ -1362,7 +1362,7 @@ for mod in mods:
             mod[0],
             [mod[1]],
             language="c++",
-            include_dirs=[numpy.get_include(),"$BUILDDIR/include","$INCLUDES".replace("-I",""),"."],
+            include_dirs=[numpy.get_include(),"$BUILDDIR/include","."]+"$INCLUDES".replace("-I","").split(),
             libraries="-lctf $LD_LIBS".replace('-l','').replace('$BDYNAMIC','').split(),
             extra_compile_args="$CXXFLAGS $CORRFLAGS".split(),
             extra_link_args="-L$BUILDDIR/lib_shared $CXXFLAGS $LD_LIB_PATH $LINKFLAGS $LDFLAGS".split()
