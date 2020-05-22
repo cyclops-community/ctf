@@ -24,7 +24,7 @@ void bench_nosym_transp(int          n,
   printf("Performing transposes n=%d, order=%d, %s<->%s:\n",n,order,iA,iB);
   Ring<> r;
 
-  int edge_len[order];
+  int64_t edge_len[order];
   int new_order[order];
 
   int64_t N=1;
