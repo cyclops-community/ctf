@@ -457,6 +457,21 @@ function defaultflags
             PASS_TO_LINKER='-Wl,'
             ;;
     esac
+
+    case $compiler in
+        intel)
+            if [ "x$SEQCXX"    = "x" ]; then SEQCXX='icpc'; fi
+            ;;
+        gnu )
+            if [ "x$SEQCXX"    = "x" ]; then SEQCXX='g++'; fi
+            ;;
+        clang)
+            if [ "x$SEQCXX"    = "x" ]; then SEQCXX='clang++'; fi
+            ;;
+        *)
+            if [ "x$SEQCXX"    = "x" ]; then SEQCXX=$CXX; fi
+            ;;
+    esac
 }
 
 function check_if_apple
@@ -1106,7 +1121,7 @@ if [ $BUILD_HPTT = 1 ]; then
     mv hptt-master hptt;
   fi
   cd hptt;
-  CXX=$CXX make
+  CXX=$SEQCXX make
   LIB_PATH="$LIB_PATH -L$BUILDDIR/hptt/lib"
   LD_LIB_PATH="$LD_LIB_PATH -L$BUILDDIR/hptt/lib"
   INCLUDES="$INCLUDES -I$BUILDDIR/hptt/include"
