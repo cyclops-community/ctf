@@ -1603,8 +1603,9 @@ namespace CTF_int {
   #if FOLD_TSR
       if (is_custom == false && new_sum.can_fold()){
         //FIXME bit of a guess, no?
-        double est_time_nofold = 4.*(A->size + B->size)*COST_MEMBW;
-        if (new_sum.est_time_fold() + (A->size + B->size)*COST_MEMBW < est_time_nofold){
+        //double est_time_nofold = 4.*(A->size + B->size)*COST_MEMBW;
+        //if (new_sum.est_time_fold() + (A->size + B->size)*COST_MEMBW < est_time_nofold){
+        if (true){
           /*if (A->wrld->cdt.rank == 0)
             printf("Decided to fold\n");*/
           int inner_stride;
