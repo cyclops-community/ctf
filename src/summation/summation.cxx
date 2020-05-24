@@ -1660,11 +1660,6 @@ namespace CTF_int {
       tnsr_B->print_map();
   #endif
       /* Invoke the contraction algorithm */
-#ifdef PROFILE
-      TAU_FSTART(pre_sum_func_barrier);
-      MPI_Barrier(tnsr_B->wrld->comm);
-      TAU_FSTOP(pre_sum_func_barrier);
-#endif
       TAU_FSTART(activate_topo);
       tnsr_A->topo->activate();
       TAU_FSTOP(activate_topo);
@@ -1691,11 +1686,6 @@ namespace CTF_int {
         printf("\n");
       }
       }*/
-#ifdef PROFILE
-      TAU_FSTART(post_sum_func_barrier);
-      MPI_Barrier(tnsr_B->wrld->comm);
-      TAU_FSTOP(post_sum_func_barrier);
-#endif
       TAU_FSTART(sum_postprocessing);
       tnsr_A->topo->deactivate();
       tnsr_A->unfold();

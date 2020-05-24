@@ -4312,12 +4312,6 @@ namespace CTF_int {
   #endif
     }*/
 
-  #ifdef PROFILE
-    TAU_FSTART(pre_map_barrier);
-    MPI_Barrier(global_comm.cm);
-    TAU_FSTOP(pre_map_barrier);
-  #endif
-
   #ifdef PROFILE_MEMORY
     start_memprof(C->wrld->rank);
   #endif
@@ -4369,11 +4363,6 @@ namespace CTF_int {
     }
 #endif
 
-  #ifdef PROFILE
-    TAU_FSTART(pre_fold_barrier);
-    MPI_Barrier(global_comm.cm);
-    TAU_FSTOP(pre_fold_barrier);
-  #endif
   #endif
 
     //ASSERT(check_mapping());
@@ -4417,11 +4406,6 @@ namespace CTF_int {
   #endif
   //  stat = zero_out_padding(type->tid_A);
   //  stat = zero_out_padding(type->tid_B);
-  #ifdef PROFILE
-    TAU_FSTART(pre_ctr_func_barrier);
-    MPI_Barrier(global_comm.cm);
-    TAU_FSTOP(pre_ctr_func_barrier);
-  #endif
     TAU_FSTART(ctr_func);
     /* Invoke the contraction algorithm */
     A->topo->activate();
@@ -4510,11 +4494,6 @@ namespace CTF_int {
 
     A->topo->deactivate();
 
-  #ifdef PROFILE
-    TAU_FSTART(post_ctr_func_barrier);
-    MPI_Barrier(global_comm.cm);
-    TAU_FSTOP(post_ctr_func_barrier);
-  #endif
     TAU_FSTOP(ctr_func);
     A->unfold();
     B->unfold();

@@ -481,7 +481,6 @@ namespace CTF_int {
 
     TAU_FSTART(block_reshuffle);
 #ifdef TUNE
-    MPI_Barrier(glb_comm.cm);
     double st_time = MPI_Wtime();
 #endif
 

@@ -702,9 +702,6 @@ void dgtog_reshuffle(int const *          sym,
   foMPI_Win_flush_all(win);
   foMPI_Win_free(&win);
 #else
-  TAU_FSTART(barrier_after_dgtog_reshuffle);
-  MPI_Barrier(ord_glb_comm.cm);
-  TAU_FSTOP(barrier_after_dgtog_reshuffle);
 #endif
   sr->dealloc(tsr_data);
 #endif
