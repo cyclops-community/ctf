@@ -382,6 +382,13 @@ class KnowValues(unittest.TestCase):
             self.assertTrue(numpy.allclose(cra.to_nparray(),ra))
             self.assertTrue(numpy.allclose(cca.to_nparray(),ca))
 
+    def test_clip(self):
+        a = numpy.random.rand(10,5)
+        b = ctf.astensor(a)
+        a_clipped = numpy.clip(a,0.3,0.7)
+        b_clipped = ctf.clip(b,0.3,0.7)
+        self.assertTrue(numpy.allclose(b_clipped.to_nparray(),a_clipped))
+
     def test_complex(self):
         for dt in [numpy.complex64, numpy.complex128, complex]:
             a = abs(numpy.ones(2, dtype=dt))

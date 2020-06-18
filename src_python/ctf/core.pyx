@@ -175,6 +175,7 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void helper_floor[dtype](ctensor * A, ctensor * B);
     cdef void helper_ceil[dtype](ctensor * A, ctensor * B);
     cdef void helper_round[dtype](ctensor * A, ctensor * B);
+    cdef void helper_clip[dtype](ctensor * A, ctensor *B, double low, double high)
     cdef void all_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
     cdef void conj_helper[dtype](ctensor * A, ctensor * B);
     cdef void any_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
@@ -6298,8 +6299,37 @@ def rint(x, out=None):
     else:
         raise ValueError('CTF PYTHON ERROR: Unsupported dtype for rint()')
     return oA
-   
 
+def clip(x, low, high=None, out=None):
+    """
+    clip(x, out=None)
+    Elementwise clip with lower and upper limits
+
+    Parameters
+    ----------
+    x: tensor_like
+        Input tensor.
+
+    Returns
+    -------
+    out: tensor
+        A tensor of same structure and dtype as x with values clipped
+
+    """
+    cdef tensor A = astensor(x)
+    cdef tensor oA = tensor(copy=A)
+    if high is None:
+        high = np.finfo(float).max
+    elif low is None:
+        low = np.finfo(float).min
+    if A.dtype == np.float64:
+        helper_clip[double](<ctensor*>A.dt, <ctensor*>oA.dt, low, high)
+    elif A.dtype == np.float32:
+        helper_clip[float](<ctensor*>A.dt, <ctensor*>oA.dt, low, high)
+    else:
+        raise ValueError('CTF PYTHON ERROR: Unsupported dtype for clip()')
+    return oA
+   
 def _setgetitem_helper(obj, key_init):
     is_everything = 1
     is_contig = 1
