@@ -37,7 +37,6 @@ namespace CTF_int{
     B->operator[](str) = CTF::Function<dtype>([](dtype a){ return std::floor(a); })(A->operator[](str));
   }
 
-
   template <typename dtype>
   void helper_ceil(tensor * A, tensor * B){
     char str[A->order];
@@ -54,6 +53,15 @@ namespace CTF_int{
       str[i] = 'a' + i;
     }
     B->operator[](str) = CTF::Function<dtype>([](dtype a){ return std::round(a); })(A->operator[](str));
+  }
+
+  template <typename dtype>
+  void helper_clip(tensor * A, tensor * B, double low, double high){
+    char str[A->order];
+    for(int i=0;i<A->order;i++) {
+      str[i] = 'a' + i;
+    }
+    B->operator[](str) = CTF::Function<dtype>([&](dtype a){ return a <= low ? low : a <= high ? a : high ; })(A->operator[](str));
   }
 
   template <typename dtype>
@@ -897,6 +905,10 @@ CONV_FCOMPLEX_INST(double,double)
   template void helper_ceil<float>(tensor * A, tensor * B);
   template void helper_floor<double>(tensor * A, tensor * B);
   template void helper_floor<float>(tensor * A, tensor * B);
+  template void helper_clip<double>(tensor * A, tensor * B, double low, double  high);
+  template void helper_clip<float>(tensor * A, tensor * B, double low, double high);
+  template void helper_clip<int64_t>(tensor * A, tensor * B, double low, double high);
+  template void helper_clip<int32_t>(tensor * A, tensor * B, double low, double high);
 
   // ctf.pow() function in c++ file (add more type)
   template void pow_helper< std::complex<double> >(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C);

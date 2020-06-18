@@ -47,6 +47,14 @@ namespace CTF_int{
    * \return None
    */
   template <typename dtype>
+  void helper_clip(tensor * A, tensor * B, double low, double high);
+
+  /**
+   * \brief (back-end for python) function that clips the array
+   * \param[in] A tensor, param[in,out] B tensor stores b_{...} = clamp(a_{...}, low, high)
+   * \return None
+   */
+  template <typename dtype>
   void all_helper(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 
   /**
