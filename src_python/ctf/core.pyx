@@ -6302,7 +6302,7 @@ def rint(x, out=None):
 
 def clip(x, low, high=None, out=None):
     """
-    rint(x, out=None)
+    clip(x, out=None)
     Elementwise clip with lower and upper limits
 
     Parameters
@@ -6330,7 +6330,6 @@ def clip(x, low, high=None, out=None):
         raise ValueError('CTF PYTHON ERROR: Unsupported dtype for clip()')
     return oA
    
-
 def _setgetitem_helper(obj, key_init):
     is_everything = 1
     is_contig = 1
