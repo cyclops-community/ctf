@@ -237,6 +237,7 @@ cdef extern from "ctf.hpp" namespace "CTF":
 
     cdef cppclass Tensor[dtype](ctensor):
         Tensor(int, bint, int64_t *, int *)
+        Tensor(int, bint, int64_t *, int *, World &, char *, Idx_Partition &, Idx_Partition &)
         Tensor(bool , ctensor)
         void fill_random(dtype, dtype)
         void fill_sp_random(dtype, dtype, double)
@@ -268,11 +269,45 @@ cdef extern from "ctf.hpp" namespace "CTF":
         contraction(ctensor *, int *, ctensor *, int *, char *, ctensor *, int *, char *, bivar_function *)
         void execute()
 
+    cdef cppclass Partition:
+        Partition(int, int *)
+        Partition()
+
+    cdef cppclass Idx_Partition:
+        Idx_Partition(Partition &, char *)
+        Idx_Partition()
+
 cdef extern from "ctf.hpp" namespace "CTF":
     cdef void TTTP_ "CTF::TTTP"[dtype](Tensor[dtype] * T, int num_ops, int * modes, Tensor[dtype] ** mat_list, bool aux_mode_first)
     cdef void MTTKRP_ "CTF::MTTKRP"[dtype](Tensor[dtype] * T, Tensor[dtype] ** mat_list, int mode, bool aux_mode_first)
     cdef void initialize_flops_counter_ "CTF::initialize_flops_counter"()
     cdef int64_t get_estimated_flops_ "CTF::get_estimated_flops"()
+
+cdef class partition:
+    cdef Partition * p
+
+    def __cinit__(self, order=None, lens=None):
+        if order is None:
+            order = 0
+        if lens is None:
+            lens = []
+        cdef int * clens
+        clens = int_arr_py_to_c(lens)
+        self.p = new Partition(order, clens)
+
+    def get_idx_partition(self, idx):
+        return idx_partition(self, idx)
+
+cdef class idx_partition:
+    cdef Idx_Partition * ip
+
+    def __cinit__(self, partition part=None, idx=None):
+        if idx is None:
+            idx = []
+        if part is None:
+            self.ip = new Idx_Partition()
+        else:
+            self.ip = new Idx_Partition(part.p[0], idx.encode())
 
 
 #from enum import Enum
@@ -933,7 +968,7 @@ cdef class tensor:
         """
         return self.dtype
 
-    def __cinit__(self, lens=None, sp=None, sym=None, dtype=None, order=None, tensor copy=None):
+    def __cinit__(self, lens=None, sp=None, sym=None, dtype=None, order=None, tensor copy=None, idx=None, idx_partition prl=None, idx_partition blk=None):
         """
         tensor object constructor
 
@@ -956,6 +991,15 @@ cdef class tensor:
 
         copy: tensor-like
             tensor to copy, including all attributes and data
+
+        idx: char array, optional, default None
+            idx assignment of characters to each dim
+
+        prl: idx_partition object, optional (should be specified if idx is not None), default None
+            mesh processor topology with character labels
+
+        blk: idx_partition object, optional, default None
+            lock blocking with processor labels
         """
         t_ti = timer("pytensor_init")
         t_ti.start()
@@ -1041,7 +1085,32 @@ cdef class tensor:
         clens = int64_t_arr_py_to_c(rlens)
         cdef int * csym
         csym = int_arr_py_to_c(rsym)
-        if copy is None:
+        cdef World * wrld
+        if copy is None and idx is not None:
+            if prl is None:
+                raise ValueError("Specify mesh processor toplogy with character labels")
+            if blk is None:
+                blk=idx_partition()
+            wrld = new World()
+            if self.dtype == np.float64:
+                self.dt = new Tensor[double](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.complex64:
+                self.dt = new Tensor[complex64_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.complex128:
+                self.dt = new Tensor[complex128_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.bool:
+                self.dt = new Tensor[bool](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.int64:
+                self.dt = new Tensor[int64_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.int32:
+                self.dt = new Tensor[int32_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.int16:
+                self.dt = new Tensor[int16_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.int8:
+                self.dt = new Tensor[int8_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.float32:
+                self.dt = new Tensor[float](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+        elif copy is None:
             if self.dtype == np.float64:
                 self.dt = new Tensor[double](self.ndim, sp, clens, csym)
             elif self.dtype == np.complex64:
