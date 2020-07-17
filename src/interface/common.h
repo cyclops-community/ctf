@@ -248,6 +248,7 @@ namespace CTF_int {
   int cdealloc(void * ptr);
   void memprof_dealloc(void * ptr);
 
+  char * get_default_inds(int order, int start_index);
 
   void cvrt_idx(int             order,
                 int64_t const * lens,

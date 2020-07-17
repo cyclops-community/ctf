@@ -1743,6 +1743,111 @@ namespace CTF_int {
     return stat;
   }
 
+  int tensor::bidir_batched_matricize(tensor const * input, char const * alpha, char const * beta){
+    if (this->order == input->order){
+      char * inds = this->get_default_inds(this->order);
+      summation sum = summation(input, inds, alpha, this, inds, beta);
+      sum.execute();
+      CTF_int::cdealloc(inds);
+      return SUCCESS;
+    } if (this->is_sparse || input->is_sparse || this->has_symmetry() || input->has_symmetry()){
+      return this->reshape(input, alpha, beta);
+    } else {
+      tensor const * batch_matrix = this;
+      tensor const * high_ord_tsr = input;
+      if (this->order > input->order){
+        batch_matrix = input;
+        high_ord_tsr = this;
+      }
+      int64_t m,n,q;
+      m = batched_matrix->lens[0];
+      n = batched_matrix->lens[1];
+      if (batch_matrix->order == 3)
+        q = batched_matrix->lens[2];
+      else
+        q = 1;
+      ASSERT(batch_matrix->order == 2 || batch_matrix->order == 3);
+      if (m*n > .5 * this->wrld->np || n*q > .5 * this->wrld->np || m*q > .5 * this->wrld->np)
+        return this->reshape(input, alpha, beta);
+      bool high_ord_tsr_m_dist = false;
+      bool high_ord_tsr_n_dist = false;
+      bool high_ord_tsr_q_dist = false;
+      int64_t ll = 1;
+      int num_m_modes=0, num_n_modes=0, num_q_modes=0;
+      for (int i=0; i<high_ord_tsr->order; i++){
+        ll *= high_ord_tsr->lens[i];
+        if (ll <= m){
+          if (high_ord_tsr->edge_map[i]->type == PHYSICAL_MAP){
+            high_ord_tsr_m_dist = true;
+          }
+          num_m_nodes++;
+        } else if (ll <= m*n){
+          if (high_ord_tsr->edge_map[i]->type == PHYSICAL_MAP){
+            high_ord_tsr_n_dist = true;
+          }
+          num_n_nodes++;
+        } else {
+          if (high_ord_tsr->edge_map[i]->type == PHYSICAL_MAP){
+            high_ord_tsr_q_dist = true;
+          }
+          num_q_nodes++;
+        }
+      }
+      bool batch_matrix_m_dist = false;
+      bool batch_matrix_n_dist = false;
+      bool batch_matrix_q_dist = false;
+      int64_t ll = 1;
+      for (int i=0; i<batch_matrix->order; i++){
+        ll *= batch_matrix->lens[i];
+        if (ll <= m){
+          if (batch_matrix->edge_map[i]->type == PHYSICAL_MAP)
+            batch_matrix_m_dist = true;
+        } else if (ll <= m*n){
+          if (batch_matrix->edge_map[i]->type == PHYSICAL_MAP)
+            batch_matrix_n_dist = true;
+        } else {
+          if (batch_matrix->edge_map[i]->type == PHYSICAL_MAP)
+            batch_matrix_q_dist = true;
+        }
+      }
+      //tensor * shadow_high_ord_tsr = high_ord_tsr;
+      //int ord_intm = high_ord_tsr->order;
+      //int64_t * lens_intm = (int64_t*)CTF_int::alloc(high_ord_tsr->order*sizeof(int64_t));
+      //memcpy(lens_intm, high_ord_tsr->lens, high_ord_tsr->order*sizeof(int64_t));
+      //int * new_lens_intm = NULL;
+      if (num_m_modes > 1 && !high_ord_tsr_m_dist){
+        tensor * shadow_high_ord_tsr = shadow_high_ord_tsr.combine_unmapped_modes(0, num_m_modes);
+        if (input == high_ord_tsr)
+          this->bidir_batched_matricize(shadow_high_ord_tsr, alpha, beta);
+        else
+          shadow_high_order_tsr->bidir_batched_matricize(input, alpha, beta);
+        delete shadow_high_ord_tsr;
+        cdealloc(lens_intm);
+        return;
+      }      
+      if (num_n_modes > 1 && !high_ord_tsr_n_dist){
+        tensor * shadow_high_ord_tsr = shadow_high_ord_tsr.combine_unmapped_modes(num_m_modes, num_n_modes);
+        if (input == high_ord_tsr)
+          this->bidir_batched_matricize(shadow_high_ord_tsr, alpha, beta);
+        else
+          shadow_high_order_tsr->bidir_batched_matricize(input, alpha, beta);
+        delete shadow_high_ord_tsr;
+        cdealloc(lens_intm);
+        return;
+      }      
+      if (num_q_modes > 1 && !high_ord_tsr_q_dist){
+        tensor * shadow_high_ord_tsr = shadow_high_ord_tsr.combine_unmapped_modes(num_m_modes+num_n_modes, num_q_modes);
+        if (input == high_ord_tsr)
+          this->bidir_batched_matricize(shadow_high_ord_tsr, alpha, beta);
+        else
+          shadow_high_order_tsr->bidir_batched_matricize(input, alpha, beta);
+        delete shadow_high_ord_tsr;
+        cdealloc(lens_intm);
+        return;
+      }
+    }
+  }
+
   int tensor::read_local(int64_t * num_pair,
                          char **   mapped_data,
                          bool      unpack_sym) const {
@@ -3448,6 +3553,39 @@ namespace CTF_int {
       }
     }
     return !is_nonsym;
+  }
+
+  tensor * tensor::combine_unmapped_modes(int mode, int num_modes){
+    ASSERT(!this->has_symmetry());
+    int new_order = this->order - num_modes + 1;
+    int64_t * new_lens = (int64_t*)CTF_int::alloc(sizeof(int64_t)*new_order);
+    int * new_sym = (int*)CTF_int::alloc(sizeof(int)*new_order);
+    int j = 0;
+    CTF::Partition par(this->topo->order, this->topo->lens);
+    char * par_inds = get_default_inds(this->topo->order);
+    char * tsr_inds = get_default_inds(this->topo->order + this->order);
+    for (int i=0; i<new_order; i++){
+      new_sym[i] = 0;
+      if (this->edge_map[j].type == PHYSICAL_MAP){
+        tsr_inds[i] = par_inds[this->edge_map[j].cdt];
+      }
+      if (i == mode){
+        new_lens[i] = 1;
+        int j_st = j;
+        for (; j<j_st+num_modes; j++){
+          if (j>j_st) ASSERT(this->edge_map[j]->type != PHYSICAL_MAP);
+          new_lens[i] *= this->lens[j];
+        }
+      } else {
+        new_lens[i] = this->lens[j];
+        j++;
+      }
+    }
+    tensor * shadow = new tensor(this->sr, new_order, new_lens, new_sym, this->wrld, false, NULL, 0, this->is_sparse);
+    shadow->set_distribution(tsr_inds, par[par_inds], CTF::Idx_Partition());
+    shadow->data = this->data;
+    shadow->is_data_aliased = 1;
+    return shadow;
   }
 }
 
