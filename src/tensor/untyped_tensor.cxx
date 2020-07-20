@@ -552,26 +552,25 @@ namespace CTF_int {
     return zero_out_padding();
   }
 
-  void tensor::choose_best_mapping(int const * restricted, int & btopo, int64_t & bmemuse){
+  int tensor::choose_best_mapping(int const * restricted, int & btopo, int64_t & bmemuse){
     /* Map the tensor if necessary */
 //    bnvirt = INT64_MAX;
     int * vrestricted;
-    mapping * init_mapping;
-    CTF_mapping::alloc_ptr(this->order*sizeof(mapping), (void**)&init_mapping);
+    mapping * init_mapping = new mapping[order];
     copy_mapping(this->order, this->edge_map, init_mapping);
     btopo = -1;
     bmemuse = INT64_MAX;
     bool fully_distributed = false;
     CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&vrestricted);
-    for (i=wrld->rank; i<(int64_t)wrld->topovec.size(); i+=wrld->np){
+    for (int64_t i=wrld->rank; i<(int64_t)wrld->topovec.size(); i+=wrld->np){
       this->clear_mapping();
       copy_mapping(this->order, init_mapping, this->edge_map);
       this->set_padding();
       memcpy(vrestricted, restricted, sizeof(int)*this->order);
-      map_success = map_tensor(wrld->topovec[i]->order, this->order, this->pad_edge_len,
-                               this->sym_table, vrestricted,
-                               wrld->topovec[i]->dim_comm, NULL, 0,
-                               this->edge_map);
+      int map_success = map_tensor(wrld->topovec[i]->order, this->order, this->pad_edge_len,
+                                   this->sym_table, vrestricted,
+                                   wrld->topovec[i]->dim_comm, NULL, 0,
+                                   this->edge_map);
       if (map_success == ERROR) {
         cdealloc(vrestricted);
         ASSERT(0);
@@ -579,7 +578,7 @@ namespace CTF_int {
       } else if (map_success == SUCCESS){
         this->topo = wrld->topovec[i];
         this->set_padding();
-        memuse = (int64_t)this->size;
+        int64_t memuse = (int64_t)this->size;
         if (!is_sparse && (int64_t)memuse*sr->el_size >= (int64_t)proc_bytes_available()){
           DPRINTF(1,"Not enough memory %E to map tensor (size %E) on topo %d\n", (double)proc_bytes_available(),(double)memuse*sr->el_size,i);
           continue;
@@ -630,16 +629,15 @@ namespace CTF_int {
     this->clear_mapping();
     copy_mapping(this->order, init_mapping, this->edge_map);
     this->set_padding();
-    cdealloc(init_mapping);
+    delete [] init_mapping;
     cdealloc(vrestricted);
   }
 
   int tensor::set_zero() {
     TAU_FSTART(set_zero_tsr);
     int * restricted;
-    int i, map_success, btopo;
-//    int64_t nvirt, bnvirt;
-    int64_t memuse, bmemuse;
+    int btopo;
+    int64_t bmemuse;
 
     if (this->is_mapped){
       if (is_sparse){
@@ -655,12 +653,13 @@ namespace CTF_int {
     } else {
       CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&restricted);
       memset(restricted, 0, this->order*sizeof(int));
-      this->choose_best_mapping(restricted, btopo, bmemuse);
+      int err = this->choose_best_mapping(restricted, btopo, bmemuse);
+      if (err != SUCCESS) return err;
 
-      map_success = map_tensor(wrld->topovec[btopo]->order, this->order,
-                               this->pad_edge_len, this->sym_table, restricted,
-                               wrld->topovec[btopo]->dim_comm, NULL, 0,
-                               this->edge_map);
+      int map_success = map_tensor(wrld->topovec[btopo]->order, this->order,
+                                   this->pad_edge_len, this->sym_table, restricted,
+                                   wrld->topovec[btopo]->dim_comm, NULL, 0,
+                                   this->edge_map);
       ASSERT(map_success == SUCCESS);
 
       this->topo = wrld->topovec[btopo];
@@ -1785,22 +1784,25 @@ namespace CTF_int {
   }
 
   void tensor::merge_mapped_modes(int first_mode, int num_modes, tensor * new_tensor){
+    int * restricted;
     CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&restricted);
     memset(restricted, 0, this->order*sizeof(int));
     new_tensor = new tensor(this, false, false);
-    for (int i=0; i<num_modes, i++){
+    for (int i=0; i<num_modes; i++){
       restricted[i] = 1;
       new_tensor->edge_map[i].type       = VIRTUAL_MAP;
       new_tensor->edge_map[i].has_child  = 0;
       new_tensor->edge_map[i].np         = 1;
     }
+    int btopo;
+    int64_t bmemuse;
     new_tensor->choose_best_mapping(restricted, btopo, bmemuse);
     new_tensor->clear_mapping();
     new_tensor->set_padding();
-    map_success = map_tensor(wrld->topovec[btopo]->order, new_tensor->order,
-                             new_tensor->pad_edge_len, new_tensor->sym_table, restricted,
-                             wrld->topovec[btopo]->dim_comm, NULL, 0,
-                             new_tensor->edge_map);
+    int map_success = map_tensor(wrld->topovec[btopo]->order, new_tensor->order,
+                                 new_tensor->pad_edge_len, new_tensor->sym_table, restricted,
+                                 wrld->topovec[btopo]->dim_comm, NULL, 0,
+                                 new_tensor->edge_map);
     ASSERT(map_success == SUCCESS);
 
     new_tensor->topo = wrld->topovec[btopo];
@@ -1819,16 +1821,16 @@ namespace CTF_int {
     (*merge_mode_counts)[0] = 0;
     for (int i=0; i<high_ord_tsr->order; i++){
       (*merge_mode_counts)[mode]++;
-      merge_mode_map[mode] = i;
+      (*merge_mode_map)[mode] = i;
       lda *= high_ord_tsr->lens[i];
       if (lda == low_ord_tsr->lens[mode] && mode < low_ord_tsr->order){
         mode++;
         lda = 1;
         (*merge_mode_counts)[mode] = 0;
       } else if (lda > low_ord_tsr->lens[mode]){
-        printf("CTF ERROR: incompatible merge of modes\n")
+        printf("CTF ERROR: incompatible merge of modes\n");
         ABORT;
-        return NULL;
+        return;
       }
     }
   }
@@ -1839,23 +1841,23 @@ namespace CTF_int {
     int j=0;
     for (int i=0; i<low_ord_tsr->order; i++){
       if (merge_mode_counts[i] > 0){
-        if (low_ord_tsr->edge_map[i]->type != PHYSICAL_MAP || high_ord_tsr->lens[i] % low_ord_tsr->edge_map[i]->np == 0){
-          tensor * shadow_low_ord_tsr = batched_matrix.split_unmapped_mode(i, merge_mode_counts[i], high_ord_tsr->lens+j);
+        if (low_ord_tsr->edge_map[i].type != PHYSICAL_MAP || high_ord_tsr->lens[i] % low_ord_tsr->edge_map[i].np == 0){
+          tensor * shadow_low_ord_tsr = low_ord_tsr->split_unmapped_mode(i, merge_mode_counts[i], high_ord_tsr->lens+j);
           merge_split_unmapped_modes(shadow_low_ord_tsr, high_ord_tsr, new_low_ord_tsr, new_high_ord_tsr);
           delete shadow_low_ord_tsr;
           return;
         }
         bool can_merge = true;
-        if (high_ord_tsr->edge_map[j]->type == PHYSICAL_MAP && !high_ord_tsr->lens[j] % high_ord_tsr->edge_map[j]->np == 0){
+        if (high_ord_tsr->edge_map[j].type == PHYSICAL_MAP && !high_ord_tsr->lens[j] % high_ord_tsr->edge_map[j].np == 0){
           can_merge = false;
         } else {
           for (int jj=1; jj<merge_mode_counts[i]; jj++){
-            if (high_ord_tsr->edge_map[j+jj]->type == PHYSICAL_MAP)
+            if (high_ord_tsr->edge_map[j+jj].type == PHYSICAL_MAP)
               can_merge = false;
           }
         }
         if (can_merge){
-          tensor * shadow_high_ord_tsr = high_ord_tsr.combine_unmapped_modes(j, high_ord_tsr);
+          tensor * shadow_high_ord_tsr = high_ord_tsr->combine_unmapped_modes(j, high_ord_tsr);
           merge_split_unmapped_modes(low_ord_tsr, shadow_high_ord_tsr, new_low_ord_tsr, new_high_ord_tsr);
           delete shadow_high_ord_tsr;
           return;
