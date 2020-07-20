@@ -555,12 +555,17 @@ namespace CTF_int {
   void tensor::choose_best_mapping(int const * restricted, int & btopo, int64_t & bmemuse){
     /* Map the tensor if necessary */
 //    bnvirt = INT64_MAX;
+    int * vrestricted;
+    mapping * init_mapping;
+    CTF_mapping::alloc_ptr(this->order*sizeof(mapping), (void**)&init_mapping);
+    copy_mapping(this->order, this->edge_map, init_mapping);
     btopo = -1;
     bmemuse = INT64_MAX;
     bool fully_distributed = false;
     CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&vrestricted);
     for (i=wrld->rank; i<(int64_t)wrld->topovec.size(); i+=wrld->np){
       this->clear_mapping();
+      copy_mapping(this->order, init_mapping, this->edge_map);
       this->set_padding();
       memcpy(vrestricted, restricted, sizeof(int)*this->order);
       map_success = map_tensor(wrld->topovec[i]->order, this->order, this->pad_edge_len,
@@ -622,6 +627,10 @@ namespace CTF_int {
       ASSERT(0);
       return ERROR;
     }
+    this->clear_mapping();
+    copy_mapping(this->order, init_mapping, this->edge_map);
+    this->set_padding();
+    cdealloc(init_mapping);
     cdealloc(vrestricted);
   }
 
@@ -648,9 +657,6 @@ namespace CTF_int {
       memset(restricted, 0, this->order*sizeof(int));
       this->choose_best_mapping(restricted, btopo, bmemuse);
 
-      memset(restricted, 0, this->order*sizeof(int));
-      this->clear_mapping();
-      this->set_padding();
       map_success = map_tensor(wrld->topovec[btopo]->order, this->order,
                                this->pad_edge_len, this->sym_table, restricted,
                                wrld->topovec[btopo]->dim_comm, NULL, 0,
@@ -1734,6 +1740,41 @@ namespace CTF_int {
         }
       }
     }
+    bool is_mode_merge = true;
+    bool is_mode_split = true;
+    int i,j=0;
+    while (i<this->order && j<old_tsr->order){
+      if (this->lens[i] == old_tsr->lens[j]){
+        i++;
+        j++;
+        continue;
+      }
+      int64_t sm_len = std::min(this->lens[i], old_tsr->lens[j]);
+      while (sm_len < old_tsr->lens[j]){
+        i++;
+        assert(i<this->order);
+        sm_len *= this->lens[i];
+        is_mode_merge = false;
+      }
+      if (sm_len > old_tsr->lens[j]){
+        is_mode_merge = false;
+        is_mode_split = false;
+        break;
+      }
+      while (sm_len < this->lens[i]){
+        j++;
+        assert(i<old_tsr->order);
+        sm_len *= old_tsr->lens[i];
+        is_mode_split = false;
+      }
+      
+    }
+    if (is_mode_merge && !is_mode_split){
+      return this->merge_modes(old_tsr, alpha, beta);
+    }
+    //if (!is_mode_merge && is_mode_split){
+    //  return this->split_modes(old_tsr, alpha, beta);
+    //}
     if (beta == NULL || this->sr->isequal(beta,this->sr->addid()))
       this->set_zero();
     int stat = old_tsr->read_local_nnz(&n, &pairs, true);

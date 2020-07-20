@@ -618,34 +618,12 @@ namespace CTF_int {
 
 
       /**
-       * \brief reshape tensor into this matrix
-       * \param[in] old_tsr pre-allocated tensor with old shape
-       * \param[in] alpha scalar with which to scale data of the given tensor
-       * \param[in] beta parameter with which to scale data already in this matrix
+       * \brief selects best mapping for this tensor based on estimates of overhead
+       * \param[in] restricted binary array of size this->order, indicating if mapping along a mode should be preserved
+       * \param[out] btopo best topology
+       * \param[out] bmemuse memory usage needed with btopo topology
        */
-      int matricize(tensor const * old_tensor, char const * alpha, char const * beta);
-
-      /**
-       * \brief reshape the given matrix into this tensor
-       * \param[in] old_tsr pre-allocated tensor with old shape
-       * \param[in] alpha scalar with which to scale data of the matrix
-       * \param[in] beta parameter with which to scale data already in this tensor
-       */
-      int dematricize(tensor const * matrix, char const * alpha, char const * beta);
-
-      /**
-       * \brief (batch)matricize or de(batch)matricize
-       * \param[in] input to (batch)matricize or de(batched)matricize (tensor or matrix)
-       * \param[in] alpha scalar with which to scale data of the matrix
-       * \param[in] beta parameter with which to scale data already in this tensor
-       */
-      int bidir_batch_matricize(tensor const * input, char const * alpha, char const * beta);
- 
-      /**
-       * brief copy A into this (B). Realloc if necessary
-       * param[in] A tensor to copy
-       */
-      //int copy(tensor * A);
+      void choose_best_mapping(int const * restricted, int & btopo, int64_t & bmemuse);
 
       /**
        * \brief align mapping of this tensor to that of B

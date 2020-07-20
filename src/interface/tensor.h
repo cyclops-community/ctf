@@ -1057,19 +1057,6 @@ namespace CTF {
       void reshape(Tensor<dtype> const & old_tsr, dtype alpha, dtype beta);
 
       /**
-       * \brief matricize reshape tensor into matrix by combining modes
-       * \param[in] num_row_modes how many of the first modes of the tensor to unfold folded into rows of matrix
-       * \return tensor with data in same order but new mode lengths
-       */
-      Matrix<dtype> matricize(int num_row_modes);
-
-      /**
-       * \brief dematricize matrix into tensor by combining modes, dimension of matrix must be products of the first k, and the last order-k modes for some k<order
-       * \return tensor with data in same order but new mode lengths
-       */
-      void dematricize(Matrix<dtype> const & M);
-
-      /**
        * \brief read sparse tensor from file, entries of tensor must be stored one per line, as i_1 ... i_order v, to create entry T[i_1, ..., i_order] = v
        * or as  i_1 ... i_order, to create entry T[i_1, ..., i_order] = mulid
        * \param[in] fpath string of file name to read from
