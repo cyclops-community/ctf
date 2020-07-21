@@ -630,9 +630,9 @@ namespace CTF_int {
        * \brief (for internal use) merges group of mapped (distrubted over processors) modes of the tensor, returns copy of the tensor represented as a lower order tensor with same data and different distribution
        * \param[in] first_mode mode to start merging from
        * \param[in] num_modes number of modes to merge
-       * \param[out] new_tensor newly allocated tensor with same data as this tensor but different edge lengths and mapping
+       * \return new_tensor newly allocated tensor with same data as this tensor but different edge lengths and mapping
        */
-      void merge_mapped_modes(int first_mode, int num_modes, tensor * new_tensor);
+      tensor * merge_mapped_modes(int first_mode, int num_modes);
 
       /**
        * \brief merges modes of a tensor, e.g. matricization, automatically invoked from rehsape() when applicable
@@ -640,7 +640,7 @@ namespace CTF_int {
        * \param[in] alpha scalar to muliplty data in input by
        * \param[in] beta scalar to muliplty data already in this tensor by before adding scaling input
        */
-      int merge_modes(tensor const * input, char const * alpha, char const * beta);
+      int merge_modes(tensor * input, char const * alpha, char const * beta);
 
       /**
        * \brief align mapping of this tensor to that of B
@@ -1024,6 +1024,14 @@ namespace CTF_int {
        */
       tensor * combine_unmapped_modes(int mode, int num_modes);
 
+      /**
+       * \brief splits unmapped modes
+       * \param[in] mode index of mode to split
+       * \param[in] num_modes number of modes to create
+       * \param[in] split_lens dimensions of new modes
+       * \return tensor alias of this tensor
+       */
+      tensor * split_unmapped_mode(int mode, int num_modes, int64_t const * split_lens);
   };
 }
 #endif// __UNTYPED_TENSOR_H__
