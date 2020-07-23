@@ -122,6 +122,13 @@ class KnowValues(unittest.TestCase):
         c0 = numpy.einsum('ijklm,ijn->', a0, b0)
         c1 = ctf.einsum('ijklm,ijn->', a1, b1)
         self.assertTrue(allclose(c0, c1))
+        c1 = ctf.einsum('ijklm,ijn->', a1, b0)
+        self.assertTrue(allclose(c0, c1))
+        c1 = ctf.einsum('ijklm,ijn->', a0, b1)
+        self.assertTrue(allclose(c0, c1))
+        c0 = numpy.einsum('ijklm,->ij', a0, 3.)
+        c1 = ctf.einsum('ijklm,->ij', a1, 3.)
+        self.assertTrue(allclose(c0, c1))
 
     def test_MTTKRP_vec(self):
         for N in range(2,5):

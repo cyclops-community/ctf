@@ -5589,19 +5589,25 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
                 out_inds += ind
                 out_lens.append(dind_lens[ind])
                 uniq_subs.remove(ind)
+    new_operands = []
+    for i in range(numop):
+        if isinstance(operands[i],tensor):
+            new_operands.append(operands[i])
+        else:
+            new_operands.append(astensor(operands[i]))
     if out is None:
-        out_dtype = _get_np_dtype([x.dtype for x in operands])
+        out_dtype = _get_np_dtype([x.dtype for x in new_operands])
         out_sp = True
         for i in range(numop):
-            if operands[i].sp == False:
-                if operands[i].ndim > 0:
+            if new_operands[i].sp == False:
+                if new_operands[i].ndim > 0:
                     out_sp = False
         output = tensor(out_lens, sp=out_sp, dtype=out_dtype)
     else:
         output = out
-    operand = operands[0].i(inds[0])
+    operand = new_operands[0].i(inds[0])
     for i in range(1,numop):
-        operand = operand * operands[i].i(inds[i])
+        operand = operand * new_operands[i].i(inds[i])
     out_scale*output.i(out_inds) << operand
     if out is None:
         if len(out_inds) == 0:
