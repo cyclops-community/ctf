@@ -572,7 +572,7 @@ namespace CTF_int {
   }
 
   char * get_default_inds(int order, int start_index){
-    char * inds = (char*)CTF_int::alloc(order*sizeof(int));
+    char * inds = (char*)CTF_int::alloc(order*sizeof(char));
     for (int i=0; i<order; i++){
       inds[i] = 'a'+i+start_index;
     }

@@ -1741,7 +1741,7 @@ namespace CTF_int {
     }
     bool is_mode_merge = true;
     bool is_mode_split = true;
-    int i,j=0;
+    int i=0,j=0;
     while (i<this->order && j<old_tsr->order){
       if (this->lens[i] == old_tsr->lens[j]){
         i++;
@@ -1749,26 +1749,35 @@ namespace CTF_int {
         continue;
       }
       int64_t sm_len = std::min(this->lens[i], old_tsr->lens[j]);
-      while (sm_len < old_tsr->lens[j]){
-        i++;
-        assert(i<this->order);
-        sm_len *= this->lens[i];
-        is_mode_merge = false;
-      }
-      if (sm_len > old_tsr->lens[j]){
-        is_mode_merge = false;
-        is_mode_split = false;
-        break;
-      }
-      while (sm_len < this->lens[i]){
+      if (sm_len < old_tsr->lens[j]){
+        while (sm_len < old_tsr->lens[j]){
+          i++;
+          assert(i<this->order);
+          sm_len *= this->lens[i];
+          is_mode_merge = false;
+        }
         j++;
-        assert(i<old_tsr->order);
-        sm_len *= old_tsr->lens[i];
-        is_mode_split = false;
+        if (sm_len > old_tsr->lens[j-1]){
+          is_mode_merge = false;
+          is_mode_split = false;
+          break;
+        }
+      } else {
+        while (sm_len < this->lens[i]){
+          j++;
+          assert(j<old_tsr->order);
+          sm_len *= old_tsr->lens[j];
+          is_mode_split = false;
+        }
+        i++;
+        if (sm_len > this->lens[i-1]){
+          is_mode_merge = false;
+          is_mode_split = false;
+          break;
+        }
       }
-      
     }
-    if (is_mode_merge && !is_mode_split){
+    if (!is_mode_merge && is_mode_split){
       return this->merge_modes((tensor*)old_tsr, alpha, beta);
     }
     //if (!is_mode_merge && is_mode_split){
@@ -1816,18 +1825,19 @@ namespace CTF_int {
 
   void get_merge_mode_info(tensor const * low_ord_tsr, tensor const * high_ord_tsr, int ** merge_mode_map, int ** merge_mode_counts){
     CTF_int::alloc_ptr(sizeof(int)*high_ord_tsr->order, (void**)merge_mode_map);
-    CTF_int::alloc_ptr(sizeof(int)*high_ord_tsr->order, (void**)merge_mode_counts);
+    CTF_int::alloc_ptr(sizeof(int)*low_ord_tsr->order, (void**)merge_mode_counts);
     int64_t lda = 1;
     int mode = 0;
     (*merge_mode_counts)[0] = 0;
     for (int i=0; i<high_ord_tsr->order; i++){
       (*merge_mode_counts)[mode]++;
-      (*merge_mode_map)[mode] = i;
+      (*merge_mode_map)[i] = mode;
       lda *= high_ord_tsr->lens[i];
+      printf("HERE %ld %ld\n",high_ord_tsr->lens[i],low_ord_tsr->lens[mode]);
       if (lda == low_ord_tsr->lens[mode] && mode < low_ord_tsr->order){
         mode++;
         lda = 1;
-        (*merge_mode_counts)[mode] = 0;
+        if (mode < low_ord_tsr->order) (*merge_mode_counts)[mode] = 0;
       } else if (lda > low_ord_tsr->lens[mode]){
         printf("CTF ERROR: incompatible merge of modes\n");
         ABORT;
@@ -1914,19 +1924,22 @@ namespace CTF_int {
   
   int tensor::merge_modes(tensor * input, char const * alpha, char const * beta){
     tensor * low_ord_tsr, * high_ord_tsr;
-    merge_split_unmapped_nodes(input, this, alpha, beta, &low_ord_tsr, &high_ord_tsr);
-    bool check_simple = simple_merge_modes(low_ord_tsr, high_ord_tsr, alpha, beta);
+    merge_split_unmapped_modes(input, this, &low_ord_tsr, &high_ord_tsr);
+    bool check_simple = simple_merge_split_modes(low_ord_tsr, high_ord_tsr, alpha, beta);
     if (check_simple) return SUCCESS;  
-    merge_mapped_nodes(low_ord_tsr, high_ord_tsr, &low_ord_tsr, &high_ord_tsr);
+    high_ord_tsr = CTF_int::merge_mapped_modes(low_ord_tsr, high_ord_tsr);
+    assert(simple_merge_split_modes(low_ord_tsr, high_ord_tsr, alpha, beta));
+    delete high_ord_tsr;
+    return SUCCESS;
   }
   
-  int tensor::split_modes(tensor * input, char const * alpha, char const * beta){
-    tensor * low_ord_tsr, * high_ord_tsr;
-    merge_split_unmapped_nodes(this, input, alpha, beta, &low_ord_tsr, &high_ord_tsr);
-    bool check_simple = simple_merge_modes(low_ord_tsr, high_ord_tsr, alpha, beta);
-    if (check_simple) return SUCCESS;  
-    
-  }
+  //int tensor::split_modes(tensor * input, char const * alpha, char const * beta){
+  //  tensor * low_ord_tsr, * high_ord_tsr;
+  //  merge_split_unmapped_modes(this, input, &low_ord_tsr, &high_ord_tsr);
+  //  bool check_simple = simple_merge_split_modes(low_ord_tsr, high_ord_tsr, alpha, beta);
+  //  if (check_simple) return SUCCESS;  
+  //  
+  //}
 
   int tensor::read_local(int64_t * num_pair,
                          char **   mapped_data,
@@ -3643,23 +3656,33 @@ namespace CTF_int {
     int j = 0;
     CTF::Partition par(this->topo->order, this->topo->lens);
     char * par_inds = get_default_inds(this->topo->order);
-    char * tsr_inds = get_default_inds(this->topo->order + this->order);
+    char * virt_inds = get_default_inds(new_order, this->topo->order);
+    char * tsr_inds = (char*)CTF_int::alloc(sizeof(char)*new_order);
+    int ivrt_inds = 0;
     for (int i=0; i<new_order; i++){
       new_sym[i] = NS;
       if (this->edge_map[j].type == PHYSICAL_MAP){
         tsr_inds[i] = par_inds[this->edge_map[j].cdt];
+      } else {
+        tsr_inds[i] = virt_inds[ivrt_inds];
+        ivrt_inds++;
       }
       if (i == mode){
-        for (; i<=mode+num_modes; i++){
+        for (; i<mode+num_modes; i++){
           new_sym[i] = NS;
-          new_lens[i] =split_lens[i-mode];
+          new_lens[i] = split_lens[i-mode];
+          if (i>mode){
+            tsr_inds[i] = virt_inds[ivrt_inds];
+            ivrt_inds++;
+          }
         }
-        new_lens[i] = 1;
-        int j_st = j;
-        for (; j<j_st+num_modes; j++){
-          if (j>j_st) ASSERT(this->edge_map[j]->type != PHYSICAL_MAP);
-          new_lens[i] *= this->lens[j];
-        }
+        j++;
+        //new_lens[i] = 1;
+        //int j_st = j;
+        //for (; j<j_st+num_modes; j++){
+        //  if (j>j_st) ASSERT(this->edge_map[j].type != PHYSICAL_MAP);
+        //  new_lens[i] *= this->lens[j];
+        //}
       } else {
         new_lens[i] = this->lens[j];
         j++;
@@ -3690,7 +3713,7 @@ namespace CTF_int {
         new_lens[i] = 1;
         int j_st = j;
         for (; j<j_st+num_modes; j++){
-          if (j>j_st) ASSERT(this->edge_map[j]->type != PHYSICAL_MAP);
+          if (j>j_st) ASSERT(this->edge_map[j].type != PHYSICAL_MAP);
           new_lens[i] *= this->lens[j];
         }
       } else {
