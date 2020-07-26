@@ -1704,6 +1704,20 @@ namespace CTF_int {
     char * pairs;
     int64_t n;
 
+#if DEBUG >=1
+    if (this->wrld->rank == 0){
+      printf("CTF: Performing reshape from shape ");
+      for (int i=0; i<old_tsr->order; i++){
+        printf("%ld ",old_tsr->lens[i]);
+      }
+      printf("to shape ");
+      for (int i=0; i<this->order; i++){
+        printf("%ld ",this->lens[i]);
+      }
+      printf("\n");
+    }
+#endif
+
     if (beta == NULL || this->sr->isequal(beta,this->sr->addid())){
       bool did_lens_change = this->order != old_tsr->order;
       if (!did_lens_change){
@@ -1833,7 +1847,6 @@ namespace CTF_int {
       (*merge_mode_counts)[mode]++;
       (*merge_mode_map)[i] = mode;
       lda *= high_ord_tsr->lens[i];
-      printf("HERE %ld %ld\n",high_ord_tsr->lens[i],low_ord_tsr->lens[mode]);
       if (lda == low_ord_tsr->lens[mode] && mode < low_ord_tsr->order){
         mode++;
         lda = 1;
@@ -1848,14 +1861,16 @@ namespace CTF_int {
 
   void merge_split_unmapped_modes(tensor const * low_ord_tsr, tensor const * high_ord_tsr, tensor ** new_low_ord_tsr, tensor ** new_high_ord_tsr){
     int * merge_mode_map, * merge_mode_counts;
+    *new_low_ord_tsr = (tensor*)low_ord_tsr;
+    *new_high_ord_tsr = (tensor*)high_ord_tsr;
     get_merge_mode_info(low_ord_tsr, high_ord_tsr, &merge_mode_map, &merge_mode_counts);
     int j=0;
     for (int i=0; i<low_ord_tsr->order; i++){
-      if (merge_mode_counts[i] > 0){
+      if (merge_mode_counts[i] > 1){
         if (low_ord_tsr->edge_map[i].type != PHYSICAL_MAP || high_ord_tsr->lens[i] % low_ord_tsr->edge_map[i].np == 0){
           tensor * shadow_low_ord_tsr = ((tensor *)low_ord_tsr)->split_unmapped_mode(i, merge_mode_counts[i], high_ord_tsr->lens+j);
+          *new_low_ord_tsr = shadow_low_ord_tsr;
           merge_split_unmapped_modes(shadow_low_ord_tsr, high_ord_tsr, new_low_ord_tsr, new_high_ord_tsr);
-          delete shadow_low_ord_tsr;
           return;
         }
         bool can_merge = true;
@@ -1869,6 +1884,7 @@ namespace CTF_int {
         }
         if (can_merge){
           tensor * shadow_high_ord_tsr = ((tensor *)high_ord_tsr)->combine_unmapped_modes(j, merge_mode_counts[i]);
+          *new_high_ord_tsr = shadow_high_ord_tsr;
           merge_split_unmapped_modes(low_ord_tsr, shadow_high_ord_tsr, new_low_ord_tsr, new_high_ord_tsr);
           delete shadow_high_ord_tsr;
           return;
@@ -1881,12 +1897,17 @@ namespace CTF_int {
   }
 
   tensor * merge_mapped_modes(tensor const * low_ord_tsr, tensor const * high_ord_tsr){
+#if DEBUG >= 2
+    if (low_ord_tsr->wrld->rank == 0){
+      printf("CTF: Performing merge_mapped_modes\n");
+    }
+#endif
     tensor * new_low_ord_tsr;
     int * merge_mode_map, * merge_mode_counts;
     get_merge_mode_info(low_ord_tsr, high_ord_tsr, &merge_mode_map, &merge_mode_counts);
     bool merged = false;
     for (int i=0; i<low_ord_tsr->order; i++){
-      if (merge_mode_counts[i] > 0){
+      if (merge_mode_counts[i] > 1){
         tensor * merged_high_ord_tsr = ((tensor*)high_ord_tsr)->merge_mapped_modes(i, merge_mode_counts[i]);
         new_low_ord_tsr = merge_mapped_modes(low_ord_tsr, merged_high_ord_tsr);
         delete merged_high_ord_tsr;
@@ -1923,6 +1944,10 @@ namespace CTF_int {
   }
   
   int tensor::merge_modes(tensor * input, char const * alpha, char const * beta){
+#if DEBUG >=1
+    if (this->wrld->rank == 0)
+      printf("CTF: Performing merge modes\n");
+#endif
     tensor * low_ord_tsr, * high_ord_tsr;
     merge_split_unmapped_modes(input, this, &low_ord_tsr, &high_ord_tsr);
     bool check_simple = simple_merge_split_modes(low_ord_tsr, high_ord_tsr, alpha, beta);
@@ -3668,14 +3693,15 @@ namespace CTF_int {
         ivrt_inds++;
       }
       if (i == mode){
-        for (; i<mode+num_modes; i++){
-          new_sym[i] = NS;
-          new_lens[i] = split_lens[i-mode];
-          if (i>mode){
-            tsr_inds[i] = virt_inds[ivrt_inds];
+        for (int ii=mode; ii<mode+num_modes; ii++){
+          new_sym[ii] = NS;
+          new_lens[ii] = split_lens[ii-mode];
+          if (ii>mode){
+            tsr_inds[ii] = virt_inds[ivrt_inds];
             ivrt_inds++;
           }
         }
+        i += num_modes-1;
         j++;
         //new_lens[i] = 1;
         //int j_st = j;
@@ -3687,6 +3713,7 @@ namespace CTF_int {
         new_lens[i] = this->lens[j];
         j++;
       }
+      printf("i=%d,new_sym=%d\n",i,new_sym[i]);
     }
     tensor * shadow = new tensor(this->sr, new_order, new_lens, new_sym, this->wrld, false, NULL, 0, this->is_sparse);
     shadow->set_distribution(tsr_inds, par[par_inds], CTF::Idx_Partition());
