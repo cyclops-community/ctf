@@ -631,6 +631,7 @@ namespace CTF_int {
     this->set_padding();
     delete [] init_mapping;
     cdealloc(vrestricted);
+    return SUCCESS;
   }
 
   int tensor::set_zero() {
@@ -1372,6 +1373,21 @@ namespace CTF_int {
     ASSERT(itopo != -1);
     assert(itopo != -1);
 
+
+#if DEBUG >= 2
+    if (wrld->rank == 0){
+      printf("Setting distribution T[");
+      for (int i=0; i<order; i++){
+        printf("%c(%ld)",idx[i],lens[i]);
+      }
+      printf("] -> PE_GRID[");
+      for (int j=0; j<prl.part.order; j++){
+        printf("%c(%d)",prl.idx[j],prl.part.lens[j]);
+      }
+      printf("]\n");
+    }
+#endif
+
     this->clear_mapping();
 
     this->topo = wrld->topovec[itopo];
@@ -1700,6 +1716,21 @@ namespace CTF_int {
     return SUCCESS;
   }
 
+  bool can_merge_split(tensor const * input, tensor const * output){
+    if (output->order != input->order){
+      if (output->is_sparse || input->is_sparse || output->has_symmetry() || input->has_symmetry()){
+        return false;
+      }
+      int64_t tot_size = ((tensor*)output)->get_tot_size(0);
+      for (int i=0; i<output->order; i++){
+        if (output->wrld->np > tot_size/(2.*output->lens[i])){
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+ 
   int tensor::reshape(tensor const * old_tsr, char const * alpha, char const * beta){
     char * pairs;
     int64_t n;
@@ -1753,50 +1784,77 @@ namespace CTF_int {
         }
       }
     }
-    bool is_mode_merge = true;
-    bool is_mode_split = true;
-    int i=0,j=0;
-    while (i<this->order && j<old_tsr->order){
-      if (this->lens[i] == old_tsr->lens[j]){
-        i++;
-        j++;
-        continue;
-      }
-      int64_t sm_len = std::min(this->lens[i], old_tsr->lens[j]);
-      if (sm_len < old_tsr->lens[j]){
-        while (sm_len < old_tsr->lens[j]){
+    printf("can merge split is %d\n",can_merge_split(old_tsr, this));
+    if (can_merge_split(old_tsr, this)){
+      bool is_mode_merge = true;
+      bool is_mode_split = true;
+      int i=0,j=0;
+      //printf("HERE start\n");
+      while (i<this->order && j<old_tsr->order){
+        if (this->lens[i] == old_tsr->lens[j]){
           i++;
-          assert(i<this->order);
-          sm_len *= this->lens[i];
-          is_mode_merge = false;
-        }
-        j++;
-        if (sm_len > old_tsr->lens[j-1]){
-          is_mode_merge = false;
-          is_mode_split = false;
-          break;
-        }
-      } else {
-        while (sm_len < this->lens[i]){
           j++;
-          assert(j<old_tsr->order);
-          sm_len *= old_tsr->lens[j];
-          is_mode_split = false;
+          continue;
+        }
+        int64_t sm_len = std::min(this->lens[i], old_tsr->lens[j]);
+        //printf("HERE [%d] %ld; [%d] %ld \n",i,this->lens[i], j,old_tsr->lens[j]);
+        if (sm_len < old_tsr->lens[j]){
+          while (sm_len < old_tsr->lens[j]){
+            i++;
+            assert(i<this->order);
+            sm_len *= this->lens[i];
+            is_mode_merge = false;
+            //printf("HERE2 [%d] %ld; [%d] %ld \n",i,this->lens[i], j,old_tsr->lens[j]);
+          }
+          if (sm_len > old_tsr->lens[j]){
+            is_mode_merge = false;
+            is_mode_split = false;
+            break;
+          }
+        } else {
+          while (sm_len < this->lens[i]){
+            j++;
+            assert(j<old_tsr->order);
+            sm_len *= old_tsr->lens[j];
+            is_mode_split = false;
+            //printf("HERE3 [%d] %ld; [%d] %ld \n",i,this->lens[i], j,old_tsr->lens[j]);
+          }
+          if (sm_len > this->lens[i]){
+            is_mode_merge = false;
+            is_mode_split = false;
+            break;
+          }
         }
         i++;
-        if (sm_len > this->lens[i-1]){
-          is_mode_merge = false;
-          is_mode_split = false;
-          break;
-        }
+        j++;
       }
-    }
-    if (!is_mode_merge && is_mode_split){
-      return this->merge_modes((tensor*)old_tsr, alpha, beta);
-    }
+      if (is_mode_merge && !is_mode_split){
+        if (1) return this->merge_modes((tensor*)old_tsr, alpha, beta);
+        else {
+        tensor * copy_tsr = new tensor(this, 1, 1);
+        tensor * zero_tsr = new tensor(this->sr, 0, (int64_t*)NULL, NULL, this->wrld);
+        int stat2 = copy_tsr->merge_modes((tensor*)old_tsr, alpha, beta);
+        if (beta == NULL || this->sr->isequal(beta,this->sr->addid()))
+          this->set_zero();
+        int stat = old_tsr->read_local_nnz(&n, &pairs, true);
+        //if (stat != SUCCESS) return stat;
+        stat = this->write(n, alpha, beta, pairs, 'w');
+        this->sr->pair_dealloc(pairs);
+        zero_tsr->operator[]("") = this->operator[](get_default_inds(this->order))-copy_tsr->operator[](get_default_inds(this->order));
+        printf("sum is ...\n");
+        zero_tsr->print();
+        return stat;
+        }
+        //if (nrm > 1.e-6){
+        //  ASSERT(0);
+        //  assert(0);
+        //}
+
+      }
     //if (!is_mode_merge && is_mode_split){
     //  return this->split_modes(old_tsr, alpha, beta);
     //}
+    }
     if (beta == NULL || this->sr->isequal(beta,this->sr->addid()))
       this->set_zero();
     int stat = old_tsr->read_local_nnz(&n, &pairs, true);
@@ -1806,16 +1864,16 @@ namespace CTF_int {
     return stat;
   }
 
-  tensor * tensor::merge_mapped_modes(int first_mode, int num_modes){
+  tensor * tensor::unmap_mapped_modes(int first_mode, int num_modes){
     int * restricted;
     CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&restricted);
     memset(restricted, 0, this->order*sizeof(int));
     tensor * new_tensor = new tensor(this, false, false);
     for (int i=0; i<num_modes; i++){
-      restricted[i] = 1;
-      new_tensor->edge_map[i].type       = VIRTUAL_MAP;
-      new_tensor->edge_map[i].has_child  = 0;
-      new_tensor->edge_map[i].np         = 1;
+      restricted[first_mode+i] = 1;
+      new_tensor->edge_map[first_mode+i].type       = VIRTUAL_MAP;
+      new_tensor->edge_map[first_mode+i].has_child  = 0;
+      new_tensor->edge_map[first_mode+i].np         = 1;
     }
     int btopo;
     int64_t bmemuse;
@@ -1834,6 +1892,13 @@ namespace CTF_int {
 
     new_tensor->is_mapped = 1;
     new_tensor->set_padding();
+    new_tensor->home_size = new_tensor->size; //MAX(1024+new_tensor->size, 1.20*new_tensor->size);
+    new_tensor->is_home = 1;
+    new_tensor->has_home = 1;
+    new_tensor->home_buffer = sr->alloc(new_tensor->home_size);
+    if (wrld->rank == 0) DPRINTF(2,"Creating home of %s\n",name);
+    register_size(new_tensor->size*sr->el_size);
+    new_tensor->data = new_tensor->home_buffer;
     return new_tensor;
   }
 
@@ -1886,7 +1951,8 @@ namespace CTF_int {
           tensor * shadow_high_ord_tsr = ((tensor *)high_ord_tsr)->combine_unmapped_modes(j, merge_mode_counts[i]);
           *new_high_ord_tsr = shadow_high_ord_tsr;
           merge_split_unmapped_modes(low_ord_tsr, shadow_high_ord_tsr, new_low_ord_tsr, new_high_ord_tsr);
-          delete shadow_high_ord_tsr;
+          //if (*new_high_ord_tsr != shadow_high_ord_tsr)
+          //  delete shadow_high_ord_tsr;
           return;
         }
         j+=merge_mode_counts[j];
@@ -1896,33 +1962,44 @@ namespace CTF_int {
     }
   }
 
-  tensor * merge_mapped_modes(tensor const * low_ord_tsr, tensor const * high_ord_tsr){
+  void merge_mapped_modes(tensor const * low_ord_tsr, tensor const * high_ord_tsr, tensor ** new_low_ord_tsr, tensor ** new_high_ord_tsr){
 #if DEBUG >= 2
     if (low_ord_tsr->wrld->rank == 0){
       printf("CTF: Performing merge_mapped_modes\n");
     }
 #endif
-    tensor * new_low_ord_tsr;
+    *new_low_ord_tsr = (tensor*)low_ord_tsr;
+    *new_high_ord_tsr = (tensor*)high_ord_tsr;
     int * merge_mode_map, * merge_mode_counts;
     get_merge_mode_info(low_ord_tsr, high_ord_tsr, &merge_mode_map, &merge_mode_counts);
-    bool merged = false;
     for (int i=0; i<low_ord_tsr->order; i++){
       if (merge_mode_counts[i] > 1){
-        tensor * merged_high_ord_tsr = ((tensor*)high_ord_tsr)->merge_mapped_modes(i, merge_mode_counts[i]);
-        new_low_ord_tsr = merge_mapped_modes(low_ord_tsr, merged_high_ord_tsr);
-        delete merged_high_ord_tsr;
-        merged = true;
+        tensor * remapped_high_ord_tsr = ((tensor*)high_ord_tsr)->unmap_mapped_modes(i, merge_mode_counts[i]);
+        tensor * merged_high_ord_tsr;
+        merge_split_unmapped_modes(low_ord_tsr,remapped_high_ord_tsr,new_low_ord_tsr,&merged_high_ord_tsr);
+        //merge_split_unmapped should have been called before this function, so low_ord_tsr unmapped modes should not be splittable
+        ASSERT(*new_low_ord_tsr == low_ord_tsr);
+        assert(*new_low_ord_tsr == low_ord_tsr);
+        //if (remapped_high_ord_tsr != merged_high_ord_tsr && remapped_high_ord_tsr->data != merged_high_ord_tsr->data)
+        //  delete remapped_high_ord_tsr;
+        merge_mapped_modes(low_ord_tsr,merged_high_ord_tsr,new_low_ord_tsr,new_high_ord_tsr);
+        //if (*new_high_ord_tsr != merged_high_ord_tsr){
+        //  assert((*new_high_ord_tsr)->data != merged_high_ord_tsr->data));
+        //  delete merged_high_ord_tsr;
+        //  delete remapped_high_ord_tsr;
+        //}
         break;
       }
     }
-    if (!merged)
-      new_low_ord_tsr = (tensor*)low_ord_tsr;
     cdealloc(merge_mode_map);
     cdealloc(merge_mode_counts);
-    return new_low_ord_tsr;
   }
- 
+
   bool simple_merge_split_modes(tensor * input, tensor * output, char const * alpha, char const * beta){
+    if (!can_merge_split(input,output)){
+      output->reshape(input, alpha, beta);
+      return true;
+    }
     if (output->order == input->order){
       char * inds = get_default_inds(output->order);
       summation sum = summation(input, inds, alpha, output, inds, beta);
@@ -1930,16 +2007,7 @@ namespace CTF_int {
       CTF_int::cdealloc(inds);
       return true;
     }
-    if (output->is_sparse || input->is_sparse || output->has_symmetry() || input->has_symmetry()){
-      output->reshape(input, alpha, beta);
-      return true;
-    }
-    for (int i=0; i<output->order; i++){
-      if (output->wrld->np < 2.*output->lens[i]){
-        output->reshape(input, alpha, beta);
-        return true;
-      }
-    }
+
     return false;
   }
   
@@ -1949,12 +2017,22 @@ namespace CTF_int {
       printf("CTF: Performing merge modes\n");
 #endif
     tensor * low_ord_tsr, * high_ord_tsr;
-    merge_split_unmapped_modes(input, this, &low_ord_tsr, &high_ord_tsr);
-    bool check_simple = simple_merge_split_modes(low_ord_tsr, high_ord_tsr, alpha, beta);
-    if (check_simple) return SUCCESS;  
-    high_ord_tsr = CTF_int::merge_mapped_modes(low_ord_tsr, high_ord_tsr);
-    assert(simple_merge_split_modes(low_ord_tsr, high_ord_tsr, alpha, beta));
-    delete high_ord_tsr;
+    merge_split_unmapped_modes(this, input, &low_ord_tsr, &high_ord_tsr);
+    bool check_simple = simple_merge_split_modes(high_ord_tsr, low_ord_tsr, alpha, beta);
+    if (check_simple){
+      if (high_ord_tsr != input) delete high_ord_tsr;
+      if (low_ord_tsr != this) delete low_ord_tsr;
+      return SUCCESS;  
+    }
+    tensor * new_low_ord_tsr, * new_high_ord_tsr;
+    CTF_int::merge_mapped_modes(low_ord_tsr, high_ord_tsr, &new_low_ord_tsr, &new_high_ord_tsr);
+    check_simple = simple_merge_split_modes(new_high_ord_tsr, new_low_ord_tsr, alpha, beta);
+    ASSERT(check_simple);
+    assert(check_simple);
+    if (new_high_ord_tsr != high_ord_tsr) delete new_high_ord_tsr;
+    if (new_low_ord_tsr != low_ord_tsr) delete new_low_ord_tsr;
+    if (high_ord_tsr != input) delete high_ord_tsr;
+    if (low_ord_tsr != this) delete low_ord_tsr;
     return SUCCESS;
   }
   
@@ -3663,7 +3741,7 @@ namespace CTF_int {
     delete func;
 	}
 
-  bool tensor::has_symmetry(){
+  bool tensor::has_symmetry() const {
     bool is_nonsym=true;
     for (int i=0; i<order; i++){
       if (sym[i] != NS){
@@ -3713,12 +3791,17 @@ namespace CTF_int {
         new_lens[i] = this->lens[j];
         j++;
       }
-      printf("i=%d,new_sym=%d\n",i,new_sym[i]);
     }
     tensor * shadow = new tensor(this->sr, new_order, new_lens, new_sym, this->wrld, false, NULL, 0, this->is_sparse);
     shadow->set_distribution(tsr_inds, par[par_inds], CTF::Idx_Partition());
     shadow->data = this->data;
     shadow->is_data_aliased = 1;
+    shadow->has_home = 1;
+    shadow->is_home = 1;
+    shadow->home_buffer = shadow->data;
+    cdealloc(par_inds);
+    cdealloc(virt_inds);
+    cdealloc(tsr_inds);
     return shadow;
   }
 
@@ -3730,11 +3813,16 @@ namespace CTF_int {
     int j = 0;
     CTF::Partition par(this->topo->order, this->topo->lens);
     char * par_inds = get_default_inds(this->topo->order);
-    char * tsr_inds = get_default_inds(this->topo->order + this->order);
+    char * virt_inds = get_default_inds(new_order, this->topo->order);
+    char * tsr_inds = (char*)CTF_int::alloc(sizeof(char)*new_order);
+    int ivrt_inds = 0;
     for (int i=0; i<new_order; i++){
       new_sym[i] = 0;
       if (this->edge_map[j].type == PHYSICAL_MAP){
         tsr_inds[i] = par_inds[this->edge_map[j].cdt];
+      } else {
+        tsr_inds[i] = virt_inds[ivrt_inds];
+        ivrt_inds++;
       }
       if (i == mode){
         new_lens[i] = 1;
@@ -3752,6 +3840,12 @@ namespace CTF_int {
     shadow->set_distribution(tsr_inds, par[par_inds], CTF::Idx_Partition());
     shadow->data = this->data;
     shadow->is_data_aliased = 1;
+    shadow->has_home = 1;
+    shadow->is_home = 1;
+    shadow->home_buffer = shadow->data;
+    cdealloc(par_inds);
+    cdealloc(virt_inds);
+    cdealloc(tsr_inds);
     return shadow;
   }
 }

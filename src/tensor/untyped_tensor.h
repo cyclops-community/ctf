@@ -632,7 +632,7 @@ namespace CTF_int {
        * \param[in] num_modes number of modes to merge
        * \return new_tensor newly allocated tensor with same data as this tensor but different edge lengths and mapping
        */
-      tensor * merge_mapped_modes(int first_mode, int num_modes);
+      tensor * unmap_mapped_modes(int first_mode, int num_modes);
 
       /**
        * \brief merges modes of a tensor, e.g. matricization, automatically invoked from rehsape() when applicable
@@ -1013,7 +1013,7 @@ namespace CTF_int {
        * \brief checks if there is any symmetry defined as part of sym
        * \return true if sym[i] != NS for some i
        */
-      bool has_symmetry();
+      bool has_symmetry() const;
 
 
       /**
