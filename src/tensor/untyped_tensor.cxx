@@ -1981,6 +1981,7 @@ namespace CTF_int {
     }
 #endif
     tensor * new_high_ord_tsr, * new_low_ord_tsr;
+    new_high_ord_tsr = (tensor*)high_ord_tsr;
     int * merge_mode_map, * merge_mode_counts;
     get_merge_mode_info(low_ord_tsr, high_ord_tsr, &merge_mode_map, &merge_mode_counts);
     for (int i=0; i<low_ord_tsr->order; i++){
