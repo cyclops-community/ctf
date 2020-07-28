@@ -1829,12 +1829,13 @@ namespace CTF_int {
       }
       if (is_mode_merge && !is_mode_split){
         return this->merge_modes((tensor*)old_tsr, alpha, beta);
-        //if (1) return this->merge_modes((tensor*)old_tsr, alpha, beta);
-        //else {
+      }
+      if (!is_mode_merge && is_mode_split){
+        return this->split_modes((tensor*)old_tsr, alpha, beta);
         //  tensor * copy_tsr = new tensor(this, 1, 1);
         //  tensor * res_tsr = new tensor(this, 0, 1);
         //  tensor * zero_tsr = new tensor(this->sr, 0, (int64_t*)NULL, NULL, this->wrld);
-        //  int stat2 = copy_tsr->merge_modes((tensor*)old_tsr, alpha, beta);
+        //  int stat2 = copy_tsr->split_modes((tensor*)old_tsr, alpha, beta);
         //  if (beta == NULL || this->sr->isequal(beta,this->sr->addid()))
         //    this->set_zero();
         //  int stat = old_tsr->read_local_nnz(&n, &pairs, true);
@@ -1851,11 +1852,7 @@ namespace CTF_int {
         //  this->compare(copy_tsr, stdout, sr->addid());
         //  printf("\n");
         //  return stat;
-        //}
       }
-    //if (!is_mode_merge && is_mode_split){
-    //  return this->split_modes(old_tsr, alpha, beta);
-    //}
     }
     if (beta == NULL || this->sr->isequal(beta,this->sr->addid()))
       this->set_zero();
@@ -1977,29 +1974,26 @@ namespace CTF_int {
     cdealloc(merge_mode_counts);
   }
 
-  void merge_mapped_modes(tensor const * low_ord_tsr, tensor const * high_ord_tsr, tensor ** new_low_ord_tsr, tensor ** new_high_ord_tsr){
+  tensor * merge_mapped_modes(tensor const * low_ord_tsr, tensor const * high_ord_tsr){
 #if DEBUG >= 2
     if (low_ord_tsr->wrld->rank == 0){
       printf("CTF: Performing merge_mapped_modes\n");
     }
 #endif
-    *new_low_ord_tsr = (tensor*)low_ord_tsr;
-    *new_high_ord_tsr = (tensor*)high_ord_tsr;
+    tensor * new_high_ord_tsr, * new_low_ord_tsr;
     int * merge_mode_map, * merge_mode_counts;
     get_merge_mode_info(low_ord_tsr, high_ord_tsr, &merge_mode_map, &merge_mode_counts);
     for (int i=0; i<low_ord_tsr->order; i++){
       if (merge_mode_counts[i] > 1){
         tensor * remapped_high_ord_tsr = ((tensor*)high_ord_tsr)->unmap_mapped_modes(i, merge_mode_counts[i]);
         tensor * merged_high_ord_tsr;
-        merge_split_unmapped_modes(low_ord_tsr,remapped_high_ord_tsr,new_low_ord_tsr,&merged_high_ord_tsr);
+        merge_split_unmapped_modes(low_ord_tsr,remapped_high_ord_tsr,&new_low_ord_tsr,&merged_high_ord_tsr);
         //merge_split_unmapped should have been called before this function, so low_ord_tsr unmapped modes should not be splittable
-        ASSERT(*new_low_ord_tsr == low_ord_tsr);
-        assert(*new_low_ord_tsr == low_ord_tsr);
-        //if (remapped_high_ord_tsr != merged_high_ord_tsr && remapped_high_ord_tsr->data != merged_high_ord_tsr->data)
-        //  delete remapped_high_ord_tsr;
-        merge_mapped_modes(low_ord_tsr,merged_high_ord_tsr,new_low_ord_tsr,new_high_ord_tsr);
-        if (*new_high_ord_tsr != merged_high_ord_tsr){
-          assert((*new_high_ord_tsr)->data != merged_high_ord_tsr->data);
+        ASSERT(new_low_ord_tsr == low_ord_tsr);
+        assert(new_low_ord_tsr == low_ord_tsr);
+        new_high_ord_tsr = merge_mapped_modes(low_ord_tsr,merged_high_ord_tsr);
+        if (new_high_ord_tsr != merged_high_ord_tsr){
+          assert(new_high_ord_tsr->data != merged_high_ord_tsr->data);
           delete merged_high_ord_tsr;
           delete remapped_high_ord_tsr;
         } else {
@@ -2014,7 +2008,47 @@ namespace CTF_int {
     }
     cdealloc(merge_mode_map);
     cdealloc(merge_mode_counts);
+    return new_high_ord_tsr;
   }
+
+  tensor * split_mapped_modes(tensor const * low_ord_tsr, tensor const * high_ord_tsr){
+#if DEBUG >= 2
+    if (low_ord_tsr->wrld->rank == 0){
+      printf("CTF: Performing split_mapped_modes\n");
+    }
+#endif
+    tensor * new_high_ord_tsr, * new_low_ord_tsr;
+    new_low_ord_tsr = (tensor*)low_ord_tsr;
+    int * merge_mode_map, * merge_mode_counts;
+    get_merge_mode_info(low_ord_tsr, high_ord_tsr, &merge_mode_map, &merge_mode_counts);
+    for (int i=0; i<low_ord_tsr->order; i++){
+      if (merge_mode_counts[i] > 1){
+        tensor * remapped_low_ord_tsr = ((tensor*)low_ord_tsr)->unmap_mapped_modes(i, 1);
+        tensor * split_low_ord_tsr;
+        merge_split_unmapped_modes(remapped_low_ord_tsr,high_ord_tsr,&split_low_ord_tsr,&new_high_ord_tsr);
+        //merge_split_unmapped should have been called before this function, so low_ord_tsr unmapped modes should not be splittable
+        ASSERT(new_high_ord_tsr == high_ord_tsr);
+        assert(new_high_ord_tsr == high_ord_tsr);
+        new_low_ord_tsr = split_mapped_modes(split_low_ord_tsr,high_ord_tsr);
+        if (new_low_ord_tsr != split_low_ord_tsr){
+          assert(new_low_ord_tsr->data != split_low_ord_tsr->data);
+          delete split_low_ord_tsr;
+          delete remapped_low_ord_tsr;
+        } else {
+          // by switching which tensor thinks is data is aliased to another,
+          // we delete old handle but keep data, avoiding extra copy
+          remapped_low_ord_tsr->is_data_aliased = true;
+          split_low_ord_tsr->is_data_aliased = false;
+          delete remapped_low_ord_tsr;
+        }
+        break;
+      }
+    }
+    cdealloc(merge_mode_map);
+    cdealloc(merge_mode_counts);
+    return new_low_ord_tsr;
+  }
+
 
   bool simple_merge_split_modes(tensor * input, tensor * output, char const * alpha, char const * beta){
     if (!can_merge_split(input,output)){
@@ -2045,25 +2079,38 @@ namespace CTF_int {
       if (low_ord_tsr != this) delete low_ord_tsr;
       return SUCCESS;  
     }
-    tensor * new_low_ord_tsr, * new_high_ord_tsr;
-    CTF_int::merge_mapped_modes(low_ord_tsr, high_ord_tsr, &new_low_ord_tsr, &new_high_ord_tsr);
-    check_simple = simple_merge_split_modes(new_high_ord_tsr, new_low_ord_tsr, alpha, beta);
+    tensor * new_high_ord_tsr = CTF_int::merge_mapped_modes(low_ord_tsr, high_ord_tsr);
+    check_simple = simple_merge_split_modes(new_high_ord_tsr, low_ord_tsr, alpha, beta);
     ASSERT(check_simple);
     assert(check_simple);
     if (new_high_ord_tsr != high_ord_tsr) delete new_high_ord_tsr;
-    if (new_low_ord_tsr != low_ord_tsr) delete new_low_ord_tsr;
     if (high_ord_tsr != input) delete high_ord_tsr;
     if (low_ord_tsr != this) delete low_ord_tsr;
     return SUCCESS;
   }
   
-  //int tensor::split_modes(tensor * input, char const * alpha, char const * beta){
-  //  tensor * low_ord_tsr, * high_ord_tsr;
-  //  merge_split_unmapped_modes(this, input, &low_ord_tsr, &high_ord_tsr);
-  //  bool check_simple = simple_merge_split_modes(low_ord_tsr, high_ord_tsr, alpha, beta);
-  //  if (check_simple) return SUCCESS;  
-  //  
-  //}
+  int tensor::split_modes(tensor * input, char const * alpha, char const * beta){
+#if DEBUG >=1
+    if (this->wrld->rank == 0)
+      printf("CTF: Performing split modes\n");
+#endif
+    tensor * low_ord_tsr, * high_ord_tsr;
+    merge_split_unmapped_modes(input, this, &low_ord_tsr, &high_ord_tsr);
+    bool check_simple = simple_merge_split_modes(low_ord_tsr, high_ord_tsr, alpha, beta);
+    if (check_simple){
+      if (high_ord_tsr != this) delete high_ord_tsr;
+      if (low_ord_tsr != input) delete low_ord_tsr;
+      return SUCCESS;  
+    }
+    tensor * new_low_ord_tsr = CTF_int::split_mapped_modes(low_ord_tsr, high_ord_tsr);
+    check_simple = simple_merge_split_modes(new_low_ord_tsr, high_ord_tsr, alpha, beta);
+    ASSERT(check_simple);
+    assert(check_simple);
+    if (new_low_ord_tsr != low_ord_tsr) delete new_low_ord_tsr;
+    if (high_ord_tsr != this) delete high_ord_tsr;
+    if (low_ord_tsr != input) delete low_ord_tsr;
+    return SUCCESS;
+  }
 
   int tensor::read_local(int64_t * num_pair,
                          char **   mapped_data,

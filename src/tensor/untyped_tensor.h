@@ -150,7 +150,7 @@ namespace CTF_int {
        * \brief default constructor for untyped instantiation
        */
       tensor();
-  
+
       /** \brief class free self */
       ~tensor();
 
@@ -322,7 +322,7 @@ namespace CTF_int {
        * \param[in] sym_mask identifies which tensor indices are part of the symmetric group which diagonals we want to scale (i.e. sym_mask [1,1] does A["ii"]= (1./2.)*A["ii"])
        */
       void scale_diagonals(int const * sym_mask);
- 
+
       /**
        * \brief sets to zero elements which are diagonal with respect to index diag and diag+1
        * \param[in] diag smaller index of the symmetry to zero out
@@ -625,7 +625,7 @@ namespace CTF_int {
        * \param[out] bmemuse memory usage needed with btopo topology
        */
       int choose_best_mapping(int const * restricted, int & btopo, int64_t & bmemuse);
-  
+
       /**
        * \brief (for internal use) merges group of mapped (distrubted over processors) modes of the tensor, returns copy of the tensor represented as a lower order tensor with same data and different distribution
        * \param[in] first_mode mode to start merging from
@@ -635,12 +635,20 @@ namespace CTF_int {
       tensor * unmap_mapped_modes(int first_mode, int num_modes);
 
       /**
-       * \brief merges modes of a tensor, e.g. matricization, automatically invoked from rehsape() when applicable
+       * \brief merges modes of a tensor, e.g. matricization, is a special case of and is automatically invoked from reshape() when applicable
        * \param[in] input tensor whose modes we are merging, edge lengths of this tensor must be partial products of subsequences of lengths in input
        * \param[in] alpha scalar to muliplty data in input by
        * \param[in] beta scalar to muliplty data already in this tensor by before adding scaling input
        */
       int merge_modes(tensor * input, char const * alpha, char const * beta);
+
+      /**
+       * \brief splits modes of a tensor, e.g. dematricization, is a special case of and is automatically invoked from reshape() when applicable
+       * \param[in] input tensor whose modes we are splitting, edge lengths of input tensor must be partial products of subsequences of lengths in this tensor
+       * \param[in] alpha scalar to muliplty data in input by
+       * \param[in] beta scalar to muliplty data already in this tensor by before adding scaling input
+       */
+      int split_modes(tensor * input, char const * alpha, char const * beta);
 
       /**
        * \brief align mapping of this tensor to that of B
