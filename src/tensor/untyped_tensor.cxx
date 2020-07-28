@@ -1905,6 +1905,7 @@ namespace CTF_int {
     char * inds = get_default_inds(this->order);
     summation sum = summation((tensor*)this, inds, sr->mulid(), new_tensor, inds, sr->mulid());
     sum.execute();
+    cdealloc(inds);
     return new_tensor;
   }
 
@@ -1942,6 +1943,10 @@ namespace CTF_int {
           tensor * shadow_low_ord_tsr = ((tensor *)low_ord_tsr)->split_unmapped_mode(i, merge_mode_counts[i], high_ord_tsr->lens+j);
           *new_low_ord_tsr = shadow_low_ord_tsr;
           merge_split_unmapped_modes(shadow_low_ord_tsr, high_ord_tsr, new_low_ord_tsr, new_high_ord_tsr);
+          if (*new_low_ord_tsr != shadow_low_ord_tsr)
+            delete shadow_low_ord_tsr;
+          cdealloc(merge_mode_map);
+          cdealloc(merge_mode_counts);
           return;
         }
         bool can_merge = true;
@@ -1957,8 +1962,10 @@ namespace CTF_int {
           tensor * shadow_high_ord_tsr = ((tensor *)high_ord_tsr)->combine_unmapped_modes(j, merge_mode_counts[i]);
           *new_high_ord_tsr = shadow_high_ord_tsr;
           merge_split_unmapped_modes(low_ord_tsr, shadow_high_ord_tsr, new_low_ord_tsr, new_high_ord_tsr);
-          //if (*new_high_ord_tsr != shadow_high_ord_tsr)
-          //  delete shadow_high_ord_tsr;
+          if (*new_high_ord_tsr != shadow_high_ord_tsr)
+            delete shadow_high_ord_tsr;
+          cdealloc(merge_mode_map);
+          cdealloc(merge_mode_counts);
           return;
         }
         j+=merge_mode_counts[j];
@@ -1966,6 +1973,8 @@ namespace CTF_int {
         j+=1;
       }
     }
+    cdealloc(merge_mode_map);
+    cdealloc(merge_mode_counts);
   }
 
   void merge_mapped_modes(tensor const * low_ord_tsr, tensor const * high_ord_tsr, tensor ** new_low_ord_tsr, tensor ** new_high_ord_tsr){
@@ -1989,11 +1998,17 @@ namespace CTF_int {
         //if (remapped_high_ord_tsr != merged_high_ord_tsr && remapped_high_ord_tsr->data != merged_high_ord_tsr->data)
         //  delete remapped_high_ord_tsr;
         merge_mapped_modes(low_ord_tsr,merged_high_ord_tsr,new_low_ord_tsr,new_high_ord_tsr);
-        //if (*new_high_ord_tsr != merged_high_ord_tsr){
-        //  assert((*new_high_ord_tsr)->data != merged_high_ord_tsr->data));
-        //  delete merged_high_ord_tsr;
-        //  delete remapped_high_ord_tsr;
-        //}
+        if (*new_high_ord_tsr != merged_high_ord_tsr){
+          assert((*new_high_ord_tsr)->data != merged_high_ord_tsr->data);
+          delete merged_high_ord_tsr;
+          delete remapped_high_ord_tsr;
+        } else {
+          // by switching which tensor thinks is data is aliased to another,
+          // we delete old handle but keep data, avoiding extra copy
+          remapped_high_ord_tsr->is_data_aliased = true;
+          merged_high_ord_tsr->is_data_aliased = false;
+          delete remapped_high_ord_tsr;
+        }
         break;
       }
     }
@@ -3811,6 +3826,8 @@ namespace CTF_int {
     //printf("my size is %ld shadow size is %ld\n",this->size,shadow->size);
     shadow->is_home = 1;
     shadow->home_buffer = shadow->data;
+    cdealloc(new_lens);
+    cdealloc(new_sym);
     cdealloc(par_inds);
     cdealloc(virt_inds);
     cdealloc(tsr_inds);
@@ -3856,6 +3873,8 @@ namespace CTF_int {
     shadow->has_home = 1;
     shadow->is_home = 1;
     shadow->home_buffer = shadow->data;
+    cdealloc(new_lens);
+    cdealloc(new_sym);
     cdealloc(par_inds);
     cdealloc(virt_inds);
     cdealloc(tsr_inds);

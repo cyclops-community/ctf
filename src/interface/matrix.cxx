@@ -629,6 +629,7 @@ namespace CTF {
       Partition part(this->topo->order, this->topo->lens);
       Matrix<dtype> L_r;
       map_matrix_to_my_context<dtype>(this, L, L_r);
+      free(descl);
       L_r.get_desc(ictxt2, descl, layout_order_L);
       IASSERT(ictxt == ictxt2);
       IASSERT(layout_order_A == layout_order_L);
@@ -689,7 +690,7 @@ namespace CTF {
         i++;
       }
     }
-    if (nfactor>1)
+    if (nfactor>0)
       CTF_int::cdealloc(factors);
     int virt_factor = target_pc/(p/target_pr);
     int pe_dims[2] = {target_pr, target_pc/virt_factor};
