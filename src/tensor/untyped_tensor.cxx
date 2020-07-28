@@ -1784,7 +1784,6 @@ namespace CTF_int {
         }
       }
     }
-    printf("can merge split is %d\n",can_merge_split(old_tsr, this));
     if (can_merge_split(old_tsr, this)){
       bool is_mode_merge = true;
       bool is_mode_split = true;
@@ -1829,27 +1828,30 @@ namespace CTF_int {
         j++;
       }
       if (is_mode_merge && !is_mode_split){
-        if (1) return this->merge_modes((tensor*)old_tsr, alpha, beta);
-        else {
-        tensor * copy_tsr = new tensor(this, 1, 1);
-        tensor * zero_tsr = new tensor(this->sr, 0, (int64_t*)NULL, NULL, this->wrld);
-        int stat2 = copy_tsr->merge_modes((tensor*)old_tsr, alpha, beta);
-        if (beta == NULL || this->sr->isequal(beta,this->sr->addid()))
-          this->set_zero();
-        int stat = old_tsr->read_local_nnz(&n, &pairs, true);
-        //if (stat != SUCCESS) return stat;
-        stat = this->write(n, alpha, beta, pairs, 'w');
-        this->sr->pair_dealloc(pairs);
-        zero_tsr->operator[]("") = this->operator[](get_default_inds(this->order))-copy_tsr->operator[](get_default_inds(this->order));
-        printf("sum is ...\n");
-        zero_tsr->print();
-        return stat;
-        }
-        //if (nrm > 1.e-6){
-        //  ASSERT(0);
-        //  assert(0);
+        return this->merge_modes((tensor*)old_tsr, alpha, beta);
+        //if (1) return this->merge_modes((tensor*)old_tsr, alpha, beta);
+        //else {
+        //  tensor * copy_tsr = new tensor(this, 1, 1);
+        //  tensor * res_tsr = new tensor(this, 0, 1);
+        //  tensor * zero_tsr = new tensor(this->sr, 0, (int64_t*)NULL, NULL, this->wrld);
+        //  int stat2 = copy_tsr->merge_modes((tensor*)old_tsr, alpha, beta);
+        //  if (beta == NULL || this->sr->isequal(beta,this->sr->addid()))
+        //    this->set_zero();
+        //  int stat = old_tsr->read_local_nnz(&n, &pairs, true);
+        //  //if (stat != SUCCESS) return stat;
+        //  stat = this->write(n, alpha, beta, pairs, 'w');
+        //  this->sr->pair_dealloc(pairs);
+        //  zero_tsr->operator[]("") = this->operator[](get_default_inds(this->order))-copy_tsr->operator[](get_default_inds(this->order));
+        //  res_tsr->operator[](get_default_inds(this->order)) = this->operator[](get_default_inds(this->order))-copy_tsr->operator[](get_default_inds(this->order));
+        //  char * val = new char[sr->el_size];
+        //  res_tsr->reduce_sum(val);
+        //  printf("sum is ...");
+        //  sr->print(val);
+        //  zero_tsr->print();
+        //  this->compare(copy_tsr, stdout, sr->addid());
+        //  printf("\n");
+        //  return stat;
         //}
-
       }
     //if (!is_mode_merge && is_mode_split){
     //  return this->split_modes(old_tsr, alpha, beta);
@@ -1899,6 +1901,10 @@ namespace CTF_int {
     if (wrld->rank == 0) DPRINTF(2,"Creating home of %s\n",name);
     register_size(new_tensor->size*sr->el_size);
     new_tensor->data = new_tensor->home_buffer;
+    sr->init(new_tensor->size, new_tensor->data);
+    char * inds = get_default_inds(this->order);
+    summation sum = summation((tensor*)this, inds, sr->mulid(), new_tensor, inds, sr->mulid());
+    sum.execute();
     return new_tensor;
   }
 
@@ -1932,7 +1938,7 @@ namespace CTF_int {
     int j=0;
     for (int i=0; i<low_ord_tsr->order; i++){
       if (merge_mode_counts[i] > 1){
-        if (low_ord_tsr->edge_map[i].type != PHYSICAL_MAP || high_ord_tsr->lens[i] % low_ord_tsr->edge_map[i].np == 0){
+        if (low_ord_tsr->edge_map[i].type != PHYSICAL_MAP || high_ord_tsr->lens[j] % low_ord_tsr->edge_map[i].np == 0){
           tensor * shadow_low_ord_tsr = ((tensor *)low_ord_tsr)->split_unmapped_mode(i, merge_mode_counts[i], high_ord_tsr->lens+j);
           *new_low_ord_tsr = shadow_low_ord_tsr;
           merge_split_unmapped_modes(shadow_low_ord_tsr, high_ord_tsr, new_low_ord_tsr, new_high_ord_tsr);
@@ -2464,8 +2470,8 @@ namespace CTF_int {
       alloc_ptr(global_comm.np*sizeof(int), (void**)&recvcnts);
       alloc_ptr(global_comm.np*sizeof(int), (void**)&displs);
       alloc_ptr(A->order*sizeof(int), (void**)&idx_arr);
-    }
-    recvcnts = NULL;
+    } else
+      recvcnts = NULL;
 
 
     MPI_Gather(&my_sz, 1, MPI_INT, recvcnts, 1, MPI_INT, 0, global_comm.cm);
@@ -3797,6 +3803,12 @@ namespace CTF_int {
     shadow->data = this->data;
     shadow->is_data_aliased = 1;
     shadow->has_home = 1;
+    shadow->home_size = shadow->size;
+    //this->print_map();
+    //shadow->print_map();
+    //this->print_lens();
+    //shadow->print_lens();
+    //printf("my size is %ld shadow size is %ld\n",this->size,shadow->size);
     shadow->is_home = 1;
     shadow->home_buffer = shadow->data;
     cdealloc(par_inds);
@@ -3840,6 +3852,7 @@ namespace CTF_int {
     shadow->set_distribution(tsr_inds, par[par_inds], CTF::Idx_Partition());
     shadow->data = this->data;
     shadow->is_data_aliased = 1;
+    shadow->home_size = this->size;
     shadow->has_home = 1;
     shadow->is_home = 1;
     shadow->home_buffer = shadow->data;
