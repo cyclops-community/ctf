@@ -638,7 +638,7 @@ namespace CTF_int{
           CTF::Tensor<float> mU;
           CTF::Matrix<float> vS;
           CTF::Tensor<float> mVT;
-          mA.svd(mU, vS, mVT, rank, threshold);
+          mA.svd_batch(mU, vS, mVT, rank);
           (*U)["ijk"] = mU["ijk"];
           (*S)["ik"] = vS["ik"];
           (*VT)["ijk"] = mVT["ijk"];
@@ -652,7 +652,7 @@ namespace CTF_int{
           CTF::Tensor<double> mU;
           CTF::Matrix<double> vS;
           CTF::Tensor<double> mVT;
-          mA.svd(mU, vS, mVT, rank, threshold);
+          mA.svd_batch(mU, vS, mVT, rank);
           (*U)["ijk"] = mU["ijk"];
           (*S)["ik"] = vS["ik"];
           (*VT)["ijk"] = mVT["ijk"];
@@ -674,7 +674,7 @@ namespace CTF_int{
           CTF::Tensor<std::complex<float>> mU;
           CTF::Matrix<std::complex<float>> vS;
           CTF::Tensor<std::complex<float>> mVT;
-          mA.svd(mU, vS, mVT, rank, threshold);
+          mA.svd_batch(mU, vS, mVT, rank);
           (*U)["ijk"] = mU["ijk"];
           (*S)["ik"] = vS["ik"];
           (*VT)["ijk"] = mVT["ijk"];
@@ -688,7 +688,7 @@ namespace CTF_int{
           CTF::Tensor<std::complex<double>> mU;
           CTF::Matrix<std::complex<double>> vS;
           CTF::Tensor<std::complex<double>> mVT;
-          mA.svd(mU, vS, mVT, rank, threshold);
+          mA.svd_batch(mU, vS, mVT, rank);
           (*U)["ijk"] = mU["ijk"];
           (*S)["ik"] = vS["ik"];
           (*VT)["ijk"] = mVT["ijk"];

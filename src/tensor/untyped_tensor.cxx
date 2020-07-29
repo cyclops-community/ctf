@@ -3931,10 +3931,10 @@ namespace CTF_int {
 
   std::vector<tensor*> tensor::partition_last_mode_implicit(){
     std::vector<tensor*> subtsrs;
-    int64_t phase = this->edge_map[i].calc_phase();
-    int64_t rank = this->edge_map[i].calc_phys_rank();
+    int64_t phase = this->edge_map[this->order-1].calc_phase();
+    int64_t rank = this->edge_map[this->order-1].calc_phys_rank(this->topo);
     assert(!this->is_sparse);
-    assert(!this->has_symmetry);
+    assert(!this->has_symmetry());
     World * subwrld = this->wrld;
     int * pe_grid_lens = this->topo->lens;
     int used_cdt = this->topo->order;
@@ -3952,7 +3952,7 @@ namespace CTF_int {
     char * topo_inds = get_default_inds(new_topo_order);
     char * tsr_inds = get_default_inds(this->order-1);
     if (used_cdt < this->topo->order){
-      pe_grid_lens = (int*)CTF_int::alloc(sizeof(nit)*(this->topo->order-1))
+      pe_grid_lens = (int*)CTF_int::alloc(sizeof(int)*(this->topo->order-1));
     }
     for (int j=0; j<this->topo->order; j++){
       if (j<used_cdt){
@@ -3962,20 +3962,20 @@ namespace CTF_int {
       }
     }
     for (int j=0; j<this->order-1; j++){
-      if (this->edge_map[j]->type == PHYISCAL_MAP){
-        if (this->edge_map[j]->cdt > used_cdt)
-          tsr_inds[j] = topo_inds[this->edge_map[j]->cdt-1]
+      if (this->edge_map[j].type == PHYSICAL_MAP){
+        if (this->edge_map[j].cdt > used_cdt)
+          tsr_inds[j] = topo_inds[this->edge_map[j].cdt-1];
         else
-          tsr_inds[j] = topo_inds[this->edge_map[j]->cdt]
+          tsr_inds[j] = topo_inds[this->edge_map[j].cdt];
       } else
-        tsr_inds[j] = non_topo_inds[j]
+        tsr_inds[j] = non_topo_inds[j];
     }
     
     for (int64_t i=0; i*phase+rank<lens[this->order-1]; i++){
       tensor * subtsr = new tensor(this->sr, this->order-1, this->lens, this->sym, subwrld, 0);
       Partition pe_grid(new_topo_order, pe_grid_lens);
-      subtsr.set_distribution(tsr_inds, pe_grid[topo_inds], Idx_Partition());
-      subtsr->data = this->data + i*subtsr->size;l
+      subtsr->set_distribution(tsr_inds, pe_grid[topo_inds], Idx_Partition());
+      subtsr->data = this->data + i*subtsr->size*sr->el_size;
       subtsr->is_data_aliased = 1;
       subtsr->has_home = 1;
       subtsr->home_size = subtsr->size;

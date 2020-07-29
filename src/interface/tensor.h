@@ -19,6 +19,9 @@ namespace CTF {
   template <typename dtype>
   class Matrix;
 
+  template <typename dtype>
+  class Vector;
+
   /**
    * \defgroup CTF CTF Tensor
    * \addtogroup CTF
@@ -1203,7 +1206,7 @@ namespace CTF {
        * \brief fills with a batch of distributed matrices distributed over appropriate subworlds, which should be distributed in a particular way, as produced by to_matrix_batch() or to_vector_batch()
        * \param[in] vector of matrices containing the data to fill this order 3 tensor with
        */
-      void reassemble_batch(std::vector<tensor*> mats);
+      void reassemble_batch(std::vector<CTF_int::tensor*> mats);
 
       /*
        * \calculates For an order 3 tensor, calculates a batch of singular value decompositions, M = U x S x VT, of each matrix slice of the last mode, using pdgesvd from ScaLAPACK.
