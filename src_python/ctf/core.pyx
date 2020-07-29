@@ -803,10 +803,10 @@ cdef class tensor:
         Return the transposed tensor with specified order of axes.
 
     write:
-        Helper function on writing a tensor.
+        Helper function for writing data to tensor.
 
-    write_all:
-        Helper function on writing a tensor.
+    __write_all:
+        Function for writing all tensor data when using one processor.
     """
     cdef ctensor * dt
     cdef int order
@@ -885,7 +885,7 @@ cdef class tensor:
 
     property sym:
         """
-        Attribute sym. ?
+        Attribute sym. Specifies symmetry for use for symmetric storage (and causing symmetrization of accumulation expressions to this tensor), sym should be of size order, with each element NS/SY/AS/SH denoting symmetry relationship with the next mode (see also C++ docs and tensor constructor)
         """
         def __get__(self):
             return self.sym
@@ -1200,7 +1200,7 @@ cdef class tensor:
     def __nonzero__(self):
         if self.size != 1 and self.shape != ():
             raise TypeError("CTF PYTHON ERROR: The truth value of a tensor with more than one element is ambiguous. Use ctf.any() or ctf.all()")
-        if int(self.to_nparray() == 0) == 1:
+        if int(self.o_nparray() == 0) == 1:
             return False
         else:
             return True
@@ -2105,6 +2105,7 @@ cdef class tensor:
         """
         if self.dt.get_tot_size(False) != 1:
             raise ValueError("item() must be called on array of size 0")
+
         arr = self.read_all()
         return arr.item()
 
@@ -2366,6 +2367,15 @@ cdef class tensor:
         cdef int64_t sz
         sz = self.dt.get_tot_size(not unpack)
         tB = self.dtype.itemsize
+        if self.dt.wrld.np == 1 and self.sp == 0 and np.all(self.sym == SYM.NS):
+            arr_in = arr
+            if arr is None:
+                arr_in = np.zeros(sz, dtype=self.dtype)
+            self.__read_all(arr_in)
+            if arr is None:
+                return arr_in
+            else:
+                return
         cvals = <char*> malloc(sz*tB)
         self.dt.allread(&sz, cvals, unpack)
         cdef cnp.ndarray buf = np.empty(sz, dtype=self.dtype)
@@ -2410,11 +2420,31 @@ cdef class tensor:
         delete_arr(self.dt, cdata)
         return inds, vals
 
-    def write_all(self, arr):
+    def __read_all(self, arr):
         """
-        write_all(arr)
-        Helper function on writing a tensor.
+        __read_all(arr)
+        Helper function for reading data from tensor, works only with one processor with dense nonsymmetric tensor.
         """
+        if self.dt.wrld.np != 1 or self.sp != 0 or not np.all(self.sym == SYM.NS):
+            raise ValueError("CTF PYTHON ERROR: cannot __read_all for this type of tensor")
+        cdef char * cvals
+        cdef int64_t sz
+        sz = self.dt.get_tot_size(False)
+        tB = arr.dtype.itemsize
+        self.dt.get_raw_data(&cvals, &sz)
+        cdef cnp.ndarray buf = np.empty(sz, dtype=self.dtype)
+        odata = buf.data
+        buf.data = cvals
+        arr[:] = buf[:]
+        buf.data = odata
+
+    def __write_all(self, arr):
+        """
+        __write_all(arr)
+        Helper function on writing data in arr to tensor, works only with one processor with dense nonsymmetric tensor.
+        """
+        if self.dt.wrld.np != 1 or self.sp != 0 or not np.all(self.sym == SYM.NS):
+            raise ValueError("CTF PYTHON ERROR: cannot __write_all for this type of tensor")
         cdef char * cvals
         cdef int64_t sz
         sz = self.dt.get_tot_size(False)
@@ -3065,11 +3095,9 @@ cdef class tensor:
         """
         if arr.dtype != self.dtype:
             raise ValueError('CTF PYTHON ERROR: bad dtype')
-        if self.dt.wrld.np == 1:
-            self.write_all(arr)
+        if self.dt.wrld.np == 1 and self.sp == 0 and np.all(self.sym == SYM.NS):
+            self.__write_all(arr)
         elif self.dt.wrld.rank == 0:
-            #self.write(np.arange(0,self.tot_size(),dtype=np.int64),np.asfortranarray(arr).flatten())
-            #self.write(np.arange(0,self.tot_size(),dtype=np.int64),np.asfortranarray(arr).flatten())
             self.write(np.arange(0,self.tot_size(),dtype=np.int64),arr.ravel())
         else:
             self.write([], [])
@@ -5561,19 +5589,25 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
                 out_inds += ind
                 out_lens.append(dind_lens[ind])
                 uniq_subs.remove(ind)
+    new_operands = []
+    for i in range(numop):
+        if isinstance(operands[i],tensor):
+            new_operands.append(operands[i])
+        else:
+            new_operands.append(astensor(operands[i]))
     if out is None:
-        out_dtype = _get_np_dtype([x.dtype for x in operands])
+        out_dtype = _get_np_dtype([x.dtype for x in new_operands])
         out_sp = True
         for i in range(numop):
-            if operands[i].sp == False:
-                if operands[i].ndim > 0:
+            if new_operands[i].sp == False:
+                if new_operands[i].ndim > 0:
                     out_sp = False
         output = tensor(out_lens, sp=out_sp, dtype=out_dtype)
     else:
         output = out
-    operand = operands[0].i(inds[0])
+    operand = new_operands[0].i(inds[0])
     for i in range(1,numop):
-        operand = operand * operands[i].i(inds[i])
+        operand = operand * new_operands[i].i(inds[i])
     out_scale*output.i(out_inds) << operand
     if out is None:
         if len(out_inds) == 0:
