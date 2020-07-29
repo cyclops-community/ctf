@@ -1860,6 +1860,80 @@ NORM_INFTY_INST(double)
     Sparse_Tensor<dtype> stsr(indices,this);
     return stsr;
   }
+ 
+  template<typename dtype>
+  std::vector<CTF::Matrix<dtype>*> Tensor<dtype>::to_matrix_batch(){
+    IASSERT(this->order == 3);
+    if (this->order != 3)
+      printf("CTF ERROR: to_matrix_batch() function only valid for order 3 tensors.\n");
+    std::vector<tensor*> subtsrs = this->partition_last_mode_implicit();
+    std::vector<CTF::Matrix<dtype>*> submats;
+    for (int64_t i=0; i<(int64_t)subtsrs.size(); i++){
+      submats.push_back(new CTF::Matrix<dtype>(subtsrs[i]));
+      delete subtsrs[i];
+    }
+    return submats;
+  }
+ 
+  template<typename dtype>
+  void Tensor<dtype>::reassemble_batch(std::vector<tensor*> subtsrs){
+    for (int64_t i=0; i<(int64_t)subtsrs.size(); i++){
+      sr->copy(this->data + sr->el_size*i*subtsrs[0]->size, subtsrs[i]->data, subtsrs[0]->size);
+    }
+  }
+      
+  template<typename dtype>
+  void Tensor<dtype>::svd_batch(Tensor<dtype> & U, Matrix<dtype> & S, Tensor<dtype> & VT, int rank = 0){
+    int64_t srank = rank == 0 ? std::min(this->lens[0], this->lens[1]) : rank;
+    std::vector<CTF::Matrix<dtype>*> mats = this->to_matrix_batch();
+    int64_t U_lens[3] = {this->lens[0], srank, this->lens[2]};
+    int64_t VT_lens[3] = {this->lens[1], srank, this->lens[2]};
+    //get this tensors partition and map tensors accordingly
+    Partition pe_grid(this->topo->order, this->topo->lens);
+    char pe_grid_inds[this->topo->order];
+    for (int i=0; i<this->topo->order; i++){
+      if (this->edge_map[0].type == PHYSICAL_MAP &&
+          this->edge_map[0].cdt == i){
+        pe_grid_inds[i] = 'i'
+      } else 
+      if (this->edge_map[1].type == PHYSICAL_MAP &&
+          this->edge_map[1].cdt == i){
+        pe_grid_inds[i] = 'j'
+      } else
+      if (this->edge_map[2].type == PHYSICAL_MAP &&
+          this->edge_map[2].cdt == i){
+        pe_grid_inds[i] = 'k'
+      }
+    }
+    //need to predefine this way to ensure all tensors are blocked the same way over k, so that their slices live on the same subworlds
+    U = Tensor<dtype>(3,U_lens,NULL,this->wrld,"ijk",pe_grid[pe_grid_inds],Idx_Partition(),NULL,0,this->sr);
+    VT = Tensor<dtype>(3,VT_lens,NULL,this->wrld,"ijk",pe_grid[pe_grid_inds],Idx_Partition(),NULL,0,this->sr);
+    VT = Tensor<dtype>(3,VT_lens,NULL,this->wrld,NULL,0,,this->sr);
+    S = Matrix<dtype>(srank,this->lens[2],"jk",pe_grid[pe_grid_inds],Idx_Partition(),0,this->wrld,this->sr);
+    std::vector<CTF::Matrix*> U_mats = U.to_matrix_batch();
+    std::vector<CTF::Vector*> S_mats = S.to_vector_batch();
+    std::vector<CTF::Matrix*> VT_mats = VT.to_matrix_batch();
+    IASSERT(U_mats.size() == mats.size());
+    IASSERT(S_mats.size() == mats.size());
+    IASSERT(VT_mats.size() == mats.size());
+    for (int64_t i=0; i<mats.size(); i++){
+      CTF::Matrix<dtype> U;
+      CTF::Vector<dtype> S;
+      CTF::Matrix<dtype> VT;
+      mats[i]->svd(U,S,VT,rank)
+      U_mats[i]->operator[]("ij") += U["ij"];
+      S_vecs[i]->operator[]("i") += S["i"];
+      VT_mats[i]->operator[]("ij") += VT["ij"];
+    }
+    U.reassemble_batch(U_mats);
+    S.reassemble_batch(S_vecs);
+    VT.reassemble_batch(VT_mats);
+    for (int64_t i=0; i<mats.size(); i++){
+      delete U_mats[i];
+      delete S_vecs[i];
+      delete VT_mats[i];
+    }
+  }
 
 }
 

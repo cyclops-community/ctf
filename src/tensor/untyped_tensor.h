@@ -1040,6 +1040,12 @@ namespace CTF_int {
        * \return tensor alias of this tensor
        */
       tensor * split_unmapped_mode(int mode, int num_modes, int64_t const * split_lens);
+
+      /**
+       * \brief splits dense nonsymmetric tensor into list of tensors of one order lower, which are distributed over a subworld and point to the data stored inside this tensor via aliasing
+       * \return list of tensors as described above
+       */
+      std::vector<tensor*> partition_last_mode_implicit();
   };
 }
 #endif// __UNTYPED_TENSOR_H__

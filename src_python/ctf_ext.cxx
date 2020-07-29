@@ -630,6 +630,78 @@ namespace CTF_int{
     }
   }
 
+  void matrix_svd_batch(tensor * A, tensor * U, tensor * S, tensor * VT, int rank){
+    switch (A->sr->el_size){
+      case 4:
+        {
+          CTF::Tensor<float> mA(*A);
+          CTF::Tensor<float> mU;
+          CTF::Matrix<float> vS;
+          CTF::Tensor<float> mVT;
+          mA.svd(mU, vS, mVT, rank, threshold);
+          (*U)["ijk"] = mU["ijk"];
+          (*S)["ik"] = vS["ik"];
+          (*VT)["ijk"] = mVT["ijk"];
+        }
+        break;
+
+
+      case 8:
+        {
+          CTF::Tensor<double> mA(*A);
+          CTF::Tensor<double> mU;
+          CTF::Matrix<double> vS;
+          CTF::Tensor<double> mVT;
+          mA.svd(mU, vS, mVT, rank, threshold);
+          (*U)["ijk"] = mU["ijk"];
+          (*S)["ik"] = vS["ik"];
+          (*VT)["ijk"] = mVT["ijk"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD batch called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
+  void matrix_svd_batch_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank){
+    switch (A->sr->el_size){
+      case 4:
+        {
+          CTF::Tensor<std::complex<float>> mA(*A);
+          CTF::Tensor<std::complex<float>> mU;
+          CTF::Matrix<std::complex<float>> vS;
+          CTF::Tensor<std::complex<float>> mVT;
+          mA.svd(mU, vS, mVT, rank, threshold);
+          (*U)["ijk"] = mU["ijk"];
+          (*S)["ik"] = vS["ik"];
+          (*VT)["ijk"] = mVT["ijk"];
+        }
+        break;
+
+
+      case 8:
+        {
+          CTF::Tensor<std::complex<double>> mA(*A);
+          CTF::Tensor<std::complex<double>> mU;
+          CTF::Matrix<std::complex<double>> vS;
+          CTF::Tensor<std::complex<double>> mVT;
+          mA.svd(mU, vS, mVT, rank, threshold);
+          (*U)["ijk"] = mU["ijk"];
+          (*S)["ik"] = vS["ik"];
+          (*VT)["ijk"] = mVT["ijk"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD batch called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
   void tensor_svd(tensor * dA, char * idx_A, char * idx_U, char * idx_VT, int rank, double threshold, bool use_svd_rand, int num_iter, int oversamp, tensor ** USVT){
     char idx_S[2];
     idx_S[1] = '\0';

@@ -196,6 +196,8 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void matrix_svd_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, double threshold)
     cdef void matrix_svd_rand(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, int iter, int oversmap, ctensor * U_init);
     cdef void matrix_svd_rand_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank, int iter, int oversmap, ctensor * U_init);
+    cdef void matrix_svd_batch(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
+    cdef void matrix_svd_batch_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
     cdef void tensor_svd(ctensor * dA, char * idx_A, char * idx_U, char * idx_VT, int rank, double threshold, bool use_svd_rand, int num_iter, int oversamp, ctensor ** USVT)
     cdef void tensor_svd_cmplx(ctensor * dA, char * idx_A, char * idx_U, char * idx_VT, int rank, double threshold, bool use_svd_rand, int num_iter, int oversamp, ctensor ** USVT)
     cdef void matrix_eigh(ctensor * A, ctensor * U, ctensor * D);
@@ -5807,6 +5809,53 @@ def svd_rand(tensor A, rank, niter=1, oversamp=5, VT_guess=None):
         raise ValueError('CTF PYTHON ERROR: SVD must be called on real or complex single/double precision tensor')
     t_svd.stop()
     return [U, S, VT]
+
+def svd_batch(tensor A, rank=None):
+    """
+    svd(A, rank=None)
+    Compute Single Value Decomposition of matrix A[i,:,:] for each i, so that A[i,j,k] = sum_r U[i,r,j] S[i,r] VT[i,r,k]
+
+    Parameters
+    ----------
+    A: tensor_like
+        Input tensor 3 dimensions.
+
+    rank: int or None, optional
+        Target rank for SVD, default `rank=None`, implying full rank.
+
+    Returns
+    -------
+    U: tensor
+        A unitary CTF tensor with 3 dimensions.
+
+    S: tensor
+        A 2-D tensor with singular values for each SVD.
+
+    VT: tensor
+        A unitary CTF tensor with 3 dimensions.
+    """
+    t_svd = timer("pySVD_batch")
+    t_svd.start()
+    if not isinstance(A,tensor) or A.ndim != 3:
+        raise ValueError('CTF PYTHON ERROR: batch SVD called on invalid tensor, must be CTF order 3 tensor')
+    if rank is None:
+        rank = 0
+        k = min(A.shape[0],A.shape[1])
+    else:
+        k = rank
+
+    S = tensor([A.shape[0],k],dtype=A.dtype)
+    U = tensor([A.shape[0],A.shape[1],k],dtype=A.dtype)
+    VT = tensor([A.shape[0],k,A.shape[1]],dtype=A.dtype)
+    if A.dtype == np.float64 or A.dtype == np.float32:
+        matrix_svd_batch(A.dt, VT.dt, S.dt, U.dt, rank)
+    elif A.dtype == np.complex128 or A.dtype == np.complex64:
+        matrix_svd_batch_cmplx(A.dt, VT.dt, S.dt, U.dt, rank)
+    else:
+        raise ValueError('CTF PYTHON ERROR: batch SVD must be called on real or complex single/double precision tensor')
+    t_svd.stop()
+    return [U, S, VT]
+
 
 def qr(tensor A):
     """

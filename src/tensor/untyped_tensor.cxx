@@ -3928,5 +3928,62 @@ namespace CTF_int {
     cdealloc(tsr_inds);
     return shadow;
   }
+
+  std::vector<tensor*> tensor::partition_last_mode_implicit(){
+    std::vector<tensor*> subtsrs;
+    int64_t phase = this->edge_map[i].calc_phase();
+    int64_t rank = this->edge_map[i].calc_phys_rank();
+    assert(!this->is_sparse);
+    assert(!this->has_symmetry);
+    World * subwrld = this->wrld;
+    int * pe_grid_lens = this->topo->lens;
+    int used_cdt = this->topo->order;
+    int new_topo_order = this->topo->order;
+    if (this->edge_map[this->order-1].type == PHYSICAL_MAP){
+      MPI_Comm new_comm;
+      MPI_Comm_split(this->wrld->comm,rank,this->wrld->rank,&new_comm);
+      subwrld = new World(new_comm);
+      used_cdt = this->edge_map[this->order-1].cdt;
+      new_topo_order--;
+    }
+    
+    char * old_topo_inds = get_default_inds(this->topo->order);
+    char * non_topo_inds = get_default_inds(this->order, this->topo->order);
+    char * topo_inds = get_default_inds(new_topo_order);
+    char * tsr_inds = get_default_inds(this->order-1);
+    if (used_cdt < this->topo->order){
+      pe_grid_lens = (int*)CTF_int::alloc(sizeof(nit)*(this->topo->order-1))
+    }
+    for (int j=0; j<this->topo->order; j++){
+      if (j<used_cdt){
+        pe_grid_lens[j] = this->topo->lens[j];
+      } else if (j>used_cdt){
+        pe_grid_lens[j-1] = this->topo->lens[j];
+      }
+    }
+    for (int j=0; j<this->order-1; j++){
+      if (this->edge_map[j]->type == PHYISCAL_MAP){
+        if (this->edge_map[j]->cdt > used_cdt)
+          tsr_inds[j] = topo_inds[this->edge_map[j]->cdt-1]
+        else
+          tsr_inds[j] = topo_inds[this->edge_map[j]->cdt]
+      } else
+        tsr_inds[j] = non_topo_inds[j]
+    }
+    
+    for (int64_t i=0; i*phase+rank<lens[this->order-1]; i++){
+      tensor * subtsr = new tensor(this->sr, this->order-1, this->lens, this->sym, subwrld, 0);
+      Partition pe_grid(new_topo_order, pe_grid_lens);
+      subtsr.set_distribution(tsr_inds, pe_grid[topo_inds], Idx_Partition());
+      subtsr->data = this->data + i*subtsr->size;l
+      subtsr->is_data_aliased = 1;
+      subtsr->has_home = 1;
+      subtsr->home_size = subtsr->size;
+      subtsr->is_home = 1;
+      subtsr->home_buffer = subtsr->data;
+      subtsrs.push_back(subtsr);
+    }
+    return subtsrs;
+  }
 }
 

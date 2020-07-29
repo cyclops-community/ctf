@@ -102,6 +102,36 @@ class KnowValues(unittest.TestCase):
             self.assertTrue((rs2 < rs1) or numpy.abs(rs1-rs2) < 1.e-4)
             self.assertTrue(numpy.abs(rs1 - rs2)<3.e-1)
 
+    def test_batch_svd(self):
+        m = 9
+        n = 5
+        q = 13
+        k = 5
+        for dt in [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128]:
+            A = ctf.random.random((q,m,n))
+            A = ctf.astensor(A,dtype=dt)
+            [U,S,VT]=ctf.svd_batch(A,k)
+            [U1,S1,VT1]=la.svd(ctf.to_nparray(A),full_matrices=False)
+            for i in range(q):
+                self.assertTrue(allclose(A[q], ctf.einsum(U[q],ctf.dot(ctf.diag(S[q]),VT[q]))))
+                self.assertTrue(allclose(ctf.eye(k), ctf.dot(U[q].T(), U[q])))
+                self.assertTrue(allclose(ctf.eye(k), ctf.dot(VT[q], VT[q].T())))
+        m = 7
+        n = 8
+        q = 2
+        k = 3
+        for dt in [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128]:
+            A = ctf.random.random((q,m,n))
+            A = ctf.astensor(A,dtype=dt)
+            [U,S,VT]=ctf.svd_batch(A,k)
+            [U1,S1,VT1]=la.svd(ctf.to_nparray(A),full_matrices=False)
+            for i in range(q):
+                [nU,NS,nVT] = numpy.linalg.svd(A[q])
+                self.assertTrue(allclose(np.dot(nU,np.dot(np.diag(nS),nVT)), ctf.dot(U[q],ctf.dot(ctf.diag(S[q]),VT[q]))))
+                self.assertTrue(allclose(ctf.eye(k), ctf.dot(U[q].T(), U[q])))
+                self.assertTrue(allclose(ctf.eye(k), ctf.dot(VT[q], VT[q].T())))
+
+
     def test_tsvd(self):
         lens = [4,5,6,3]
         for dt in [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128]:

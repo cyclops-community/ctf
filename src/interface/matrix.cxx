@@ -1242,5 +1242,16 @@ namespace CTF {
     t_eigh.stop();
   }
 
+  template<typename dtype>
+  std::vector<CTF::Vector<dtype>*> Matrix<dtype>::to_vector_batch(){
+    std::vector<tensor*> subtsrs = this->partition_last_mode_implicit();
+    std::vector<CTF::Vector<dtype>*> subvecs;
+    for (int64_t i=0; i<(int64_t)subtsrs.size(); i++){
+      subvecs.push_back(new CTF::Vector<dtype>(subtsrs[i]));
+      delete subtsrs[i];
+    }
+    return subvecs;
+  }
+
 }
 

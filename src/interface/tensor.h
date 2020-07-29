@@ -16,6 +16,9 @@ namespace CTF {
   template <typename dtype>
   class Sparse_Tensor;
 
+  template <typename dtype>
+  class Matrix;
+
   /**
    * \defgroup CTF CTF Tensor
    * \addtogroup CTF
@@ -1189,6 +1192,29 @@ namespace CTF {
        * \param[in] frac_sp desired expected nonzero fraction
        */
       void fill_sp_random(dtype rmin, dtype rmax, double frac_sp);
+
+      /**
+       * \brief transforms order 3 tensor to a batch of distributed matrices distributed over appropriate subworlds
+       * \return vector of matrices containing the data of this order 3 tensor
+       */
+      std::vector<CTF::Matrix<dtype>*> to_matrix_batch();
+      
+      /**
+       * \brief fills with a batch of distributed matrices distributed over appropriate subworlds, which should be distributed in a particular way, as produced by to_matrix_batch() or to_vector_batch()
+       * \param[in] vector of matrices containing the data to fill this order 3 tensor with
+       */
+      void reassemble_batch(std::vector<tensor*> mats);
+
+      /*
+       * \calculates For an order 3 tensor, calculates a batch of singular value decompositions, M = U x S x VT, of each matrix slice of the last mode, using pdgesvd from ScaLAPACK.
+       *             The output, assuming exact SVD satisfies T["ijq"]=sum_k U["ikq"]*S["kq"]*VT["jkq"]
+       * \param[out] U left singular vectors of each matrix
+       * \param[out] S singular values of each matrix
+       * \param[out] VT right singular vectors of each matrix
+       * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns)
+       */
+      void svd_batch(Tensor<dtype> & U, Matrix<dtype> & S, Tensor<dtype> & VT, int rank = 0);
+
 
       /**
        * \brief turns on profiling for tensor
