@@ -113,7 +113,7 @@ class KnowValues(unittest.TestCase):
             [U,S,VT]=ctf.svd_batch(A,k)
             [U1,S1,VT1]=la.svd(ctf.to_nparray(A),full_matrices=False)
             for i in range(q):
-                self.assertTrue(allclose(A[q], ctf.einsum(U[q],ctf.dot(ctf.diag(S[q]),VT[q]))))
+                self.assertTrue(allclose(A[q], ctf.dot(U[q],ctf.dot(ctf.diag(S[q]),VT[q]))))
                 self.assertTrue(allclose(ctf.eye(k), ctf.dot(U[q].T(), U[q])))
                 self.assertTrue(allclose(ctf.eye(k), ctf.dot(VT[q], VT[q].T())))
         m = 7

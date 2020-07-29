@@ -1869,7 +1869,7 @@ NORM_INFTY_INST(double)
     std::vector<CTF_int::tensor*> subtsrs = this->partition_last_mode_implicit();
     std::vector<CTF::Matrix<dtype>*> submats;
     for (int64_t i=0; i<(int64_t)subtsrs.size(); i++){
-      submats.push_back(new CTF::Matrix<dtype>(subtsrs[i]));
+      submats.push_back(new CTF::Matrix<dtype>(*subtsrs[i]));
       delete subtsrs[i];
     }
     return submats;
@@ -1914,7 +1914,10 @@ NORM_INFTY_INST(double)
     IASSERT(U_mats.size() == mats.size());
     IASSERT(S_vecs.size() == mats.size());
     IASSERT(VT_mats.size() == mats.size());
-    for (int64_t i=0; i<mats.size(); i++){
+    std::vector<tensor*> tU_mats;
+    std::vector<tensor*> tS_vecs;
+    std::vector<tensor*> tVT_mats;
+    for (int64_t i=0; i<(int64_t)mats.size(); i++){
       CTF::Matrix<dtype> Ui;
       CTF::Vector<dtype> Si;
       CTF::Matrix<dtype> VTi;
@@ -1922,11 +1925,14 @@ NORM_INFTY_INST(double)
       U_mats[i]->operator[]("ij") += Ui["ij"];
       S_vecs[i]->operator[]("i") += Si["i"];
       VT_mats[i]->operator[]("ij") += VTi["ij"];
+      tU_mats.push_back((tensor*)U_mats[i]);
+      tS_vecs.push_back((tensor*)S_vecs[i]);
+      tVT_mats.push_back((tensor*)VT_mats[i]);
     }
-    U.reassemble_batch((std::vector<CTF_int::tensor*>)U_mats);
-    S.reassemble_batch((std::vector<CTF_int::tensor*>)S_vecs);
-    VT.reassemble_batch((std::vector<CTF_int::tensor*>)VT_mats);
-    for (int64_t i=0; i<mats.size(); i++){
+    U.reassemble_batch(tU_mats);
+    S.reassemble_batch(tS_vecs);
+    VT.reassemble_batch(tVT_mats);
+    for (int64_t i=0; i<(int64_t)mats.size(); i++){
       delete U_mats[i];
       delete S_vecs[i];
       delete VT_mats[i];
