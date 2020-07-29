@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import unittest
-import numpy
+import numpy as np
 import ctf
 import os
 import sys
@@ -19,7 +19,7 @@ def allclose(a, b):
 class KnowValues(unittest.TestCase):
     def test_cholesky(self):
         n = 4
-        for dt in [numpy.float32, numpy.float64]:
+        for dt in [np.float32, np.float64]:
             A = ctf.random.random((n,n))
             A = ctf.astensor(A,dtype=dt)
             A = ctf.dot(A.T(), A)
@@ -32,7 +32,7 @@ class KnowValues(unittest.TestCase):
     def test_solve_tri(self):
         n = 4
         m = 7
-        for dt in [numpy.float32, numpy.float64]:
+        for dt in [np.float32, np.float64]:
             B = ctf.random.random((n,m))
             B = ctf.astensor(B,dtype=dt)
             L = ctf.random.random((n,n))
@@ -75,7 +75,7 @@ class KnowValues(unittest.TestCase):
         m = 9
         n = 5
         k = 5
-        for dt in [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128]:
+        for dt in [np.float32, np.float64, np.complex64, np.complex128]:
             A = ctf.random.random((m,n))
             A = ctf.astensor(A,dtype=dt)
             [U,S,VT]=ctf.svd(A,k)
@@ -88,7 +88,7 @@ class KnowValues(unittest.TestCase):
         m = 19
         n = 15
         k = 13
-        for dt in [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128]:
+        for dt in [np.float32, np.float64, np.complex64, np.complex128]:
             A = ctf.random.random((m,n))
             A = ctf.astensor(A,dtype=dt)
             [U,S,VT]=ctf.svd_rand(A,k,5,1)
@@ -99,42 +99,40 @@ class KnowValues(unittest.TestCase):
             rs2 = ctf.vecnorm(A - ctf.dot(U2*S2,VT2))
             rA = ctf.vecnorm(A)
             self.assertTrue(rs1 < rA)
-            self.assertTrue((rs2 < rs1) or numpy.abs(rs1-rs2) < 1.e-4)
-            self.assertTrue(numpy.abs(rs1 - rs2)<3.e-1)
+            self.assertTrue((rs2 < rs1) or np.abs(rs1-rs2) < 1.e-4)
+            self.assertTrue(np.abs(rs1 - rs2)<3.e-1)
 
     def test_batch_svd(self):
         m = 9
         n = 5
-        q = 13
+        q = 7
         k = 5
-        for dt in [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128]:
+        for dt in [np.float32, np.float64, np.complex64, np.complex128]:
             A = ctf.random.random((q,m,n))
             A = ctf.astensor(A,dtype=dt)
             [U,S,VT]=ctf.svd_batch(A,k)
-            [U1,S1,VT1]=la.svd(ctf.to_nparray(A),full_matrices=False)
             for i in range(q):
-                self.assertTrue(allclose(A[q], ctf.dot(U[q],ctf.dot(ctf.diag(S[q]),VT[q]))))
-                self.assertTrue(allclose(ctf.eye(k), ctf.dot(U[q].T(), U[q])))
-                self.assertTrue(allclose(ctf.eye(k), ctf.dot(VT[q], VT[q].T())))
+                self.assertTrue(allclose(A[i], ctf.dot(U[i],ctf.dot(ctf.diag(S[i]),VT[i]))))
+                self.assertTrue(allclose(ctf.eye(k), ctf.dot(U[i].T(), U[i])))
+                self.assertTrue(allclose(ctf.eye(k), ctf.dot(VT[i], VT[i].T())))
         m = 7
         n = 8
         q = 2
         k = 3
-        for dt in [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128]:
+        for dt in [np.float32, np.float64, np.complex64, np.complex128]:
             A = ctf.random.random((q,m,n))
             A = ctf.astensor(A,dtype=dt)
             [U,S,VT]=ctf.svd_batch(A,k)
-            [U1,S1,VT1]=la.svd(ctf.to_nparray(A),full_matrices=False)
             for i in range(q):
-                [nU,NS,nVT] = numpy.linalg.svd(A[q])
-                self.assertTrue(allclose(np.dot(nU,np.dot(np.diag(nS),nVT)), ctf.dot(U[q],ctf.dot(ctf.diag(S[q]),VT[q]))))
-                self.assertTrue(allclose(ctf.eye(k), ctf.dot(U[q].T(), U[q])))
-                self.assertTrue(allclose(ctf.eye(k), ctf.dot(VT[q], VT[q].T())))
+                [nU,nS,nVT] = np.linalg.svd(A[i].to_nparray())
+                self.assertTrue(allclose(np.dot(nU[:,:k],np.dot(np.diag(nS[:k]),nVT[:k,:])), ctf.dot(U[i],ctf.dot(ctf.diag(S[i]),VT[i]))))
+                self.assertTrue(allclose(ctf.eye(k), ctf.dot(U[i].T(), U[i])))
+                self.assertTrue(allclose(ctf.eye(k), ctf.dot(VT[i], VT[i].T())))
 
 
     def test_tsvd(self):
         lens = [4,5,6,3]
-        for dt in [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128]:
+        for dt in [np.float32, np.float64, np.complex64, np.complex128]:
             A = ctf.tensor(lens,dtype=dt)
             A.fill_random()
             [U,S,VT]=A.i("ijkl").svd("ija","akl")
@@ -151,13 +149,13 @@ class KnowValues(unittest.TestCase):
             A.fill_random()
             [U,S,VT]=A.i("ijkl").svd("ika","ajl")
             [U,S1,VT]=A.i("ijkl").svd("ika","ajl",4)
-            [U,S2,VT]=A.i("ijkl").svd("ika","ajl",4,numpy.abs(S[3])*(1.-1.e-5))
+            [U,S2,VT]=A.i("ijkl").svd("ika","ajl",4,np.abs(S[3])*(1.-1.e-5))
             self.assertTrue(allclose(S1,S2))
 
-            [U,S2,VT]=A.i("ijkl").svd("ika","ajl",4,numpy.abs(S[2]))
+            [U,S2,VT]=A.i("ijkl").svd("ika","ajl",4,np.abs(S[2]))
             self.assertTrue(not allclose(S1.shape,S2.shape))
 
-            [U,S2,VT]=A.i("ijkl").svd("ika","ajl",4,numpy.abs(S[5]))
+            [U,S2,VT]=A.i("ijkl").svd("ika","ajl",4,np.abs(S[5]))
             self.assertTrue(allclose(S1,S2))
       
             [U,S,VT]=A.i("ijkl").svd("iakj","la")
@@ -201,42 +199,42 @@ class KnowValues(unittest.TestCase):
     def test_qr(self):
         m = 8
         n = 4
-        for dt in [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128]:
+        for dt in [np.float32, np.float64, np.complex64, np.complex128]:
             A = ctf.random.random((m,n))
             A = ctf.astensor(A,dtype=dt)
             [Q,R]=ctf.qr(A)
             self.assertTrue(allclose(A, ctf.dot(Q,R)))
             self.assertTrue(allclose(ctf.eye(n), ctf.dot(Q.T(), Q)))
 
-        A = ctf.tensor((m,n),dtype=numpy.complex64)
-        rA = ctf.tensor((m,n),dtype=numpy.float32)
+        A = ctf.tensor((m,n),dtype=np.complex64)
+        rA = ctf.tensor((m,n),dtype=np.float32)
         rA.fill_random()
         A.real(rA)
-        iA = ctf.tensor((m,n),dtype=numpy.float32)
+        iA = ctf.tensor((m,n),dtype=np.float32)
         iA.fill_random()
         A.imag(iA)
 
         [Q,R]=ctf.qr(A)
 
         self.assertTrue(allclose(A, ctf.dot(Q,R)))
-        self.assertTrue(allclose(ctf.eye(n,dtype=numpy.complex64), ctf.dot(ctf.conj(Q.T()), Q)))
+        self.assertTrue(allclose(ctf.eye(n,dtype=np.complex64), ctf.dot(ctf.conj(Q.T()), Q)))
 
-        A = ctf.tensor((m,n),dtype=numpy.complex128)
-        rA = ctf.tensor((m,n),dtype=numpy.float64)
+        A = ctf.tensor((m,n),dtype=np.complex128)
+        rA = ctf.tensor((m,n),dtype=np.float64)
         rA.fill_random()
         A.real(rA)
-        iA = ctf.tensor((m,n),dtype=numpy.float64)
+        iA = ctf.tensor((m,n),dtype=np.float64)
         iA.fill_random()
         A.imag(iA)
 
         [Q,R]=ctf.qr(A)
 
         self.assertTrue(allclose(A, ctf.dot(Q,R)))
-        self.assertTrue(allclose(ctf.eye(n,dtype=numpy.complex128), ctf.dot(ctf.conj(Q.T()), Q)))
+        self.assertTrue(allclose(ctf.eye(n,dtype=np.complex128), ctf.dot(ctf.conj(Q.T()), Q)))
 
     def test_eigh(self):
         n = 11
-        for dt in [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128]:
+        for dt in [np.float32, np.float64, np.complex64, np.complex128]:
             A = ctf.random.random((n,n))
             A += A.conj().T()
             [D,X]=ctf.eigh(A)
@@ -244,14 +242,14 @@ class KnowValues(unittest.TestCase):
             self.assertTrue(allclose(ctf.eye(n), ctf.dot(X.conj().T(), X)))
 
     def test_norm(self):
-        vec = ctf.zeros((20,20),dtype=numpy.float64)
+        vec = ctf.zeros((20,20),dtype=np.float64)
         vec.fill_random(-1,1)
-        self.assertTrue(numpy.allclose([ctf.norm(vec,2)],[numpy.linalg.norm(vec.to_nparray(),2)]))
+        self.assertTrue(np.allclose([ctf.norm(vec,2)],[np.linalg.norm(vec.to_nparray(),2)]))
 
     def test_solve(self):
         n = 11
         for k in [1, 4, 12, 15, 31]:
-            for dt in [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128]:
+            for dt in [np.float32, np.float64, np.complex64, np.complex128]:
                 A = ctf.random.random((n,n),dtype=dt)
                 A = ctf.dot(A.T(),A)
                 C = ctf.random.random((k,n),dtype=dt)
@@ -262,7 +260,7 @@ class KnowValues(unittest.TestCase):
 
 
 def run_tests():
-    numpy.random.seed(5330)
+    np.random.seed(5330)
     wrld = ctf.comm()
     if wrld.rank() != 0:
         result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))

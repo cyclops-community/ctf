@@ -5846,7 +5846,7 @@ def svd_batch(tensor A, rank=None):
 
     S = tensor([A.shape[0],k],dtype=A.dtype)
     U = tensor([A.shape[0],A.shape[1],k],dtype=A.dtype)
-    VT = tensor([A.shape[0],k,A.shape[1]],dtype=A.dtype)
+    VT = tensor([A.shape[0],k,A.shape[2]],dtype=A.dtype)
     if A.dtype == np.float64 or A.dtype == np.float32:
         matrix_svd_batch(A.dt, VT.dt, S.dt, U.dt, rank)
     elif A.dtype == np.complex128 or A.dtype == np.complex64:

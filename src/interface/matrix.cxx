@@ -265,13 +265,18 @@ namespace CTF {
     }
     IASSERT(is_order_same);
 
-    if (is_order_same && mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0){
+    if (is_order_same && mb==1 && nb==1 && rsrc==0 && csrc==0 && nrow&pr == 0 && ncol%pc == 0){
       if (this->edge_map[0].np == pr && this->edge_map[1].np == pc){
+        //assert(lda == (nrow+this->padding[0])/pr);
+        //memcpy(this->data, (char*)data_, sizeof(dtype)*this->size);
         if (lda == nrow/pr){
           memcpy(this->data, (char*)data_, sizeof(dtype)*this->size);
         } else {
-          for (int64_t i=0; i<ncol/pc; i++){
-            memcpy(this->data+i*lda*sizeof(dtype),(char*)(data_+i*lda), ((int64_t)nrow/pr)*sizeof(dtype));
+          int64_t copy_len = nrow/pr;
+          if (this->edge_map[0].calc_phys_rank(this->topo) < nrow%pr) copy_len++;
+          int ipc = this->edge_map[1].calc_phys_rank(this->topo);
+          for (int64_t i=0; ipc+i*pc<ncol; i++){
+            memcpy(this->data+i*((nrow+this->padding[0])/pr)*sizeof(dtype),(char*)(data_+i*lda), copy_len*sizeof(dtype));
           }
         }
       } else {
@@ -320,15 +325,18 @@ namespace CTF {
         is_order_same = false;
     }
     IASSERT(is_order_same);
-    if (is_order_same && !this->is_sparse && (mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0)){
+    //if (is_order_same && !this->is_sparse && (mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0))
+    if (is_order_same && !this->is_sparse && (mb==1 && nb==1 && rsrc==0 && csrc==0)){
       if (this->sym[0] == NS && this->edge_map[0].np == pr && this->edge_map[1].np == pc){
-        if (lda == nrow/pr){
-          memcpy((char*)data_, this->data, sizeof(dtype)*this->size);
-        } else {
-          for (int64_t i=0; i<ncol/pc; i++){
-            memcpy((char*)(data_+i*lda), this->data+i*(nrow/pr)*sizeof(dtype), nrow*sizeof(dtype)/pr);
-          }
-        }
+        assert(lda == (nrow+this->padding[0])/pr);
+        memcpy((char*)data_, this->data, sizeof(dtype)*this->size);
+        //if (lda == (nrow+this->padding[0])/pr){
+        //  memcpy((char*)data_, this->data, sizeof(dtype)*this->size);
+        //} else {
+        //  for (int64_t i=0; i*pc<ncol; i++){
+        //    memcpy((char*)(data_+i*lda), this->data+i*((nrow+this->padding[0])/pr)*sizeof(dtype), nrow*sizeof(dtype)/pr);
+        //  }
+        //}
       } else {
         IASSERT(layout_order == 'C');
         int plens[] = {pr, pc};
@@ -371,7 +379,8 @@ namespace CTF {
     layout_order = 'C';
     if (this->edge_map[1].type == CTF_int::PHYSICAL_MAP &&
         this->edge_map[1].np   >  1 &&
-        this->edge_map[1].cdt  == 0)
+       (this->edge_map[0].type  != CTF_int::PHYSICAL_MAP
+        || this->edge_map[0].cdt > this->edge_map[1].cdt))
       layout_order = 'R';
     int ctxt;
     CTF_SCALAPACK::cblacs_get(-1, 0, &ctxt);
@@ -383,9 +392,42 @@ namespace CTF {
     if (s != CTF_int::scalapack_grids.end()){
       ctxt = s->ctxt;
     } else {
-      CTF_SCALAPACK::cblacs_gridinit(&ctxt, &layout_order, pr, pc);
-      gw.ctxt = ctxt;
-      CTF_int::scalapack_grids.insert(gw);
+      int tot_np;
+      MPI_Comm_size(MPI_COMM_WORLD, &tot_np);
+      if (tot_np == pr*pc){
+        CTF_SCALAPACK::cblacs_gridinit(&ctxt, &layout_order, pr, pc);
+        gw.ctxt = ctxt;
+        CTF_int::scalapack_grids.insert(gw);
+      } else {
+        int * all_ranks = (int*)CTF_int::alloc(sizeof(int)*pr*pc);
+        int myrank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+        MPI_Allgather(&myrank, 1, MPI_INT, all_ranks, 1, MPI_INT, this->wrld->comm);
+        if (layout_order == 'R'){
+          int * all_ranksT = (int*)CTF_int::alloc(sizeof(int)*pr*pc);
+          for (int ii=0; ii<pr; ii++){
+            for (int jj=0; jj<pc; jj++){
+              all_ranksT[ii*pc+jj] = all_ranks[ii+jj*pr];
+            }
+          }
+          CTF_int::cdealloc(all_ranks);
+          all_ranks = all_ranksT;
+        }
+        CTF_int::grid_map_wrapper mgw;
+        mgw.pr = pr;
+        mgw.pc = pc;
+        mgw.layout = layout_order;
+        mgw.allranks = all_ranks;
+        std::set<CTF_int::grid_map_wrapper>::iterator ms = CTF_int::scalapack_grid_maps.find(mgw);
+        if (ms != CTF_int::scalapack_grid_maps.end()){
+          ctxt = ms->ctxt;
+          CTF_int::cdealloc(all_ranks);
+        } else {
+          CTF_SCALAPACK::cblacs_gridmap(&ctxt, all_ranks, pr, pr, pc);
+          mgw.ctxt = ctxt;
+          CTF_int::scalapack_grid_maps.insert(mgw);
+        }
+      }
     }
     ictxt = ctxt;
 
@@ -977,6 +1019,9 @@ namespace CTF {
     int64_t kpr = k/pr + (k % pr != 0);
     int64_t kpc = k/pc + (k % pc != 0);
     int64_t npc = n/pc + (n % pc != 0);
+    
+    int _pr, _pc, _ipr, _ipc;
+    CTF_SCALAPACK::cblacs_gridinfo(ictxt, &_pr, &_pc, &_ipr, &_ipc);
 
     CTF_SCALAPACK::cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, mpr, &info);
     CTF_SCALAPACK::cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, kpr, &info);
@@ -1051,12 +1096,19 @@ namespace CTF {
       //this->sr->print((char*)(s+rank));
       //printf(", threshold was %lf, rank is %d rankt is %d\n",threshold, rank, rankt);
     }
+    bool is_zero_layer_S;
+    if (S.edge_map[0].type == CTF_int::PHYSICAL_MAP)
+      is_zero_layer_S = (S.wrld->rank == S.topo->lda[S.edge_map[0].cdt]*S.edge_map[0].calc_phys_rank(S.topo));
+    else
+      is_zero_layer_S = (S.wrld->rank == 0);
     int phase = S.edge_map[0].calc_phase();
-    if ((int)(this->wrld->rank) < phase){
+    //if ((int)(this->wrld->rank) < phase){
+    if (is_zero_layer_S){
       for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
         s_data[i/phase] = s[i];
       }
     }
+    //}
     CTF_int::cdealloc(s);
     CTF_int::cdealloc(work);
 
@@ -1076,7 +1128,6 @@ namespace CTF {
     free(descu);
     free(descvt);
     t_svd.stop();
-
   }
 
 

@@ -157,7 +157,15 @@ namespace CTF_int {
       int ctxt;
 
       bool operator<(grid_wrapper const & other) const;
+  };
+  class grid_map_wrapper : public grid_wrapper{
+    public:
+      int * allranks;
+      bool operator<(grid_map_wrapper const & other) const;
+      //~grid_map_wrapper(){ free(allranks); }
   }; 
+
   extern std::set<grid_wrapper> scalapack_grids;
+  extern std::set<grid_map_wrapper> scalapack_grid_maps;
 }
 #endif

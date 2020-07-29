@@ -668,7 +668,7 @@ namespace CTF_int{
 
   void matrix_svd_batch_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank){
     switch (A->sr->el_size){
-      case 4:
+      case 8:
         {
           CTF::Tensor<std::complex<float>> mA(*A);
           CTF::Tensor<std::complex<float>> mU;
@@ -682,7 +682,7 @@ namespace CTF_int{
         break;
 
 
-      case 8:
+      case 16:
         {
           CTF::Tensor<std::complex<double>> mA(*A);
           CTF::Tensor<std::complex<double>> mU;

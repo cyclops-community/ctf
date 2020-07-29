@@ -1887,11 +1887,21 @@ NORM_INFTY_INST(double)
     int64_t srank = rank == 0 ? std::min(this->lens[0], this->lens[1]) : rank;
     std::vector<CTF::Matrix<dtype>*> mats = this->to_matrix_batch();
     int64_t U_lens[3] = {this->lens[0], srank, this->lens[2]};
-    int64_t VT_lens[3] = {this->lens[1], srank, this->lens[2]};
+    int64_t VT_lens[3] = {srank, this->lens[1], this->lens[2]};
     IASSERT(this->topo->order <= 3);
     //get this tensors partition and map tensors accordingly
     Partition pe_grid(this->topo->order, this->topo->lens);
-    char pe_grid_inds[this->topo->order];
+    char * pe_grid_inds = new char[this->topo->order];
+    //char * pe_unfolded_grid_inds'
+    //int * pe_unfolded_grid_lens;
+    //bool use_unfold_grid = false;
+    //if (this->topo->order > 1){
+    //  if (this->edge_map[2].type == CTF_int::PHYSICAL_MAP){
+    //    if (this->edge_map[2].cdt == i)
+    //  pe_unfolded_grid_inds = new char[this->topo->order-1];
+    //  pe_unfolded_grid_lens = new int[this->topo->order-1];
+    //  pe_unfolded_grid_lens[0] = 1;
+    //}
     for (int i=0; i<this->topo->order; i++){
       if (this->edge_map[0].type == CTF_int::PHYSICAL_MAP &&
           this->edge_map[0].cdt == i){
@@ -1904,10 +1914,11 @@ NORM_INFTY_INST(double)
         pe_grid_inds[i] = 'k';
       }
     }
+    
     //need to predefine this way to ensure all tensors are blocked the same way over k, so that their slices live on the same subworlds
     U = Tensor<dtype>(3,U_lens,NULL,*this->wrld,"ijk",pe_grid[pe_grid_inds],Idx_Partition(),NULL,0,*this->sr);
     S = Matrix<dtype>(srank,this->lens[2],"jk",pe_grid[pe_grid_inds],Idx_Partition(),0,*this->wrld,*this->sr);
-    VT = Tensor<dtype>(3,VT_lens,NULL,*this->wrld,"ijk",pe_grid[pe_grid_inds],Idx_Partition(),NULL,0,*this->sr);
+    VT = Tensor<dtype>(3,VT_lens,NULL,*this->wrld,"jik",pe_grid[pe_grid_inds],Idx_Partition(),NULL,0,*this->sr);
     std::vector<CTF::Matrix<dtype>*> U_mats = U.to_matrix_batch();
     std::vector<CTF::Vector<dtype>*> S_vecs = S.to_vector_batch();
     std::vector<CTF::Matrix<dtype>*> VT_mats = VT.to_matrix_batch();
@@ -1922,6 +1933,10 @@ NORM_INFTY_INST(double)
       CTF::Vector<dtype> Si;
       CTF::Matrix<dtype> VTi;
       mats[i]->svd(Ui,Si,VTi,rank);
+      //CTF::Matrix<dtype> R(*mats[i]);
+      //R["ij"] -= Ui["ik"]*Si["k"]*VTi["kj"];
+      //double nrm = R.norm2();
+      //printf("residual norm is %E\n",nrm);
       U_mats[i]->operator[]("ij") += Ui["ij"];
       S_vecs[i]->operator[]("i") += Si["i"];
       VT_mats[i]->operator[]("ij") += VTi["ij"];
@@ -1932,11 +1947,30 @@ NORM_INFTY_INST(double)
     U.reassemble_batch(tU_mats);
     S.reassemble_batch(tS_vecs);
     VT.reassemble_batch(tVT_mats);
+    // need to delete worlds that were allocated when calling partition_last_mode_implicit()
+    if (mats[0]->wrld != this->wrld){
+      MPI_Comm_free(&mats[0]->wrld->comm);
+      delete mats[0]->wrld;
+    }
+    if (U_mats[0]->wrld != this->wrld){
+      MPI_Comm_free(&U_mats[0]->wrld->comm);
+      delete U_mats[0]->wrld;
+    }
+    if (S_vecs[0]->wrld != this->wrld){
+      MPI_Comm_free(&S_vecs[0]->wrld->comm);
+      delete S_vecs[0]->wrld;
+    }
+    if (VT_mats[0]->wrld != this->wrld){
+      MPI_Comm_free(&VT_mats[0]->wrld->comm);
+      delete VT_mats[0]->wrld;
+    }
     for (int64_t i=0; i<(int64_t)mats.size(); i++){
+      delete mats[i];
       delete U_mats[i];
       delete S_vecs[i];
       delete VT_mats[i];
     }
+    delete [] pe_grid_inds;
   }
 
 }

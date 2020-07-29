@@ -3947,7 +3947,6 @@ namespace CTF_int {
       new_topo_order--;
     }
     
-    char * old_topo_inds = get_default_inds(this->topo->order);
     char * non_topo_inds = get_default_inds(this->order, this->topo->order);
     char * topo_inds = get_default_inds(new_topo_order);
     char * tsr_inds = get_default_inds(this->order-1);
@@ -3983,6 +3982,11 @@ namespace CTF_int {
       subtsr->home_buffer = subtsr->data;
       subtsrs.push_back(subtsr);
     }
+    cdealloc(non_topo_inds);
+    cdealloc(topo_inds);
+    cdealloc(tsr_inds);
+    if (used_cdt < this->topo->order)
+      cdealloc(pe_grid_lens);
     return subtsrs;
   }
 }
