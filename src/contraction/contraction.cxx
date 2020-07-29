@@ -2833,7 +2833,7 @@ namespace CTF_int {
         ASSERT(est_time >= 0.0);
         if ((int64_t)memuse >= max_memuse){
           if (global_comm.rank == 0)
-            DPRINTF(3,"Not enough memory available for topo %d with order %d memory %ld/%ld\n", t,j,memuse,max_memuse);
+            DPRINTF(3,"Not enough memory available for topo %ld with order %d memory %ld/%ld\n", t,j,memuse,max_memuse);
           continue;
         }
         if ((!A->is_sparse && A->size > INT_MAX) ||(!B->is_sparse &&  B->size > INT_MAX) || (!C->is_sparse && C->size > INT_MAX)){
@@ -2952,7 +2952,7 @@ namespace CTF_int {
           best_time = est_time;
           //bmemuse = memuse;
           btopo = old_off+j;
-          DPRINTF(1,"[EXH] Found new best contraction i %d btopo %d old_off %ld j %d memuse = %E, est_time = %E\n",i,btopo,old_off,j,(double)memuse,best_time);
+          DPRINTF(1,"[EXH] Found new best contraction i %d btopo %ld old_off %ld j %d memuse = %E, est_time = %E\n",i,btopo,old_off,j,(double)memuse,best_time);
         } 
       }
     }

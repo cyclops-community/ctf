@@ -339,6 +339,13 @@ namespace CTF {
        * \param[out] D will be a vector of eigenvalues of the same dimension/type as this matrix (if this matrix is complex, D will be complex, but each value will have a zero complex part)
        */
       void eigh(Matrix<dtype> & U, Vector<dtype> & D);
+
+      /**
+       * \brief transforms matrix to a batch of distributed columns distributed over appropriate subworlds
+       * \return vector of distributed vectors containing each column of this matrix as it is distributed in matrix
+       */
+      std::vector<CTF::Vector<dtype>*> to_vector_batch();
+ 
   };
   /**
    * @}

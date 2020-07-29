@@ -150,7 +150,7 @@ namespace CTF_int {
        * \brief default constructor for untyped instantiation
        */
       tensor();
-  
+
       /** \brief class free self */
       ~tensor();
 
@@ -311,6 +311,7 @@ namespace CTF_int {
        */
       int set(char const * val);
 
+
       /**
        * \brief sets padded portion of tensor to zero (this should be maintained internally)
        */
@@ -321,7 +322,7 @@ namespace CTF_int {
        * \param[in] sym_mask identifies which tensor indices are part of the symmetric group which diagonals we want to scale (i.e. sym_mask [1,1] does A["ii"]= (1./2.)*A["ii"])
        */
       void scale_diagonals(int const * sym_mask);
- 
+
       /**
        * \brief sets to zero elements which are diagonal with respect to index diag and diag+1
        * \param[in] diag smaller index of the symmetry to zero out
@@ -618,34 +619,36 @@ namespace CTF_int {
 
 
       /**
-       * \brief reshape tensor into this matrix
-       * \param[in] old_tsr pre-allocated tensor with old shape
-       * \param[in] alpha scalar with which to scale data of the given tensor
-       * \param[in] beta parameter with which to scale data already in this matrix
+       * \brief selects best mapping for this tensor based on estimates of overhead
+       * \param[in] restricted binary array of size this->order, indicating if mapping along a mode should be preserved
+       * \param[out] btopo best topology
+       * \param[out] bmemuse memory usage needed with btopo topology
        */
-      int matricize(tensor const * old_tensor, char const * alpha, char const * beta);
+      int choose_best_mapping(int const * restricted, int & btopo, int64_t & bmemuse);
 
       /**
-       * \brief reshape the given matrix into this tensor
-       * \param[in] old_tsr pre-allocated tensor with old shape
-       * \param[in] alpha scalar with which to scale data of the matrix
-       * \param[in] beta parameter with which to scale data already in this tensor
+       * \brief (for internal use) merges group of mapped (distrubted over processors) modes of the tensor, returns copy of the tensor represented as a lower order tensor with same data and different distribution
+       * \param[in] first_mode mode to start merging from
+       * \param[in] num_modes number of modes to merge
+       * \return new_tensor newly allocated tensor with same data as this tensor but different edge lengths and mapping
        */
-      int dematricize(tensor const * matrix, char const * alpha, char const * beta);
+      tensor * unmap_mapped_modes(int first_mode, int num_modes);
 
       /**
-       * \brief (batch)matricize or de(batch)matricize
-       * \param[in] input to (batch)matricize or de(batched)matricize (tensor or matrix)
-       * \param[in] alpha scalar with which to scale data of the matrix
-       * \param[in] beta parameter with which to scale data already in this tensor
+       * \brief merges modes of a tensor, e.g. matricization, is a special case of and is automatically invoked from reshape() when applicable
+       * \param[in] input tensor whose modes we are merging, edge lengths of this tensor must be partial products of subsequences of lengths in input
+       * \param[in] alpha scalar to muliplty data in input by
+       * \param[in] beta scalar to muliplty data already in this tensor by before adding scaling input
        */
-      int bidir_batch_matricize(tensor const * input, char const * alpha, char const * beta);
- 
+      int merge_modes(tensor * input, char const * alpha, char const * beta);
+
       /**
-       * brief copy A into this (B). Realloc if necessary
-       * param[in] A tensor to copy
+       * \brief splits modes of a tensor, e.g. dematricization, is a special case of and is automatically invoked from reshape() when applicable
+       * \param[in] input tensor whose modes we are splitting, edge lengths of input tensor must be partial products of subsequences of lengths in this tensor
+       * \param[in] alpha scalar to muliplty data in input by
+       * \param[in] beta scalar to muliplty data already in this tensor by before adding scaling input
        */
-      //int copy(tensor * A);
+      int split_modes(tensor * input, char const * alpha, char const * beta);
 
       /**
        * \brief align mapping of this tensor to that of B
@@ -1018,7 +1021,7 @@ namespace CTF_int {
        * \brief checks if there is any symmetry defined as part of sym
        * \return true if sym[i] != NS for some i
        */
-      bool has_symmetry();
+      bool has_symmetry() const;
 
 
       /**
@@ -1029,6 +1032,20 @@ namespace CTF_int {
        */
       tensor * combine_unmapped_modes(int mode, int num_modes);
 
+      /**
+       * \brief splits unmapped modes
+       * \param[in] mode index of mode to split
+       * \param[in] num_modes number of modes to create
+       * \param[in] split_lens dimensions of new modes
+       * \return tensor alias of this tensor
+       */
+      tensor * split_unmapped_mode(int mode, int num_modes, int64_t const * split_lens);
+
+      /**
+       * \brief splits dense nonsymmetric tensor into list of tensors of one order lower, which are distributed over a subworld and point to the data stored inside this tensor via aliasing
+       * \return list of tensors as described above
+       */
+      std::vector<tensor*> partition_last_mode_implicit();
   };
 }
 #endif// __UNTYPED_TENSOR_H__
