@@ -58,6 +58,15 @@ namespace CTF_int {
                             CTF::Idx_Partition const & blk);
 
       /**
+       * \brief query mapping to processor grid and intra-processor blocking, which may be used to define a tensor with the same initial distribution
+       * \param[out] idx array of this->order chars describing this processor modes mapping on processor grid dimensions tarting from 'a'
+       * \param[out] prl Idx_Partition obtained from processor grod (topo) on which this tensor is mapped and the indices 'abcd...'
+       * \param[out] prl Idx_Partition obtained from virtual blocking of this tensor
+       */
+      void get_distribution(char * idx,
+                            CTF::Idx_Partition & prl,
+                            CTF::Idx_Partition & blk);
+      /**
        * \brief initialize empty data after setting distribution
        */
       void init_distribution();
@@ -1046,6 +1055,7 @@ namespace CTF_int {
        * \return list of tensors as described above
        */
       std::vector<tensor*> partition_last_mode_implicit();
+
   };
 }
 #endif// __UNTYPED_TENSOR_H__

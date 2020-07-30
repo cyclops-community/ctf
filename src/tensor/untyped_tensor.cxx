@@ -1433,6 +1433,41 @@ namespace CTF_int {
   }
 
 
+  void tensor::get_distribution(char * idx,
+                                CTF::Idx_Partition & prl,
+                                CTF::Idx_Partition & blk){
+    std::vector<int> blk_lens;
+    std::vector<char> blk_inds;
+    char * prl_inds = (char*)CTF_int::alloc(this->topo->order*sizeof(char));;
+    for (int i=0; i<topo->order; i++){
+      prl_idx[i] = 'a'+i;
+    }
+    Partition prl_grid(this->topo->order, this->topo->lens);
+    prl = prl_grid[prl_idx];
+    if (idx == NULL && order > 0)
+      idx = (char*)malloc(order*sizeof(char));
+      for (int i=0; i<this->order; i++){
+      if (this->edge_map[i].type == PHYSICAL_MAP){
+        if (this->edge_map[i].has_child){
+          ASSERT(this->edge_map[i].child->type == VIRTUAL_MAP);
+          blk_lens.push_back(this->edge_map[i].child->np);
+          blk_inds.push_back( 'a' + this->edge_map[i].cdt);
+        }
+        idx[i] = 'a' + this->edge_map[i].cdt;
+      } else {
+        idx[i] = 'a' + this->topo->order + i;
+        if (this->edge_map[i].type == VIRTUAL_MAP){
+          blk_lens.push_back(this->edge_map[i].np);
+          blk_inds.push_back('a' + this->topo->order + i);
+        } else {
+          ASSERT(this->edge_map[i].child->type == NOT_MAPPED);
+        }
+      }
+    }
+    Partition blk_grid(blk_lens.size(), &blk_lens[0]);
+    blk = blk_grid[blk_inds];
+  }
+
   char * tensor::read(char const *          idx,
                       Idx_Partition const & prl,
                       Idx_Partition const & blk,
@@ -3989,5 +4024,6 @@ namespace CTF_int {
       cdealloc(pe_grid_lens);
     return subtsrs;
   }
+
 }
 
