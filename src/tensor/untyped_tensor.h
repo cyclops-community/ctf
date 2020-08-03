@@ -1057,6 +1057,11 @@ namespace CTF_int {
        */
       std::vector<tensor*> partition_last_mode_implicit();
 
+      /**
+       * \brief return alias to tensor with no lengths of size 1
+       * \return tensor with same data point as this one but no edge lengths of size 1
+       */
+      tensor * get_no_unit_len_alias();
   };
 }
 #endif// __UNTYPED_TENSOR_H__

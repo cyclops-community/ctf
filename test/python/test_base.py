@@ -145,25 +145,34 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(ctf.all(a1.transpose(2,1,0,3).ravel()==a0.transpose(2,1,0,3).ravel()))
 
     def test_reshape(self):
-        a0 = numpy.arange(120).reshape(2,3,4,5)
-        a1 = ctf.astensor(a0)
-        self.assertTrue(ctf.all(ctf.reshape(a1,(2,3,4,5))  ==a0.reshape(2,3,4,5)))
-        self.assertTrue(ctf.all(ctf.reshape(a1,(6,20))  ==a0.reshape(6,20)))
-        self.assertTrue(ctf.all(ctf.reshape(a1,(6,5,4)) ==a0.reshape(6,5,4)))
-        self.assertTrue(ctf.all(ctf.reshape(a1,(3,10,4))==a0.reshape(3,10,4)))
-        self.assertTrue(ctf.all(ctf.reshape(a1,(6,-1))  ==a0.reshape(6,-1)))
-        self.assertTrue(ctf.all(ctf.reshape(a1,(-1,20)) ==a0.reshape(-1,20)))
-        self.assertTrue(ctf.all(ctf.reshape(a1,(6,-1,4))==a0.reshape(6,-1,4)))
-        self.assertTrue(ctf.all(ctf.reshape(a1,(3,-1,2))==a0.reshape(3,-1,2)))
-        self.assertTrue(ctf.all(a1.reshape(6,20)    ==a0.reshape(6,20)))
-        self.assertTrue(ctf.all(a1.reshape(6,5,4)   ==a0.reshape(6,5,4)))
-        self.assertTrue(ctf.all(a1.reshape((3,10,4))==a0.reshape(3,10,4)))
-        self.assertTrue(ctf.all(a1.reshape((6,-1))  ==a0.reshape(6,-1)))
-        self.assertTrue(ctf.all(a1.reshape(-1,20)   ==a0.reshape(-1,20)))
-        self.assertTrue(ctf.all(a1.reshape(6,-1,4)  ==a0.reshape(6,-1,4)))
-        self.assertTrue(ctf.all(a1.reshape((3,-1,2))==a0.reshape(3,-1,2)))
-        with self.assertRaises(ValueError):
-            a1.reshape((1,2))
+        a = ctf.random.random((1,10,10,10))
+        self.assertTrue(ctf.all(a.reshape((10,100)) == a.to_nparray().reshape((10,100))))
+        base_shapes = [(2,3,4,5),(3,10,4),(1,3,10,4),(2,3,4,1,5)]
+        for shape in base_shapes:
+            a0 = numpy.arange(120).reshape(shape)
+            a1 = ctf.astensor(a0)
+            self.assertTrue(ctf.all(ctf.reshape(a1,(2,3,4,5))  ==a0.reshape(2,3,4,5)))
+            self.assertTrue(ctf.all(ctf.reshape(a1,(6,20))  ==a0.reshape(6,20)))
+            self.assertTrue(ctf.all(ctf.reshape(a1,(6,5,4)) ==a0.reshape(6,5,4)))
+            self.assertTrue(ctf.all(ctf.reshape(a1,(3,10,4))==a0.reshape(3,10,4)))
+            self.assertTrue(ctf.all(ctf.reshape(a1,(1,3,10,4))==a0.reshape(1,3,10,4)))
+            self.assertTrue(ctf.all(ctf.reshape(a1,(1,3,1,10,4))==a0.reshape(1,3,1,10,4)))
+            self.assertTrue(ctf.all(ctf.reshape(a1,(1,3,1,1,10,4))==a0.reshape(1,3,1,1,10,4)))
+            self.assertTrue(ctf.all(ctf.reshape(a1,(3,10,4,1))==a0.reshape(3,10,4,1)))
+            self.assertTrue(ctf.all(ctf.reshape(a1,(6,-1))  ==a0.reshape(6,-1)))
+            self.assertTrue(ctf.all(ctf.reshape(a1,(-1,20)) ==a0.reshape(-1,20)))
+            self.assertTrue(ctf.all(ctf.reshape(a1,(6,-1,4))==a0.reshape(6,-1,4)))
+            self.assertTrue(ctf.all(ctf.reshape(a1,(3,-1,2))==a0.reshape(3,-1,2)))
+            self.assertTrue(ctf.all(a1.reshape(6,20)    ==a0.reshape(6,20)))
+            self.assertTrue(ctf.all(a1.reshape(6,5,4)   ==a0.reshape(6,5,4)))
+            self.assertTrue(ctf.all(a1.reshape((3,10,4))==a0.reshape(3,10,4)))
+            self.assertTrue(ctf.all(a1.reshape((6,-1))  ==a0.reshape(6,-1)))
+            self.assertTrue(ctf.all(a1.reshape(-1,20)   ==a0.reshape(-1,20)))
+            self.assertTrue(ctf.all(a1.reshape(6,-1,4)  ==a0.reshape(6,-1,4)))
+            self.assertTrue(ctf.all(a1.reshape((3,-1,2))==a0.reshape(3,-1,2)))
+            with self.assertRaises(ValueError):
+                a1.reshape((1,2))
+
 
     def test_sp_reshape(self):
         a1 = ctf.tensor((2,3),sp=True)

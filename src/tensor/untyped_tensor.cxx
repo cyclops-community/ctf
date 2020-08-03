@@ -253,7 +253,43 @@ namespace CTF_int {
     cdealloc(nname);
   }
 
-
+  tensor * tensor::get_no_unit_len_alias(){
+    int new_order = 0;
+    for (int i=0; i<this->order; i++){
+      if (lens[i] != 1) new_order++;
+    }
+    if (new_order == this->order) return this;
+    int64_t * reduced_lens = (int64_t*)CTF_int::alloc(sizeof(int64_t)*new_order);
+    int * reduced_sym = (int*)CTF_int::alloc(sizeof(int)*new_order);
+    int j=0;
+    for (int i=0; i<this->order; i++){
+      if (lens[i] != 1){
+        reduced_lens[j] = lens[i];
+        reduced_sym[j] = sym[j];
+        j++;
+      }
+    }
+    tensor * reduced_tensor = new tensor(this->sr, new_order, reduced_lens, reduced_sym, this->wrld, false, NULL, false,  this->is_sparse);
+    j=0;
+    for (int i=0; i<this->order; i++){
+      if (lens[i] != 1){
+        copy_mapping(1, this->edge_map+i, reduced_tensor->edge_map+j);
+        j++;
+      }
+    }
+    reduced_tensor->topo = this->topo;
+    reduced_tensor->set_padding();
+    reduced_tensor->is_data_aliased = true;
+    reduced_tensor->data = this->data;
+    reduced_tensor->has_home = 1;
+    reduced_tensor->is_home = 1;
+    reduced_tensor->home_buffer = reduced_tensor->data;
+    reduced_tensor->home_size = reduced_tensor->size;
+    reduced_tensor->is_mapped = true;
+    cdealloc(reduced_lens);
+    cdealloc(reduced_sym);
+    return reduced_tensor;
+  }
 
   void tensor::copy_tensor_data(tensor const * other){
     //FIXME: do not unfold
@@ -1783,6 +1819,19 @@ namespace CTF_int {
       printf("\n");
     }
 #endif
+    tensor * talias;
+    talias = this->get_no_unit_len_alias();
+    if (talias != this){
+      int stat = talias->reshape(old_tsr, alpha, beta);
+      delete talias;
+      return stat;
+    }
+    talias = ((tensor*)old_tsr)->get_no_unit_len_alias();
+    if (talias != old_tsr){
+      int stat = this->reshape(talias, alpha, beta);
+      delete talias;
+      return stat;
+    }
 
     if (beta == NULL || this->sr->isequal(beta,this->sr->addid())){
       bool did_lens_change = this->order != old_tsr->order;
@@ -1982,7 +2031,7 @@ namespace CTF_int {
           return;
         }
         bool can_merge = true;
-        if (high_ord_tsr->edge_map[j].type == PHYSICAL_MAP && !high_ord_tsr->lens[j] % high_ord_tsr->edge_map[j].np == 0){
+        if (high_ord_tsr->edge_map[j].type == PHYSICAL_MAP && high_ord_tsr->lens[j] % high_ord_tsr->edge_map[j].np != 0){
           can_merge = false;
         } else {
           for (int jj=1; jj<merge_mode_counts[i]; jj++){
@@ -2107,6 +2156,21 @@ namespace CTF_int {
     if (this->wrld->rank == 0)
       printf("CTF: Performing merge modes\n");
 #endif
+    tensor * talias;
+    talias = this->get_no_unit_len_alias();
+    if (talias != this){
+      int stat = talias->merge_modes(input, alpha, beta);
+      delete talias;
+      return stat;
+    }
+    talias = input->get_no_unit_len_alias();
+    if (talias != input){
+      int stat = this->merge_modes(input, alpha, beta);
+      delete talias;
+      return stat;
+    }
+
+
     tensor * low_ord_tsr, * high_ord_tsr;
     merge_split_unmapped_modes(this, input, &low_ord_tsr, &high_ord_tsr);
     bool check_simple = simple_merge_split_modes(high_ord_tsr, low_ord_tsr, alpha, beta);
@@ -2130,6 +2194,20 @@ namespace CTF_int {
     if (this->wrld->rank == 0)
       printf("CTF: Performing split modes\n");
 #endif
+    tensor * talias;
+    talias = this->get_no_unit_len_alias();
+    if (talias != this){
+      int stat = talias->split_modes(input, alpha, beta);
+      delete talias;
+      return stat;
+    }
+    talias = input->get_no_unit_len_alias();
+    if (talias != input){
+      int stat = this->split_modes(input, alpha, beta);
+      delete talias;
+      return stat;
+    }
+
     tensor * low_ord_tsr, * high_ord_tsr;
     merge_split_unmapped_modes(input, this, &low_ord_tsr, &high_ord_tsr);
     bool check_simple = simple_merge_split_modes(low_ord_tsr, high_ord_tsr, alpha, beta);
