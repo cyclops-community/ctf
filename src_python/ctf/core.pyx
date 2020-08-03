@@ -128,6 +128,9 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
         void true_divide[dtype](ctensor * A)
         void pow_helper_int[dtype](ctensor * A, int p)
         int sparsify(char * threshold, int take_abs)
+        void get_distribution(char **,
+                              Idx_Partition &,
+                              Idx_Partition &)
 
     cdef cppclass Term:
         Term * clone();
@@ -237,6 +240,7 @@ cdef extern from "ctf.hpp" namespace "CTF":
 
     cdef cppclass Tensor[dtype](ctensor):
         Tensor(int, bint, int64_t *, int *)
+        Tensor(int, bint, int64_t *, int *, World &, char *, Idx_Partition &, Idx_Partition &)
         Tensor(bool , ctensor)
         void fill_random(dtype, dtype)
         void fill_sp_random(dtype, dtype, double)
@@ -268,11 +272,57 @@ cdef extern from "ctf.hpp" namespace "CTF":
         contraction(ctensor *, int *, ctensor *, int *, char *, ctensor *, int *, char *, bivar_function *)
         void execute()
 
+    cdef cppclass Partition:
+        Partition(int, int *)
+        Partition()
+
+    cdef cppclass Idx_Partition:
+        Partition part
+        Idx_Partition(Partition &, char *)
+        Idx_Partition()
+
 cdef extern from "ctf.hpp" namespace "CTF":
     cdef void TTTP_ "CTF::TTTP"[dtype](Tensor[dtype] * T, int num_ops, int * modes, Tensor[dtype] ** mat_list, bool aux_mode_first)
     cdef void MTTKRP_ "CTF::MTTKRP"[dtype](Tensor[dtype] * T, Tensor[dtype] ** mat_list, int mode, bool aux_mode_first)
     cdef void initialize_flops_counter_ "CTF::initialize_flops_counter"()
     cdef int64_t get_estimated_flops_ "CTF::get_estimated_flops"()
+
+cdef class partition:
+    cdef Partition * p
+
+    def __cinit__(self, order=None, lens=None):
+        if order is None:
+            order = 0
+        if lens is None:
+            lens = []
+        cdef int * clens
+        clens = int_arr_py_to_c(lens)
+        self.p = new Partition(order, clens)
+
+    def get_idx_partition(self, idx):
+        return idx_partition(self, idx)
+
+    def __dealloc__(self):
+        del self.p
+
+cdef class idx_partition:
+    cdef Idx_Partition * ip
+
+    def __cinit__(self, partition part=None, idx=None):
+        if idx is None:
+            idx = []
+        if part is None:
+            self.ip = new Idx_Partition()
+        else:
+            self.ip = new Idx_Partition(part.p[0], idx.encode())
+
+    def get_idx_partition(self, idx):
+        idx_p = idx_partition()
+        idx_p.ip = new Idx_Partition(self.ip[0].part, idx.encode())
+        return idx_p
+
+    def __dealloc__(self):
+        del self.ip
 
 
 #from enum import Enum
@@ -932,8 +982,31 @@ cdef class tensor:
 
         """
         return self.dtype
+    
+    def get_distribution(self):
+        """
+        tensor.get_distribution()
+        Return processor grid and intra-processor blocking
 
-    def __cinit__(self, lens=None, sp=None, sym=None, dtype=None, order=None, tensor copy=None):
+        Returns
+        -------
+        output: string, idx_partition, idx_partition
+            idx array of this->order chars describing this processor modes mapping on processor grid dimensions tarting from 'a'
+            prl Idx_Partition obtained from processor grod (topo) on which this tensor is mapped and the indices 'abcd...'
+            prl Idx_Partition obtained from virtual blocking of this tensor
+        """
+        cdef char * idx_ = NULL
+        #idx_ = <char*> malloc(self.dt.order*sizeof(char))
+        prl = idx_partition()
+        blk = idx_partition()
+        self.dt.get_distribution(&idx_, prl.ip[0], blk.ip[0])
+        idx = ""
+        for i in range(0,self.dt.order):
+            idx += chr(idx_[i])
+        free(idx_)
+        return idx, prl, blk
+
+    def __cinit__(self, lens=None, sp=None, sym=None, dtype=None, order=None, tensor copy=None, idx=None, idx_partition prl=None, idx_partition blk=None):
         """
         tensor object constructor
 
@@ -956,6 +1029,15 @@ cdef class tensor:
 
         copy: tensor-like
             tensor to copy, including all attributes and data
+
+        idx: char array, optional, default None
+            idx assignment of characters to each dim
+
+        prl: idx_partition object, optional (should be specified if idx is not None), default None
+            mesh processor topology with character labels
+
+        blk: idx_partition object, optional, default None
+            lock blocking with processor labels
         """
         t_ti = timer("pytensor_init")
         t_ti.start()
@@ -1041,7 +1123,33 @@ cdef class tensor:
         clens = int64_t_arr_py_to_c(rlens)
         cdef int * csym
         csym = int_arr_py_to_c(rsym)
-        if copy is None:
+        cdef World * wrld
+        if copy is None and idx is not None:
+            idx = _rev_array(idx)
+            if prl is None:
+                raise ValueError("Specify mesh processor toplogy with character labels")
+            if blk is None:
+                blk=idx_partition()
+            wrld = new World()
+            if self.dtype == np.float64:
+                self.dt = new Tensor[double](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.complex64:
+                self.dt = new Tensor[complex64_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.complex128:
+                self.dt = new Tensor[complex128_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.bool:
+                self.dt = new Tensor[bool](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.int64:
+                self.dt = new Tensor[int64_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.int32:
+                self.dt = new Tensor[int32_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.int16:
+                self.dt = new Tensor[int16_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.int8:
+                self.dt = new Tensor[int8_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+            if self.dtype == np.float32:
+                self.dt = new Tensor[float](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
+        elif copy is None:
             if self.dtype == np.float64:
                 self.dt = new Tensor[double](self.ndim, sp, clens, csym)
             elif self.dtype == np.complex64:
@@ -1202,7 +1310,7 @@ cdef class tensor:
     def __nonzero__(self):
         if self.size != 1 and self.shape != ():
             raise TypeError("CTF PYTHON ERROR: The truth value of a tensor with more than one element is ambiguous. Use ctf.any() or ctf.all()")
-        if int(self.o_nparray() == 0) == 1:
+        if int(self.to_nparray() == 0) == 1:
             return False
         else:
             return True

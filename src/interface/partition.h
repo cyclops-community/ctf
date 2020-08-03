@@ -33,6 +33,8 @@ namespace CTF {
       ~Idx_Partition();
       Idx_Partition(Partition const & part, char const * idx);
 
+      void operator=(Idx_Partition const & other);
+
       /**
        * \brief extracts non-trivial part of partition by ommitting unit dimensions
        * \return new partition with all dimensions non-unit

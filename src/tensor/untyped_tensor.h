@@ -372,6 +372,16 @@ namespace CTF_int {
        * \param[out] size number of elements in data
        */
       void get_raw_data(char ** data, int64_t * size) const;
+      
+      /**
+       * \brief query mapping to processor grid and intra-processor blocking, which may be used to define a tensor with the same initial distribution
+       * \param[out] idx array of this->order chars describing this processor modes mapping on processor grid dimensions tarting from 'a'
+       * \param[out] prl Idx_Partition obtained from processor grod (topo) on which this tensor is mapped and the indices 'abcd...'
+       * \param[out] prl Idx_Partition obtained from virtual blocking of this tensor
+       */
+      void get_distribution(char **              idx,
+                            CTF::Idx_Partition & prl,
+                            CTF::Idx_Partition & blk);
 
       /**
        * \brief  Add tensor data new=alpha*new+beta*old

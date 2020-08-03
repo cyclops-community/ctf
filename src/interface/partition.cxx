@@ -44,6 +44,12 @@ namespace CTF {
     idx = (char*)malloc(part.order*sizeof(char));
     memcpy(idx, idx_, part.order*sizeof(char));
   }
+  
+  void Idx_Partition::operator=(Idx_Partition const & other){
+    part = other.part;
+    idx = (char*)malloc(part.order*sizeof(char));
+    memcpy(idx, other.idx, part.order*sizeof(char));
+  }
 
   Idx_Partition::~Idx_Partition(){
     if (idx != NULL){
