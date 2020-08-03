@@ -128,6 +128,9 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
         void true_divide[dtype](ctensor * A)
         void pow_helper_int[dtype](ctensor * A, int p)
         int sparsify(char * threshold, int take_abs)
+        void get_distribution(char **,
+                              Idx_Partition &,
+                              Idx_Partition &)
 
     cdef cppclass Term:
         Term * clone();
@@ -274,6 +277,7 @@ cdef extern from "ctf.hpp" namespace "CTF":
         Partition()
 
     cdef cppclass Idx_Partition:
+        Partition part
         Idx_Partition(Partition &, char *)
         Idx_Partition()
 
@@ -298,6 +302,9 @@ cdef class partition:
     def get_idx_partition(self, idx):
         return idx_partition(self, idx)
 
+    def __dealloc__(self):
+        del self.p
+
 cdef class idx_partition:
     cdef Idx_Partition * ip
 
@@ -308,6 +315,14 @@ cdef class idx_partition:
             self.ip = new Idx_Partition()
         else:
             self.ip = new Idx_Partition(part.p[0], idx.encode())
+
+    def get_idx_partition(self, idx):
+        idx_p = idx_partition()
+        idx_p.ip = new Idx_Partition(self.ip[0].part, idx.encode())
+        return idx_p
+
+    def __dealloc__(self):
+        del self.ip
 
 
 #from enum import Enum
@@ -967,6 +982,29 @@ cdef class tensor:
 
         """
         return self.dtype
+    
+    def get_distribution(self):
+        """
+        tensor.get_distribution()
+        Return processor grid and intra-processor blocking
+
+        Returns
+        -------
+        output: string, idx_partition, idx_partition
+            idx array of this->order chars describing this processor modes mapping on processor grid dimensions tarting from 'a'
+            prl Idx_Partition obtained from processor grod (topo) on which this tensor is mapped and the indices 'abcd...'
+            prl Idx_Partition obtained from virtual blocking of this tensor
+        """
+        cdef char * idx_ = NULL
+        #idx_ = <char*> malloc(self.dt.order*sizeof(char))
+        prl = idx_partition()
+        blk = idx_partition()
+        self.dt.get_distribution(&idx_, prl.ip[0], blk.ip[0])
+        idx = ""
+        for i in range(0,self.dt.order):
+            idx += chr(idx_[i])
+        free(idx_)
+        return idx, prl, blk
 
     def __cinit__(self, lens=None, sp=None, sym=None, dtype=None, order=None, tensor copy=None, idx=None, idx_partition prl=None, idx_partition blk=None):
         """
@@ -1087,6 +1125,7 @@ cdef class tensor:
         csym = int_arr_py_to_c(rsym)
         cdef World * wrld
         if copy is None and idx is not None:
+            idx = _rev_array(idx)
             if prl is None:
                 raise ValueError("Specify mesh processor toplogy with character labels")
             if blk is None:
@@ -1271,7 +1310,7 @@ cdef class tensor:
     def __nonzero__(self):
         if self.size != 1 and self.shape != ():
             raise TypeError("CTF PYTHON ERROR: The truth value of a tensor with more than one element is ambiguous. Use ctf.any() or ctf.all()")
-        if int(self.o_nparray() == 0) == 1:
+        if int(self.to_nparray() == 0) == 1:
             return False
         else:
             return True
