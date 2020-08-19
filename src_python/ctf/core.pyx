@@ -5981,8 +5981,8 @@ def svd_batch(tensor A, rank=None):
     if not isinstance(A,tensor) or A.ndim != 3:
         raise ValueError('CTF PYTHON ERROR: batch SVD called on invalid tensor, must be CTF order 3 tensor')
     if rank is None:
-        rank = 0
-        k = min(A.shape[0],A.shape[1])
+        k = min(A.shape[1],A.shape[2])
+        rank = k
     else:
         k = rank
 
