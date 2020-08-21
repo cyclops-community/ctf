@@ -25,7 +25,6 @@ class KnowValues(unittest.TestCase):
 def run_tests():
     numpy.random.seed(5330);
     wrld = ctf.comm()
-    print("I am rank")
     if ctf.comm().rank() != 0:
         result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))
     else:
