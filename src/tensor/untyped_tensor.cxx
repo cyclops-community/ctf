@@ -2049,7 +2049,7 @@ namespace CTF_int {
           cdealloc(merge_mode_counts);
           return;
         }
-        j+=merge_mode_counts[j];
+        j+=merge_mode_counts[i];
       } else {
         j+=1;
       }
