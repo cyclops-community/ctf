@@ -5,6 +5,16 @@ namespace CTF_int{
 
 
   /**
+   * \brief initialize world instance (when CTF library loaded)
+   */
+  void init_global_world();
+
+  /**
+   * \brief delete global world instance (when MPI stopped)
+   */
+  void delete_global_world();
+
+  /**
    * \brief (back-end for python) absolute value function
    * \param[in] A tensor, param[in,out] B tensor (becomes absolute value of A)
    * \return None

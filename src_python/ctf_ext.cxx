@@ -2,6 +2,20 @@
 //#include "../src/tensor/untyped_tensor.h"
 #include "../include/ctf.hpp"
 namespace CTF_int{
+  CTF::World * global_world_instance = NULL;
+
+  void init_global_world(){
+    if (global_world_instance == NULL){
+      global_world_instance = new CTF::World();
+    }
+  }
+
+  void delete_global_world(){
+    if (global_world_instance != NULL){
+      delete global_world_instance;
+      global_world_instance = NULL;
+    }
+  }
 
   typedef bool TYPE1;
   typedef int TYPE2;

@@ -132,6 +132,7 @@ namespace CTF {
 
     initialized = 0;
     mem_exit(rank);
+    //if (rank == 0) printf("deleting subworld of size %d, #instances is now %d\n",np,CTF_int::get_num_instances());
     if (get_num_instances() == 0){
       for (std::set<grid_wrapper>::iterator it=scalapack_grids.begin(); it!=scalapack_grids.end(); it++){
         //printf("HERE %d %d %d\n",it->pr,it->pc,it->ctxt);
@@ -206,6 +207,7 @@ namespace CTF {
         topovec = peel_perm_torus(phys_topology, cdt);
     }
     CTF_int::mem_create();
+    //if (rank == 0) printf("creating subworld of size %d, #instances is now %d\n",np,CTF_int::get_num_instances());
     if (CTF_int::get_num_instances() == 1){
       TAU_FSTART(CTF);
   #ifdef HPM

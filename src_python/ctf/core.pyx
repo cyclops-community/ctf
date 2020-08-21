@@ -54,12 +54,6 @@ MPI_Initialized(<int*>&is_mpi_init)
 if is_mpi_init == 0:
   MPI_Init(&is_mpi_init, <char***>NULL)
 
-def MPI_Stop():
-    """
-    Kill all working nodes.
-    """
-    MPI_Finalize()
-
 cdef extern from "ctf.hpp" namespace "CTF_int":
     cdef cppclass algstrct:
         char * addid()
@@ -172,6 +166,8 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
         Bivar_Transform(function[void(dtype_A,dtype_B,dtype_C&)] f_);
 
 cdef extern from "../ctf_ext.h" namespace "CTF_int":
+    cdef void init_global_world();
+    cdef void delete_global_world();
     cdef int64_t sum_bool_tsr(ctensor *);
     cdef void pow_helper[dtype](ctensor * A, ctensor * B, ctensor * C, char * idx_A, char * idx_B, char * idx_C);
     cdef void abs_helper[dtype](ctensor * A, ctensor * B);
@@ -410,6 +406,15 @@ cdef class comm:
 
     def np(self):
         return self.w.np
+
+init_global_world()
+
+def MPI_Stop():
+    """
+    Kill all working nodes.
+    """
+    delete_global_world()
+    MPI_Finalize()
 
 cdef class term:
     cdef Term * tm
