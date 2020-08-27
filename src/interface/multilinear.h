@@ -52,6 +52,14 @@ namespace CTF {
    */
   template<typename dtype>
   void MTTKRP(Tensor<dtype> * T, Tensor<dtype> ** mat_list, int mode, bool aux_mode_first);
+  /**
+    * \brief Compute solve for tensor completion type eqns with input tensor T and list of matrices one of which will be the output
+      The input M[mode] should be the right hand side (or copy of it) and output would be the following: 
+
+
+  */
+  template<typename dtype>
+  void Solve_Factor(Tensor<dtype> * T, Tensor<dtype> ** mat_list, int mode, bool aux_mode_first);
 
 }
 

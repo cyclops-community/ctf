@@ -682,4 +682,311 @@ namespace CTF {
       T->sr->pair_dealloc((char*)pairs);
     t_mttkrp.stop();
   }
+
+  template<typename dtype>
+  void Solve_Factor(Tensor<dtype> * T, Tensor<dtype> ** mat_list, int mode, bool aux_mode_first){
+    // Get the rhs precomputed in mat_list[mode]
+    // Mode defines what factor index we're computing
+
+    Timer t_solve_factor("Solve_Factor");
+    t_solve_factor.start();
+    int k = -1;
+    bool is_vec = mat_list[0]->order == 1;
+    if (!is_vec)
+      k = mat_list[0]->lens[1-aux_mode_first];
+    IASSERT(mode >= 0 && mode < T->order);
+    for (int i=0; i<T->order; i++){
+      IASSERT(is_vec || T->lens[i] == mat_list[i]->lens[aux_mode_first]);
+      IASSERT(!mat_list[i]->is_sparse);
+    }
+    dtype ** arrs = (dtype**)malloc(sizeof(dtype*)*T->order);
+    int64_t * ldas = (int64_t*)malloc(T->order*sizeof(int64_t));
+    int * phys_phase = (int*)malloc(T->order*sizeof(int));
+    int * mat_strides = NULL;
+    if (!is_vec)
+      mat_strides = (int*)malloc(2*T->order*sizeof(int));
+    for (int i=0; i<T->order; i++){
+      phys_phase[i] = T->edge_map[i].calc_phys_phase();
+    }
+
+    int64_t npair;
+    Pair<dtype> * pairs;
+    if (T->is_sparse){
+      pairs = (Pair<dtype>*)T->data;
+      npair = T->nnz_loc;
+    } else
+      T->get_local_pairs(&npair, &pairs, true, false);
+
+    ldas[0] = 1;
+    for (int i=1; i<T->order; i++){
+      ldas[i] = ldas[i-1] * T->lens[i-1];
+    }
+
+    Tensor<dtype> ** redist_mats = (Tensor<dtype>**)malloc(sizeof(Tensor<dtype>*)*T->order);
+
+    Partition par(T->topo->order, T->topo->lens);
+    char * par_idx = (char*)malloc(sizeof(char)*T->topo->order);
+    for (int i=0; i<T->topo->order; i++){
+      par_idx[i] = 'a'+i+1;
+    }
+    char mat_idx[2];
+    int slice_st[2];
+    int slice_end[2];
+    int k_start = 0;
+    int kd = 0;
+    int div = 1;
+    for (int d=0; d<div; d++){
+      k_start += kd;
+      kd = k/div + (d < k%div);
+      int k_end = k_start + kd;
+
+      Timer t_solve_remap("Solve_remap_mats");
+      t_solve_remap.start();
+      for (int i=0; i<T->order; i++){
+        Tensor<dtype> mmat;
+        Tensor<dtype> * mat = mat_list[i];
+
+        int64_t tot_sz;
+        if (is_vec)
+          tot_sz = T->lens[i];
+        else
+          tot_sz = T->lens[i]*kd;
+        if (div>1){
+          if (aux_mode_first){
+            slice_st[0] = k_start;
+            slice_st[1] = 0;
+            slice_end[0] = k_end;
+            slice_end[1] = T->lens[i];
+            mat_strides[2*i+0] = kd;
+            mat_strides[2*i+1] = 1;
+          } else {
+            slice_st[1] = k_start;
+            slice_st[0] = 0;
+            slice_end[1] = k_end;
+            slice_end[0] = T->lens[i];
+            mat_strides[2*i+0] = 1;
+            mat_strides[2*i+1] = T->lens[i];
+          }
+          mmat = mat_list[i]->slice(slice_st, slice_end);
+          mat = &mmat;
+
+        } else if (!is_vec) {
+          if (aux_mode_first){
+            mat_strides[2*i+0] = k;
+            mat_strides[2*i+1] = 1;
+          } else {
+            mat_strides[2*i+0] = 1;
+            mat_strides[2*i+1] = T->lens[i];
+          }
+        }
+        int nrow, ncol;
+        if (aux_mode_first){
+          nrow = kd;
+          ncol = T->lens[i];
+        } else {
+          nrow = T->lens[i];
+          ncol = kd;
+        }
+        if (phys_phase[i] == 1){
+          redist_mats[i] = NULL;
+          if (T->wrld->np == 1){
+            IASSERT(div == 1);
+            arrs[i] = (dtype*)mat_list[i]->data;
+            if (i == mode)
+              std::fill(arrs[i], arrs[i]+mat_list[i]->size, *((dtype*)T->sr->addid()));
+          } else if (i != mode){
+            arrs[i] = (dtype*)T->sr->alloc(tot_sz);
+            mat->read_all(arrs[i], true);
+          } else {
+            if (is_vec)
+              redist_mats[i] = new Vector<dtype>(mat_list[i]->lens[0], 'a'-1, par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
+            else {
+              char nonastr[2];
+              nonastr[0] = 'a'-1;
+              nonastr[1] = 'a'-2;
+              redist_mats[i] = new Matrix<dtype>(nrow, ncol, nonastr, par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
+            }
+            arrs[i] = (dtype*)redist_mats[i]->data;
+          }
+        } else {
+          int topo_dim = T->edge_map[i].cdt;
+          IASSERT(T->edge_map[i].type == CTF_int::PHYSICAL_MAP);
+          IASSERT(!T->edge_map[i].has_child || T->edge_map[i].child->type != CTF_int::PHYSICAL_MAP);
+          if (aux_mode_first){
+            mat_idx[0] = 'a';
+            mat_idx[1] = par_idx[topo_dim];
+          } else {
+            mat_idx[0] = par_idx[topo_dim];
+            mat_idx[1] = 'a';
+          }
+
+          int comm_lda = 1;
+          for (int l=0; l<topo_dim; l++){
+            comm_lda *= T->topo->dim_comm[l].np;
+          }
+          CTF_int::CommData cmdt(T->wrld->rank-comm_lda*T->topo->dim_comm[topo_dim].rank,T->topo->dim_comm[topo_dim].rank,T->wrld->cdt);
+          if (is_vec){
+            Vector<dtype> * v = new Vector<dtype>(mat_list[i]->lens[0], par_idx[topo_dim], par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
+            v->operator[]("i") += mat_list[i]->operator[]("i");
+            redist_mats[i] = v;
+            arrs[i] = (dtype*)v->data;
+            cmdt.bcast(v->data,v->size,T->sr->mdtype(),0);
+          } else {
+
+            Matrix<dtype> * m = new Matrix<dtype>(nrow, ncol, mat_idx, par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
+            m->operator[]("ij") += mat->operator[]("ij");
+            redist_mats[i] = m;
+            arrs[i] = (dtype*)m->data;
+
+            cmdt.bcast(m->data,m->size,T->sr->mdtype(),0);
+            if (aux_mode_first){
+              mat_strides[2*i+0] = kd;
+              mat_strides[2*i+1] = 1;
+            } else {
+              mat_strides[2*i+0] = 1;
+              mat_strides[2*i+1] = m->pad_edge_len[0]/phys_phase[i];
+            }
+          }
+        }
+        
+      }
+      t_solve_remap.stop();
+
+      //split the mpi_comm for each slice
+      int jr = T->edge_map[mode].calc_phys_rank(T->topo);
+      MPI_Comm slice_comm;
+      MPI_Comm_split(T->wrld->comm, jr, T->wrld->rank, &slice_comm);
+      int cm_rank,cm_size;
+      MPI_Comm_rank(slice_comm, &cm_rank);
+      MPI_Comm_size(slice_comm,&cm_size);
+
+      // Define an array of I' x R x R LHS_list where I' is the number of rows owned by each process and divides exactly with the number of processes, i.e., with some padding
+
+      int I = T->pad_edge_len[mode]/T->edge_map[mode].np ;
+      int R = mat_list[0]->lens[1-aux_mode_first];
+      int I_s = std::ceil(I/cm_size) ;
+      double LHS_list[I_s*cm_size][R][R] ;
+      std::fill(
+       &LHS_list[0][0][0],
+       &LHS_list[0][0][0] + sizeof(LHS_list) / sizeof(LHS_list[0][0][0]),
+       0.f);
+
+      //define how the symmetric arrays are referenced, keep this consistent throughout
+      char* uplo = "L" ;
+      int scale = 1 ;
+      int info =0 ; 
+      Timer t_solve_work("Solve_work");
+      t_solve_work.start();
+      // One way is to append each row to H[l,:] computed for each nnz p*B[j,:]*C[k,:] for corresponding j and k
+      // When H fills up, compute H^TH and and add to corresponding I'
+      // collect rows in mat_list[mode]
+
+      int * inds = (int*)malloc(T->order*sizeof(int));
+      for (int64_t i=0; i<npair; i++){
+        int64_t key = pairs[i].k;
+        for (int j=0; j<T->order; j++){
+          int64_t ke = key/ldas[j];
+          inds[j] = (ke%T->lens[j])/phys_phase[j];
+        }
+        for (int kk=0; kk<kd; kk++){
+          dtype d = pairs[i].d;
+          for (int j=0; j<T->order; j++){
+            if (j != mode)
+              d *= arrs[j][inds[j]*mat_strides[2*j]+kk*mat_strides[2*j+1]];
+          }
+          //NAIVE IMPLEMENTATION ACCUMULATES RANK-1 UPDATES, A BETTER APPROACH WOULD BE TO TAKE SAVE k ROWS of H AND THEN accumulate to H^TH
+          
+          //create local matrix of size k x R where k is the batch of rows we want to take outer product of later
+
+
+          //Currently just accumulating outer products one by one
+          
+          CTF_BLAS::SYR(uplo,&R,&scale,&d,&scale,&LHS_list[inds[mode]*mat_strides[2*mode]+kk*mat_strides[2*mode+1]][0][0],&R); //outer product of d 
+          // Can update to SYRK when we have an H buffer 
+        }
+      }
+
+      free(inds);
+
+      //scatter reduce left hand sides
+
+      //double Recv_list [I_s][R][R] ;
+      int* Recv_count = (int*) malloc(sizeof(int)*cm_size) ; 
+      std::fill(
+       Recv_count,
+       Recv_count + cm_size*sizeof(int),
+       I_s*R*R);
+      MPI_Reduce_scatter( MPI_IN_PLACE, &LHS_list[0][0][0], Recv_count , MPI_DOUBLE, MPI_SUM, slice_comm );
+      free(Recv_count);
+
+      //call local spd solve on I/cm_size different systems locally (avoid calling solve on padding in lhs)
+      //CHANGE AVOIDING LOGIC WHEN MAPPING CHANGES
+      //if (i + cm_rank*I_s < I - (T->edge_len[mode] % T->edge_map[mode].np > 0) + (rank < T->edge_len[mode] % T->edge_map[mode].np)) { POSV(...); }
+      int rank = T->wrld->rank ; 
+
+      for (int i=0; i<I_s; i++){
+        if (i + cm_rank*I_s < (I - (T->lens[mode] % T->edge_map[mode].np > 0 )  + (rank < T->lens[mode] % T->edge_map[mode].np ) ))
+        {
+          if (cm_rank != cm_size - 1)
+          {
+            CTF_BLAS::POSV(uplo,&R,&scale,&LHS_list[i][0][0],&R,&arrs[mode][i+I_s*cm_rank],&R,&info) ; //spd solve
+          }
+          else{
+          // ignore last padded systems
+            if (i < I%cm_size)
+            {
+            CTF_BLAS::POSV(uplo,&R,&scale,&LHS_list[i][0][0],&R,&arrs[mode][i+I_s*cm_rank],&R,&info) ;
+            }
+          }
+        }
+      }
+
+      t_solve_work.stop();
+
+      // Need to recollect back the rows
+      //allgather on slice_comm should be used for preserving the mttkrp like mapping
+      //send is arrs[mode][I_s*cm_rank]
+      //recv is arrs[mode][I_s*cm_rank]
+      //for blocked partititioning last process has lesser data to send and receive
+      //CHANGE COUNT WHEN MAPPING CHANGES
+
+      /*int* Send_count = (int*) malloc(sizeof(int)*cm_size) ;
+      int* Recv_count = (int*) malloc(sizeof(int)*cm_size) ;
+      std::fill(
+       Recv_count,
+       Recv_count + cm_size*sizeof(int),
+       I_s*R);
+      std::fill(
+       Send_count,
+       Send_count + cm_size*sizeof(int),
+       I_s*R);
+      Recv_count[-1] = (I%cm_size)*R ;
+      Send_count[-1] = (I%cm_size)*R ;*/
+      int Send_count ;
+      int rcount ;  
+
+      if (cm_rank != cm_size - 1){
+        Send_count = I_s*R ; 
+        rcount = I_s*R ; 
+      }
+      else{
+        Send_count = (I_s%cm_rank)*R ;
+        rcount =  (I_s%cm_rank)*R ; 
+      }
+      
+      
+      MPI_Allgather(MPI_IN_PLACE, Send_count, MPI_DOUBLE,  &arrs[mode][I_s*cm_rank], rcount, MPI_DOUBLE,  slice_comm);
+      //MPI_Gatherv(MPI_IN_PLACE,Send_count,MPI_DOUBLE,&arrs[mode][I_s*cm_rank],Send_count,MPI_DOUBLE,0,slice_comm);
+    }
+
+    free(redist_mats);
+    if (mat_strides != NULL) free(mat_strides);
+    free(par_idx);
+    free(phys_phase);
+    free(ldas);
+    free(arrs);
+    if (!T->is_sparse)
+      T->sr->pair_dealloc((char*)pairs);
+    t_solve_factor.stop();
+  }
 }
