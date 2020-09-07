@@ -5246,8 +5246,12 @@ namespace CTF_int {
 
     ret = new_ctr.sym_contract();//&ntype, ftsr, felm, alpha, beta);
     if (ret!= SUCCESS) return ret;
-    if (was_home_A) new_ctr.A->unfold();
-    if (was_home_B && A != B) new_ctr.B->unfold();
+    /**
+     * unfolding here would be safest, but below is commented out as its faster to throw
+     * out temporary data if we are going to delete it anyway due to home buffer
+     */
+    //if (was_home_A) new_ctr.A->unfold();
+    //if (was_home_B && A != B) new_ctr.B->unfold();
     if (was_home_C) new_ctr.C->unfold();
 
     if (was_home_C && !new_ctr.C->is_home){
@@ -5295,11 +5299,12 @@ namespace CTF_int {
         }
         delete new_ctr.A;
       } else if (was_home_A) {
+        new_ctr.A->unfold();
         A->data = new_ctr.A->data;
         new_ctr.A->is_data_aliased = 1;
         delete new_ctr.A;
       }
-    }
+    } //else if (was_home_A) new_ctr.A->unfold();
     if (new_ctr.B != new_ctr.A && new_ctr.B != new_ctr.C){
       if (was_home_B && A != B && !new_ctr.B->is_home){
         new_ctr.B->has_home = 0;
@@ -5310,11 +5315,12 @@ namespace CTF_int {
         }
         delete new_ctr.B;
       } else if (was_home_B && A != B) {
+        new_ctr.B->unfold();
         B->data = new_ctr.B->data;
         new_ctr.B->is_data_aliased = 1;
         delete new_ctr.B;
       }
-    }
+    } //else if (was_home_B && A != B) new_ctr.B->unfold();
 
     return SUCCESS;
   #endif
