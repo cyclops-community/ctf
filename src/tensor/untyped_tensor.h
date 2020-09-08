@@ -769,8 +769,9 @@ namespace CTF_int {
        * \brief undo the folding of a local tensor block
        *        unsets is_folded and deletes rec_tsr
        * \param[in] was_mod true if data was modified, controls whether to discard sparse data
+       * \param[in] can_leave_data_dirty true if data is about to be discarded, so e.g., need not tranpose it back
        */
-      void unfold(bool was_mod=0);
+      void unfold(bool was_mod=0, bool can_leave_data_dirty=0);
 
       /**
        * \brief removes folding without doing transpose

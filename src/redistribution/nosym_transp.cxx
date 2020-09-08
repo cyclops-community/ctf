@@ -583,8 +583,6 @@ namespace CTF_int {
     for (int i=0; i<order; i++){
       tot_sz *= edge_len[i];
     }
-    TAU_FSTOP(nosym_transpose);
-
   }
 
   void nosym_transpose(int              order,

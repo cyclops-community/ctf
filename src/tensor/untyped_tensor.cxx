@@ -42,6 +42,7 @@ namespace CTF_int {
     if (order > -1){
       if (wrld->rank == 0) DPRINTF(3,"Deleted order %d tensor %s\n",order,name);
       if (is_folded) unfold();
+      //if (is_folded) unfold(0,1);
       cdealloc(sym);
       cdealloc(lens);
       cdealloc(pad_edge_len);
@@ -2714,7 +2715,7 @@ namespace CTF_int {
 
   }
 
-  void tensor::unfold(bool was_mod){
+  void tensor::unfold(bool was_mod, bool can_leave_data_dirty){
     int i, j, allfold_dim;
     int64_t * all_edge_len, * sub_edge_len;
     if (this->is_folded){
@@ -2733,7 +2734,14 @@ namespace CTF_int {
         }
       }
       if (!is_sparse){
-        nosym_transpose(this, allfold_dim, all_edge_len, this->inner_ordering, 0);
+        if (can_leave_data_dirty && !was_mod && has_home && this->data != this->home_buffer){
+          assert(!is_home);
+          this->sr->dealloc(this->data);
+          this->data = this->home_buffer;
+          this->is_home = true;
+          this->left_home_transp = false;
+        } else
+          nosym_transpose(this, allfold_dim, all_edge_len, this->inner_ordering, 0);
         assert(!left_home_transp);
       } else {
         ASSERT(this->nrow_idx != -1);
