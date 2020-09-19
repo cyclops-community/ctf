@@ -16,6 +16,8 @@
 #define DAXPY daxpy_
 #define CAXPY caxpy_
 #define ZAXPY zaxpy_
+#define SYR   dsyr_
+#define POSV  dposv_
 #define SSCAL sscal_
 #define DSCAL dscal_
 #define CSCAL cscal_
@@ -37,6 +39,8 @@
 #define DAXPY daxpy
 #define CAXPY caxpy
 #define ZAXPY zaxpy
+#define SYR   dsyr
+#define POSV  dposv
 #define SSCAL sscal
 #define DSCAL dscal
 #define CSCAL cscal
@@ -174,6 +178,25 @@ namespace CTF_BLAS {
              std::complex<double> *       dY,
              const int *                  incY);
 
+  extern "C"
+  void SYR(const char *       UPLO ,
+           const int *        N , 
+           const double *     ALPHA, 
+           const double *     X , 
+           const int *     INCX , 
+           double *           A , 
+           const int *        LDA );
+
+  extern "C"
+  void POSV(char *             UPLO ,
+           const int *         N, 
+           const int *         NRHS,
+           double *            A, 
+           const int *         LDA, 
+           double *            B, 
+           const int *         LDB, 
+           int *               INFO);
+           
   extern "C"
   void SCOPY(const int *   n,
              const float * dX,
