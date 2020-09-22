@@ -265,12 +265,14 @@ namespace CTF {
     }
     IASSERT(is_order_same);
 
-    if (is_order_same && mb==1 && nb==1 && rsrc==0 && csrc==0 && nrow&pr == 0 && ncol%pc == 0){
+    if (is_order_same && mb==1 && nb==1 && rsrc==0 && csrc==0){
       if (this->edge_map[0].np == pr && this->edge_map[1].np == pc){
         //assert(lda == (nrow+this->padding[0])/pr);
         //memcpy(this->data, (char*)data_, sizeof(dtype)*this->size);
         if (lda == nrow/pr){
-          memcpy(this->data, (char*)data_, sizeof(dtype)*this->size);
+          int64_t copy_ncol = ncol/pc;
+          if (this->edge_map[1].calc_phys_rank(this->topo) < ncol%pc) copy_ncol++;
+          memcpy(this->data, (char*)data_, sizeof(dtype)*lda*copy_ncol);
         } else {
           int64_t copy_len = nrow/pr;
           if (this->edge_map[0].calc_phys_rank(this->topo) < nrow%pr) copy_len++;

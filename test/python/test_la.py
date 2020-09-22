@@ -44,7 +44,7 @@ class KnowValues(unittest.TestCase):
             X = ctf.solve_tri(L,B)
             self.assertTrue(allclose(B, ctf.dot(L,X)))
 
-            U = ctf.random.random((n,n))
+            U = ctf.random.random((n,n)) + ctf.eye(n)
             U = ctf.astensor(U,dtype=dt)
             U = ctf.triu(U)
             D = U.T() * U
@@ -53,7 +53,7 @@ class KnowValues(unittest.TestCase):
             X = ctf.solve_tri(U,B,False)
             self.assertTrue(allclose(B, ctf.dot(U,X)))
 
-            U = ctf.random.random((m,m))
+            U = ctf.random.random((m,m))+np.eye(m)
             U = ctf.astensor(U,dtype=dt)
             U = ctf.triu(U)
             D = U.T() * U
