@@ -52,7 +52,12 @@ namespace CTF {
    */
   template<typename dtype>
   void MTTKRP(Tensor<dtype> * T, Tensor<dtype> ** mat_list, int mode, bool aux_mode_first);
-
+  /**
+    * \brief Compute solve for tensor completion type eqns in parallel with input tensor T and list of matrices
+      
+  */
+  template<typename dtype>
+  void Solve_Factor(Tensor<dtype> * T, Tensor<dtype> ** mat_list, Tensor<dtype> * RHS, int mode, bool aux_mode_first);
 }
 
 #endif
