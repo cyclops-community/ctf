@@ -280,6 +280,7 @@ cdef extern from "ctf.hpp" namespace "CTF":
 cdef extern from "ctf.hpp" namespace "CTF":
     cdef void TTTP_ "CTF::TTTP"[dtype](Tensor[dtype] * T, int num_ops, int * modes, Tensor[dtype] ** mat_list, bool aux_mode_first)
     cdef void MTTKRP_ "CTF::MTTKRP"[dtype](Tensor[dtype] * T, Tensor[dtype] ** mat_list, int mode, bool aux_mode_first)
+    cdef void Solve_Factor_ "CTF::Solve_Factor"[dtype](Tensor[dtype] * T, Tensor[dtype] ** mat_list,Tensor[dtype] * RHS, int mode, bool aux_mode_first)
     cdef void initialize_flops_counter_ "CTF::initialize_flops_counter"()
     cdef int64_t get_estimated_flops_ "CTF::get_estimated_flops"()
 
@@ -5851,6 +5852,62 @@ def MTTKRP(tensor A, mat_list, mode):
         raise ValueError('CTF PYTHON ERROR: MTTKRP does not support this dtype')
     free(tsrs)
     t_mttkrp.stop()
+
+def Solve_Factor(tensor A, mat_list, tensor R, mode):
+    """
+    Solve_Factor(A, mat_list,R, mode)
+    solves for a factor matrix parallelizing over rows given rhs, sparse tensor and list of factor matrices
+    eg. for mode=0 order 3 tensor Computes LHS = einsum("ijk,jr,jz,kr,kz->irz",T,B,B,C,C) and solves each row with rhs
+    in parallel 
+    
+    Parameters
+    ----------
+    A: tensor_like
+       Input tensor of arbitrary ndim
+
+    mat_list: list of size A.ndim containing matrices that are n_i-by-R where n_i is dimension of ith mode of A
+    and mat_list[mode] will contain the output
+    
+    R: ctf array Right hand side of dimension I_{mode} x R
+
+    mode: integer for mode with 0 indexing
+
+    """
+    t_solve_factor = timer("pySolve_factor")
+    t_solve_factor.start()
+    if len(mat_list) != A.ndim:
+        raise ValueError('CTF PYTHON ERROR: mat_list argument to MTTKRP must be of same length as ndim')
+    k = -1
+    tsrs = <Tensor[double]**>malloc(len(mat_list)*sizeof(ctensor*))
+    #tsr_list = []
+    imode = 0
+    cdef tensor t
+    for i in range(len(mat_list))[::-1]:
+        t = mat_list[i]
+        tsrs[imode] = <Tensor[double]*>t.dt
+        imode += 1
+        if mat_list[i].ndim == 1:
+            if k != -1:
+                raise ValueError('CTF PYTHON ERROR: mat_list must contain only vectors or only matrices')
+            if mat_list[i].shape[0] != A.shape[i]:
+                raise ValueError('CTF PYTHON ERROR: input vector to SOLVE_FACTOR does not match the corresponding tensor dimension')
+            #exp = exp*mat_list[i].i(s[i])
+        else:
+            if mat_list[i].ndim != 2:
+                raise ValueError('CTF PYTHON ERROR: mat_list operands has invalid dimension')
+            if k == -1:
+                k = mat_list[i].shape[1]
+            else:
+                if k != mat_list[i].shape[1]:
+                    raise ValueError('CTF PYTHON ERROR: mat_list second mode lengths of tensor must match')
+    B = tensor(copy=A)
+    RHS = tensor(copy=R)
+    if A.dtype == np.float64:
+        Solve_Factor_[double](<Tensor[double]*>B.dt,tsrs,<Tensor[double]*>RHS.dt,A.ndim-mode-1,1)
+    else:
+        raise ValueError('CTF PYTHON ERROR: Solve_Factor does not support this dtype')
+    free(tsrs)
+    t_solve_factor.stop()
 
 def svd(tensor A, rank=None, threshold=None):
     """
