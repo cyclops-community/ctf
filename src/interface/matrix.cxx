@@ -409,7 +409,8 @@ namespace CTF {
           int * all_ranksT = (int*)CTF_int::alloc(sizeof(int)*pr*pc);
           for (int ii=0; ii<pr; ii++){
             for (int jj=0; jj<pc; jj++){
-              all_ranksT[ii*pc+jj] = all_ranks[ii+jj*pr];
+              //all_ranksT[ii*pc+jj] = all_ranks[ii+jj*pr];
+              all_ranksT[ii+jj*pr] = all_ranks[ii*pc+jj];
             }
           }
           CTF_int::cdealloc(all_ranks);
@@ -1147,7 +1148,7 @@ namespace CTF {
     bool del_U_guess = false;
     if (U_guess == NULL){
       del_U_guess = true;
-      U_guess = new Matrix<dtype>(this->nrow, max_rank);
+      U_guess = new Matrix<dtype>(this->nrow, max_rank, *this->wrld);
       U_guess->fill_random(-1.,1.);
       Matrix<dtype> Q, R;
       U_guess->qr(Q, R);
@@ -1165,7 +1166,7 @@ namespace CTF {
       U = Matrix<dtype>(*U_guess);
     if (del_U_guess)
       delete U_guess;
-    Matrix<dtype> B(rank, this->ncol);
+    Matrix<dtype> B(rank, this->ncol, *this->wrld);
     B["ij"] = U["ki"]*this->operator[]("kj");
     Matrix<dtype> U1;
     B.svd(U1,S,VT,rank);
