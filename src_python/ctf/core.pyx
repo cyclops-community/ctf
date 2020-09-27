@@ -5717,6 +5717,8 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
             if new_operands[i].sp == False:
                 if new_operands[i].ndim > 0:
                     out_sp = False
+        if len(out_inds) == 0:
+            out_sp = False;
         output = tensor(out_lens, sp=out_sp, dtype=out_dtype)
     else:
         output = out
