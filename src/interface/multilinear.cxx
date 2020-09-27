@@ -925,7 +925,7 @@ namespace CTF {
           //create local matrix of size k x R where k is the batch of rows we want to take outer product of later
           //Currently just accumulating outer products one by one
         }
-        CTF_BLAS::SYR(uplo,&R,&pairs[i].d,row,&scale,&LHS_list[inds[mode]*R*R],&R); //outer product of row
+        CTF_BLAS::syr<dtype>(uplo,&R,&pairs[i].d,row,&scale,&LHS_list[inds[mode]*R*R],&R); //outer product of row
           // Can update to SYRK when we have a matrix buffer
       }
       free(row) ; 
@@ -947,7 +947,7 @@ namespace CTF {
       
       for (int i=0; i<I_s; i++){
         if (i + cm_rank*I_s < I - (T->lens[mode] % T->edge_map[mode].np > 0 )  + (jr< T->lens[mode] % T->edge_map[mode].np ))
-          CTF_BLAS::POSV(uplo,&R,&scale,&LHS_list[i*R*R],&R,&arrs_buf[i*R],&R,&info) ;
+          CTF_BLAS::posv<dtype>(uplo,&R,&scale,&LHS_list[i*R*R],&R,&arrs_buf[i*R],&R,&info) ;
       }
       t_solve_work.stop();
 

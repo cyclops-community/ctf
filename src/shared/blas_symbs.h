@@ -16,8 +16,14 @@
 #define DAXPY daxpy_
 #define CAXPY caxpy_
 #define ZAXPY zaxpy_
-#define SYR   dsyr_
-#define POSV  dposv_
+#define SSYR   ssyr_
+#define DSYR   dsyr_
+#define CSYR   csyr_
+#define ZSYR   zsyr_
+#define SPOSV   sposv_
+#define DPOSV   dposv_
+#define CPOSV   cposv_
+#define ZPOSV   zposv_
 #define SSCAL sscal_
 #define DSCAL dscal_
 #define CSCAL cscal_
@@ -39,8 +45,14 @@
 #define DAXPY daxpy
 #define CAXPY caxpy
 #define ZAXPY zaxpy
-#define SYR   dsyr
-#define POSV  dposv
+#define SSYR   ssyr
+#define DSYR   dsyr
+#define CSYR   csyr
+#define ZSYR   zsyr
+#define SPOSV   sposv
+#define DPOSV   dposv
+#define CPOSV   cposv
+#define ZPOSV   zposv
 #define SSCAL sscal
 #define DSCAL dscal
 #define CSCAL cscal
@@ -179,23 +191,106 @@ namespace CTF_BLAS {
              const int *                  incY);
 
   extern "C"
-  void SYR(const char *       UPLO ,
-           const int *        N , 
-           const double *     ALPHA, 
-           const double *     X , 
-           const int *     INCX , 
-           double *           A , 
-           const int *        LDA );
+  void SSYR(const char *       UPLO ,
+            const int *        N , 
+            const float *     ALPHA, 
+            const float *     X , 
+            const int *        INCX , 
+            float *           A , 
+            const int *        LDA );
+
 
   extern "C"
-  void POSV(char *             UPLO ,
-           const int *         N, 
-           const int *         NRHS,
-           double *            A, 
-           const int *         LDA, 
-           double *            B, 
-           const int *         LDB, 
-           int *               INFO);
+  void DSYR(const char *       UPLO ,
+            const int *        N , 
+            const double *     ALPHA, 
+            const double *     X , 
+            const int *        INCX , 
+            double *           A , 
+            const int *        LDA );
+
+
+  extern "C"
+  void CSYR(const char *       UPLO ,
+            const int *        N , 
+            const std::complex<float> *     ALPHA, 
+            const std::complex<float> *     X , 
+            const int *        INCX , 
+            std::complex<float> *           A , 
+            const int *        LDA );
+
+
+  extern "C"
+  void ZSYR(const char *       UPLO ,
+            const int *        N , 
+            const std::complex<double> *     ALPHA, 
+            const std::complex<double> *     X , 
+            const int *        INCX , 
+            std::complex<double> *           A , 
+            const int *        LDA );
+
+  template <typename dtype>
+  void syr(const char *       UPLO ,
+            const int *        N , 
+            const dtype *     ALPHA, 
+            const dtype *     X , 
+            const int *        INCX , 
+            dtype *           A , 
+            const int *        LDA );
+
+
+
+ 
+  extern "C"
+  void SPOSV(char *             UPLO ,
+            const int *         N, 
+            const int *         NRHS,
+            float *            A, 
+            const int *         LDA, 
+            float *            B, 
+            const int *         LDB, 
+            int *               INFO);
+ 
+
+  extern "C"
+  void DPOSV(char *             UPLO ,
+            const int *         N, 
+            const int *         NRHS,
+            double *            A, 
+            const int *         LDA, 
+            double *            B, 
+            const int *         LDB, 
+            int *               INFO);
+ 
+  extern "C"
+  void CPOSV(char *             UPLO ,
+            const int *         N, 
+            const int *         NRHS,
+            std::complex<float> *            A, 
+            const int *         LDA, 
+            std::complex<float> *            B, 
+            const int *         LDB, 
+            int *               INFO);
+ 
+  extern "C"
+  void ZPOSV(char *             UPLO ,
+            const int *         N, 
+            const int *         NRHS,
+            std::complex<double> *            A, 
+            const int *         LDA, 
+            std::complex<double> *            B, 
+            const int *         LDB, 
+            int *               INFO);
+ 
+  template <typename dtype>
+  void posv(char *             UPLO ,
+            const int *         N, 
+            const int *         NRHS,
+            dtype *            A, 
+            const int *         LDA, 
+            dtype *            B, 
+            const int *         LDB, 
+            int *               INFO);
            
   extern "C"
   void SCOPY(const int *   n,

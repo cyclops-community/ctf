@@ -42,6 +42,72 @@ namespace CTF_BLAS {
   INST_GEMM(std::complex<double>,Z)
 #undef INST_GEMM
 
+  template <typename dtype>
+  void syr(const char *       UPLO ,
+            const int *        N , 
+            const dtype *     ALPHA, 
+            const dtype *     X , 
+            const int *        INCX , 
+            dtype *           A , 
+            const int *        LDA ){
+     printf("CTF ERROR POSV not available for this type.\n");
+    ASSERT(0);
+    assert(0);
+  }
+
+#define INST_SYR(dtype,s)                     \
+  template <>                                  \
+  void syr<dtype>(const char * a, \
+            const int *    b, \
+            const dtype *        c, \
+            const dtype *        d, \
+            const int *    e, \
+            dtype *        f, \
+            const int *    g){ \
+    s ## SYR(a,b,c,d,e,f,g); \
+  }
+  INST_SYR(float,S)
+  INST_SYR(double,D)
+  INST_SYR(std::complex<float>,C)
+  INST_SYR(std::complex<double>,Z)
+#undef INST_GEMM
+
+
+  template <typename dtype>
+  void posv(char *             UPLO ,
+            const int *         N, 
+            const int *         NRHS,
+            dtype *            A, 
+            const int *         LDA, 
+            dtype *            B, 
+            const int *         LDB, 
+            int *               INFO){
+     printf("CTF ERROR POSV not available for this type.\n");
+    ASSERT(0);
+    assert(0);
+  }
+
+
+
+#define INST_POSV(dtype,s)                     \
+  template <>                                  \
+  void posv<dtype>(char * a, \
+            const int *    b, \
+            const int *    c, \
+            dtype *        d, \
+            const int *    e, \
+            dtype *        f, \
+            const int *    g, \
+            int *          h){ \
+    s ## POSV(a,b,c,d,e,f,g,h); \
+  }
+  INST_POSV(float,S)
+  INST_POSV(double,D)
+  INST_POSV(std::complex<float>,C)
+  INST_POSV(std::complex<double>,Z)
+#undef INST_GEMM
+
+
 
 #ifdef USE_BATCH_GEMM
   template <typename dtype>
