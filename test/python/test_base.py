@@ -179,6 +179,12 @@ class KnowValues(unittest.TestCase):
         a1.fill_sp_random(0.,1.,.5)
         a0 = a1.to_nparray()
         self.assertTrue(ctf.all(ctf.reshape(a1,(2,3))  ==a0.reshape(2,3)))
+        self.assertTrue(ctf.all(ctf.reshape(a1,(2,1,3))  ==a0.reshape(2,1,3)))
+        self.assertTrue(ctf.all(ctf.reshape(a1,(1,2,3))  ==a0.reshape(1,2,3)))
+        a1 = ctf.tensor((3,1,2),sp=True)
+        a1.fill_sp_random(0.,1.,.5)
+        a0 = a1.to_nparray()
+        self.assertTrue(ctf.all(ctf.reshape(a1,(2,3))  ==a0.reshape(2,3)))
 
         a1 = ctf.tensor((2,3,4,5),sp=True)
         a1.fill_sp_random(0.,1.,.5)

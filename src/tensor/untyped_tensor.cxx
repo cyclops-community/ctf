@@ -1821,17 +1821,19 @@ namespace CTF_int {
     }
 #endif
     tensor * talias;
-    talias = this->get_no_unit_len_alias();
-    if (talias != this){
-      int stat = talias->reshape(old_tsr, alpha, beta);
-      delete talias;
-      return stat;
-    }
-    talias = ((tensor*)old_tsr)->get_no_unit_len_alias();
-    if (talias != old_tsr){
-      int stat = this->reshape(talias, alpha, beta);
-      delete talias;
-      return stat;
+    if (!this->is_sparse && !old_tsr->is_sparse){
+      talias = this->get_no_unit_len_alias();
+      if (talias != this){
+        int stat = talias->reshape(old_tsr, alpha, beta);
+        delete talias;
+        return stat;
+      }
+      talias = ((tensor*)old_tsr)->get_no_unit_len_alias();
+      if (talias != old_tsr){
+        int stat = this->reshape(talias, alpha, beta);
+        delete talias;
+        return stat;
+      }
     }
 
     if (beta == NULL || this->sr->isequal(beta,this->sr->addid())){
@@ -1873,7 +1875,6 @@ namespace CTF_int {
       bool is_mode_merge = true;
       bool is_mode_split = true;
       int i=0,j=0;
-      //printf("HERE start\n");
       while (i<this->order && j<old_tsr->order){
         if (this->lens[i] == old_tsr->lens[j]){
           i++;

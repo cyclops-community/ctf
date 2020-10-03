@@ -1932,7 +1932,9 @@ NORM_INFTY_INST(double)
       CTF::Matrix<dtype> Ui;
       CTF::Vector<dtype> Si;
       CTF::Matrix<dtype> VTi;
+      //printf("HERE %d %d %d %d\n",mats[i]->edge_map[0].cdt,mats[i]->edge_map[1].cdt,mats[i]->edge_map[0].np,mats[i]->edge_map[1].np);
       mats[i]->svd(Ui,Si,VTi,rank);
+      //mats[i]->svd_rand(Ui,Si,VTi,rank,10);
       //CTF::Matrix<dtype> R(*mats[i]);
       //R["ij"] -= Ui["ik"]*Si["k"]*VTi["kj"];
       //double nrm = R.norm2();
