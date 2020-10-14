@@ -1001,7 +1001,7 @@ if [ $BUILD_SCALAPACK = 1 ]; then
     fi
   fi
   if [ ! -d scalapack ]; then
-    wget http://www.netlib.org/scalapack/scalapack.tgz -O scalapack.tgz;
+    wget http://www.netlib.org/scalapack/scalapack-2.1.0.tgz -O scalapack.tgz;
     mkdir scalapack;
     tar -xzf scalapack.tgz -C scalapack --strip-components 1;
   fi
