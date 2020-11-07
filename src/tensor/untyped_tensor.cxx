@@ -2879,7 +2879,7 @@ namespace CTF_int {
         spredist_mdl.observe(tps);
 #endif
       } else {
-        if (order <= 12)
+        if (order <= 12 && order > 1)
           dgtog_reshuffle(sym, lens, old_dist, new_dist, &this->data, &shuffled_data, sr, wrld->cdt);
         else
           cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr->mulid(), sr->addid());
