@@ -506,7 +506,8 @@ namespace CTF_int {
     if (order == 0){
       bool is_copy = false;
       if (sr->isequal(sr->mulid(), alpha) && sr->isequal(sr->addid(), beta)) is_copy = true;
-      alloc_ptr(sr->el_size, (void**)&tsr_cyclic_data);
+      //alloc_ptr(sr->el_size, (void**)&tsr_cyclic_data);
+      tsr_cyclic_data = sr->alloc(1);
       if (ord_glb_comm.rank == 0){
         if (is_copy)
           sr->copy(tsr_cyclic_data, tsr_data);
@@ -644,10 +645,13 @@ namespace CTF_int {
 
     char * send_buffer, * recv_buffer;
     if (reuse_buffers){
-      alloc_ptr(MAX(old_dist.size,swp_nval)*sr->el_size, (void**)&tsr_cyclic_data);
+      //alloc_ptr(MAX(old_dist.size,swp_nval)*sr->el_size, (void**)&tsr_cyclic_data);
+      tsr_cyclic_data = sr->alloc(MAX(old_dist.size,swp_nval));
     } else {
-      alloc_ptr(old_dist.size*sr->el_size, (void**)&send_buffer);
-      alloc_ptr(swp_nval*sr->el_size, (void**)&recv_buffer);
+      //alloc_ptr(old_dist.size*sr->el_size, (void**)&send_buffer);
+      //alloc_ptr(swp_nval*sr->el_size, (void**)&recv_buffer);
+      send_buffer = sr->alloc(old_dist.size);
+      recv_buffer = sr->alloc(swp_nval);
     }
 
     TAU_FSTART(pack_virt_buf);
@@ -721,8 +725,8 @@ namespace CTF_int {
 
     if (reuse_buffers){
       if (swp_nval > old_dist.size){
-        cdealloc(tsr_data);
-        alloc_ptr(swp_nval*sr->el_size, (void**)&tsr_data);
+        sr->dealloc(tsr_data);
+        tsr_data = sr->alloc(swp_nval);
       }
       send_buffer = tsr_cyclic_data;
       recv_buffer = tsr_data;
@@ -734,10 +738,11 @@ namespace CTF_int {
                              recv_buffer, recv_counts, recv_displs);
     TAU_FSTOP(ALL_TO_ALL_V);
 
+      //sr->set(tsr_cyclic_data, sr->addid(), swp_nval);
     if (reuse_buffers)
-      sr->set(tsr_cyclic_data, sr->addid(), swp_nval);
+      sr->init(swp_nval, tsr_cyclic_data);
     else
-      cdealloc(send_buffer);
+      sr->dealloc(send_buffer);
     TAU_FSTART(unpack_virt_buf);
     /* Deserialize data into correctly ordered virtual sub blocks */
     if (recv_displs[ord_glb_comm.np-1] + recv_counts[ord_glb_comm.np-1] > 0){
@@ -790,7 +795,7 @@ namespace CTF_int {
     }
     TAU_FSTOP(unpack_virt_buf);
 
-    if (!reuse_buffers) cdealloc(recv_buffer);
+    if (!reuse_buffers) sr->dealloc(recv_buffer);
     *ptr_tsr_cyclic_data = tsr_cyclic_data;
     *ptr_tsr_data = tsr_data;
 
