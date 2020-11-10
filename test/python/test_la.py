@@ -197,40 +197,48 @@ class KnowValues(unittest.TestCase):
 
 
     def test_qr(self):
-        m = 8
-        n = 4
-        for dt in [np.float32, np.float64, np.complex64, np.complex128]:
-            A = ctf.random.random((m,n))
-            A = ctf.astensor(A,dtype=dt)
+        for (m,n) in [(8,4),(4,7),(3,3)]:
+            for dt in [np.float32, np.float64, np.complex64, np.complex128]:
+                A = ctf.random.random((m,n))
+                A = ctf.astensor(A,dtype=dt)
+                [Q,R]=ctf.qr(A)
+                self.assertTrue(allclose(A, ctf.dot(Q,R)))
+                if (m >= n):
+                    self.assertTrue(allclose(ctf.eye(n), ctf.dot(Q.T(), Q)))
+                else:
+                    self.assertTrue(allclose(ctf.eye(m), ctf.dot(Q, Q.T())))
+
+            A = ctf.tensor((m,n),dtype=np.complex64)
+            rA = ctf.tensor((m,n),dtype=np.float32)
+            rA.fill_random()
+            A.real(rA)
+            iA = ctf.tensor((m,n),dtype=np.float32)
+            iA.fill_random()
+            A.imag(iA)
+
             [Q,R]=ctf.qr(A)
+
             self.assertTrue(allclose(A, ctf.dot(Q,R)))
-            self.assertTrue(allclose(ctf.eye(n), ctf.dot(Q.T(), Q)))
+            if (m >= n):
+                self.assertTrue(allclose(ctf.eye(n,dtype=np.complex64), ctf.dot(ctf.conj(Q.T()), Q)))
+            else:
+                self.assertTrue(allclose(ctf.eye(m,dtype=np.complex64), ctf.dot(Q, ctf.conj(Q.T()))))
 
-        A = ctf.tensor((m,n),dtype=np.complex64)
-        rA = ctf.tensor((m,n),dtype=np.float32)
-        rA.fill_random()
-        A.real(rA)
-        iA = ctf.tensor((m,n),dtype=np.float32)
-        iA.fill_random()
-        A.imag(iA)
+            A = ctf.tensor((m,n),dtype=np.complex128)
+            rA = ctf.tensor((m,n),dtype=np.float64)
+            rA.fill_random()
+            A.real(rA)
+            iA = ctf.tensor((m,n),dtype=np.float64)
+            iA.fill_random()
+            A.imag(iA)
 
-        [Q,R]=ctf.qr(A)
+            [Q,R]=ctf.qr(A)
 
-        self.assertTrue(allclose(A, ctf.dot(Q,R)))
-        self.assertTrue(allclose(ctf.eye(n,dtype=np.complex64), ctf.dot(ctf.conj(Q.T()), Q)))
-
-        A = ctf.tensor((m,n),dtype=np.complex128)
-        rA = ctf.tensor((m,n),dtype=np.float64)
-        rA.fill_random()
-        A.real(rA)
-        iA = ctf.tensor((m,n),dtype=np.float64)
-        iA.fill_random()
-        A.imag(iA)
-
-        [Q,R]=ctf.qr(A)
-
-        self.assertTrue(allclose(A, ctf.dot(Q,R)))
-        self.assertTrue(allclose(ctf.eye(n,dtype=np.complex128), ctf.dot(ctf.conj(Q.T()), Q)))
+            self.assertTrue(allclose(A, ctf.dot(Q,R)))
+            if (m >= n):
+                self.assertTrue(allclose(ctf.eye(n,dtype=np.complex128), ctf.dot(ctf.conj(Q.T()), Q)))
+            else:
+                self.assertTrue(allclose(ctf.eye(m,dtype=np.complex128), ctf.dot(Q, ctf.conj(Q.T()))))
 
     def test_eigh(self):
         n = 11

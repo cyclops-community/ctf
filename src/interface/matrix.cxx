@@ -527,6 +527,7 @@ namespace CTF {
     int syns[] = {sym_type, NS};
     Tensor<dtype> F;
     Tensor<dtype> U;
+    //extract upper triangular matrix
     if (this->nrow != this->ncol){
       F = this->slice(0,((int64_t)nrow)*(min_mn-1) + min_mn-1);
       U = Tensor<dtype>(F,syns);
@@ -535,6 +536,7 @@ namespace CTF {
     }
     int nsns[] = {NS, NS};
     U = Tensor<dtype>(U,nsns);
+    // if T is uninitialized
     if (T.nrow == -1){
       if (lower && this->nrow <= this->ncol){
         if (this->nrow == this->ncol)
@@ -551,13 +553,13 @@ namespace CTF {
       } else
         T = Tensor<dtype>(false, *this);
     }
-    if (lower){
-      if (T.nrow == min_mn && T.ncol == min_mn)
-        T["ij"] -= U["ij"];
-      else
+    if (T.nrow == min_mn && T.ncol == min_mn) {
+      if (lower) T["ij"] -= U["ij"];
+    } else {
+      if (lower)
         F["ij"] -= U["ij"];
-    }
-    if (T.nrow != T.ncol){
+      else
+        F = U;
       assert(T.nrow == this->nrow && T.ncol == this->ncol);
       if ((lower && T.nrow > T.ncol) ||
          (!lower && T.nrow < T.ncol))
