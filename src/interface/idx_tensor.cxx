@@ -189,6 +189,15 @@ namespace CTF {
       if (sr->has_mul()){
         sr->safecopy(scale,sr->addid());
       } else {
+        for (int i=0; i<this->parent->order; i++){
+          for (int j=0; j<i; j++){
+            if (this->idx_map[i] == this->idx_map[j]){
+              printf("CTF ERROR: operations such as B[\"...i...i...\"] = A[\"...i...\"] are not supported when B is defined on an algebraic structure that does not have a multiplicative identity (and here we CTF wants to try to do B[\"...i...i...\"] = 0*B[\"...i...i...\"] + A[\"...i...\"]), a workaround is to supply a multiplicative operator that outputs the additive identity element when any element is multiplied by a multiplicative identity element\n");
+              IASSERT(0);
+              return;
+            }
+          }
+        }
         this->parent->set_zero();
       }
       B.execute(*this);
@@ -204,6 +213,15 @@ namespace CTF {
       if (sr->has_mul()){
         sr->safecopy(scale,sr->addid());
       } else {
+        for (int i=0; i<this->parent->order; i++){
+          for (int j=0; j<i; j++){
+            if (this->idx_map[i] == this->idx_map[j]){
+              printf("CTF ERROR: operations such as B[\"...i...i...\"] = A[\"...i...\"] are not supported (only += is ok if an output index is repeated) when B is defined on an algebraic structure that does not have a multiplicative identity (and here we CTF wants to try to do B[\"...i...i...\"] = 0*B[\"...i...i...\"] + A[\"...i...\"]), a workaround is to supply a multiplicative operator that outputs the additive identity element when any element is multiplied by a multiplicative identity element\n");
+              IASSERT(0);
+              return;
+            }
+          }
+        }
         this->parent->set_zero();
       }
       B.execute(*this);
