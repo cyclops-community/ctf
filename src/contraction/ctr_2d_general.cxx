@@ -431,7 +431,7 @@ namespace CTF_int {
         if (cdt_C->rank == owner_C)
           cdt_C->red(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop(), owner_C);
         else
-          cdt_C->red(op_C, NULL, s_C, sr_C->mdtype(), sr_C->addmop(), owner_C);
+          cdt_C->red(op_C, op_C, s_C, sr_C->mdtype(), sr_C->addmop(), owner_C);
         if (rank_C == owner_C){
           sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
                      op_C, ctr_sub_lda_C, sr_C->mulid(),
