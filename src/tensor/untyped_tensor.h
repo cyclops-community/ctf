@@ -139,6 +139,8 @@ namespace CTF_int {
       int64_t nnz_tot;
       /** \brief nonzero elements in each block owned locally */
       int64_t * nnz_blk;
+      /** \brief dry run does not allocate any tensor data */
+      static bool is_dry;
 
       /**
        * \brief associated an index map with the tensor for future operation
@@ -372,7 +374,7 @@ namespace CTF_int {
        * \param[out] size number of elements in data
        */
       void get_raw_data(char ** data, int64_t * size) const;
-      
+
       /**
        * \brief query mapping to processor grid and intra-processor blocking, which may be used to define a tensor with the same initial distribution
        * \param[out] idx array of this->order chars describing this processor modes mapping on processor grid dimensions tarting from 'a'
@@ -1063,6 +1065,8 @@ namespace CTF_int {
        * \return tensor with same data point as this one but no edge lengths of size 1
        */
       tensor * get_no_unit_len_alias();
+
+      static void set_dry_run();
   };
 }
 #endif// __UNTYPED_TENSOR_H__

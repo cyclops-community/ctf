@@ -19,6 +19,7 @@
 
 using namespace CTF;
 
+
 namespace CTF_int {
 
   LinModel<3> spredist_mdl(spredist_mdl_init,"spredist_mdl");
@@ -686,6 +687,7 @@ namespace CTF_int {
         memset(this->nnz_blk, 0, sizeof(int64_t)*calc_nvirt());
         this->set_new_nnz_glb(this->nnz_blk);
       } else {
+        if (!is_dry)
         sr->set(this->data, sr->addid(), this->size);
       }
     } else {
@@ -726,15 +728,19 @@ namespace CTF_int {
           //this->has_home = 0;
     /*      if (wrld->rank == 0)
             DPRINTF(3,"Initial size of tensor %d is " PRId64 ",",tensor_id,this->size);*/
-          this->home_buffer = sr->alloc(this->home_size);
-          if (wrld->rank == 0) DPRINTF(2,"Creating home of %s\n",name);
-          register_size(this->size*sr->el_size);
-          this->data = this->home_buffer;
+          if (!is_dry) {
+            this->home_buffer = sr->alloc(this->home_size);
+            if (wrld->rank == 0) DPRINTF(2,"Creating home of %s\n",name);
+            register_size(this->size*sr->el_size);
+            this->data = this->home_buffer;
+          }
         } else {
-          this->data = sr->alloc(this->size);
+          if (!is_dry)
+            this->data = sr->alloc(this->size);
         }
         #else
-        this->data = sr->alloc(this->size);
+        if (!is_dry)
+          this->data = sr->alloc(this->size);
         //CTF_int::alloc_ptr(this->size*sr->el_size, (void**)&this->data);
         #endif
         #if DEBUG >= 1
@@ -743,7 +749,8 @@ namespace CTF_int {
         this->print_lens();
         this->print_map(stdout);
         #endif
-        sr->init(this->size, this->data);
+        if (!is_dry)
+          sr->init(this->size, this->data);
       }
     }
     TAU_FSTOP(set_zero_tsr);
@@ -4125,5 +4132,9 @@ namespace CTF_int {
     return subtsrs;
   }
 
+  bool tensor::is_dry = false;
+  void tensor::set_dry_run(){
+    is_dry = true;
+  }
 }
 

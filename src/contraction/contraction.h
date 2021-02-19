@@ -304,7 +304,7 @@ namespace CTF_int {
        * \param[in] do_remap whether to redistribute tensors
        * \return SUCCESS if valid mapping found, ERROR if not enough memory or another issue
        */
-      int map(ctr ** ctrf, bool do_remap=1);
+      int map(ctr ** ctrf, double &time_estimate, bool do_remap=1);
  
       /**
         * \brief contracts tensors alpha*A*B+beta*C -> C.
