@@ -4501,7 +4501,7 @@ namespace CTF_int {
         if (size_blk_C != NULL) cdealloc(size_blk_C);
       }
     } else{
-      if (global_comm.rank == 0) ctrf->print();
+//      if (global_comm.rank == 0) ctrf->print();
       ctrf->run(A->data, B->data, C->data);
     }
   #ifdef PROFILE_MEMORY
