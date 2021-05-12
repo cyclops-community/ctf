@@ -24,6 +24,8 @@ namespace CTF {
       int rank;
       /** \brief number of processors */
       int np;
+      /** \brief set dryRun */
+      int dryRanks = 0;
       /** \brief derived topologies */
       std::vector< CTF_int::topology* > topovec;
       /** \brief whether the world has been initialized */
@@ -86,6 +88,13 @@ namespace CTF {
        */
       World(char const * emptystring);
 
+      /**
+       * \brief constructor for a dry world
+       * \param[in] print determines how to handle output
+       * \param[in] dryRanks number of dry ranks
+      */
+
+      World(std::string print, int dryRanks);
 
       /**
        * \brief frees CTF library

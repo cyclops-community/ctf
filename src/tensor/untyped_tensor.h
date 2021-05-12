@@ -139,8 +139,6 @@ namespace CTF_int {
       int64_t nnz_tot;
       /** \brief nonzero elements in each block owned locally */
       int64_t * nnz_blk;
-      /** \brief dry run does not allocate any tensor data */
-      static bool is_dry;
 
       /**
        * \brief associated an index map with the tensor for future operation
@@ -1066,7 +1064,6 @@ namespace CTF_int {
        */
       tensor * get_no_unit_len_alias();
 
-      static void set_dry_run();
   };
 }
 #endif// __UNTYPED_TENSOR_H__

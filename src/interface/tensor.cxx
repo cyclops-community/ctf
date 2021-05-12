@@ -1563,6 +1563,7 @@ NORM_INFTY_INST(double)
       IASSERT(0);
       return;
     }
+    if (T.wrld->dryRanks) return;
     for (int64_t i=0; i<T.size; i++){
       ((dtype*)T.data)[i] = ((dtype)((rtype)CTF_int::get_rand48()*(rmax-rmin)))+rmin;
     }

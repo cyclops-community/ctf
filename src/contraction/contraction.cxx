@@ -3250,7 +3250,7 @@ namespace CTF_int {
       }
     } else
       need_remap = 1;
-    if (need_remap)
+    if (need_remap && !wrld->dryRanks)
       A->redistribute(*dA);
     need_remap = 0;
     if (B->topo == old_topo_B){
@@ -3260,7 +3260,7 @@ namespace CTF_int {
       }
     } else
       need_remap = 1;
-    if (need_remap)
+    if (need_remap && !wrld->dryRanks)
       B->redistribute(*dB);
     need_remap = 0;
     if (C->topo == old_topo_C){
@@ -3270,7 +3270,7 @@ namespace CTF_int {
       }
     } else
       need_remap = 1;
-    if (need_remap)
+    if (need_remap && !wrld->dryRanks)
       C->redistribute(*dC);
                   
     TAU_FSTOP(redistribute_for_contraction);
@@ -4368,6 +4368,11 @@ namespace CTF_int {
       C->print_map();
     }
 #endif
+  if (A->wrld->dryRanks){
+    delete ctrf;
+    TAU_FSTOP(contract);
+    return SUCCESS;
+  }
 
   #ifdef PROFILE
     TAU_FSTART(pre_fold_barrier);

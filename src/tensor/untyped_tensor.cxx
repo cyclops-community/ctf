@@ -687,7 +687,7 @@ namespace CTF_int {
         memset(this->nnz_blk, 0, sizeof(int64_t)*calc_nvirt());
         this->set_new_nnz_glb(this->nnz_blk);
       } else {
-        if (!is_dry)
+        if (!wrld->dryRanks)
         sr->set(this->data, sr->addid(), this->size);
       }
     } else {
@@ -728,18 +728,18 @@ namespace CTF_int {
           //this->has_home = 0;
     /*      if (wrld->rank == 0)
             DPRINTF(3,"Initial size of tensor %d is " PRId64 ",",tensor_id,this->size);*/
-          if (!is_dry) {
+          if (!wrld->dryRanks) {
             this->home_buffer = sr->alloc(this->home_size);
             if (wrld->rank == 0) DPRINTF(2,"Creating home of %s\n",name);
             register_size(this->size*sr->el_size);
             this->data = this->home_buffer;
           }
         } else {
-          if (!is_dry)
+          if (!wrld->dryRanks)
             this->data = sr->alloc(this->size);
         }
         #else
-        if (!is_dry)
+        if (!wrld->dryRanks)
           this->data = sr->alloc(this->size);
         //CTF_int::alloc_ptr(this->size*sr->el_size, (void**)&this->data);
         #endif
@@ -749,7 +749,7 @@ namespace CTF_int {
         this->print_lens();
         this->print_map(stdout);
         #endif
-        if (!is_dry)
+        if (!wrld->dryRanks)
           sr->init(this->size, this->data);
       }
     }
@@ -4132,9 +4132,5 @@ namespace CTF_int {
     return subtsrs;
   }
 
-  bool tensor::is_dry = false;
-  void tensor::set_dry_run(){
-    is_dry = true;
-  }
 }
 
