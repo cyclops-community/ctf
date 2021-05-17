@@ -338,14 +338,17 @@ namespace CTF_int {
     int i;
     printf("seq_tsr_ctr:\n");
     for (i=0; i<order_A; i++){
-      printf("edge_len_A[%d]=%ld\n",i,edge_len_A[i]);
+      printf("edge_len_A[%d]=%ld ",i,edge_len_A[i]);
     }
+    printf("\n");
     for (i=0; i<order_B; i++){
-      printf("edge_len_B[%d]=%ld\n",i,edge_len_B[i]);
+      printf("edge_len_B[%d]=%ld ",i,edge_len_B[i]);
     }
+    printf("\n");
     for (i=0; i<order_C; i++){
-      printf("edge_len_C[%d]=%ld\n",i,edge_len_C[i]);
+      printf("edge_len_C[%d]=%ld ",i,edge_len_C[i]);
     }
+    printf("\n");
     printf("is inner = %d\n", is_inner);
     if (is_inner) printf("inner n = %ld m= %ld k = %ld l = %ld, ta = %c, tb =%c, tc = %c\n",
                           inner_params.n, inner_params.m, inner_params.k, inner_params.l, inner_params.tA, inner_params.tB, inner_params.tC);

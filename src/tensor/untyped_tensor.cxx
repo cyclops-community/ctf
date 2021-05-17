@@ -677,7 +677,6 @@ namespace CTF_int {
     int * restricted;
     int btopo;
     int64_t bmemuse;
-
     if (this->is_mapped){
       if (is_sparse){
         sr->pair_dealloc(this->data);
@@ -759,17 +758,24 @@ namespace CTF_int {
 
   void tensor::print_map(FILE * stream, bool allcall) const {
     if (!allcall || wrld->rank == 0){
-      if (is_sparse)
-        printf("printing mapping of sparse tensor %s\n",name);
-      else
-        printf("printing mapping of dense tensor %s\n",name);
+//      if (is_sparse)
+//        printf("printing mapping of sparse tensor %s\n",name);
+//      else
+//        printf("printing mapping of dense tensor %s\n",name);
+//      if (topo != NULL){
+//        printf("CTF: %s mapped to order %d topology with dims:",name,topo->order);
+//        for (int dim=0; dim<topo->order; dim++){
+//          printf(" %d ",topo->lens[dim]);
+//        }
+//      }
+//      printf("\n");
       if (topo != NULL){
-        printf("CTF: %s mapped to order %d topology with dims:",name,topo->order);
+        printf("%s topo (",name);
         for (int dim=0; dim<topo->order; dim++){
-          printf(" %d ",topo->lens[dim]);
+          printf(", %d",topo->lens[dim]);
         }
+        printf("); ");
       }
-      printf("\n");
       char tname[200];
       tname[0] = '\0';
       sprintf(tname, "%s[", name);

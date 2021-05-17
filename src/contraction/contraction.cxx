@@ -3205,6 +3205,15 @@ namespace CTF_int {
 //    assert(est_time == std::min(gbest_time_sel,gbest_time_exh));
 //#endif
 #endif
+    if (A->wrld->dryRanks){
+      int64_t memuse;
+      double est_time;
+      detail_estimate_mem_and_time(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, memuse, est_time);
+      printf( "Contraction will use %f GB per rank and take %f seconds\n"
+            , memuse/1024.0/1024./1024, est_time);
+    }
+
+
 
     if (can_fold()){
       iparam prm = map_fold(false);
@@ -4169,6 +4178,8 @@ namespace CTF_int {
     ctr * ctrf;
     CommData global_comm = C->wrld->cdt;
 
+
+
     if (A->has_zero_edge_len || B->has_zero_edge_len
         || C->has_zero_edge_len){
       if (!C->sr->isequal(beta,C->sr->mulid()) && !C->has_zero_edge_len){
@@ -4368,12 +4379,6 @@ namespace CTF_int {
       C->print_map();
     }
 #endif
-  if (A->wrld->dryRanks){
-    delete ctrf;
-    TAU_FSTOP(contract);
-    return SUCCESS;
-  }
-
   #ifdef PROFILE
     TAU_FSTART(pre_fold_barrier);
     MPI_Barrier(global_comm.cm);
@@ -4388,12 +4393,24 @@ namespace CTF_int {
     if (is_inner){
       iparam prm;
       TAU_FSTART(map_fold);
-      prm = map_fold();
+      prm = map_fold(!A->wrld->dryRanks);
       TAU_FSTOP(map_fold);
       delete ctrf;
       ctrf = construct_ctr(1, &prm);
     }
   #endif
+
+
+  if (A->wrld->dryRanks){
+    A->print_map();
+    B->print_map();
+    C->print_map();
+    ctrf->print();
+    delete ctrf;
+    TAU_FSTOP(contract);
+    return SUCCESS;
+  }
+
   #if (VERBOSE >= 1 || DEBUG >= 1)
   if (global_comm.rank == 0){
     ctrf->print();
@@ -5251,6 +5268,7 @@ namespace CTF_int {
 
     ret = new_ctr.sym_contract();//&ntype, ftsr, felm, alpha, beta);
     if (ret!= SUCCESS) return ret;
+    if (C->wrld->dryRanks) return SUCCESS;
     if (was_home_C) new_ctr.C->unfold();
 
     if (was_home_C && !new_ctr.C->is_home){
