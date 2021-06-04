@@ -2838,10 +2838,10 @@ namespace CTF_int {
         est_time = memuse;
 #endif
 
-        if (A->wrld->dryRanks) printf( "t %d j %d will use %f GB per rank and take %f s, %f %f %f\n"
+        if (A->wrld->dryRanks) printf( "t %d j %d will use %f GB per rank and take %f s, %f %f %f"
                                      , t, j, memuse/1024.0/1024./1024
                                      , est_time, redist_time, contr_time, fold_time);
-
+        if (A->wrld->dryRanks) C->print_map();
 
         ASSERT(est_time >= 0.0);
         if ((int64_t)memuse >= max_memuse){
@@ -3092,7 +3092,7 @@ namespace CTF_int {
       A->set_padding();
       B->set_padding();
       C->set_padding();
-      if (gbest_time_sel < 1e-100){
+      if (gbest_time_sel < 1e100){
         gbest_time_exh = gbest_time_sel+1.;
         ttopo_exh = ttopo_sel;
       } else {
@@ -3298,7 +3298,7 @@ namespace CTF_int {
       need_remap = 1;
     if (need_remap && !wrld->dryRanks)
       C->redistribute(*dC);
-                  
+
     TAU_FSTOP(redistribute_for_contraction);
    
     CTF_int::cdealloc( old_phase_A );
