@@ -1041,7 +1041,16 @@ namespace CTF_int {
       bool tsr_has_sym = false;
       bool tsr_has_virt = false;
 
+      int topo_dims_A = tsr_A->topo->order;
+      int topo_dims_B = tsr_B->topo->order;
+
       for (int i=0; i<this->order; i++){
+        if (tsr_A->edge_map[i].type == PHYSICAL_MAP){
+          topo_dims_A--;
+        }
+        if (tsr_B->edge_map[i].type == PHYSICAL_MAP){
+          topo_dims_B--;
+        }
         if (A->sym[i] != NS || this->sym[i] != NS)
           tsr_has_sym = true;
         if (A->edge_map[i].type == VIRTUAL_MAP || (A->edge_map[i].has_child && A->edge_map[i].child->type == VIRTUAL_MAP)){
@@ -1053,7 +1062,7 @@ namespace CTF_int {
       }
       int nvirt_A = tsr_A->calc_nvirt();
       int nvirt_B = tsr_B->calc_nvirt();
-      if (tsr_B->wrld->np == tsr_A->wrld->np && !tsr_has_sym && !this->is_sparse && !A->is_sparse && nvirt_A == 1 && nvirt_B == 1 && !tsr_has_virt){
+      if (tsr_B->wrld->np == tsr_A->wrld->np && !tsr_has_sym && !this->is_sparse && !A->is_sparse && nvirt_A == 1 && nvirt_B == 1 && !tsr_has_virt && topo_dims_A ==0 && topo_dims_B == 0){
         push_slice(this, offsets_B, ends_B, beta, A, offsets_A, ends_A, alpha);
         TAU_FSTOP(slice);
         return;
