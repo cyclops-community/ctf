@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #configure script adapted from Aquarius software (https://github.cxxom/devinamatthews/aquarius)
 
 
