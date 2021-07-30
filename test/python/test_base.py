@@ -86,7 +86,6 @@ class KnowValues(unittest.TestCase):
 
         a0 = numpy.arange(6).reshape(2,3)
         a1 = ctf.array(a0)
-        self.assertTrue(ctf.all(a0==a1))
         self.assertTrue(ctf.all(a1==a0))
         a1 = ctf.array(a0, copy=False)
         self.assertTrue(ctf.all(a1==0))

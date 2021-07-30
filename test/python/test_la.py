@@ -10,10 +10,14 @@ from ctf import random
 import numpy.linalg as la
 
 def allclose(a, b):
-    #if abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() > 1e-3:
-    #    print(ctf.to_nparray(a))
-    #    print(ctf.to_nparray(b))
-    return  (ctf.to_nparray(a).shape == ctf.to_nparray(b).shape) and abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() <= 1e-3
+    if not (abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() <= 1e-3 or abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum()/abs(ctf.to_nparray(a)).sum() <= 1e-3):
+        print("Error vec 1-norm is",abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum(),"relative error is",abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum()/abs(ctf.to_nparray(a)).sum())
+        ctf.tensor(copy=a).prnt()
+        ctf.tensor(copy=b).prnt()
+        #print(ctf.to_nparray(a))
+        #print(ctf.to_nparray(b))
+    return  (ctf.to_nparray(a).shape == ctf.to_nparray(b).shape) and (abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() <= 1e-3 or abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum()/abs(ctf.to_nparray(a)).sum() <= 1e-3)
+
 
 
 class KnowValues(unittest.TestCase):
@@ -56,18 +60,12 @@ class KnowValues(unittest.TestCase):
             U = ctf.random.random((m,m))+np.eye(m)
             U = ctf.astensor(U,dtype=dt)
             U = ctf.triu(U)
-            D = U.T() * U
-            D.i("ii") << -1.0*U.i("ii")*U.i("ii")
-            self.assertTrue(abs(ctf.vecnorm(D))<= 1.e-6)
             X = ctf.solve_tri(U,B,False,False)
             self.assertTrue(allclose(B, ctf.dot(X,U)))
 
             U = ctf.random.random((m,m))
             U = ctf.astensor(U,dtype=dt)
             U = ctf.triu(U)
-            D = U.T() * U
-            D.i("ii") << -1.0*U.i("ii")*U.i("ii")
-            self.assertTrue(abs(ctf.vecnorm(D))<= 1.e-6)
             X = ctf.solve_tri(U,B,False,False,True)
             self.assertTrue(allclose(B, ctf.dot(X,U.T())))
 
@@ -153,7 +151,7 @@ class KnowValues(unittest.TestCase):
             self.assertTrue(allclose(S1,S2))
 
             [U,S2,VT]=A.i("ijkl").svd("ika","ajl",4,np.abs(S[2]))
-            self.assertTrue(not allclose(S1.shape,S2.shape))
+            self.assertTrue(S1.shape[0]!=S2.shape[0])
 
             [U,S2,VT]=A.i("ijkl").svd("ika","ajl",4,np.abs(S[5]))
             self.assertTrue(allclose(S1,S2))
