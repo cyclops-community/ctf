@@ -897,7 +897,8 @@ namespace CTF {
        0.f);
 
       //define how the symmetric arrays are referenced, keep this consistent throughout
-      char* uplo = "L" ;
+      char uploL = 'L';
+      char const * uplo = &uploL;
       int scale = 1 ;
       int info =0 ; 
       Timer t_solve_work("Solve_work");

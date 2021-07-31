@@ -242,7 +242,7 @@ namespace CTF_BLAS {
 
  
   extern "C"
-  void SPOSV(char *             UPLO ,
+  void SPOSV(char const *       UPLO ,
             const int *         N, 
             const int *         NRHS,
             float *            A, 
@@ -253,7 +253,7 @@ namespace CTF_BLAS {
  
 
   extern "C"
-  void DPOSV(char *             UPLO ,
+  void DPOSV(char const *       UPLO ,
             const int *         N, 
             const int *         NRHS,
             double *            A, 
@@ -263,7 +263,7 @@ namespace CTF_BLAS {
             int *               INFO);
  
   extern "C"
-  void CPOSV(char *             UPLO ,
+  void CPOSV(char const *       UPLO ,
             const int *         N, 
             const int *         NRHS,
             std::complex<float> *            A, 
@@ -273,7 +273,7 @@ namespace CTF_BLAS {
             int *               INFO);
  
   extern "C"
-  void ZPOSV(char *             UPLO ,
+  void ZPOSV(char const *       UPLO ,
             const int *         N, 
             const int *         NRHS,
             std::complex<double> *            A, 
@@ -283,7 +283,7 @@ namespace CTF_BLAS {
             int *               INFO);
  
   template <typename dtype>
-  void posv(char *             UPLO ,
+  void posv(char const *        UPLO ,
             const int *         N, 
             const int *         NRHS,
             dtype *            A, 

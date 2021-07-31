@@ -11,16 +11,22 @@ using namespace std;
 namespace CTF_int {
 
 
+
+
   template <typename dtype>
   dtype default_mul(dtype a, dtype b){
     return a*b;
   }
 
+  template <>
+  inline bool default_mul<bool>(bool a, bool b){
+    return a&&b;
+  }
+
   template <typename dtype>
   void default_vec_mul(dtype const * a, dtype const * b, dtype * c, int64_t n){
     for (int64_t i=0; i<n; i++){
-      c[i] = a[i]*b[i];
-    }
+      c[i] = default_mul<dtype>(a[i],b[i]);      }
   }
 
   template <typename dtype>
@@ -57,10 +63,9 @@ namespace CTF_int {
                     dtype *       X,
                     int           incX){
     for (int i=0; i<n; i++){
-      X[incX*i] *= alpha;
+      X[incX*i] = default_mul<dtype>(alpha,X[incX*i]);
     }
   }
-
   template <>
   void default_scal<float>(int n, float alpha, float * X, int incX);
 
@@ -105,9 +110,9 @@ namespace CTF_int {
     }
     for (j=0; j<n; j++){
       for (i=0; i<m; i++){
-        C[j*m+i] *= beta;
+        C[j*m+i] = default_mul<dtype>(C[j*m+i],beta);
         for (l=0; l<k; l++){
-          C[j*m+i] += alpha*A[istride_A*i+lstride_A*l]*B[lstride_B*l+jstride_B*j];
+          C[j*m+i] += default_mul<dtype>(alpha,default_mul<dtype>(A[istride_A*i+lstride_A*l],B[lstride_B*l+jstride_B*j]));
         }
       }
     }
@@ -318,14 +323,14 @@ namespace CTF_int {
     //TAU_FSTART(default_coomm);
     for (int j=0; j<n; j++){
       for (int i=0; i<m; i++){
-        C[j*m+i] *= beta;
+        C[j*m+i] = default_mul<dtype>(C[j*m+i],beta);
       }
     }
     for (int i=0; i<nnz_A; i++){
       int row_A = rows_A[i]-1;
       int col_A = cols_A[i]-1;
       for (int col_C=0; col_C<n; col_C++){
-         C[col_C*m+row_A] += alpha*A[i]*B[col_C*k+col_A];
+         C[col_C*m+row_A] += default_mul<dtype>(alpha,default_mul<dtype>(A[i],B[col_C*k+col_A]));
       }
     }
     //TAU_FSTOP(default_coomm);

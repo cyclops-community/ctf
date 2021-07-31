@@ -1425,7 +1425,7 @@ NORM1_INST(double)
     //CTF::Scalar<double> dnrm(A.dw);
     Tensor<dtype> cA(A.order, A.is_sparse, A.lens, *A.wrld, *A.sr);
     cA[inds] += A[inds];
-    Transform<dtype>([](dtype & a){ a = a*a; })(cA[inds]);
+    Transform<dtype>([](dtype & a){ a = CTF_int::default_mul<dtype>(a,a); })(cA[inds]);
     Tensor<dtype> sc(0, (int64_t*)NULL, *A.wrld);
     sc[""] = cA[inds];
     dtype val = ((dtype*)sc.data)[0];
@@ -1456,6 +1456,7 @@ NORM1_INST(double)
     if (wrld->rank == 0)
       printf("CTF ERROR: norm2 not available for the type of tensor %s\n",name);
     IASSERT(0);
+    return 0.0;
   }
 
 
@@ -1636,7 +1637,7 @@ NORM_INFTY_INST(double)
       str[i] = 'a'+i;
     }
 
-    Transform<dtype>([=](dtype & d){ d=((dtype)(d!=(dtype)0.))*(((dtype)CTF_int::get_rand48())*(rmax-rmin)+rmin); })(T->operator[](str));
+    Transform<dtype>([=](dtype & d){ d=CTF_int::default_mul<dtype>(((dtype)(d!=(dtype)0.)),(((dtype)CTF_int::get_rand48())*(rmax-rmin)+rmin)); })(T->operator[](str));
 
     /*std::vector<Pair<dtype>> pairs;
     pairs.reserve(size*frac_sp);
