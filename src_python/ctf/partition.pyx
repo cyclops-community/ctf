@@ -1,14 +1,13 @@
 from chelper cimport *
 
 cdef class partition:
-    def __cinit__(self, order=None, lens=None):
-        if order is None:
-            order = 0
-        if lens is None:
-            lens = []
+    def __cinit__(self, lens=None):
         cdef int * clens
-        clens = int_arr_py_to_c(lens)
-        self.p = new Partition(order, clens)
+        if lens is None:
+            self.p = new Partition()
+        else:
+            clens = int_arr_py_to_c(lens)
+            self.p = new Partition(len(lens), clens)
     
     def get_idx_partition(self, idx):
         return idx_partition(self, idx)
@@ -17,13 +16,14 @@ cdef class partition:
         del self.p
 
 cdef class idx_partition:
-    def __cinit__(self, partition part=None, idx=None):
-        if idx is None:
-            idx = []
-        if part is None:
+    def __cinit__(self, lens=None, idx=None):
+        cdef int * clens
+        if lens is None and idx is None:
             self.ip = new Idx_Partition()
         else:
-            self.ip = new Idx_Partition(part.p[0], idx.encode())
+            clens = int_arr_py_to_c(lens)
+            p = new Partition(len(lens), clens)
+            self.ip = new Idx_Partition(p[0], idx.encode())
     
     def get_idx_partition(self, idx):
         idx_p = idx_partition()
