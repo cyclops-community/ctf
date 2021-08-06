@@ -342,9 +342,9 @@ cdef class tensor:
         Returns
         -------
         output: string, idx_partition, idx_partition
-            idx array of this->order chars describing this processor modes mapping on processor grid dimensions tarting from 'a'
-            prl Idx_Partition obtained from processor grod (topo) on which this tensor is mapped and the indices 'abcd...'
-            prl Idx_Partition obtained from virtual blocking of this tensor
+            idx array of this->order chars describing this processor modes mapping on processor grid dimensions starting from 'a'
+            prl Idx_Partition obtained from processor grid (topo) on which this tensor is mapped and the indices 'abcd...'
+            blk Idx_Partition obtained from virtual blocking of this tensor
         """
         cdef char * idx_ = NULL
         #idx_ = <char*> malloc(self.dt.order*sizeof(char))
