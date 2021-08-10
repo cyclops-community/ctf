@@ -1,3 +1,4 @@
+from libc.stdlib cimport malloc, free
 from chelper cimport *
 
 cdef class partition:
@@ -19,8 +20,9 @@ cdef class partition:
         else:
             clens = int_arr_py_to_c(lens)
             self.p = new Partition(len(lens), clens)
+            free(clens)
     
-    def idx(self, idx_):
+    def idx(self, idx):
         """
         partition.idx(idx)
         Return Python object for processor grid (topo)
@@ -30,7 +32,7 @@ cdef class partition:
         output: idx_partition
             idx_partition obtained from processor grid (topo) on which the tensor with this partition is mapped and the indices 'abcd...'
         """
-        return idx_partition(self, idx_)
+        return idx_partition(self, idx)
     
     def __dealloc__(self):
         del self.p
@@ -39,18 +41,12 @@ cdef class idx_partition:
     """
     The class for CTF Python idx_partition
     """
-    def chelper(self, idx, idx_partition idp):
+    property part:
         """
-        Helper method to create Idx_Partition C object
-
-        Parameters
-        ----------
-        idx: char array
-            idx assignment of characters to each tensor dim
-        idp: idx_partition object
-            object from which a new idx_partition is created using the characters specified in idx.
+        Attribute part. class partition object.
         """
-        self.ip = new Idx_Partition(idp.ip[0].part, idx.encode())
+        def __get__(self):
+            return self.part
 
     def __cinit__(self, idpl=None, idx=None):
         """
@@ -61,21 +57,21 @@ cdef class idx_partition:
         idpl: int array or idx_partition object, optional
             int array: specifies dimension of each tensor mode. A new Partition object is created.
                        idx_partition is created using the Partition object and characters specified in idx.
-            idx_partition: object from which a new idx_partition is created using the characters specified in idx.
+            partition: object from which a new idx_partition is created using the characters specified in idx.
         idx: char array, optional (should be specified if lens or idp is not None)
             idx assignment of characters to each tensor dim.
         """
-        cdef int * clens
         if idpl is None and idx is None:
+            self.part = partition()
             self.ip = new Idx_Partition()
         elif idx is None:
             raise ValueError('Specify idx assignment of characters to each dim')
-        elif isinstance(idpl, idx_partition):
-            self.chelper(idx, idpl)
+        elif isinstance(idpl, partition):
+            self.part = idpl
+            self.ip = new Idx_Partition(self.part.p[0], idx.encode())
         else:
-            clens = int_arr_py_to_c(idpl)
-            p = new Partition(len(idpl), clens)
-            self.ip = new Idx_Partition(p[0], idx.encode())
+            self.part = partition(idpl)
+            self.ip = new Idx_Partition(self.part.p[0], idx.encode())
     
     def __dealloc__(self):
         del self.ip
