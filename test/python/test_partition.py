@@ -15,9 +15,9 @@ class KnowValues(unittest.TestCase):
         AA = ctf.tensor((4,4),sym=[ctf.SYM.SY,ctf.SYM.NS])
         AA.fill_random()
         idx, prl, blk = AA.get_distribution()
-        BB = ctf.tensor((4, 4), idx=idx, prl=prl.get_idx_partition(idx[:1]), blk=blk)
+        BB = ctf.tensor((4, 4), idx=idx, prl=ctf.idx_partition(prl.part, idx[:1]), blk=blk)
         BB += AA
-        CC = ctf.tensor((4, 4), idx=idx, prl=prl.get_idx_partition(idx[1:2]), blk=blk)
+        CC = ctf.tensor((4, 4), idx=idx, prl=ctf.idx_partition(prl.part, idx[1:2]), blk=blk)
         CC += AA
         self.assertTrue(allclose(AA,BB))  
         self.assertTrue(allclose(BB,CC))  

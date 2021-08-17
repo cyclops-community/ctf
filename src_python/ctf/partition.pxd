@@ -13,4 +13,4 @@ cdef class partition:
 
 cdef class idx_partition:
     cdef Idx_Partition * ip
-    
+    cdef partition part
