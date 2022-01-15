@@ -42,7 +42,7 @@ namespace CTF_int {
          we need 
        * \return bytes needed
        */
-      int64_t spmem_fp();
+      int64_t spmem_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
 
       /**
        * \brief returns the number of bytes of buffer space we need recursively 
@@ -60,7 +60,7 @@ namespace CTF_int {
        * \brief returns the time this kernel will take including calls to rec_ctr
        * \return seconds needed for recursive contraction
        */
-      double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+      double est_time_rec(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
 
       spctr * clone();
 
