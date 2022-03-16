@@ -17,7 +17,27 @@ namespace CTF_int {
     is_activated = false;
     dim_comm     = NULL;
   }*/
+ 
+  int get_topo_reorder_rank(int order, int const * lens, int const * intra_node_lens, int rank){
+    int num_intra_node = 1;
+    for (int i=0; i<order; i++){
+      num_intra_node *= intra_node_lens[i];
+    }
   
+    int intra_node_rank = rank % num_intra_node;
+    int node_rank = rank / num_intra_node;
+    int new_rank = 0;
+    for (int i=0; i<order; i++){
+      int i_node_rank = node_rank % (lens[order-i-1]/intra_node_lens[order-i-1]);
+      node_rank = node_rank / (lens[order-i-1]/intra_node_lens[order-i-1]);
+      int i_intra_node_rank = intra_node_rank % intra_node_lens[order-i-1];
+      intra_node_rank = intra_node_rank / intra_node_lens[order-i-1];
+      new_rank += i_node_rank*intra_node_lens[order-i-1] + i_intra_node_rank;
+      if (i<order-1) new_rank *= lens[order-i-2];
+    }
+    return new_rank;
+  }
+ 
   topology::~topology(){
     deactivate();
     CTF_int::cdealloc(lens);
@@ -45,7 +65,8 @@ namespace CTF_int {
   topology::topology(int         order_,
                      int const * lens_,
                      CommData    cdt,
-                     bool        activate) : glb_comm(cdt) {
+                     bool        activate,
+                     int const * intra_node_lens) : glb_comm(cdt) {
     order        = order_;
     lens         = (int*)CTF_int::alloc(order_*sizeof(int));
     lda          = (int*)CTF_int::alloc(order_*sizeof(int));
@@ -58,14 +79,27 @@ namespace CTF_int {
 //      lens[i] = lens_[order-i-1];
 //    }
  
+    if (intra_node_lens == NULL){    
+      //glb_comm = cdt;
+      is_reordered = false;
+    } else {
+      int new_rank = get_topo_reorder_rank(order, lens, intra_node_lens, cdt.rank);
+      is_reordered = true;
+      glb_comm = CommData(new_rank, 0, cdt);
+    }
     int stride = 1, cut = 0;
     int rank = glb_comm.rank;
     for (int i=0; i<order; i++){
       lda[i] = stride;
-      dim_comm[i] = CommData(((rank/stride)%lens[i]),
-                             (((rank/(stride*lens[i]))*stride)+cut),
-                             lens[i]);
-//      SETUP_SUB_COMM_SHELL(cdt, dim_comm[i],
+      if (intra_node_lens == NULL)    
+        dim_comm[i] = CommData(((rank/stride)%lens[i]),
+                               (((rank/(stride*lens[i]))*stride)+cut),
+                               lens[i]);
+      else
+        dim_comm[i] = CommData(((rank/stride)%lens[i]),
+                               (((rank/(stride*lens[i]))*stride)+cut),
+                               lens[i],
+                               intra_node_lens[i]);
       stride*=lens[i];
       cut = (rank - (rank/stride)*stride);
     }

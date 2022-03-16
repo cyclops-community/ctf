@@ -13,12 +13,23 @@ namespace CTF_int {
   /* \brief mesh/torus topology configuration */
   class topology {
     public:
+      // number of dimensions in torus
       int        order;
+      // lengths of dimensions
       int *      lens;
+      // lda[i] = lens[i-1] * ... * lens[0]
       int *      lda;
+      // global communicator is reordered if intra-node grid is provided
+      int        is_reordered;
+      // whether dim_comm communicators have been activated
       bool       is_activated;
+
+      // list of communicators along fibers of each dimension of torus 
       CommData * dim_comm;
+      // global communicator, ordered as in torus given by dim_comm
       CommData   glb_comm;
+      // global communicator, ordered as given, assuming processors are ordered as [processes in node 1], [processes in node 2], etc.
+      //CommData   input_comm;
 
       //topology();
       ~topology();
@@ -30,16 +41,22 @@ namespace CTF_int {
       topology(topology const & other);
 
       /**
-       * \brief constructs torus topology 
+       * \brief constructs torus topology, if intra_node_lens is NULL, the p processors are folded into a torus, otherwise, the each set of prod(intra_node_lens) processors is mapped to different modes of the processor grid, e.g., if lens_ = [6,4] and intra_node_lens=[3,2] (6 processes per node), the processors are assiged as
+       * [[ 0  1  2  6  7  8 ],
+       *  [ 3  4  5  9  10 11],
+       *  [ 12 13 14 18 19 20],
+       *  [ 15 16 17 21 22 23]]
        * \param[in] order_ number of torus dimensions
        * \param[in] lens_ lengths of torus dimensions
        * \param[in] cdt communicator for whole torus 
        * \param[in] activate whether to create MPI_Comms
+       * \param[in] intra_node_lens lengths of intra-node processor grid
        */
       topology(int         order_,
                int const * lens_,
                CommData    cdt,
-               bool        activate=false);
+               bool        activate=false,
+               int const * intra_node_lens=NULL);
      
       /* \brief create (split off) MPI communicators, re-entrant */ 
       void activate();
@@ -47,6 +64,16 @@ namespace CTF_int {
       /* \breif free MPI communicators, re-entrant */
       void deactivate();
   };
+
+  /**
+   * \brief determine this processors rank in the global communicator given by reordering nodes so that they adhere to the assignment described in the constructor of the topology() object, assuming initial order is node by node
+   *
+   * \param[in] order_ number of torus dimensions
+   * \param[in] lens_ lengths of torus dimensions
+   * \param[in] intra_node_lens lengths of intra-node processor grid
+   */
+  int get_topo_reorder_rank(int order, int const * lens, int const * intra_node_lens);
+
 
   /**
    * \brief get dimension and torus lengths of specified topology

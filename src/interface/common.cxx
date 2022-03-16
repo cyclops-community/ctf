@@ -270,6 +270,7 @@ namespace CTF_int {
     rank    = other.rank;
     np      = other.np;
     color   = other.color;
+    intra_node_np = other.intra_node_np;
     created = 0;
   }
 
@@ -279,6 +280,7 @@ namespace CTF_int {
     rank    = other.rank;
     np      = other.np;
     color   = other.color;
+    intra_node_np = other.intra_node_np;
     created = 0;
     return *this;
   }
@@ -288,16 +290,18 @@ namespace CTF_int {
     cm = cm_;
     MPI_Comm_rank(cm, &rank);
     MPI_Comm_size(cm, &np);
+    intra_node_np = 1;
     alive = 1;
     created = 0;
   }
 
-  CommData::CommData(int rank_, int color_, int np_){
-    rank    = rank_;
-    color   = color_;
-    np      = np_;
-    alive   = 0;
-    created = 0;
+  CommData::CommData(int rank_, int color_, int np_, int intra_node_np_){
+    rank          = rank_;
+    color         = color_;
+    np            = np_;
+    intra_node_np = intra_node_np_;
+    alive         = 0;
+    created       = 0;
   }
 
   CommData::CommData(int rank_, int color_, CommData parent){
@@ -306,6 +310,7 @@ namespace CTF_int {
     ASSERT(parent.alive);
     MPI_Comm_split(parent.cm, color, rank_, &cm);
     MPI_Comm_size(cm, &np);
+    intra_node_np = 1;
     alive   = 1;
     created = 1;
   }
