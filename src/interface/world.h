@@ -24,6 +24,8 @@ namespace CTF {
       int rank;
       /** \brief number of processors */
       int np;
+      /** \brief number of processors per node (optional / can be 1)*/
+      int ppn;
       /** \brief derived topologies */
       std::vector< CTF_int::topology* > topovec;
       /** \brief whether the world has been initialized */
@@ -59,12 +61,25 @@ namespace CTF {
        * \brief creates CTF library on comm that can output profile data 
        *        into a file with a name based on the main args
        * \param[in] comm MPI communicator associated with this CTF instance
+       * \param[in] ppn number of MPI processers per node (node-aware logic assumes processors on same node have consecutive ranks in comm)
        * \param[in] argc number of main arguments 
        * \param[in] argv main arguments 
        */
       World(MPI_Comm       comm = MPI_COMM_WORLD,
+            int            ppn  = 1,
             int            argc = 0,
             char * const * argv = NULL);
+
+      /**
+       * \brief creates CTF library on comm that can output profile data 
+       *        into a file with a name based on the main args
+       * \param[in] comm MPI communicator associated with this CTF instance
+       * \param[in] argc number of main arguments 
+       * \param[in] argv main arguments 
+       */
+      World(MPI_Comm       comm,
+            int            argc,
+            char * const * argv);
 
       /**
        * \brief creates CTF library on comm

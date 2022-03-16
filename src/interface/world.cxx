@@ -58,6 +58,25 @@ namespace CTF {
   World::World(int            argc,
                char * const * argv){
     comm = MPI_COMM_WORLD;
+    ppn  = 1;
+#ifdef BGQ
+    this->init(comm, TOPOLOGY_BGQ, argc, argv);
+#else
+#ifdef BGP
+    this->init(comm, TOPOLOGY_BGP, argc, argv);
+#else
+    this->init(comm, TOPOLOGY_GENERIC, argc, argv);
+#endif
+#endif
+  }
+
+
+  World::World(MPI_Comm       comm_,
+               int            ppn_,
+               int            argc,
+               char * const * argv){
+    comm = comm_;
+    ppn  = ppn_;
 #ifdef BGQ
     this->init(comm, TOPOLOGY_BGQ, argc, argv);
 #else
@@ -74,6 +93,7 @@ namespace CTF {
                int            argc,
                char * const * argv){
     comm = comm_;
+    ppn  = 1;
 #ifdef BGQ
     this->init(comm, TOPOLOGY_BGQ, argc, argv);
 #else
@@ -92,11 +112,13 @@ namespace CTF {
                int             argc,
                char * const *  argv){
     comm = comm_;
+    ppn  = 1;
     this->init(comm, order, lens, argc, argv);
   }
 
   World::World(World const & other){
     comm        = other.comm;
+    ppn  = other.ppn;
 #if DEBUG >= 1
     if (other.rank == 0){
       printf("CTF WARNING: Creating copy of World, which is not free or useful, pass original World by reference instead if possible.\n");
@@ -177,7 +199,6 @@ namespace CTF {
                   int const *          dim_len,
                   int                  argc,
                   const char * const * argv){
-
     cdt = CommData(global_context);
     phys_topology = new topology(order, dim_len, cdt, 1);
 

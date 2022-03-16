@@ -3,6 +3,7 @@
 #include "topology.h"
 #include "../shared/util.h"
 #include "../mapping/mapping.h"
+#include <vector>
 
 #ifdef BGQ
 #include "mpix.h"
@@ -437,13 +438,14 @@ namespace CTF_int {
    * \param[in] n_uf number of unique prime factors
    * \param[in] uniq_fact list of prime factors
    * \param[in] n_prepend number of factors to prepend
-   * \param[in] mults ? 
+   * \param[in] mults multiplicities of each factor
    * \param[in] prelens factors to prepend
    * \return lens vector of factorizations
    */
-  std::vector< topology* > get_all_topos(CommData cdt, int n_uf, int const * uniq_fact, int const * mults, int n_prepend, int const * prelens){
-    std::vector<topology*> topos;
+  std::vector< std::vector<int>* > get_all_shapes_rec(int n_uf, int const * uniq_fact, int const * mults, int n_prepend, int const * prelens){
+    std::vector< std::vector<int>* > shapes;
 
+    // enumerate the number of different possible numbers (including 1) that divide (with remainder 0) the number of processors
     int num_divisors = 1;
     for (int i=0; i<n_uf; i++){
       num_divisors *= (1+mults[i]);
@@ -451,14 +453,15 @@ namespace CTF_int {
     }
     
     if (num_divisors == 1){
-      topos.push_back(new topology(n_prepend, prelens, cdt));
-      return topos;
+      shapes.push_back(new std::vector<int>(prelens,prelens+n_prepend));
+      return shapes;
     }
     int sub_mults[n_uf];
     int new_prelens[n_prepend+1];
     memcpy(new_prelens, prelens, n_prepend*sizeof(int));
     //FIXME: load may be highly imbalanced
     //for (int div=cdt.rank; div<num_divisors; div+=cdt.np)
+    //iterate through all possible divisors
     for (int div=1; div<num_divisors; div++){
       //memcpy(sub_mults, mults, n_uf*sizeof(int));
       int dmults[n_uf];
@@ -471,37 +474,40 @@ namespace CTF_int {
         len0 *= std::pow(uniq_fact[i], dmults[i]);
       }
       new_prelens[n_prepend] = len0;
-      std::vector< topology* > new_topos = get_all_topos(cdt, n_uf, uniq_fact, sub_mults, n_prepend+1, new_prelens);
+      std::vector< std::vector<int>* > new_shapes = get_all_shapes_rec(n_uf, uniq_fact, sub_mults, n_prepend+1, new_prelens);
       //FIXME call some append function?
-      for (unsigned i=0; i<new_topos.size(); i++){
-        topos.push_back(new_topos[i]);
+      for (unsigned i=0; i<new_shapes.size(); i++){
+        shapes.push_back(new_shapes[i]);
       }
     }
-    return topos;
+    return shapes;
   }
 
-  std::vector< topology* > get_generic_topovec(CommData cdt){
-    std::vector<topology*> topovec;
-
+  /**
+   * \brief generate all possible factorizations of size into divisors
+  *  \param[in] total size that numbers should multiply to
+  *  \return all possible collections of natural numbers that multiply to size (excluding 1s)
+   */
+  std::vector< std::vector<int>* > get_all_shapes(int size){
     int nfact, * factors;
-    factorize(cdt.np, &nfact, &factors);
+    factorize(size, &nfact, &factors);
     if (nfact <= 1){
-      topovec.push_back(new topology(nfact, factors, cdt));
-      if (cdt.np >= 7 && cdt.rank == 0) 
-        DPRINTF(1,"CTF WARNING: using a world with a prime number of processors may lead to very bad performance\n");
+      std::vector<std::vector<int>*> shapes;
+      shapes.push_back(new std::vector<int>(factors, factors+nfact));
       if (nfact > 0) cdealloc(factors);
-      return topovec;
+      return shapes;
     }
     std::sort(factors,factors+nfact);
+    //compute number of unique factors
     int n_uf = 1;
     assert(factors[0] != 1);
     for (int i=1; i<nfact; i++){
       if (factors[i] != factors[i-1]) n_uf++;
     }
-    if (n_uf >= 3){
-      if (cdt.rank == 0) 
-        DPRINTF(1,"CTF WARNING: using a world with a number of processors that contains 3 or more unique prime factors may lead to suboptimal performance, when possible use p=2^k3^l processors for some k,l\n");
-    }
+    //if (n_uf >= 3){
+    //  if (cdt.rank == 0) 
+    //    DPRINTF(1,"CTF WARNING: using a world with a number of processors that contains 3 or more unique prime factors may lead to suboptimal performance, when possible use p=2^k3^l processors for some k,l\n");
+    //}
     int uniq_fact[n_uf];
     int mults[n_uf];
     int i_uf = 0;
@@ -515,7 +521,30 @@ namespace CTF_int {
       } else mults[i_uf]++;
     }
     cdealloc(factors);
-    return get_all_topos(cdt, n_uf, uniq_fact, mults, 0, NULL);
+    std::vector< std::vector<int> * > shapes = get_all_shapes_rec(n_uf, uniq_fact, mults, 0, NULL);
+    return shapes;
+  }
+
+
+  std::vector< topology* > create_topos_from_shapes(std::vector< std::vector<int>* > shapes, CommData cdt){
+    std::vector< topology* > topos;
+    for (int i=0; i<(int)shapes.size(); i++){
+      topos.push_back(new topology(shapes[i]->size(), &shapes[i]->operator[](0), cdt));
+    }
+    return topos;
+  }
+
+  std::vector< topology* > get_generic_topovec(CommData cdt){
+    std::vector< std::vector<int> * > shapes = get_all_shapes(cdt.np);
+    std::vector< topology* > topos = create_topos_from_shapes(shapes, cdt);
+    for (int i=0; i<(int)shapes.size(); i++){
+      delete shapes[i];
+    }
+
+    if (shapes.size() == 1 && cdt.np >= 7 && cdt.rank == 0) 
+      DPRINTF(1,"CTF WARNING: using a world with a prime number of processors may lead to very bad performance\n");
+    return topos;
+
   }
 
 

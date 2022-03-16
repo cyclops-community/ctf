@@ -3240,6 +3240,23 @@ namespace CTF_int {
       B->is_cyclic = 1;
       C->is_cyclic = 1;
     }
+
+#ifdef NODE_AWARE
+    /* reorder processor grid to account for node-awareness */
+    if (C->wrld->ppn != 1){
+      std::vector< std::vector<int> > intra_node_grids = CTF_int::get_all_shapes(C->wrld->ppn()){
+      for (int64_t i=0; i<intra_node_grids.size(); i++){
+        // for all assigns of virtual to physical dims {
+        //   check if assignment is valid
+        //   redefine topology of A,B,C
+        //   construct ctr object and query its inter-node comm 
+        //   assign to intra-node topology with least inter-node comm, redistribute A, B here ( can use get_topo_reorder_rank() to determine who to comm with), and C back after contraction
+        // }
+      }
+    }
+#endif
+
+
     /* redistribute tensor data */
     TAU_FSTART(redistribute_for_contraction);
     need_remap = 0;
@@ -3287,6 +3304,7 @@ namespace CTF_int {
     delete dA;
     delete dB;
     delete dC;
+
 
     return SUCCESS;
   }

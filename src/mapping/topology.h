@@ -84,6 +84,15 @@ namespace CTF_int {
   topology * get_phys_topo(CommData glb_comm,
                            TOPOLOGY mach);
 
+
+  /**
+   * \brief generate all possible factorizations of size into divisors
+  *  \param[in] total size that numbers should multiply to
+  *  \return all possible collections of natural numbers that multiply to size (excluding 1s)
+   */
+  std::vector< std::vector<int>* > get_all_shapes(int size);
+
+
   /**
    * \brief computes all topology configurations given undelying physical topology information
    * \param[in] cdt global communicator
