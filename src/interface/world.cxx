@@ -85,6 +85,13 @@ namespace CTF {
 #endif
   }
 
+  World::World(std::string print, int dryRanks_){
+    comm = MPI_COMM_WORLD;
+    dryRanks = dryRanks_;
+
+    this->init(comm, TOPOLOGY_GENERIC);
+  }
+
 
   World::World(int             order, 
                int const *     lens, 
@@ -164,6 +171,8 @@ namespace CTF {
                   int             argc,
                   const char * const *  argv){
     cdt = CommData(comm);
+    if (dryRanks) cdt.np = dryRanks;
+
     if (mach == TOPOLOGY_GENERIC)
       phys_topology = NULL;
     else

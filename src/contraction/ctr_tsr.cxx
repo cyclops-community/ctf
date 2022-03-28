@@ -338,17 +338,20 @@ namespace CTF_int {
     int i;
     printf("seq_tsr_ctr:\n");
     for (i=0; i<order_A; i++){
-      printf("edge_len_A[%d]=%ld\n",i,edge_len_A[i]);
+      printf("edge_len_A[%d]=%ld ",i,edge_len_A[i]);
     }
+    printf("\n");
     for (i=0; i<order_B; i++){
-      printf("edge_len_B[%d]=%ld\n",i,edge_len_B[i]);
+      printf("edge_len_B[%d]=%ld ",i,edge_len_B[i]);
     }
+    printf("\n");
     for (i=0; i<order_C; i++){
-      printf("edge_len_C[%d]=%ld\n",i,edge_len_C[i]);
+      printf("edge_len_C[%d]=%ld ",i,edge_len_C[i]);
     }
+    printf("\n");
     printf("is inner = %d\n", is_inner);
-    if (is_inner) printf("inner n = %ld m= %ld k = %ld l = %ld\n",
-                          inner_params.n, inner_params.m, inner_params.k, inner_params.l);
+    if (is_inner) printf("inner n = %ld m= %ld k = %ld l = %ld, ta = %c, tb =%c, tc = %c\n",
+                          inner_params.n, inner_params.m, inner_params.k, inner_params.l, inner_params.tA, inner_params.tB, inner_params.tC);
   }
 
   seq_tsr_ctr::seq_tsr_ctr(ctr * other) : ctr(other) {
@@ -436,7 +439,13 @@ namespace CTF_int {
   double seq_tsr_ctr::est_time_fp(int nlyr){
     //return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
     double ps[] = {1.0, (double)est_membw(), est_fp()};
-//    printf("time estimate is %lf\n", seq_tsr_ctr_mdl.est_time(ps));
+    // incorperating the fact that dgemm with small k-edges is less effective
+    double k(inner_params.k);
+    double fac;
+    fac = std::max(1.0, 70/(k*0.3+5.0));
+
+//    printf("%d %d %d:time estimate is %lf\n",
+//           inner_params.m, inner_params.n, inner_params.k,  seq_tsr_ctr_mdl_inr.est_time(ps)*fac);
     if (is_custom && !is_inner){
       return seq_tsr_ctr_mdl_cst.est_time(ps);
     } else if (is_inner){
@@ -449,7 +458,7 @@ namespace CTF_int {
         if (inner_params.offload)
           return seq_tsr_ctr_mdl_off.est_time(ps);
         else
-          return seq_tsr_ctr_mdl_inr.est_time(ps);
+          return seq_tsr_ctr_mdl_inr.est_time(ps)*fac;
       }
     } else
       return seq_tsr_ctr_mdl_ref.est_time(ps);

@@ -2582,11 +2582,12 @@ namespace CTF_int {
     assert(nnz_frac_C>=0.);
   }
 
-  void contraction::detail_estimate_mem_and_time(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int64_t & memuse, double & est_time){
+  void contraction::detail_estimate_mem_and_time(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C, int64_t & memuse, double & est_time, double &redist_time, double &contr_time, double &fold_time){
     TAU_FSTART(detail_estimate_mem_and_time);
     ctr * sctr;
     est_time = 0.;
     memuse = 0;
+    fold_time = 0.0;
     topology * topo_i = A->topo;
     bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
     bool use_ccsr =  csr_or_coo && A->is_sparse && C->is_sparse && !B->is_sparse;
@@ -2598,13 +2599,14 @@ namespace CTF_int {
 #if FOLD_TSR
     if (can_fold()){
       est_time = est_time_fold();
+      fold_time = est_time;
       iparam prm = map_fold(false);
     
       sctr = construct_ctr(1, &prm);
       if (this->is_sparse())
-        est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
+        est_time += ((spctr*)sctr)->est_time_rec(sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
       else
-        est_time = sctr->est_time_rec(sctr->num_lyr);
+        est_time += sctr->est_time_rec(sctr->num_lyr);
       A->remove_fold();
       B->remove_fold();
       C->remove_fold();
@@ -2672,6 +2674,7 @@ namespace CTF_int {
       }
 
     }
+    contr_time = est_time - fold_time;
 #if DEBUG >= 4
     printf("mapping passed contr est_time = %E sec %d %ld %ld %ld %E %E %E\n", est_time, sctr->num_lyr, A->calc_nvirt(), B->calc_nvirt(), C->calc_nvirt(), nnz_frac_A, nnz_frac_B, nnz_frac_C);
 #endif
@@ -2724,6 +2727,7 @@ namespace CTF_int {
       mem_redist_tmp += C->get_redist_mem(*dC, nnz_frac_C);
       //mem_redist += (int64_t)(nnz_frac_C*C->size*C->sr->pair_size()) +C->get_redist_mem(*dC, nnz_frac_C);
     }
+    redist_time = est_time - contr_time - fold_time;
     assert(mem_fold_tmp >= 0);
     assert(mem_fold >= 0);
     assert(mem_redist >= 0);
@@ -2755,7 +2759,9 @@ namespace CTF_int {
   #if DEBUG > 4
       for (int t=1; t<(int)wrld->topovec.size()+8; t++){
   #else
-      for (int64_t t=global_comm.rank+1; t<(int)wrld->topovec.size()+8; t+=global_comm.np){
+      int64_t incr(global_comm.np);
+      if (A->wrld->dryRanks) incr = 1;
+      for (int64_t t=global_comm.rank+1; t<(int)wrld->topovec.size()+8; t+=incr){
   #endif
         A->clear_mapping();
         B->clear_mapping();
@@ -2794,7 +2800,7 @@ namespace CTF_int {
         ret = map_to_topology(topo_i, j);
 
         if (ret == NEGATIVE){
-          //printf("map_to_topology returned negative\n");
+//          printf("map_to_topology returned negative %d %d\n", t, j);
           continue;
         }
    
@@ -2806,6 +2812,7 @@ namespace CTF_int {
         C->topo = topo_i;
        
         if (check_mapping() == 0){
+//          printf("check mapping is zero %d %d\n", t, j);
           continue;
         }
         A->set_padding();
@@ -2825,11 +2832,17 @@ namespace CTF_int {
           continue;
         }
         int64_t memuse;//, bmemuse;
-        double est_time;
-        detail_estimate_mem_and_time(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, memuse, est_time);
+        double est_time, redist_time, contr_time, fold_time;
+        detail_estimate_mem_and_time(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, memuse, est_time, redist_time, contr_time, fold_time);
 #ifdef MIN_MEMORY
         est_time = memuse;
 #endif
+
+        if (A->wrld->dryRanks) printf( "t %d j %d will use %f GB per rank and take %f s, %f %f %f"
+                                     , t, j, memuse/1024.0/1024./1024
+                                     , est_time, redist_time, contr_time, fold_time);
+        if (A->wrld->dryRanks) C->print_map();
+
         ASSERT(est_time >= 0.0);
         if ((int64_t)memuse >= max_memuse){
           if (global_comm.rank == 0)
@@ -2889,7 +2902,7 @@ namespace CTF_int {
       int64_t old_off = choice_offset;
       choice_offset += tnum_choices;
       for (int j=0; j<tnum_choices; j++){
-        if ((old_off + j)%global_comm.np != global_comm.rank)
+        if (!A->wrld->dryRanks && (old_off + j)%global_comm.np != global_comm.rank)
           continue;
         A->clear_mapping();
         B->clear_mapping();
@@ -2931,12 +2944,15 @@ namespace CTF_int {
           continue;
         }
         int64_t memuse;//, bmemuse;
-        double est_time;
-        detail_estimate_mem_and_time(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, memuse, est_time);
+        double est_time, redist_time, contr_time, fold_time;
+        detail_estimate_mem_and_time(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, memuse, est_time, redist_time, contr_time, fold_time);
 #ifdef MIN_MEMORY
         est_time = memuse;
 #endif
         ASSERT(est_time >= 0.0);
+        if (A->wrld->dryRanks) printf( "topo %d order %d will use %f GB per rank and take %f s, %f %f %f\n"
+                                     , i, j, memuse/1024.0/1024./1024, est_time, redist_time, contr_time, fold_time);
+
 
         if ((int64_t)memuse >= max_memuse){
           DPRINTF(3,"[EXH] Not enough memory available for topo %d with order %d memory %ld/%ld\n", i,j,memuse,max_memuse);
@@ -3076,7 +3092,7 @@ namespace CTF_int {
       A->set_padding();
       B->set_padding();
       C->set_padding();
-      if (gbest_time_sel < 100.){
+      if (gbest_time_sel < 1e100){
         gbest_time_exh = gbest_time_sel+1.;
         ttopo_exh = ttopo_sel;
       } else {
@@ -3107,6 +3123,7 @@ namespace CTF_int {
       ctr_sig_map.insert(std::pair<contraction_signature,topo_info>(sig,ti));
       TAU_FSTOP(ctr_sig_map_insert);
     }
+
     if (!do_remap || ttopo == INT64_MAX || ttopo == -1){
       CTF_int::cdealloc(old_phase_A);
       CTF_int::cdealloc(old_phase_B);
@@ -3191,9 +3208,9 @@ namespace CTF_int {
 #if (VERBOSE >= 1 || DEBUG >= 1 || PROFILE_MEMORY >= 1)
 
     int64_t memuse;
-    double est_time;
+    double est_time, redist_time, contr_time, fold_time;
 
-    detail_estimate_mem_and_time(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, memuse, est_time);
+    detail_estimate_mem_and_time(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, memuse, est_time, redist_time, contr_time, fold_time);
     if (global_comm.rank == 0){
       printf("Contraction will use %E bytes per processor out of %E available memory (already used %E) and take an estimated of %E sec\n",
               (double)memuse,(double)proc_bytes_available(),(double)proc_bytes_used(),est_time);
@@ -3205,6 +3222,15 @@ namespace CTF_int {
 //    assert(est_time == std::min(gbest_time_sel,gbest_time_exh));
 //#endif
 #endif
+    if (A->wrld->dryRanks){
+      int64_t memuse;
+      double est_time, redist_time, contr_time, fold_time;
+      detail_estimate_mem_and_time(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, nnz_frac_A, nnz_frac_B, nnz_frac_C, memuse, est_time, redist_time, contr_time, fold_time);
+      printf( "Contraction will use %f GB per rank and take %f s, %f %f %f\n"
+            , memuse/1024.0/1024./1024, est_time, redist_time, contr_time, fold_time);
+    }
+
+
 
     if (can_fold()){
       iparam prm = map_fold(false);
@@ -3250,7 +3276,7 @@ namespace CTF_int {
       }
     } else
       need_remap = 1;
-    if (need_remap)
+    if (need_remap && !wrld->dryRanks)
       A->redistribute(*dA);
     need_remap = 0;
     if (B->topo == old_topo_B){
@@ -3260,7 +3286,7 @@ namespace CTF_int {
       }
     } else
       need_remap = 1;
-    if (need_remap)
+    if (need_remap && !wrld->dryRanks)
       B->redistribute(*dB);
     need_remap = 0;
     if (C->topo == old_topo_C){
@@ -3270,9 +3296,9 @@ namespace CTF_int {
       }
     } else
       need_remap = 1;
-    if (need_remap)
+    if (need_remap && !wrld->dryRanks)
       C->redistribute(*dC);
-                  
+
     TAU_FSTOP(redistribute_for_contraction);
    
     CTF_int::cdealloc( old_phase_A );
@@ -4169,6 +4195,8 @@ namespace CTF_int {
     ctr * ctrf;
     CommData global_comm = C->wrld->cdt;
 
+
+
     if (A->has_zero_edge_len || B->has_zero_edge_len
         || C->has_zero_edge_len){
       if (!C->sr->isequal(beta,C->sr->mulid()) && !C->has_zero_edge_len){
@@ -4368,7 +4396,6 @@ namespace CTF_int {
       C->print_map();
     }
 #endif
-
   #ifdef PROFILE
     TAU_FSTART(pre_fold_barrier);
     MPI_Barrier(global_comm.cm);
@@ -4383,12 +4410,24 @@ namespace CTF_int {
     if (is_inner){
       iparam prm;
       TAU_FSTART(map_fold);
-      prm = map_fold();
+      prm = map_fold(!A->wrld->dryRanks);
       TAU_FSTOP(map_fold);
       delete ctrf;
       ctrf = construct_ctr(1, &prm);
     }
   #endif
+
+
+  if (A->wrld->dryRanks){
+    A->print_map();
+    B->print_map();
+    C->print_map();
+    ctrf->print();
+    delete ctrf;
+    TAU_FSTOP(contract);
+    return SUCCESS;
+  }
+
   #if (VERBOSE >= 1 || DEBUG >= 1)
   if (global_comm.rank == 0){
     ctrf->print();
@@ -5246,6 +5285,7 @@ namespace CTF_int {
 
     ret = new_ctr.sym_contract();//&ntype, ftsr, felm, alpha, beta);
     if (ret!= SUCCESS) return ret;
+    if (C->wrld->dryRanks) return SUCCESS;
     if (was_home_C) new_ctr.C->unfold();
 
     if (was_home_C && !new_ctr.C->is_home){

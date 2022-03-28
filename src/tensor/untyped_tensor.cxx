@@ -19,6 +19,7 @@
 
 using namespace CTF;
 
+
 namespace CTF_int {
 
   LinModel<3> spredist_mdl(spredist_mdl_init,"spredist_mdl");
@@ -676,7 +677,6 @@ namespace CTF_int {
     int * restricted;
     int btopo;
     int64_t bmemuse;
-
     if (this->is_mapped){
       if (is_sparse){
         sr->pair_dealloc(this->data);
@@ -686,6 +686,7 @@ namespace CTF_int {
         memset(this->nnz_blk, 0, sizeof(int64_t)*calc_nvirt());
         this->set_new_nnz_glb(this->nnz_blk);
       } else {
+        if (!wrld->dryRanks)
         sr->set(this->data, sr->addid(), this->size);
       }
     } else {
@@ -726,15 +727,19 @@ namespace CTF_int {
           //this->has_home = 0;
     /*      if (wrld->rank == 0)
             DPRINTF(3,"Initial size of tensor %d is " PRId64 ",",tensor_id,this->size);*/
-          this->home_buffer = sr->alloc(this->home_size);
-          if (wrld->rank == 0) DPRINTF(2,"Creating home of %s\n",name);
-          register_size(this->size*sr->el_size);
-          this->data = this->home_buffer;
+          if (!wrld->dryRanks) {
+            this->home_buffer = sr->alloc(this->home_size);
+            if (wrld->rank == 0) DPRINTF(2,"Creating home of %s\n",name);
+            register_size(this->size*sr->el_size);
+            this->data = this->home_buffer;
+          }
         } else {
-          this->data = sr->alloc(this->size);
+          if (!wrld->dryRanks)
+            this->data = sr->alloc(this->size);
         }
         #else
-        this->data = sr->alloc(this->size);
+        if (!wrld->dryRanks)
+          this->data = sr->alloc(this->size);
         //CTF_int::alloc_ptr(this->size*sr->el_size, (void**)&this->data);
         #endif
         #if DEBUG >= 1
@@ -743,7 +748,8 @@ namespace CTF_int {
         this->print_lens();
         this->print_map(stdout);
         #endif
-        sr->init(this->size, this->data);
+        if (!wrld->dryRanks)
+          sr->init(this->size, this->data);
       }
     }
     TAU_FSTOP(set_zero_tsr);
@@ -752,17 +758,24 @@ namespace CTF_int {
 
   void tensor::print_map(FILE * stream, bool allcall) const {
     if (!allcall || wrld->rank == 0){
-      if (is_sparse)
-        printf("printing mapping of sparse tensor %s\n",name);
-      else
-        printf("printing mapping of dense tensor %s\n",name);
+//      if (is_sparse)
+//        printf("printing mapping of sparse tensor %s\n",name);
+//      else
+//        printf("printing mapping of dense tensor %s\n",name);
+//      if (topo != NULL){
+//        printf("CTF: %s mapped to order %d topology with dims:",name,topo->order);
+//        for (int dim=0; dim<topo->order; dim++){
+//          printf(" %d ",topo->lens[dim]);
+//        }
+//      }
+//      printf("\n");
       if (topo != NULL){
-        printf("CTF: %s mapped to order %d topology with dims:",name,topo->order);
+        printf("%s topo (",name);
         for (int dim=0; dim<topo->order; dim++){
-          printf(" %d ",topo->lens[dim]);
+          printf(", %d",topo->lens[dim]);
         }
+        printf("); ");
       }
-      printf("\n");
       char tname[200];
       tname[0] = '\0';
       sprintf(tname, "%s[", name);
@@ -1028,7 +1041,16 @@ namespace CTF_int {
       bool tsr_has_sym = false;
       bool tsr_has_virt = false;
 
+      int topo_dims_A = tsr_A->topo->order;
+      int topo_dims_B = tsr_B->topo->order;
+
       for (int i=0; i<this->order; i++){
+        if (tsr_A->edge_map[i].type == PHYSICAL_MAP){
+          topo_dims_A--;
+        }
+        if (tsr_B->edge_map[i].type == PHYSICAL_MAP){
+          topo_dims_B--;
+        }
         if (A->sym[i] != NS || this->sym[i] != NS)
           tsr_has_sym = true;
         if (A->edge_map[i].type == VIRTUAL_MAP || (A->edge_map[i].has_child && A->edge_map[i].child->type == VIRTUAL_MAP)){
@@ -1040,7 +1062,7 @@ namespace CTF_int {
       }
       int nvirt_A = tsr_A->calc_nvirt();
       int nvirt_B = tsr_B->calc_nvirt();
-      if (tsr_B->wrld->np == tsr_A->wrld->np && !tsr_has_sym && !this->is_sparse && !A->is_sparse && nvirt_A == 1 && nvirt_B == 1 && !tsr_has_virt){
+      if (tsr_B->wrld->np == tsr_A->wrld->np && !tsr_has_sym && !this->is_sparse && !A->is_sparse && nvirt_A == 1 && nvirt_B == 1 && !tsr_has_virt && topo_dims_A ==0 && topo_dims_B == 0){
         push_slice(this, offsets_B, ends_B, beta, A, offsets_A, ends_A, alpha);
         TAU_FSTOP(slice);
         return;
