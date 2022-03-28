@@ -14,6 +14,7 @@ function usage
   echo -e '\t--with-lapack     Tells CTF build to enable LAPACK functionality regardless of whether LAPACK libs have been given.'
   echo
   echo -e '\t--with-scalapack  Tells CTF build to enable ScaLAPACK functionality regardless of whether ScaLAPACK libs have been given.'
+  echo -e '\t--without-scalapack  Tells CTF build to disable ScaLAPACK functionality regardless of whether ScaLAPACK libs have been given.'
   echo
   echo -e '\t--build-scalapack Tells CTF to download and build ScaLAPACK library.'
   echo
@@ -498,6 +499,7 @@ depstype=normal
 WITH_CUDA=0
 WITH_LAPACK=0
 WITH_SCALAPACK=0
+WITHOUT_SCALAPACK=0
 WITH_STATIC=1
 WITH_DYNAMIC=1
 BUILD_SCALAPACK=0
@@ -517,6 +519,9 @@ while [ "x$1" != "x" ]; do
       ;;
     --with-scalapack)
       WITH_SCALAPACK=1
+      ;;
+    --without-scalapack)
+      WITHOUT_SCALAPACK=1
       ;;
     --build-scalapack)
       BUILD_SCALAPACK=1
@@ -1035,7 +1040,7 @@ if [ $BUILD_SCALAPACK = 1 ]; then
 fi
 
 USING_SCALA=0
-if [ $WITH_STATIC = 1 ]; then
+if [[ $WITH_STATIC = 1 && $WITHOUT_SCALAPACK = 0 ]]; then
   echo -n 'Checking for static ScaLAPACK... '
   if testlink "$LIB_PATH $LIBS" $PDGEMM $VERBOSE; then
     echo 'static SCALAPACK found.'
@@ -1069,7 +1074,7 @@ if [ $WITH_STATIC = 1 ]; then
   fi
 fi
 
-if [ $WITH_DYNAMIC = 1 ]; then
+if [[ $WITH_DYNAMIC = 1 && $WITHOUT_SCALAPACK = 0 ]]; then
   echo -n 'Checking for dynamic ScaLAPACK... '
   if testldlink "$LD_LIB_PATH" "$LD_LIBS" $PDGEMM $VERBOSE; then
     echo 'dynamic SCALAPACK found.'
