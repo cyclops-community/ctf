@@ -40,6 +40,13 @@ namespace CTF_int {
        */
       topology(topology const & other);
 
+      /** 
+       * \brief overwrite this topology with communicators of another, without reallocating CommData objects, allowing to 'hot-swap' this topology for another, propagating change through creatred ctr objects
+       * \param[in] other topology to copy
+       */
+      morph_to(topology const & other);
+
+
       /**
        * \brief constructs torus topology, if intra_node_lens is NULL, the p processors are folded into a torus, otherwise, the each set of prod(intra_node_lens) processors is mapped to different modes of the processor grid, e.g., if lens_ = [6,4] and intra_node_lens=[3,2] (6 processes per node), the processors are assiged as
        * [[ 0  1  2  6  7  8 ],
@@ -70,9 +77,12 @@ namespace CTF_int {
    *
    * \param[in] order_ number of torus dimensions
    * \param[in] lens_ lengths of torus dimensions
+   * \param[in] lda_ prefix product of lengths of torus dimensions
    * \param[in] intra_node_lens lengths of intra-node processor grid
    */
-  int get_topo_reorder_rank(int order, int const * lens, int const * intra_node_lens);
+  int get_topo_reorder_rank(int order, int const * lens, int const * lda, int const * intra_node_lens, int rank);
+
+  int get_inv_topo_reorder_rank(int order, int const * lens, int const * intra_node_lens, int new_rank);
 
 
   /**

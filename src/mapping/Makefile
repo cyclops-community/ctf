@@ -1,4 +1,4 @@
-LOBJS = mapping.o distribution.o topology.o
+LOBJS = mapping.o distribution.o topology.o node_aware_dist.o
 OBJS = $(addprefix $(ODIR)/, $(LOBJS))
 
 ctf: $(OBJS) 

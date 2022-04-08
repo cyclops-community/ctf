@@ -70,6 +70,7 @@ namespace CTF_int {
                 int64_t *       vrt_sz,
                 int64_t *       vrt_edge_len,
                 int64_t *       blk_edge_len);
+
 }
 
 #endif

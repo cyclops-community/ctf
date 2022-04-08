@@ -18,8 +18,24 @@ namespace CTF_int {
     is_activated = false;
     dim_comm     = NULL;
   }*/
- 
-  int get_topo_reorder_rank(int order, int const * lens, int const * intra_node_lens, int rank){
+  
+  int get_inv_topo_reorder_rank(int order, int const * lens, int const * intra_node_lens, int new_rank){
+    int irank = new_rank;
+    int intra_node_rank = 0;
+    int node_rank = 0;
+    int lda_node_rank = 1;
+    int lda_intra_node_rank = 1;
+    for (int i=0; i<order; i++){
+      intra_node_rank += (irank%intra_node_lens[i])*lda_node_rank;
+      node_rank = ((irank%lens[i])/intra_node_lens[i])*lda_intra_node_rank;
+      irank = irank / lens[i]
+      lda_node_rank = lda_node_rank*(lens[i]/intra_node_lens[i]);
+      lda_intra_node_rank = lda_intra_node_rank*intra_node_lens[i];
+    }
+    return intra_node_rank + lda_intra_node_rank*node_rank;
+  }
+
+  int get_topo_reorder_rank(int order, int const * lens, int const * lda, int const * intra_node_lens, int rank){
     int num_intra_node = 1;
     for (int i=0; i<order; i++){
       num_intra_node *= intra_node_lens[i];
@@ -29,12 +45,11 @@ namespace CTF_int {
     int node_rank = rank / num_intra_node;
     int new_rank = 0;
     for (int i=0; i<order; i++){
-      int i_node_rank = node_rank % (lens[order-i-1]/intra_node_lens[order-i-1]);
-      node_rank = node_rank / (lens[order-i-1]/intra_node_lens[order-i-1]);
-      int i_intra_node_rank = intra_node_rank % intra_node_lens[order-i-1];
-      intra_node_rank = intra_node_rank / intra_node_lens[order-i-1];
-      new_rank += i_node_rank*intra_node_lens[order-i-1] + i_intra_node_rank;
-      if (i<order-1) new_rank *= lens[order-i-2];
+      int i_node_rank = node_rank % (lens[i]/intra_node_lens[i]);
+      node_rank = node_rank / (lens[i]/intra_node_lens[i]);
+      int i_intra_node_rank = intra_node_rank % intra_node_lens[i];
+      intra_node_rank = intra_node_rank / intra_node_lens[i];
+      new_rank += (i_node_rank*intra_node_lens[i] + i_intra_node_rank)*lda[i];
     }
     return new_rank;
   }
@@ -61,6 +76,22 @@ namespace CTF_int {
     }
 
     is_activated = other.is_activated;
+  }
+
+  void topology::morph_to(topology const & other){
+    ASSERT(order == other.order);
+    ASSERT(!is_reordered);
+    memcpy(lens, other.lens, order*sizeof(int));
+    memcpy(lda, other.lda, order*sizeof(int));
+
+    // overwrite communicators, swapping out CommData objects pointed to elsewhere
+    for (int i=0; i<order; i++){
+      dim_comm[i] = CommData(other.dim_comm[i]);
+    }
+
+    is_activated = other.is_activated;
+    is_reordered = other.is_reorrdered;
+    glb_comm = other.glb_comm;
   }
 
   topology::topology(int         order_,
