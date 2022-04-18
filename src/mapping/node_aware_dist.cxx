@@ -2,6 +2,7 @@
 
 #include "../tensor/untyped_tensor.h"
 #include "../shared/util.h"
+#include "node_aware_dist.h"
 using ivec  = std::vector<int>;
 using vivec = std::vector<ivec>;
 
@@ -87,7 +88,7 @@ namespace CTF_int {
   }
 
 
-  std::vector< std::vector<int> *> get_inter_node_grids(std::vector< int > rGrid, int nodes){
+  std::vector< std::vector<int> > get_inter_node_grids(std::vector<int> rGrid, int nodes){
     int ranks(std::accumulate(rGrid.begin(), rGrid.end(), 1, std::multiplies<int>()));
     int ranksPerNode(ranks/nodes);
     IASSERT (ranksPerNode*nodes == ranks );
@@ -113,10 +114,12 @@ namespace CTF_int {
                         , gf.end() 
                         , std::back_inserter(others)
                         ); 
+      /*
       for (auto x: others) {
         std::cout << "others: " << x << " ";
       }
       std::cout << std::endl;
+      */
       // is there a node factor which lives only on a given edge?
       // if so assign this factor to this edge
       std::set_difference( nodeFactors.begin()
@@ -195,8 +198,11 @@ namespace CTF_int {
     std::vector< std::vector<int> > inter_node_grids;
     for (auto tv: treeVec) {
       if (treeVec.back().order == tv.order) {
-        inter_node_grids.push_back(tv.sgf);
-        // TODO: create a vector of tv.sgf and return
+        std::vector<int> sgf;
+        for (auto s: tv.sgf) {
+          sgf.push_back(std::accumulate(s.begin(), s.end(), 1, std::multiplies<int>()));
+        }
+        inter_node_grids.push_back(sgf);
       }
     }
     return inter_node_grids;

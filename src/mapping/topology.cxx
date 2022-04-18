@@ -26,9 +26,9 @@ namespace CTF_int {
     int lda_node_rank = 1;
     int lda_intra_node_rank = 1;
     for (int i=0; i<order; i++){
-      intra_node_rank += (irank%intra_node_lens[i])*lda_node_rank;
-      node_rank = ((irank%lens[i])/intra_node_lens[i])*lda_intra_node_rank;
-      irank = irank / lens[i]
+      intra_node_rank += (irank%intra_node_lens[i])*lda_intra_node_rank;
+      node_rank += ((irank%lens[i])/intra_node_lens[i])*lda_node_rank;
+      irank = irank / lens[i];
       lda_node_rank = lda_node_rank*(lens[i]/intra_node_lens[i]);
       lda_intra_node_rank = lda_intra_node_rank*intra_node_lens[i];
     }
@@ -40,7 +40,6 @@ namespace CTF_int {
     for (int i=0; i<order; i++){
       num_intra_node *= intra_node_lens[i];
     }
-  
     int intra_node_rank = rank % num_intra_node;
     int node_rank = rank / num_intra_node;
     int new_rank = 0;
@@ -90,7 +89,7 @@ namespace CTF_int {
     }
 
     is_activated = other.is_activated;
-    is_reordered = other.is_reorrdered;
+    is_reordered = other.is_reordered;
     glb_comm = other.glb_comm;
   }
 
@@ -111,13 +110,18 @@ namespace CTF_int {
 //      lens[i] = lens_[order-i-1];
 //    }
  
+    lda[0] = 1;
+    for (int i = 1; i < order; i++) {
+      lda[i] = lda[i-1] * lens[i-1];
+    }
+
     if (intra_node_lens == NULL){    
-      //glb_comm = cdt;
       is_reordered = false;
     } else {
-      int new_rank = get_topo_reorder_rank(order, lens, intra_node_lens, cdt.rank);
+      int new_rank = get_topo_reorder_rank(order, lens, lda, intra_node_lens, cdt.rank);
       is_reordered = true;
       glb_comm = CommData(new_rank, 0, cdt);
+      // FIXME: Bug - glb_comm.cm communicator is not alive when dim_comm[]s use it as parent to activate themselves
     }
     int stride = 1, cut = 0;
     int rank = glb_comm.rank;

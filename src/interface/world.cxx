@@ -208,7 +208,7 @@ namespace CTF {
 
   int World::initialize(int                   argc,
                         const char * const *  argv){
-    char * mem_size, * ppn;
+    char * mem_size, * cppn;
     if (comm == MPI_COMM_WORLD && universe_exists){
       delete phys_topology;
       *this = universe;
@@ -283,16 +283,17 @@ namespace CTF {
                     imem_size);
         CTF_int::set_mem_size(imem_size);
       }
-      ppn = getenv("CTF_PPN");
-      if (ppn != NULL){
+      cppn = getenv("CTF_PPN");
+      if (cppn != NULL){
         if (rank == 0)
           printf("Assuming %d processes per node due to CTF_PPN environment variable\n",
-                    atoi(ppn));
-        ASSERT(atoi(ppn)>=1);
+                    atoi(cppn));
+        ASSERT(atoi(cppn)>=1);
   #ifdef BGQ
         CTF_int::set_memcap(.75);
   #else
-        CTF_int::set_memcap(.75/atof(ppn));
+        CTF_int::set_memcap(.75/atof(cppn));
+        ppn = atoi(cppn);
   #endif
       }
       if (rank == 0)

@@ -44,7 +44,7 @@ namespace CTF_int {
        * \brief overwrite this topology with communicators of another, without reallocating CommData objects, allowing to 'hot-swap' this topology for another, propagating change through creatred ctr objects
        * \param[in] other topology to copy
        */
-      morph_to(topology const & other);
+      void morph_to(topology const & other);
 
 
       /**
