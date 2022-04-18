@@ -320,6 +320,8 @@ namespace CTF_int {
       alive   = 1;
       created = 1;
       MPI_Comm_split(parent, color, rank, &cm);
+      std::cout << "cm from commdata::activate(): " << cm << std::endl;
+      MPI_Barrier(cm);
       int np_;
       MPI_Comm_size(cm, &np_);
       ASSERT(np_ == np);

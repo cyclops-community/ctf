@@ -120,7 +120,9 @@ namespace CTF_int {
     } else {
       int new_rank = get_topo_reorder_rank(order, lens, lda, intra_node_lens, cdt.rank);
       is_reordered = true;
-      glb_comm = CommData(new_rank, 0, cdt);
+      //glb_comm = *(new CommData(cdt.rank, 0, cdt));
+      glb_comm = CommData(cdt.rank, 0, cdt.np);
+      glb_comm.activate(cdt.cm);
       // FIXME: Bug - glb_comm.cm communicator is not alive when dim_comm[]s use it as parent to activate themselves
     }
     int stride = 1, cut = 0;
@@ -141,10 +143,12 @@ namespace CTF_int {
     }
     if (activate)
       this->activate();
+    std::cout <<"in const(): " << glb_comm.cm << std::endl;
   }
 
   void topology::activate(){
     if (!is_activated){
+      std::cout <<"in activate(): " << glb_comm.cm << std::endl;
       for (int i=0; i<order; i++){
         dim_comm[i].activate(glb_comm.cm);
       }

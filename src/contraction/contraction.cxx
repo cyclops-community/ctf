@@ -4460,6 +4460,7 @@ namespace CTF_int {
         intra_node_lens[j] = orig_topo.lens[j] / inter_node_grids[best_topo_index][j];
       }
       topology node_aware_topo(orig_topo.order, orig_topo.lens, orig_topo.glb_comm, 0, intra_node_lens);
+      //topology node_aware_topo(orig_topo.order, orig_topo.lens, orig_topo.glb_comm, 1, intra_node_lens);
       // overwrite topology object in a way that also changes information in CommData objects pointed to ctrf
       C->topo->morph_to(node_aware_topo);
       node_aware_send_to_rank = get_inv_topo_reorder_rank(node_aware_topo.order, node_aware_topo.lens, intra_node_lens, orig_topo.glb_comm.rank);
@@ -4583,11 +4584,16 @@ namespace CTF_int {
       TAU_FSTART(redistribute_for_node_aware);
       // FIXME: to support sparsity need to also communicate nnz information here
       MPI_Status stat;
-      if (A->is_home)
-        MPI_Sendrecv_replace(A->data, A->size, A->sr->mdtype(), node_aware_send_to_rank, 1324, node_aware_recv_from_rank, 1324, orig_topo.glb_comm.cm, &stat);
-      if (B->is_home)
-        MPI_Sendrecv_replace(B->data, B->size, B->sr->mdtype(), node_aware_send_to_rank, 1325, node_aware_recv_from_rank, 1325, orig_topo.glb_comm.cm, &stat);
-      MPI_Sendrecv_replace(C->data, C->size, C->sr->mdtype(), node_aware_send_to_rank, 1326, node_aware_recv_from_rank, 1326, orig_topo.glb_comm.cm, &stat);
+      if (A->is_home) {
+        //MPI_Sendrecv_replace(A->data, A->size, A->sr->mdtype(), node_aware_send_to_rank, 1324, node_aware_recv_from_rank, 1324, orig_topo.glb_comm.cm, &stat);
+        MPI_Sendrecv_replace(A->data, A->size, A->sr->mdtype(), node_aware_recv_from_rank, 1324, node_aware_send_to_rank, 1324, orig_topo.glb_comm.cm, &stat);
+      }
+      if (B->is_home) {
+        //MPI_Sendrecv_replace(B->data, B->size, B->sr->mdtype(), node_aware_send_to_rank, 1325, node_aware_recv_from_rank, 1325, orig_topo.glb_comm.cm, &stat);
+        MPI_Sendrecv_replace(B->data, B->size, B->sr->mdtype(), node_aware_recv_from_rank, 1325, node_aware_send_to_rank, 1325, orig_topo.glb_comm.cm, &stat);
+      }
+      //MPI_Sendrecv_replace(C->data, C->size, C->sr->mdtype(), node_aware_send_to_rank, 1326, node_aware_recv_from_rank, 1326, orig_topo.glb_comm.cm, &stat);
+      MPI_Sendrecv_replace(C->data, C->size, C->sr->mdtype(), node_aware_recv_from_rank, 1326, node_aware_send_to_rank, 1326, orig_topo.glb_comm.cm, &stat);
       TAU_FSTOP(redistribute_for_node_aware);
     }
     C->topo->morph_to(orig_topo);
