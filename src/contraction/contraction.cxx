@@ -4462,7 +4462,7 @@ namespace CTF_int {
       topology node_aware_topo(orig_topo.order, orig_topo.lens, orig_topo.glb_comm, 0, intra_node_lens);
       //topology node_aware_topo(orig_topo.order, orig_topo.lens, orig_topo.glb_comm, 1, intra_node_lens);
       // overwrite topology object in a way that also changes information in CommData objects pointed to ctrf
-      C->topo->morph_to(node_aware_topo);
+      C->topo->morph_to(orig_topo);
       node_aware_send_to_rank = get_inv_topo_reorder_rank(node_aware_topo.order, node_aware_topo.lens, intra_node_lens, orig_topo.glb_comm.rank);
       node_aware_recv_from_rank = get_topo_reorder_rank(node_aware_topo.order, node_aware_topo.lens, node_aware_topo.lda, intra_node_lens, orig_topo.glb_comm.rank);
       if (orig_topo.glb_comm.rank != node_aware_send_to_rank){

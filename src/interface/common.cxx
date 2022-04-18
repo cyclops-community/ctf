@@ -10,6 +10,10 @@
 
 
 namespace CTF_int {
+  MPI_Comm save_glb_comm = 1;
+  void set_save_glb_comm(MPI_Comm gcm){
+    save_glb_comm = gcm;
+  }
   int64_t computed_flop_count = 0;
   int64_t estimated_flop_count = 0;
 }
@@ -330,6 +334,8 @@ namespace CTF_int {
 
   void CommData::deactivate(){
     if (alive){
+      //printf("deactivating cm %d\n",cm);
+      //if (cm == save_glb_comm) ASSERT(0);
       alive = 0;
       if (created){
         int is_finalized;

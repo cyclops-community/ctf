@@ -29,7 +29,7 @@ namespace CTF_int {
       // global communicator, ordered as in torus given by dim_comm
       CommData   glb_comm;
       // global communicator, ordered as given, assuming processors are ordered as [processes in node 1], [processes in node 2], etc.
-      //CommData   input_comm;
+      CommData   unord_glb_comm;
 
       //topology();
       ~topology();

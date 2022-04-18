@@ -134,6 +134,8 @@ namespace CTF_int {
   // accumulates computed flops (targeted for internal use)
   void add_computed_flops(int64_t n);
 
+  void set_save_glb_comm(MPI_Comm gcm);
+
   // get computed flops
   int64_t get_computed_flops();
 

@@ -60,7 +60,7 @@ namespace CTF_int {
     CTF_int::cdealloc(dim_comm);
   }
 
-  topology::topology(topology const & other) : glb_comm(other.glb_comm) {
+  topology::topology(topology const & other) : glb_comm(other.glb_comm), unord_glb_comm(other.unord_glb_comm) {
     order        = other.order;
 
     lens         = (int*)CTF_int::alloc(order*sizeof(int));
@@ -79,7 +79,7 @@ namespace CTF_int {
 
   void topology::morph_to(topology const & other){
     ASSERT(order == other.order);
-    ASSERT(!is_reordered);
+    ASSERT(!is_reordered || !other.is_reordered);
     memcpy(lens, other.lens, order*sizeof(int));
     memcpy(lda, other.lda, order*sizeof(int));
 
@@ -91,13 +91,14 @@ namespace CTF_int {
     is_activated = other.is_activated;
     is_reordered = other.is_reordered;
     glb_comm = other.glb_comm;
+    unord_glb_comm = other.unord_glb_comm;
   }
 
   topology::topology(int         order_,
                      int const * lens_,
                      CommData    cdt,
                      bool        activate,
-                     int const * intra_node_lens) : glb_comm(cdt) {
+                     int const * intra_node_lens) : unord_glb_comm(cdt), glb_comm(cdt) {
     order        = order_;
     lens         = (int*)CTF_int::alloc(order_*sizeof(int));
     lda          = (int*)CTF_int::alloc(order_*sizeof(int));
@@ -117,12 +118,14 @@ namespace CTF_int {
 
     if (intra_node_lens == NULL){    
       is_reordered = false;
+      //glb_comm = cdt;
     } else {
       int new_rank = get_topo_reorder_rank(order, lens, lda, intra_node_lens, cdt.rank);
       is_reordered = true;
       //glb_comm = *(new CommData(cdt.rank, 0, cdt));
       glb_comm = CommData(cdt.rank, 0, cdt.np);
-      glb_comm.activate(cdt.cm);
+      //CTF_int::set_save_glb_comm(glb_comm.cm);
+      //printf("glb_comm cm set to %d",glb_comm.cm);
       // FIXME: Bug - glb_comm.cm communicator is not alive when dim_comm[]s use it as parent to activate themselves
     }
     int stride = 1, cut = 0;
@@ -143,12 +146,13 @@ namespace CTF_int {
     }
     if (activate)
       this->activate();
-    std::cout <<"in const(): " << glb_comm.cm << std::endl;
+    //std::cout <<"in const(): " << glb_comm.cm << std::endl;
   }
 
   void topology::activate(){
     if (!is_activated){
       std::cout <<"in activate(): " << glb_comm.cm << std::endl;
+      if (is_reordered) glb_comm.activate(unord_glb_comm.cm);
       for (int i=0; i<order; i++){
         dim_comm[i].activate(glb_comm.cm);
       }
@@ -161,6 +165,7 @@ namespace CTF_int {
       for (int i=0; i<order; i++){
         dim_comm[i].deactivate();
       }
+      if (is_reordered) glb_comm.deactivate();
     } 
     is_activated = false;
   }
