@@ -75,6 +75,7 @@ namespace CTF_int {
     }
 
     is_activated = other.is_activated;
+    is_reordered = other.is_reordered;
   }
 
   void topology::morph_to(topology const & other){
@@ -122,11 +123,7 @@ namespace CTF_int {
     } else {
       int new_rank = get_topo_reorder_rank(order, lens, lda, intra_node_lens, cdt.rank);
       is_reordered = true;
-      //glb_comm = *(new CommData(cdt.rank, 0, cdt));
-      glb_comm = CommData(cdt.rank, 0, cdt.np);
-      //CTF_int::set_save_glb_comm(glb_comm.cm);
-      //printf("glb_comm cm set to %d",glb_comm.cm);
-      // FIXME: Bug - glb_comm.cm communicator is not alive when dim_comm[]s use it as parent to activate themselves
+      glb_comm = CommData(new_rank, 0, cdt.np);
     }
     int stride = 1, cut = 0;
     int rank = glb_comm.rank;
@@ -146,12 +143,10 @@ namespace CTF_int {
     }
     if (activate)
       this->activate();
-    //std::cout <<"in const(): " << glb_comm.cm << std::endl;
   }
 
   void topology::activate(){
     if (!is_activated){
-      std::cout <<"in activate(): " << glb_comm.cm << std::endl;
       if (is_reordered) glb_comm.activate(unord_glb_comm.cm);
       for (int i=0; i<order; i++){
         dim_comm[i].activate(glb_comm.cm);

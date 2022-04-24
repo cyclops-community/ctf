@@ -10,10 +10,6 @@
 
 
 namespace CTF_int {
-  MPI_Comm save_glb_comm = 1;
-  void set_save_glb_comm(MPI_Comm gcm){
-    save_glb_comm = gcm;
-  }
   int64_t computed_flop_count = 0;
   int64_t estimated_flop_count = 0;
 }
@@ -324,8 +320,6 @@ namespace CTF_int {
       alive   = 1;
       created = 1;
       MPI_Comm_split(parent, color, rank, &cm);
-      std::cout << "cm from commdata::activate(): " << cm << std::endl;
-      MPI_Barrier(cm);
       int np_;
       MPI_Comm_size(cm, &np_);
       ASSERT(np_ == np);
