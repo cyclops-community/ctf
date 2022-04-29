@@ -199,6 +199,7 @@ namespace CTF_int{
       virtual int64_t mem_rec() { return mem_fp(); };
       virtual double est_time_fp(int nlyr) { return 0; };
       virtual double est_time_rec(int nlyr) { return est_time_fp(nlyr); };
+      virtual double est_internode_collective_comm_vol(int nlyr) { return 0; }
       virtual double est_internode_comm_vol_rec(int nlyr) { return 0; };
       virtual ctr * clone() { return NULL; };
       
@@ -256,7 +257,12 @@ namespace CTF_int{
        */
       double est_time_rec(int nlyr);
       /**
-       * \brief estimate the inter-node communication volume of the algorithm
+       * \brief estimate the inter-node communication volume of this kernel
+       * \return volume in bytes, represented as floating point
+       */
+      double est_internode_collective_comm_vol(int nlyr);
+      /**
+       * \brief estimate the inter-node communication volume of the algorithm recursively
        * \return volume in bytes, represented as floating point
        */
       double est_internode_comm_vol_rec(int nlyr);

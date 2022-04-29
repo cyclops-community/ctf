@@ -74,20 +74,6 @@ namespace CTF_int {
     return factors;
   }
   
-  // return vector with input arguments
-  ivec lineToVint(std::string line) {
-    ivec out;
-    size_t pos;
-    while ((pos = line.find(",")) != std::string::npos) {
-      out.push_back(std::stoi(line.substr(0, pos)));
-      line.erase(0, pos + 1);
-    }
-    out.push_back(std::stoi(line));
-   
-    return out;
-  }
-
-
   std::vector< std::vector<int> > get_inter_node_grids(std::vector<int> rGrid, int nodes){
     int ranks(std::accumulate(rGrid.begin(), rGrid.end(), 1, std::multiplies<int>()));
     int ranksPerNode(ranks/nodes);
