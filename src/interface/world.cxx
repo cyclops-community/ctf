@@ -58,6 +58,7 @@ namespace CTF {
   World::World(int            argc,
                char * const * argv){
     comm = MPI_COMM_WORLD;
+    ppn = 1;
 #ifdef BGQ
     this->init(comm, TOPOLOGY_BGQ, argc, argv);
 #else
@@ -71,9 +72,11 @@ namespace CTF {
 
 
   World::World(MPI_Comm       comm_,
+               int            ppn_,
                int            argc,
                char * const * argv){
     comm = comm_;
+    ppn  = ppn_;
 #ifdef BGQ
     this->init(comm, TOPOLOGY_BGQ, argc, argv);
 #else
@@ -85,9 +88,10 @@ namespace CTF {
 #endif
   }
 
-  World::World(std::string print, int dryRanks_){
+  World::World(std::string print, int dryRanks_, int ppn_){
     comm = MPI_COMM_WORLD;
     dryRanks = dryRanks_;
+    ppn = ppn_;
 
     this->init(comm, TOPOLOGY_GENERIC);
   }
@@ -99,11 +103,13 @@ namespace CTF {
                int             argc,
                char * const *  argv){
     comm = comm_;
+    ppn = 1;
     this->init(comm, order, lens, argc, argv);
   }
 
   World::World(World const & other){
     comm        = other.comm;
+    ppn         = other.ppn;
 #if DEBUG >= 1
     if (other.rank == 0){
       printf("CTF WARNING: Creating copy of World, which is not free or useful, pass original World by reference instead if possible.\n");
@@ -196,7 +202,7 @@ namespace CTF {
 
   int World::initialize(int                   argc,
                         const char * const *  argv){
-    char * mem_size, * ppn;
+    char * mem_size, * cppn;
     if (comm == MPI_COMM_WORLD && universe_exists){
       delete phys_topology;
       *this = universe;
@@ -271,16 +277,16 @@ namespace CTF {
                     imem_size);
         CTF_int::set_mem_size(imem_size);
       }
-      ppn = getenv("CTF_PPN");
-      if (ppn != NULL){
+      cppn = getenv("CTF_PPN");
+      if (cppn != NULL){
         if (rank == 0)
           printf("Assuming %d processes per node due to CTF_PPN environment variable\n",
-                    atoi(ppn));
-        ASSERT(atoi(ppn)>=1);
+                    atoi(cppn));
+        ASSERT(atoi(cppn)>=1);
   #ifdef BGQ
         CTF_int::set_memcap(.75);
   #else
-        CTF_int::set_memcap(.75/atof(ppn));
+        CTF_int::set_memcap(.75/atof(cppn));
   #endif
       }
       if (rank == 0)

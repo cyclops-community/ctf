@@ -3,6 +3,7 @@
 #include "../scaling/strp_tsr.h"
 #include "../mapping/mapping.h"
 #include "../mapping/distribution.h"
+#include "../mapping/node_aware_dist.h"
 #include "../tensor/untyped_tensor.h"
 #include "../shared/util.h"
 #include "../shared/memcontrol.h"
@@ -2838,7 +2839,7 @@ namespace CTF_int {
         est_time = memuse;
 #endif
 
-        if (A->wrld->dryRanks) printf( "t %d j %d will use %f GB per rank and take %f s, %f %f %f"
+        if (A->wrld->dryRanks) printf( "t %ld j %d will use %f GB per rank and take %f s, %f %f %f"
                                      , t, j, memuse/1024.0/1024./1024
                                      , est_time, redist_time, contr_time, fold_time);
         if (A->wrld->dryRanks) C->print_map();
@@ -4461,6 +4462,65 @@ namespace CTF_int {
     MPI_Barrier(global_comm.cm);
     TAU_FSTOP(pre_ctr_func_barrier);
   #endif
+
+
+#define NODE_AWARE 1
+#ifdef NODE_AWARE
+    TAU_FSTART(node_aware_remapping);
+    /* reorder processor grid to account for node-awareness */
+    topology orig_topo = *(C->topo);
+    int64_t node_aware_send_to_rank(0);
+    int64_t node_aware_recv_from_rank(0);
+    // FIXME: support sparsity
+    if (C->wrld->ppn != 1 && !is_sparse()){
+      std::vector<int> pe_grid(orig_topo.lens, orig_topo.lens + orig_topo.order);
+      std::vector<std::vector<int> > inter_node_grids = CTF_int::get_inter_node_grids(pe_grid, C->wrld->np/C->wrld->ppn);
+      //std::vector< std::vector<int> > intra_node_grids = CTF_int::get_all_shapes(C->wrld->ppn()){
+      int * intra_node_lens = (int*)CTF_int::alloc(orig_topo.order*sizeof(int));
+      int64_t best_topo_index(0);
+      double best_comm_vol = DBL_MAX;
+      for (size_t i=0; i<inter_node_grids.size(); i++){
+        for (int j=0; j<orig_topo.order; j++){
+          intra_node_lens[j] = orig_topo.lens[j] / inter_node_grids[i][j];
+        }
+        topology na_topo_i(orig_topo.order, orig_topo.lens, orig_topo.glb_comm, 0, intra_node_lens);
+        // overwrite topology object in a way that also changes information in CommData objects pointed to ctrf
+        C->topo->morph_to(na_topo_i);
+
+        double comm_vol_i = ctrf->est_internode_comm_vol_rec(ctrf->num_lyr);
+        if (comm_vol_i < best_comm_vol){
+          best_topo_index = i;
+          best_comm_vol = comm_vol_i;
+        }
+        C->topo->morph_to(orig_topo);
+      }
+      for (int j=0; j<orig_topo.order; j++){
+        intra_node_lens[j] = orig_topo.lens[j] / inter_node_grids[best_topo_index][j];
+      }
+      topology node_aware_topo(orig_topo.order, orig_topo.lens, orig_topo.glb_comm, 0, intra_node_lens);
+      // overwrite topology object in a way that also changes information in CommData objects pointed to ctrf
+      C->topo->morph_to(node_aware_topo);
+      node_aware_send_to_rank = get_inv_topo_reorder_rank(node_aware_topo.order, node_aware_topo.lens, intra_node_lens, orig_topo.glb_comm.rank);
+      node_aware_recv_from_rank = get_topo_reorder_rank(node_aware_topo.order, node_aware_topo.lens, node_aware_topo.lda, intra_node_lens, orig_topo.glb_comm.rank);
+      if (orig_topo.glb_comm.rank != node_aware_send_to_rank){
+        IASSERT(orig_topo.glb_comm.rank != node_aware_recv_from_rank);
+        TAU_FSTART(redistribute_for_node_aware);
+        // FIXME: to support sparsity need to also communicate nnz information here
+        MPI_Status stat;
+        MPI_Sendrecv_replace(A->data, A->size, A->sr->mdtype(), node_aware_send_to_rank, 1322, node_aware_recv_from_rank, 1322, orig_topo.glb_comm.cm, &stat);
+        MPI_Sendrecv_replace(B->data, B->size, B->sr->mdtype(), node_aware_send_to_rank, 1323, node_aware_recv_from_rank, 1323, orig_topo.glb_comm.cm, &stat);
+        MPI_Sendrecv_replace(C->data, C->size, C->sr->mdtype(), node_aware_send_to_rank, 1324, node_aware_recv_from_rank, 1324, orig_topo.glb_comm.cm, &stat);
+        TAU_FSTOP(redistribute_for_node_aware);
+      }
+      cdealloc(intra_node_lens);
+    }
+    TAU_FSTOP(node_aware_remapping);
+#endif
+
+
+
+
+
     TAU_FSTART(ctr_func);
     /* Invoke the contraction algorithm */
     A->topo->activate();
@@ -4545,6 +4605,29 @@ namespace CTF_int {
       printf("Finished contraction  computation\n");
     }
   #endif
+#ifdef NODE_AWARE
+    TAU_FSTART(node_aware_backmapping);
+    /* reorder processor grid to account for node-awareness */
+    // FIXME: support sparsity
+    if (C->wrld->ppn != 1 && !is_sparse() && orig_topo.glb_comm.rank != node_aware_send_to_rank){
+      TAU_FSTART(redistribute_for_node_aware);
+      // FIXME: to support sparsity need to also communicate nnz information here
+      MPI_Status stat;
+      if (A->is_home) {
+        MPI_Sendrecv_replace(A->data, A->size, A->sr->mdtype(), node_aware_recv_from_rank, 1325, node_aware_send_to_rank, 1325, orig_topo.glb_comm.cm, &stat);
+      }
+      if (B->is_home) {
+        MPI_Sendrecv_replace(B->data, B->size, B->sr->mdtype(), node_aware_recv_from_rank, 1326, node_aware_send_to_rank, 1326, orig_topo.glb_comm.cm, &stat);
+      }
+      MPI_Sendrecv_replace(C->data, C->size, C->sr->mdtype(), node_aware_recv_from_rank, 1327, node_aware_send_to_rank, 1327, orig_topo.glb_comm.cm, &stat);
+      TAU_FSTOP(redistribute_for_node_aware);
+    }
+    if (C->wrld->ppn != 1 && !is_sparse()) {
+      C->topo->morph_to(orig_topo);
+    }
+    TAU_FSTOP(node_aware_backmapping);
+#endif
+
 
 
     A->topo->deactivate();

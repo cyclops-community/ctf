@@ -3,6 +3,7 @@
 #include "topology.h"
 #include "../shared/util.h"
 #include "../mapping/mapping.h"
+#include <vector>
 
 #ifdef BGQ
 #include "mpix.h"
@@ -17,7 +18,41 @@ namespace CTF_int {
     is_activated = false;
     dim_comm     = NULL;
   }*/
-  
+
+  int get_inv_topo_reorder_rank(int order, int const * lens, int const * intra_node_lens, int new_rank){
+    int irank = new_rank;
+    int intra_node_rank = 0;
+    int node_rank = 0;
+    int lda_node_rank = 1;
+    int lda_intra_node_rank = 1;
+    for (int i=0; i<order; i++){
+      intra_node_rank += (irank%intra_node_lens[i])*lda_intra_node_rank;
+      node_rank += ((irank%lens[i])/intra_node_lens[i])*lda_node_rank;
+      irank = irank / lens[i];
+      lda_node_rank = lda_node_rank*(lens[i]/intra_node_lens[i]);
+      lda_intra_node_rank = lda_intra_node_rank*intra_node_lens[i];
+    }
+    return intra_node_rank + lda_intra_node_rank*node_rank;
+  }
+
+  int get_topo_reorder_rank(int order, int const * lens, int const * lda, int const * intra_node_lens, int rank){
+    int num_intra_node = 1;
+    for (int i=0; i<order; i++){
+      num_intra_node *= intra_node_lens[i];
+    }
+    int intra_node_rank = rank % num_intra_node;
+    int node_rank = rank / num_intra_node;
+    int new_rank = 0;
+    for (int i=0; i<order; i++){
+      int i_node_rank = node_rank % (lens[i]/intra_node_lens[i]);
+      node_rank = node_rank / (lens[i]/intra_node_lens[i]);
+      int i_intra_node_rank = intra_node_rank % intra_node_lens[i];
+      intra_node_rank = intra_node_rank / intra_node_lens[i];
+      new_rank += (i_node_rank*intra_node_lens[i] + i_intra_node_rank)*lda[i];
+    }
+    return new_rank;
+  }
+
   topology::~topology(){
     deactivate();
     CTF_int::cdealloc(lens);
@@ -25,7 +60,7 @@ namespace CTF_int {
     CTF_int::cdealloc(dim_comm);
   }
 
-  topology::topology(topology const & other) : glb_comm(other.glb_comm) {
+  topology::topology(topology const & other) : glb_comm(other.glb_comm), unord_glb_comm(other.unord_glb_comm) {
     order        = other.order;
 
     lens         = (int*)CTF_int::alloc(order*sizeof(int));
@@ -40,32 +75,69 @@ namespace CTF_int {
     }
 
     is_activated = other.is_activated;
+    is_reordered = other.is_reordered;
+  }
+
+  void topology::morph_to(topology const & other){
+    ASSERT(order == other.order);
+    ASSERT(!is_reordered || !other.is_reordered);
+    memcpy(lens, other.lens, order*sizeof(int));
+    memcpy(lda, other.lda, order*sizeof(int));
+
+    // overwrite communicators, swapping out CommData objects pointed to elsewhere
+    for (int i=0; i<order; i++){
+      dim_comm[i] = CommData(other.dim_comm[i]);
+    }
+
+    is_activated = other.is_activated;
+    is_reordered = other.is_reordered;
+    glb_comm = other.glb_comm;
+    unord_glb_comm = other.unord_glb_comm;
   }
 
   topology::topology(int         order_,
                      int const * lens_,
                      CommData    cdt,
-                     bool        activate) : glb_comm(cdt) {
+                     bool        activate,
+                     int const * intra_node_lens) : unord_glb_comm(cdt), glb_comm(cdt) {
     order        = order_;
     lens         = (int*)CTF_int::alloc(order_*sizeof(int));
     lda          = (int*)CTF_int::alloc(order_*sizeof(int));
     dim_comm     = (CommData*)CTF_int::alloc(order_*sizeof(CommData));
     is_activated = false;
-   
+
     memcpy(lens, lens_, order_*sizeof(int));
     //reverse FIXME: this is assumed somewhere...
 //    for (int i=0; i<order; i++){
 //      lens[i] = lens_[order-i-1];
 //    }
- 
+
+    lda[0] = 1;
+    for (int i = 1; i < order; i++) {
+      lda[i] = lda[i-1] * lens[i-1];
+    }
+
+    if (intra_node_lens == NULL){
+      is_reordered = false;
+      //glb_comm = cdt;
+    } else {
+      int new_rank = get_topo_reorder_rank(order, lens, lda, intra_node_lens, cdt.rank);
+      is_reordered = true;
+      glb_comm = CommData(new_rank, 0, cdt.np);
+    }
     int stride = 1, cut = 0;
     int rank = glb_comm.rank;
     for (int i=0; i<order; i++){
       lda[i] = stride;
-      dim_comm[i] = CommData(((rank/stride)%lens[i]),
-                             (((rank/(stride*lens[i]))*stride)+cut),
-                             lens[i]);
-//      SETUP_SUB_COMM_SHELL(cdt, dim_comm[i],
+      if (intra_node_lens == NULL)
+        dim_comm[i] = CommData(((rank/stride)%lens[i]),
+                               (((rank/(stride*lens[i]))*stride)+cut),
+                               lens[i]);
+      else
+        dim_comm[i] = CommData(((rank/stride)%lens[i]),
+                               (((rank/(stride*lens[i]))*stride)+cut),
+                               lens[i],
+                               intra_node_lens[i]);
       stride*=lens[i];
       cut = (rank - (rank/stride)*stride);
     }
@@ -75,10 +147,11 @@ namespace CTF_int {
 
   void topology::activate(){
     if (!is_activated){
+      if (is_reordered) glb_comm.activate(unord_glb_comm.cm);
       for (int i=0; i<order; i++){
         dim_comm[i].activate(glb_comm.cm);
       }
-    } 
+    }
     is_activated = true;
   }
 
@@ -87,7 +160,8 @@ namespace CTF_int {
       for (int i=0; i<order; i++){
         dim_comm[i].deactivate();
       }
-    } 
+      if (is_reordered) glb_comm.deactivate();
+    }
     is_activated = false;
   }
 
@@ -141,7 +215,7 @@ namespace CTF_int {
         topo = new topology(dim, topo_dims, glb_comm, 1);
         CTF_int::cdealloc(topo_dims);
         return topo;
-      } else 
+      } else
       #endif
       {
         int order;
@@ -397,34 +471,36 @@ namespace CTF_int {
     }
   }
 
-  /** 
+  /**
    * \brief computes all unique factorizations into non-primes each yielding a topology, prepending additional factors as specified
    * \param[in] cdt global communicator
    * \param[in] n_uf number of unique prime factors
    * \param[in] uniq_fact list of prime factors
    * \param[in] n_prepend number of factors to prepend
-   * \param[in] mults ? 
+   * \param[in] mults multiplicities of each factor
    * \param[in] prelens factors to prepend
    * \return lens vector of factorizations
    */
-  std::vector< topology* > get_all_topos(CommData cdt, int n_uf, int const * uniq_fact, int const * mults, int n_prepend, int const * prelens){
-    std::vector<topology*> topos;
+  std::vector< std::vector<int>* > get_all_shapes_rec(int n_uf, int const * uniq_fact, int const * mults, int n_prepend, int const * prelens){
+    std::vector< std::vector<int>* > shapes;
 
+    // enumerate the number of different possible numbers (including 1) that divide (with remainder 0) the number of processors
     int num_divisors = 1;
     for (int i=0; i<n_uf; i++){
       num_divisors *= (1+mults[i]);
       ASSERT(num_divisors < 1E6);
     }
-    
+
     if (num_divisors == 1){
-      topos.push_back(new topology(n_prepend, prelens, cdt));
-      return topos;
+      shapes.push_back(new std::vector<int>(prelens,prelens+n_prepend));
+      return shapes;
     }
     int sub_mults[n_uf];
     int new_prelens[n_prepend+1];
     memcpy(new_prelens, prelens, n_prepend*sizeof(int));
     //FIXME: load may be highly imbalanced
     //for (int div=cdt.rank; div<num_divisors; div+=cdt.np)
+    //iterate through all possible divisors
     for (int div=1; div<num_divisors; div++){
       //memcpy(sub_mults, mults, n_uf*sizeof(int));
       int dmults[n_uf];
@@ -437,37 +513,40 @@ namespace CTF_int {
         len0 *= std::pow(uniq_fact[i], dmults[i]);
       }
       new_prelens[n_prepend] = len0;
-      std::vector< topology* > new_topos = get_all_topos(cdt, n_uf, uniq_fact, sub_mults, n_prepend+1, new_prelens);
+      std::vector< std::vector<int>* > new_shapes = get_all_shapes_rec(n_uf, uniq_fact, sub_mults, n_prepend+1, new_prelens);
       //FIXME call some append function?
-      for (unsigned i=0; i<new_topos.size(); i++){
-        topos.push_back(new_topos[i]);
+      for (unsigned i=0; i<new_shapes.size(); i++){
+        shapes.push_back(new_shapes[i]);
       }
     }
-    return topos;
+    return shapes;
   }
 
-  std::vector< topology* > get_generic_topovec(CommData cdt){
-    std::vector<topology*> topovec;
-
+  /**
+   * \brief generate all possible factorizations of size into divisors
+  *  \param[in] total size that numbers should multiply to
+  *  \return all possible collections of natural numbers that multiply to size (excluding 1s)
+   */
+  std::vector< std::vector<int>* > get_all_shapes(int size){
     int nfact, * factors;
-    factorize(cdt.np, &nfact, &factors);
+    factorize(size, &nfact, &factors);
     if (nfact <= 1){
-      topovec.push_back(new topology(nfact, factors, cdt));
-      if (cdt.np >= 7 && cdt.rank == 0) 
-        DPRINTF(1,"CTF WARNING: using a world with a prime number of processors may lead to very bad performance\n");
+      std::vector<std::vector<int>*> shapes;
+      shapes.push_back(new std::vector<int>(factors, factors+nfact));
       if (nfact > 0) cdealloc(factors);
-      return topovec;
+      return shapes;
     }
     std::sort(factors,factors+nfact);
+    //compute number of unique factors
     int n_uf = 1;
     assert(factors[0] != 1);
     for (int i=1; i<nfact; i++){
       if (factors[i] != factors[i-1]) n_uf++;
     }
-    if (n_uf >= 3){
-      if (cdt.rank == 0) 
-        DPRINTF(1,"CTF WARNING: using a world with a number of processors that contains 3 or more unique prime factors may lead to suboptimal performance, when possible use p=2^k3^l processors for some k,l\n");
-    }
+    //if (n_uf >= 3){
+    //  if (cdt.rank == 0)
+    //    DPRINTF(1,"CTF WARNING: using a world with a number of processors that contains 3 or more unique prime factors may lead to suboptimal performance, when possible use p=2^k3^l processors for some k,l\n");
+    //}
     int uniq_fact[n_uf];
     int mults[n_uf];
     int i_uf = 0;
@@ -481,7 +560,30 @@ namespace CTF_int {
       } else mults[i_uf]++;
     }
     cdealloc(factors);
-    return get_all_topos(cdt, n_uf, uniq_fact, mults, 0, NULL);
+    std::vector< std::vector<int> * > shapes = get_all_shapes_rec(n_uf, uniq_fact, mults, 0, NULL);
+    return shapes;
+  }
+
+
+  std::vector< topology* > create_topos_from_shapes(std::vector< std::vector<int>* > shapes, CommData cdt){
+    std::vector< topology* > topos;
+    for (int i=0; i<(int)shapes.size(); i++){
+      topos.push_back(new topology(shapes[i]->size(), &shapes[i]->operator[](0), cdt));
+    }
+    return topos;
+  }
+
+  std::vector< topology* > get_generic_topovec(CommData cdt){
+    std::vector< std::vector<int> * > shapes = get_all_shapes(cdt.np);
+    std::vector< topology* > topos = create_topos_from_shapes(shapes, cdt);
+    for (int i=0; i<(int)shapes.size(); i++){
+      delete shapes[i];
+    }
+
+    if (shapes.size() == 1 && cdt.np >= 7 && cdt.rank == 0)
+      DPRINTF(1,"CTF WARNING: using a world with a prime number of processors may lead to very bad performance\n");
+    return topos;
+
   }
 
 
@@ -493,7 +595,7 @@ namespace CTF_int {
     bool changed;
     /*int i=0;
     do {
-      for (int j=0; j< perm_vec[i]->order; 
+      for (int j=0; j< perm_vec[i]->order;
     } while(i<perm_vec.size();*/
     do {
 //      printf("HERE %d %d %d %d\n",perm_vec[0]->order, perm_vec.size(), perm_vec[0]->lens[0], perm_vec[0]->lens[1]);
@@ -538,9 +640,9 @@ namespace CTF_int {
                                       CommData         glb_comm){
     std::vector< topology* > topos;
     topos.push_back(new topology(*topo));
-    
+
     if (topo->order <= 1) return topos;
-    
+
     int * new_lens = (int*)alloc(sizeof(int)*topo->order-1);
 
     for (int i=0; i<topo->order-1; i++){
@@ -567,12 +669,12 @@ namespace CTF_int {
     }
     return topos;
   }
-    
+
   int find_topology(topology const *           topo,
                     std::vector< topology* > & topovec){
     int i, j, found;
     std::vector< topology* >::iterator iter;
-    
+
     found = -1;
     for (j=0, iter=topovec.begin(); iter!=topovec.end(); iter++, j++){
       if ((*iter)->order == topo->order){
@@ -585,7 +687,7 @@ namespace CTF_int {
       }
       if (found != -1) return found;
     }
-    return -1;  
+    return -1;
   }
 
   int get_best_topo(int64_t  nvirt,
@@ -638,8 +740,8 @@ namespace CTF_int {
     CommData *   sub_phys_comm;
     int * comm_idx;
     mapping const * map;
-    memset(phys_mapped, 0, topo->order*sizeof(int));  
-    
+    memset(phys_mapped, 0, topo->order*sizeof(int));
+
     num_sub_phys_dims = 0;
 
     for (i=0; i<order_A; i++){
@@ -648,7 +750,7 @@ namespace CTF_int {
         phys_mapped[map->cdt] = 1;
         if (map->has_child) map = map->child;
         else break;
-      } 
+      }
     }
     for (i=0; i<order_B; i++){
       map = &edge_map_B[i];
@@ -656,7 +758,7 @@ namespace CTF_int {
         phys_mapped[map->cdt] = 1;
         if (map->has_child) map = map->child;
         else break;
-      } 
+      }
     }
 
     num_sub_phys_dims = 0;
@@ -680,7 +782,7 @@ namespace CTF_int {
 
   }
 
-  int can_morph(topology const * topo_keep, 
+  int can_morph(topology const * topo_keep,
                 topology const * topo_change){
     int i, j, lda;
     lda = 1;
@@ -715,7 +817,7 @@ namespace CTF_int {
           do {
             for (j=0; j<new_topo->order; j++){
               if (new_topo->lda[j] == old_lda) break;
-            } 
+            }
             ASSERT(j!=new_topo->order);
             new_rec_map->type   = PHYSICAL_MAP;
             new_rec_map->cdt    = j;
@@ -749,7 +851,7 @@ namespace CTF_int {
             break;
           }
         }
-        edge_map[i].clear();      
+        edge_map[i].clear();
         edge_map[i] = *new_map;
         CTF_int::cdealloc(new_map);
       }

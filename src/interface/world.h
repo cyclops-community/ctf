@@ -24,6 +24,8 @@ namespace CTF {
       int rank;
       /** \brief number of processors */
       int np;
+      /** \brief number of processors per node (optional / can be 1)*/
+      int ppn;
       /** \brief set dryRun */
       int dryRanks = 0;
       /** \brief derived topologies */
@@ -65,6 +67,7 @@ namespace CTF {
        * \param[in] argv main arguments 
        */
       World(MPI_Comm       comm = MPI_COMM_WORLD,
+            int            ppn  = 1,
             int            argc = 0,
             char * const * argv = NULL);
 
@@ -94,7 +97,7 @@ namespace CTF {
        * \param[in] dryRanks number of dry ranks
       */
 
-      World(std::string print, int dryRanks);
+      World(std::string print, int dryRanks, int ppn = 1);
 
       /**
        * \brief frees CTF library

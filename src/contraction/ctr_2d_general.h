@@ -102,6 +102,19 @@ namespace CTF_int{
        * \return bytes needed for recursive contraction
        */
       double est_time_rec(int nlyr);
+
+      /**
+       * \brief estimate the inter-node communication volume of this kernel
+       * \return volume in bytes, represented as floating point
+       */
+      double est_internode_collective_comm_vol(int nlyr);
+
+      /**
+       * \brief estimate the inter-node communication volume of the algorithm recursively
+       * \return volume in bytes, represented as floating point
+       */
+      double est_internode_comm_vol_rec(int nlyr);
+
       ctr * clone();
 
       /**
