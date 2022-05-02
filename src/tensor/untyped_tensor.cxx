@@ -42,7 +42,7 @@ namespace CTF_int {
   void tensor::free_self(){
     if (order > -1){
       if (wrld->rank == 0) DPRINTF(3,"Deleted order %d tensor %s\n",order,name);
-      if (is_folded) unfold();
+      if (is_folded && !wrld->dryRanks) unfold();
       //if (is_folded) unfold(0,1);
       cdealloc(sym);
       cdealloc(lens);
@@ -308,7 +308,7 @@ namespace CTF_int {
         }*/
         this->home_size = other->home_size;
         register_size(this->home_size*sr->el_size);
-        this->home_buffer = sr->alloc(other->home_size);
+        if (!wrld->dryRanks) this->home_buffer = sr->alloc(other->home_size);
         if (other->is_home){
           this->is_home = 1;
           this->data = this->home_buffer;
@@ -316,14 +316,16 @@ namespace CTF_int {
           /*if (this->is_home || this->home_size != other->home_size){
           }*/
           this->is_home = 0;
-          sr->copy(this->home_buffer, other->home_buffer, other->home_size);
-          //CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
-          this->data = sr->alloc(other->size);
+          if (!wrld->dryRanks){
+            sr->copy(this->home_buffer, other->home_buffer, other->home_size);
+            //CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
+            this->data = sr->alloc(other->size);
+          }
         }
         this->has_home = 1;
       } else {
         //CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
-        this->data = sr->alloc(other->size);
+        if (!wrld->dryRanks) this->data = sr->alloc(other->size);
 /*          if (this->has_home && !this->is_home){
           CTF_int::cdealloc(this->home_buffer);
         }*/
@@ -332,9 +334,9 @@ namespace CTF_int {
       }
   #else
       //CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
-      this->data = sr->alloc(other->size);
+      if (!wrld->dryRanks) this->data = sr->alloc(other->size);
   #endif
-      sr->copy(this->data, other->data, other->size);
+      if (!wrld->dryRanks) sr->copy(this->data, other->data, other->size);
     } else {
       ASSERT(this->is_sparse);
       has_home = other->has_home;
