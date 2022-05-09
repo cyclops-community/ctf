@@ -25,9 +25,11 @@ namespace CTF {
       /** \brief number of processors */
       int np;
       /** \brief number of processors per node (optional / can be 1)*/
-      int ppn;
+      int ppn = 0;
       /** \brief set dryRun */
       int dryRanks = 0;
+      /** \brief verbosity of dryRun */
+      int verbose = 1;
       /** \brief derived topologies */
       std::vector< CTF_int::topology* > topovec;
       /** \brief whether the world has been initialized */

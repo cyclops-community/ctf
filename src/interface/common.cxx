@@ -265,23 +265,29 @@ namespace CTF_int {
   }
 
   CommData::CommData(CommData const & other){
-    cm      = other.cm;
-    alive   = other.alive;
-    rank    = other.rank;
-    np      = other.np;
-    color   = other.color;
+    cm            = other.cm;
+    alive         = other.alive;
+    rank          = other.rank;
+    np            = other.np;
+    color         = other.color;
+    global_rank   = other.global_rank;
+    node_id       = other.node_id;
+    num_nodes     = other.num_nodes;
     intra_node_np = other.intra_node_np;
-    created = 0;
+    created       = 0;
   }
 
   CommData& CommData::operator=(CommData const & other){
-    cm      = other.cm;
-    alive   = other.alive;
-    rank    = other.rank;
-    np      = other.np;
-    color   = other.color;
+    cm            = other.cm;
+    alive         = other.alive;
+    rank          = other.rank;
+    np            = other.np;
+    color         = other.color;
+    global_rank   = other.global_rank;
+    node_id       = other.node_id;
+    num_nodes     = other.num_nodes;
     intra_node_np = other.intra_node_np;
-    created = 0;
+    created       = 0;
     return *this;
   }
 
@@ -290,15 +296,20 @@ namespace CTF_int {
     cm = cm_;
     MPI_Comm_rank(cm, &rank);
     MPI_Comm_size(cm, &np);
-    intra_node_np = 1;
+    MPI_Comm_rank(MPI_COMM_WORLD,&global_rank);
+    intra_node_np = 0;
     alive = 1;
     created = 0;
   }
 
-  CommData::CommData(int rank_, int color_, int np_, int intra_node_np_){
+  CommData::CommData(
+    int rank_, int color_, int np_, int num_nodes_, int global_rank_, int intra_node_np_
+  ){
     rank          = rank_;
     color         = color_;
     np            = np_;
+    num_nodes     = num_nodes_;
+    global_rank   = global_rank_;
     intra_node_np = intra_node_np_;
     alive         = 0;
     created       = 0;
@@ -310,7 +321,8 @@ namespace CTF_int {
     ASSERT(parent.alive);
     MPI_Comm_split(parent.cm, color, rank_, &cm);
     MPI_Comm_size(cm, &np);
-    intra_node_np = 1;
+    global_rank = parent.global_rank;
+    intra_node_np = 0;
     alive   = 1;
     created = 1;
   }
@@ -616,6 +628,7 @@ namespace CTF_int {
       lda *= lens[i];
     }
   }
+
 /*
 #define USE_CUST_DBL_CMPLX 0
 
@@ -662,5 +675,6 @@ namespace CTF_int {
     }
     return is_new;
   }
+
 
 }

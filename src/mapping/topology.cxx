@@ -9,6 +9,8 @@
 #include "mpix.h"
 #endif
 
+using ipair = std::pair<int, int>;
+
 namespace CTF_int {
 /*
   topology::topology(){
@@ -123,20 +125,56 @@ namespace CTF_int {
     } else {
       int new_rank = get_topo_reorder_rank(order, lens, lda, intra_node_lens, cdt.rank);
       is_reordered = true;
-      glb_comm = CommData(new_rank, 0, cdt.np);
+      glb_comm = CommData(new_rank, 0, cdt.np, cdt.num_nodes, cdt.global_rank);
     }
     int stride = 1, cut = 0;
     int rank = glb_comm.rank;
+    std::vector<int> num_nodes(order);
+    std::vector< std::vector<ipair> > como(order, std::vector<ipair> (cdt.np));
+    for (int r(0); r < cdt.np; r++){
+      int stride =1, cut = 0;
+      for (size_t i=0; i<order; i++){
+        como[i][r] = {(((r/(stride*lens[i]))*stride)+cut), r/72};
+        stride*=lens[i];
+        cut = (r - (r/stride)*stride);
+      }
+    }
+    // sort for the same color
+    for (auto &c: como) std::sort(c.begin(), c.end());
+    for (int i=0; i< order; i++){
+      std::vector<ipair> sameColor;
+      std::copy_if( como[i].begin()
+                  , como[i].end()
+                  , std::back_inserter(sameColor)
+                  , [](ipair &a){ return a.first == 0;}
+                  );
+      std::sort( sameColor.begin()
+               , sameColor.end()
+               , [](ipair &a, ipair &b){return a.second < b.second;}
+               );
+      num_nodes[i] = std::distance( sameColor.begin()
+                                  , std::unique( sameColor.begin()
+                                               , sameColor.end()
+                                               , [](ipair &a, ipair &b)
+                                                 { return a.second == b.second;}
+                                               )
+                                  );
+    }
+
     for (int i=0; i<order; i++){
       lda[i] = stride;
       if (intra_node_lens == NULL)
         dim_comm[i] = CommData(((rank/stride)%lens[i]),
                                (((rank/(stride*lens[i]))*stride)+cut),
-                               lens[i]);
+                               lens[i],
+                               num_nodes[i],
+                               rank);
       else
         dim_comm[i] = CommData(((rank/stride)%lens[i]),
                                (((rank/(stride*lens[i]))*stride)+cut),
                                lens[i],
+                               lens[i] / intra_node_lens[i],
+                               rank,
                                intra_node_lens[i]);
       stride*=lens[i];
       cut = (rank - (rank/stride)*stride);

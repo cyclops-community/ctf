@@ -2839,10 +2839,11 @@ namespace CTF_int {
         est_time = memuse;
 #endif
 
-        if (A->wrld->dryRanks) printf( "t %ld j %d will use %f GB per rank and take %f s, %f %f %f"
-                                     , t, j, memuse/1024.0/1024./1024
-                                     , est_time, redist_time, contr_time, fold_time);
-        if (A->wrld->dryRanks) C->print_map();
+        if (A->wrld->dryRanks && A->wrld->verbose == 2)
+          printf( "t %ld j %d will use %f GB per rank and take %f s, %f %f %f"
+                , t, j, memuse/1024.0/1024./1024
+                , est_time, redist_time, contr_time, fold_time);
+        if (A->wrld->dryRanks && A->wrld->verbose == 2) C->print_map();
 
         ASSERT(est_time >= 0.0);
         if ((int64_t)memuse >= max_memuse){
@@ -4424,10 +4425,35 @@ namespace CTF_int {
     B->print_map();
     C->print_map();
     ctrf->print();
+#define NODE_AWARE 1
+#ifdef NODE_AWARE
+    if (C->wrld->ppn){
+      topology orig_topo = *(C->topo);
+      std::vector<int> pe_grid(orig_topo.lens, orig_topo.lens + orig_topo.order);
+      std::vector<std::vector<int> > inter_node_grids =
+        CTF_int::get_inter_node_grids(pe_grid, C->wrld->dryRanks/C->wrld->ppn);
+      int * intra_node_lens = (int*)CTF_int::alloc(orig_topo.order*sizeof(int));
+      double comm_vol_ref = ctrf->est_internode_comm_vol_rec(ctrf->num_lyr);
+      printf("Ref: %f\n", comm_vol_ref/1024.0/1024.0/1024.0);
+      for (size_t i=0; i<inter_node_grids.size(); i++){
+        for (int j=0; j<orig_topo.order; j++)
+          intra_node_lens[j] = orig_topo.lens[j] / inter_node_grids[i][j];
+        topology na_topo_i(orig_topo.order, orig_topo.lens, orig_topo.glb_comm, 0, intra_node_lens);
+        C->topo->morph_to(na_topo_i);
+        double comm_vol_i = ctrf->est_internode_comm_vol_rec(ctrf->num_lyr);
+        for (int j=0; j < orig_topo.order; j++) printf("%d ", inter_node_grids[i][j]);
+        printf("-> %f\n", comm_vol_i/1024.0/1024.0/1024.0);
+
+        C->topo->morph_to(orig_topo);
+      }
+      cdealloc(intra_node_lens);
+    }
+#endif
     delete ctrf;
     TAU_FSTOP(contract);
     return SUCCESS;
   }
+
 
   #if (VERBOSE >= 1 || DEBUG >= 1)
   if (global_comm.rank == 0){
@@ -4464,7 +4490,6 @@ namespace CTF_int {
   #endif
 
 
-#define NODE_AWARE 1
 #ifdef NODE_AWARE
     TAU_FSTART(node_aware_remapping);
     /* reorder processor grid to account for node-awareness */
@@ -4472,7 +4497,7 @@ namespace CTF_int {
     int64_t node_aware_send_to_rank(0);
     int64_t node_aware_recv_from_rank(0);
     // FIXME: support sparsity
-    if (C->wrld->ppn != 1 && !is_sparse()){
+    if (C->wrld->ppn && !is_sparse()){
       std::vector<int> pe_grid(orig_topo.lens, orig_topo.lens + orig_topo.order);
       std::vector<std::vector<int> > inter_node_grids = CTF_int::get_inter_node_grids(pe_grid, C->wrld->np/C->wrld->ppn);
       //std::vector< std::vector<int> > intra_node_grids = CTF_int::get_all_shapes(C->wrld->ppn()){
@@ -4609,7 +4634,7 @@ namespace CTF_int {
     TAU_FSTART(node_aware_backmapping);
     /* reorder processor grid to account for node-awareness */
     // FIXME: support sparsity
-    if (C->wrld->ppn != 1 && !is_sparse() && orig_topo.glb_comm.rank != node_aware_send_to_rank){
+    if (C->wrld->ppn && !is_sparse() && orig_topo.glb_comm.rank != node_aware_send_to_rank){
       TAU_FSTART(redistribute_for_node_aware);
       // FIXME: to support sparsity need to also communicate nnz information here
       MPI_Status stat;
@@ -4622,7 +4647,7 @@ namespace CTF_int {
       MPI_Sendrecv_replace(C->data, C->size, C->sr->mdtype(), node_aware_recv_from_rank, 1327, node_aware_send_to_rank, 1327, orig_topo.glb_comm.cm, &stat);
       TAU_FSTOP(redistribute_for_node_aware);
     }
-    if (C->wrld->ppn != 1 && !is_sparse()) {
+    if (C->wrld->ppn  && !is_sparse()) {
       C->topo->morph_to(orig_topo);
     }
     TAU_FSTOP(node_aware_backmapping);

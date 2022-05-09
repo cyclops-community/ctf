@@ -159,7 +159,13 @@ namespace CTF_int {
       int created;
       // intra_node_np, number of processes per node (intra-node grid dimension) corresponding to this communicator, if provided, 1 otherwise
       int intra_node_np;
-  
+      // global rank
+      int global_rank;
+      // node id
+      int node_id;
+      // number of distinct nodes in the communicator
+      int num_nodes;
+
       CommData();
       ~CommData();
 
@@ -180,7 +186,7 @@ namespace CTF_int {
        * \param[in] np number of processors within this comm
        * \param[in] intra_node_np number of processors per physical node
        */
-      CommData(int rank, int color, int np, int intra_node_np=1);
+      CommData(int rank, int color, int np, int num_nodes, int glbRank,  int intra_node_np=0);
 
       /**
        * \brief create active subcomm from parent comm which must be active

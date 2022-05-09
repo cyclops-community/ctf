@@ -196,15 +196,12 @@ namespace CTF_int {
   double ctr_replicate::est_internode_comm_vol_rec(int nlyr) {
     int i;
     double sz = 0.;
-    for (i = 0; i < ncdt_A; i++) {
-      sz += (size_A*sr_A->el_size) * ((cdt_A[i]->np / cdt_A[i]->intra_node_np) - 1);
-    }
-    for (i = 0; i < ncdt_B; i++) {
-      sz += (size_B*sr_B->el_size) * ((cdt_B[i]->np / cdt_B[i]->intra_node_np) - 1);
-    }
-    for (i = 0; i < ncdt_C; i++) {
-      sz += (size_C*sr_C->el_size) * ((cdt_C[i]->np / cdt_C[i]->intra_node_np) - 1);
-    }
+    for (i = 0; i < ncdt_A; i++)
+      sz += (size_A*sr_A->el_size) * (cdt_A[i]->num_nodes - 1);
+    for (i = 0; i < ncdt_B; i++)
+      sz += (size_B*sr_B->el_size) * (cdt_B[i]->num_nodes - 1);
+    for (i = 0; i < ncdt_C; i++)
+      sz += (size_C*sr_C->el_size) * (cdt_C[i]->num_nodes - 1);
     return rec_ctr->est_internode_comm_vol_rec(nlyr) + sz;
   }
 

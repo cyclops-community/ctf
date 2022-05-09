@@ -58,7 +58,6 @@ namespace CTF {
   World::World(int            argc,
                char * const * argv){
     comm = MPI_COMM_WORLD;
-    ppn = 1;
 #ifdef BGQ
     this->init(comm, TOPOLOGY_BGQ, argc, argv);
 #else
@@ -92,6 +91,7 @@ namespace CTF {
     comm = MPI_COMM_WORLD;
     dryRanks = dryRanks_;
     ppn = ppn_;
+    if (print == "high") verbose = 2;
 
     this->init(comm, TOPOLOGY_GENERIC);
   }
@@ -103,7 +103,6 @@ namespace CTF {
                int             argc,
                char * const *  argv){
     comm = comm_;
-    ppn = 1;
     this->init(comm, order, lens, argc, argv);
   }
 
