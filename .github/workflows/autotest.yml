@@ -86,7 +86,9 @@ jobs:
 
       - name: Test Cyclops C++ with 2, 3, 4 MPI processes
         if: startsWith(matrix.config.name, 'Ubuntu')
+        shell: bash
         run:
+          export OMP_NUM_THREADS=1;
           make test2;
           make test3;
           make test4
@@ -120,8 +122,10 @@ jobs:
           make python_test
 
       - name: Test Cyclops Python with 2, 3, 4 MPI processes
+        shell: bash
         run:
           source ./envs/py3env/bin/activate;
+          export OMP_NUM_THREADS=1;
           make python_test2;
           make python_test3;
           make python_test4
