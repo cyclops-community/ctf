@@ -43,7 +43,10 @@ jobs:
         build_scalapack: [True, False]
     steps:
       - uses: actions/checkout@v2
-
+        shell: bash
+      - run:
+          echo matrix.config.build_scalapack
+          echo ${{ matrix.config.build_scalapack }}
       - name: Print env
         run: |
           echo github.event.action: ${{ github.event.action }}
@@ -66,7 +69,7 @@ jobs:
             ./configure --build-scalapack
 
       - name: Configure Cyclops without Scalapack
-        if: ! matrix.config.build_scalapack
+        if: ( ! matrix.config.build_scalapack )
         shell: bash
         run:
             ./configure
