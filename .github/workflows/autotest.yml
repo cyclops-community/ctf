@@ -59,13 +59,18 @@ jobs:
         run: |
           brew install gcc mpich
 
-      - name: Configure Cyclops
+      - name: Configure Cyclops and Build Scalapack
+        if: matrix.config.build_scalapack
         shell: bash
         run:
-          if: ${{ matrix.config.build_scalapack }}
             ./configure --build-scalapack
-          else:
+
+      - name: Configure Cyclops without Scalapack
+        if: ! matrix.config.build_scalapack
+        shell: bash
+        run:
             ./configure
+
 
       - name: Build Cyclops
         shell: bash
