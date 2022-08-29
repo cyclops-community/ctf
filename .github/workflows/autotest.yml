@@ -80,12 +80,10 @@ jobs:
           make -j4
 
       - name: Build Tests and Test Cyclops C++
-        shell: bash
         run:
           make test
 
       - name: Test Cyclops C++ with 2, 3, 4 MPI processes
-        shell: bash
         run:
           make test2
           make test3
@@ -94,9 +92,8 @@ jobs:
 
       - name: Build Python Install dependencies on ubuntu
         if: startsWith(matrix.config.name, 'Ubuntu')
-        shell: bash
         run: |
-          sudo apt install python3-dev virtualenv
+          sudo apt install python3-dev virtualenv;
           mkdir envs
 
       - name: Build Python Install dependencies on macos
@@ -106,8 +103,8 @@ jobs:
 
       - name: Create Python virtual environment and install dependencies via pip
         run: |
-          virtualenv -p python3 ./envs/py3env
-          source ./envs/py3env/bin/activate
+          virtualenv -p python3 ./envs/py3env;
+          source ./envs/py3env/bin/activate;
           pip install numpy cython
 
       - name: Build Python library
