@@ -84,14 +84,12 @@ jobs:
         run:
           make test
 
-      - name: Test Cyclops C++ with 2, 3, 4 MPI processes
+      - name: Test Cyclops C++ with 2 MPI processes
         if: startsWith(matrix.config.name, 'Ubuntu')
         shell: bash
         run:
           export OMP_NUM_THREADS=1;
-          make test2;
-          make test3;
-          make test4
+          make test2
 
 
       - name: Build Python Install dependencies on ubuntu
@@ -121,11 +119,9 @@ jobs:
           source ./envs/py3env/bin/activate;
           make python_test
 
-      - name: Test Cyclops Python with 2, 3, 4 MPI processes
+      - name: Test Cyclops Python with 2 MPI processes
         shell: bash
         run:
           source ./envs/py3env/bin/activate;
           export OMP_NUM_THREADS=1;
-          make python_test2;
-          make python_test3;
-          make python_test4
+          make python_test2
