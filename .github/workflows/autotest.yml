@@ -54,8 +54,9 @@ jobs:
       - name: Install dependencies on ubuntu
         if: startsWith(matrix.config.name, 'Ubuntu')
         run: |
-          sudo apt-get update
-          sudo apt install g++ gfortran git make libblas-dev liblapack-dev mpich
+          sudo apt-get update;
+          sudo apt install -y g++ gfortran git make libblas-dev liblapack-dev mpich
+
       - name: Install dependencies on macos
         if: startsWith(matrix.config.os, 'macos')
         run: |
@@ -65,13 +66,13 @@ jobs:
         if: matrix.config.build_scalapack
         shell: bash
         run:
-            ./configure --build-scalapack
+            ./configure CXXFLAGS="-O0" --build-scalapack
 
       - name: Configure Cyclops without Scalapack
         if: ( ! matrix.config.build_scalapack )
         shell: bash
         run:
-            ./configure
+            ./configure CXXFLAGS="-O0"
 
 
       - name: Build Cyclops
@@ -85,15 +86,15 @@ jobs:
 
       - name: Test Cyclops C++ with 2, 3, 4 MPI processes
         run:
-          make test2
-          make test3
+          make test2;
+          make test3;
           make test4
 
 
       - name: Build Python Install dependencies on ubuntu
         if: startsWith(matrix.config.name, 'Ubuntu')
         run: |
-          sudo apt install python3-dev virtualenv;
+          sudo apt install -y python3-dev virtualenv;
           mkdir envs
 
       - name: Build Python Install dependencies on macos
@@ -108,18 +109,18 @@ jobs:
           pip install numpy cython
 
       - name: Build Python library
-        shell: bash
         run:
+          source ./envs/py3env/bin/activate;
           make python
 
       - name: Test Cyclops Python
-        shell: bash
         run:
+          source ./envs/py3env/bin/activate;
           make python_test
 
       - name: Test Cyclops Python with 2, 3, 4 MPI processes
-        shell: bash
         run:
-          make python_test2
-          make python_test3
+          source ./envs/py3env/bin/activate;
+          make python_test2;
+          make python_test3;
           make python_test4
