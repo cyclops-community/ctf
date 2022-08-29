@@ -85,6 +85,7 @@ jobs:
           make test
 
       - name: Test Cyclops C++ with 2, 3, 4 MPI processes
+        if: startsWith(matrix.config.name, 'Ubuntu')
         run:
           make test2;
           make test3;
