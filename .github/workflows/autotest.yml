@@ -120,6 +120,7 @@ jobs:
           make python_test
 
       - name: Test Cyclops Python with 2 MPI processes
+        if: startsWith(matrix.config.name, 'Ubuntu')
         shell: bash
         run:
           source ./envs/py3env/bin/activate;
