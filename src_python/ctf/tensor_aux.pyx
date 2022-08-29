@@ -328,14 +328,14 @@ def diagonal(init_A, offset=0, axis1=0, axis2=1):
     if len(dim) == 2:
         if offset > 0:
             if dim[0] == dim[1]:
-                up_left = np.zeros([2], dtype=np.int)
+                up_left = np.zeros([2], dtype=int)
                 up_left[0] += offset
-                down_right = np.array([dim[0], dim[1]], dtype=np.int)
+                down_right = np.array([dim[0], dim[1]], dtype=int)
                 down_right[1] -= offset
             else:
-                up_left = np.zeros([2], dtype=np.int)
+                up_left = np.zeros([2], dtype=int)
                 m = min(dim[0], dim[1])
-                down_right = np.array([m, m], dtype=np.int)
+                down_right = np.array([m, m], dtype=int)
                 up_left[0] += offset
                 down_right[0] += offset
                 if down_right[0] > dim[1]:
@@ -344,14 +344,14 @@ def diagonal(init_A, offset=0, axis1=0, axis2=1):
             return einsum("ii->i",A._get_slice(up_left, down_right))
         elif offset <= 0:
             if dim[0] == dim[1]:
-                up_left = np.zeros([2], dtype=np.int)
+                up_left = np.zeros([2], dtype=int)
                 up_left[1] -= offset
-                down_right = np.array([dim[0], dim[1]], dtype=np.int)
+                down_right = np.array([dim[0], dim[1]], dtype=int)
                 down_right[0] += offset
             else:
-                up_left = np.zeros([2], dtype=np.int)
+                up_left = np.zeros([2], dtype=int)
                 m = min(dim[0], dim[1])
-                down_right = np.array([m, m], dtype=np.int)
+                down_right = np.array([m, m], dtype=int)
                 up_left[1] -= offset
                 down_right[1] -= offset
                 if down_right[1] > dim[0]:
@@ -724,8 +724,8 @@ def dot(tA, tB, out=None):
     if out is not None:
         raise ValueError("CTF PYTHON ERROR: CTF currently does not support output parameter.")
 
-    if (isinstance(tA, (np.int, np.float, np.complex, np.number)) and
-        isinstance(tB, (np.int, np.float, np.complex, np.number))):
+    if (isinstance(tA, (int, float, complex, np.number)) and
+        isinstance(tB, (int, float, complex, np.number))):
         return tA * tB
 
     A = astensor(tA)
@@ -1002,7 +1002,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             dims_keep = tuple(dims_keep)
             if out is not None and out.shape != dims_keep:
                 raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
-        B = tensor((1,), dtype=np.bool)
+        B = tensor((1,), dtype=np.bool_)
         index_A = _get_num_str(len(A.shape))
         if A.get_type() == np.float64:
             any_helper[double](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
@@ -1014,21 +1014,21 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             any_helper[int16_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
         elif A.get_type() == np.int8:
             any_helper[int8_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
-        elif A.get_type() == np.bool:
+        elif A.get_type() == np.bool_:
             any_helper[bool](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
-        if out is not None and out.get_type() != np.bool:
+        if out is not None and out.get_type() != np.bool_:
             C = tensor((1,), dtype=out.dtype)
             B._convert_type(C)
             vals = C.read([0])
             return vals[0]
-        elif out is not None and keepdims == True and out.get_type() != np.bool:
+        elif out is not None and keepdims == True and out.get_type() != np.bool_:
             C = tensor(dims_keep, dtype=out.dtype)
             B._convert_type(C)
             return C
         elif out is None and keepdims == True:
             ret = reshape(B,dims_keep)
             return ret
-        elif out is not None and keepdims == True and out.get_type() == np.bool:
+        elif out is not None and keepdims == True and out.get_type() == np.bool_:
             ret = reshape(B,dims_keep)
             return ret
         else:
@@ -1062,7 +1062,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
         index_temp = _rev_array(index_A)
         index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
         index_B = _rev_array(index_B)
-        B = tensor(dim_ret, dtype=np.bool)
+        B = tensor(dim_ret, dtype=np.bool_)
         if A.get_type() == np.float64:
             any_helper[double](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
         elif A.get_type() == np.int64:
@@ -1073,7 +1073,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             any_helper[int16_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
         elif A.get_type() == np.int8:
             any_helper[int8_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-        elif A.get_type() == np.bool:
+        elif A.get_type() == np.bool_:
             any_helper[bool](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
         if out is not None:
             if out.dtype != B.get_type():
@@ -1115,7 +1115,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             for i in range(len(dim_ret)):
                 if dim_ret[i] != out.shape[i]:
                     raise ValueError('CTF PYTHON ERROR: output parameter dimensions mismatch')
-        B = tensor(dim_ret, dtype=np.bool)
+        B = tensor(dim_ret, dtype=np.bool_)
         index_A = _get_num_str(len(dim))
         index_temp = _rev_array(index_A)
         index_B = ""
@@ -1133,7 +1133,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             any_helper[int16_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
         elif A.get_type() == np.int8:
             any_helper[int8_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-        elif A.get_type() == np.bool:
+        elif A.get_type() == np.bool_:
             any_helper[bool](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
         if out is not None:
             if out.dtype != B.get_type():
@@ -1320,7 +1320,7 @@ def transpose(init_A, axes=None):
     # length of axes should match with the length of tensor dimension
     if len(axes) != len(dim):
         raise ValueError("axes don't match tensor")
-    axes = np.asarray(axes,dtype=np.int)
+    axes = np.asarray(axes,dtype=int)
     for i in range(A.ndim):
         if axes[i] < 0:
             axes[i] = A.ndim+axes[i]
@@ -1396,7 +1396,7 @@ def ones(shape, dtype = None, order='F'):
             string_index += 1
         if dtype == np.float64 or dtype == np.complex128 or dtype == np.complex64 or dtype == np.float32:
             ret.i(string) << 1.0
-        elif dtype == np.bool or dtype == np.int64 or dtype == np.int32 or dtype == np.int16 or dtype == np.int8:
+        elif dtype == np.bool_ or dtype == np.int64 or dtype == np.int32 or dtype == np.int16 or dtype == np.int8:
             ret.i(string) << 1
         else:
             raise ValueError('CTF PYTHON ERROR: bad dtype')
@@ -1460,7 +1460,7 @@ def eye(n, m=None, k=0, dtype=np.float64, sp=False):
     A = tensor([l, l], dtype=dtype, sp=sp)
     if dtype == np.float64 or dtype == np.complex128 or dtype == np.complex64 or dtype == np.float32:
         A.i("ii") << 1.0
-    elif dtype == np.bool or dtype == np.int64 or dtype == np.int32 or dtype == np.int16 or dtype == np.int8:
+    elif dtype == np.bool_ or dtype == np.int64 or dtype == np.int32 or dtype == np.int16 or dtype == np.int8:
         A.i("ii") << 1
     else:
         raise ValueError('CTF PYTHON ERROR: bad dtype')
@@ -1943,7 +1943,7 @@ def arange(start, stop, step=1, dtype=None):
         vec_arange[int16_t](<ctensor*>(t.dt), start, stop, step)
     elif dtype == np.int8:
         vec_arange[int8_t](<ctensor*>(t.dt), start, stop, step)
-    elif dtype == np.bool:
+    elif dtype == np.bool_:
         vec_arange[bool](<ctensor*>(t.dt), start, stop, step)
     else: 
         raise ValueError('CTF PYTHON ERROR: unsupported starting value type for numpy arange')
@@ -2734,7 +2734,7 @@ def all(inA, axis=None, out=None, keepdims = False):
     else:
         if isinstance(inA, np.ndarray):
             return np.all(inA,axis,out,keepdims)
-        if isinstance(inA, np.bool):
+        if isinstance(inA, np.bool_):
             return inA
         else:
             raise ValueError('CTF PYTHON ERROR: ctf.all called on invalid operand')
