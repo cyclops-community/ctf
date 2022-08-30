@@ -1,0 +1,128 @@
+# Based on Nick Naso's cpp.yml workflow, https://gist.github.com/NickNaso/0d478f1481686d5bcc868cac06620a60
+
+on: 
+  push:
+  pull_request:
+  release:
+
+jobs:
+  build_cpp:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config: 
+        - {
+            name: "Ubuntu_Latest_GCC",
+            os: ubuntu-latest,
+            artifact: "ubuntu_gcc.7z",
+            build_type: "Release",
+            cc: "gcc",
+            cxx: "g++",
+            archiver: "7z a",
+          }
+        - {
+            name: "Ubuntu_GCC_9",
+            os: ubuntu-latest,
+            artifact: "ubuntu_gcc9.7z",
+            build_type: "Release",
+            cc: "gcc",
+            cxx: "g++",
+            archiver: "7z a",
+          }
+        - {
+            name: "macOS Latest Clang",
+            os: macos-latest,
+            artifact: "macos_clang.7z",
+            build_type: "Release",
+            cc: "clang",
+            cxx: "clang++",
+            archiver: "7za a",
+          }
+        build_scalapack: [True, False]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Print env
+        run: |
+          echo github.event.action: ${{ github.event.action }}
+          echo github.event_name: ${{ github.event_name }}
+          echo matrix.config.build_scalapack
+          echo ${{ matrix.config.build_scalapack }}
+
+      - name: Install dependencies on ubuntu
+        if: startsWith(matrix.config.name, 'Ubuntu')
+        run: |
+          sudo apt-get update;
+          sudo apt install -y g++ gfortran git make libblas-dev liblapack-dev mpich
+
+      - name: Install dependencies on macos
+        if: startsWith(matrix.config.os, 'macos')
+        run: |
+          brew install gcc mpich
+
+      - name: Configure Cyclops and Build Scalapack
+        if: matrix.config.build_scalapack
+        shell: bash
+        run:
+            ./configure CXXFLAGS="-O0" --build-scalapack
+
+      - name: Configure Cyclops without Scalapack
+        if: ( ! matrix.config.build_scalapack )
+        shell: bash
+        run:
+            ./configure CXXFLAGS="-O0"
+
+
+      - name: Build Cyclops
+        shell: bash
+        run:
+          make -j4
+
+      - name: Build Tests and Test Cyclops C++
+        run:
+          make test
+
+      - name: Test Cyclops C++ with 2 MPI processes
+        if: startsWith(matrix.config.name, 'Ubuntu')
+        shell: bash
+        run:
+          export OMP_NUM_THREADS=1;
+          make test2
+
+
+      - name: Build Python Install dependencies on ubuntu
+        if: startsWith(matrix.config.name, 'Ubuntu')
+        run: |
+          sudo apt install -y python3-dev virtualenv;
+          mkdir envs
+
+      - name: Build Python Install dependencies on macos
+        if: startsWith(matrix.config.os, 'macos')
+        run: |
+          brew install virtualenv
+
+      - name: Create Python virtual environment and install dependencies via pip
+        run: |
+          virtualenv -p python3 ./envs/py3env;
+          source ./envs/py3env/bin/activate;
+          pip install numpy cython
+
+      - name: Build Python library
+        run:
+          source ./envs/py3env/bin/activate;
+          make python
+
+      - name: Test Cyclops Python
+        run:
+          source ./envs/py3env/bin/activate;
+          make python_test
+
+      - name: Test Cyclops Python with 2 MPI processes
+        if: startsWith(matrix.config.name, 'Ubuntu')
+        shell: bash
+        run:
+          source ./envs/py3env/bin/activate;
+          export OMP_NUM_THREADS=1;
+          make python_test2
