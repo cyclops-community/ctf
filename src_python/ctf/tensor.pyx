@@ -2086,6 +2086,7 @@ cdef class tensor:
             free(alpha)
         if b is not None:
             free(beta)
+    put = write
 
     def _get_slice(self, offsets, ends):
         cdef char * alpha
