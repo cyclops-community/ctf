@@ -2690,3 +2690,4 @@ cdef class tensor:
             return c
 
 
+ndarray = tensor
