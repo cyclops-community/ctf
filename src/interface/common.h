@@ -157,9 +157,9 @@ namespace CTF_int {
       int alive;
       // 1 if this object created a communicator that needs to be finalized (as opposed to being an alias to a different communicator object)
       int created;
-      // intra_node_np, number of processes per node (intra-node grid dimension) corresponding to this communicator, if provided, 1 otherwise
-      int intra_node_np;
-  
+      // comm_nodes, average number of nodes a process needs to communicate with in this communicator, can be fraction in non node aware topology, if provided, 1. otherwise
+      double comm_nodes;
+
       CommData();
       ~CommData();
 
@@ -180,7 +180,7 @@ namespace CTF_int {
        * \param[in] np number of processors within this comm
        * \param[in] intra_node_np number of processors per physical node
        */
-      CommData(int rank, int color, int np, int intra_node_np=1);
+      CommData(int rank, int color, int np, double comm_nodes=1.);
 
       /**
        * \brief create active subcomm from parent comm which must be active

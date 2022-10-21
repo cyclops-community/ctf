@@ -197,13 +197,13 @@ namespace CTF_int {
     int i;
     double sz = 0.;
     for (i = 0; i < ncdt_A; i++) {
-      sz += (size_A*sr_A->el_size) * ((cdt_A[i]->np / cdt_A[i]->intra_node_np) - 1);
+      sz += (size_A*sr_A->el_size) * cdt_A[i]->comm_nodes;
     }
     for (i = 0; i < ncdt_B; i++) {
-      sz += (size_B*sr_B->el_size) * ((cdt_B[i]->np / cdt_B[i]->intra_node_np) - 1);
+      sz += (size_B*sr_B->el_size) * cdt_B[i]->comm_nodes;
     }
     for (i = 0; i < ncdt_C; i++) {
-      sz += (size_C*sr_C->el_size) * ((cdt_C[i]->np / cdt_C[i]->intra_node_np) - 1);
+      sz += (size_C*sr_C->el_size) * cdt_C[i]->comm_nodes;
     }
     return sz;
   }

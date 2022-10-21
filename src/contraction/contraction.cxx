@@ -4441,13 +4441,14 @@ namespace CTF_int {
       std::vector<int> pe_grid(orig_topo.lens, orig_topo.lens + orig_topo.order);
       std::vector<std::vector<int> > inter_node_grids = CTF_int::get_inter_node_grids(pe_grid, C->wrld->np/C->wrld->ppn);
       //std::vector< std::vector<int> > intra_node_grids = CTF_int::get_all_shapes(C->wrld->ppn()){
-      int * intra_node_lens = (int*)CTF_int::alloc(orig_topo.order*sizeof(int));
+      int * intra_node_lens = (int*)CTF_int::alloc((orig_topo.order+1)*sizeof(int));
       int64_t best_topo_index;
       for (int64_t i=0; i<inter_node_grids.size(); i++){
         for (int j=0; j<orig_topo.order; j++){
           intra_node_lens[j] = orig_topo.lens[j] / inter_node_grids[i][j];
         }
-        topology na_topo_i(orig_topo.order, orig_topo.lens, orig_topo.glb_comm, 0, intra_node_lens);
+        intra_node_lens[orig_topo.order] = C->wrld->ppn;
+        topology na_topo_i(orig_topo.order, orig_topo.lens, orig_topo.glb_comm, C->wrld->ppn, 0, intra_node_lens);
         // overwrite topology object in a way that also changes information in CommData objects pointed to ctrf
         C->topo->morph_to(na_topo_i);
 
@@ -4459,16 +4460,14 @@ namespace CTF_int {
         C->topo->morph_to(orig_topo);
       }
       TAU_FSTOP(node_aware_remapping_calc);
-      if (C->wrld->rank == 0) {
-        double comm_vol_nn = ctrf->est_internode_comm_vol_rec(ctrf->num_lyr);
-        if (best_comm_vol < comm_vol_nn) enable_node_aware = 1;
-      }
-      MPI_Bcast(&enable_node_aware, 1, MPI_INT, 0, global_comm.cm);
+      double comm_vol_nn = ctrf->est_internode_comm_vol_rec(ctrf->num_lyr);
+      if (best_comm_vol < comm_vol_nn) enable_node_aware = 1;
       if (enable_node_aware) {
         for (int j=0; j<orig_topo.order; j++){
           intra_node_lens[j] = orig_topo.lens[j] / inter_node_grids[best_topo_index][j];
         }
-        topology node_aware_topo(orig_topo.order, orig_topo.lens, orig_topo.glb_comm, 0, intra_node_lens);
+        intra_node_lens[orig_topo.order] = C->wrld->ppn;
+        topology node_aware_topo(orig_topo.order, orig_topo.lens, orig_topo.glb_comm, C->wrld->ppn, 0, intra_node_lens);
         // overwrite topology object in a way that also changes information in CommData objects pointed to ctrf
         C->topo->morph_to(node_aware_topo);
         node_aware_send_to_rank = get_inv_topo_reorder_rank(node_aware_topo.order, node_aware_topo.lens, intra_node_lens, orig_topo.glb_comm.rank);

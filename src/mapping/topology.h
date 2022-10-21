@@ -23,6 +23,8 @@ namespace CTF_int {
       int        is_reordered;
       // whether dim_comm communicators have been activated
       bool       is_activated;
+      /** \brief number of processors per physical node (optional / can be 1)*/
+      int        ppn;
 
       // list of communicators along fibers of each dimension of torus 
       CommData * dim_comm;
@@ -62,6 +64,7 @@ namespace CTF_int {
       topology(int         order_,
                int const * lens_,
                CommData    cdt,
+               int         ppn=1,
                bool        activate=false,
                int const * intra_node_lens=NULL);
      

@@ -1394,7 +1394,7 @@ namespace CTF_int {
                                 Idx_Partition const & prl_,
                                 Idx_Partition const & blk){
     Idx_Partition prl = prl_.reduce_order();
-    topology * top = new topology(prl.part.order, prl.part.lens, wrld->cdt);
+    topology * top = new topology(prl.part.order, prl.part.lens, wrld->cdt, wrld->ppn);
     int itopo = find_topology(top, wrld->topovec);
 /*    if (wrld->rank == 0){
       for (int i=0; i<wrld->topovec.size(); i++){

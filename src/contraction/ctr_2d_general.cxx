@@ -267,11 +267,11 @@ namespace CTF_int {
     find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, aux_size);
     double sz = 0.0;
     if (move_A)
-      sz += (sr_A->el_size*s_A) * ((cdt_A->np / cdt_A->intra_node_np) - 1);
+      sz += (sr_A->el_size*s_A) * cdt_A->comm_nodes;
     if (move_B)
-      sz += (sr_B->el_size*s_B) * ((cdt_B->np / cdt_B->intra_node_np) - 1);
+      sz += (sr_B->el_size*s_B) * cdt_B->comm_nodes;
     if (move_C)
-      sz += (sr_C->el_size*s_C) * ((cdt_C->np / cdt_C->intra_node_np) - 1);
+      sz += (sr_C->el_size*s_C) * cdt_C->comm_nodes;
     return (sz*(double)edge_len)/MIN(nlyr,edge_len);
   }
 

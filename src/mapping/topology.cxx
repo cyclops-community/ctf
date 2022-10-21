@@ -62,6 +62,7 @@ namespace CTF_int {
 
   topology::topology(topology const & other) : glb_comm(other.glb_comm), unord_glb_comm(other.unord_glb_comm) {
     order        = other.order;
+    ppn          = other.ppn;
 
     lens         = (int*)CTF_int::alloc(order*sizeof(int));
     memcpy(lens, other.lens, order*sizeof(int));
@@ -98,10 +99,12 @@ namespace CTF_int {
   topology::topology(int         order_,
                      int const * lens_,
                      CommData    cdt,
+                     int         ppn_,
                      bool        activate,
                      int const * intra_node_lens) : unord_glb_comm(cdt), glb_comm(cdt) {
     order        = order_;
     lens         = (int*)CTF_int::alloc(order_*sizeof(int));
+    ppn          = ppn_;
     lda          = (int*)CTF_int::alloc(order_*sizeof(int));
     dim_comm     = (CommData*)CTF_int::alloc(order_*sizeof(CommData));
     is_activated = false;
@@ -125,19 +128,53 @@ namespace CTF_int {
       is_reordered = true;
       glb_comm = CommData(new_rank, 0, cdt.np);
     }
-    int stride = 1, cut = 0;
+    int stride, cut;
+    double tot_comm_nodes[order];
     int rank = glb_comm.rank;
+    int my_color[order];
+    if (intra_node_lens == NULL) {
+      stride = 1; cut = 0;
+      for (int i = 0; i < order; i++) {
+        my_color[i] = rank / (stride * lens[i]) * stride + cut;
+        stride *= lens[i];
+        cut = (rank - (rank/stride)*stride);
+      }
+      std::vector<int> nodes[order];
+      for (int r = 0; r < glb_comm.np; r++) {
+        stride = 1; cut = 0;
+        for (int i = 0; i < order; i++) {
+          int color = r / (stride * lens[i]) * stride + cut;
+          if (color == my_color[i]) {
+            int node_id = r / ppn;
+            if (std::find(nodes[i].begin(), nodes[i].end(), node_id) == nodes[i].end()) {
+              nodes[i].push_back(node_id);
+            }
+          }
+          stride *= lens[i];
+          cut = (r - (r/stride)*stride);
+        }
+      }
+      int sum_comm_nodes[order];
+      for (int i = 0; i < order; i++) {
+        // number of nodes I need to communicate with
+        int sz = nodes[i].size() - 1;
+        MPI_Allreduce(&sz, &sum_comm_nodes[i], 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+        tot_comm_nodes[i] = sum_comm_nodes[i] / (double)glb_comm.np;
+      }
+    }
+    stride = 1; cut = 0;
     for (int i=0; i<order; i++){
       lda[i] = stride;
       if (intra_node_lens == NULL)    
         dim_comm[i] = CommData(((rank/stride)%lens[i]),
                                (((rank/(stride*lens[i]))*stride)+cut),
-                               lens[i]);
+                               lens[i],
+                               tot_comm_nodes[i]);
       else
         dim_comm[i] = CommData(((rank/stride)%lens[i]),
                                (((rank/(stride*lens[i]))*stride)+cut),
                                lens[i],
-                               intra_node_lens[i]);
+                               ((lens[i]/intra_node_lens[i])-1));
       stride*=lens[i];
       cut = (rank - (rank/stride)*stride);
     }
