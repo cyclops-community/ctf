@@ -4441,7 +4441,7 @@ namespace CTF_int {
       std::vector<int> pe_grid(orig_topo.lens, orig_topo.lens + orig_topo.order);
       std::vector<std::vector<int> > inter_node_grids = CTF_int::get_inter_node_grids(pe_grid, C->wrld->np/C->wrld->ppn);
       //std::vector< std::vector<int> > intra_node_grids = CTF_int::get_all_shapes(C->wrld->ppn()){
-      int * intra_node_lens = (int*)CTF_int::alloc((orig_topo.order+1)*sizeof(int));
+      int * intra_node_lens = (int*)CTF_int::alloc((orig_topo.order)*sizeof(int));
       int64_t best_topo_index;
       for (int64_t i=0; i<inter_node_grids.size(); i++){
         for (int j=0; j<orig_topo.order; j++){
