@@ -203,7 +203,8 @@ namespace CTF_int {
   }
 
   topology * get_phys_topo(CommData glb_comm,
-                           TOPOLOGY mach){
+                           TOPOLOGY mach,
+                           int ppn){
     int np = glb_comm.np;
     int * dl;
     int * dim_len;
@@ -211,14 +212,14 @@ namespace CTF_int {
     if (mach == NO_TOPOLOGY){
       dl = (int*)CTF_int::alloc(sizeof(int));
       dl[0] = np;
-      topo = new topology(1, dl, glb_comm, 1);
+      topo = new topology(1, dl, glb_comm, ppn, 1);
       CTF_int::cdealloc(dl);
       return topo;
     }
     if (mach == TOPOLOGY_GENERIC){
       int order;
       factorize(np, &order, &dim_len);
-      topo = new topology(order, dim_len, glb_comm, 1);
+      topo = new topology(order, dim_len, glb_comm, ppn, 1);
       if (order>0) CTF_int::cdealloc(dim_len);
       return topo;
     } else if (mach == TOPOLOGY_BGQ) {
@@ -257,7 +258,7 @@ namespace CTF_int {
       {
         int order;
         factorize(np, &order, &dim_len);
-        topo = new topology(order, dim_len, glb_comm, 1);
+        topo = new topology(order, dim_len, glb_comm, ppn, 1);
         CTF_int::cdealloc(dim_len);
         return topo;
       }
@@ -265,7 +266,7 @@ namespace CTF_int {
       int order;
       if (1<<(int)log2(np) != np){
         factorize(np, &order, &dim_len);
-        topo = new topology(order, dim_len, glb_comm, 1);
+        topo = new topology(order, dim_len, glb_comm, ppn, 1);
         CTF_int::cdealloc(dim_len);
         return topo;
       }
@@ -350,7 +351,7 @@ namespace CTF_int {
           factorize(np, &order, &dim_len);
           break;
       }
-      topo = new topology(order, dim_len, glb_comm, 1);
+      topo = new topology(order, dim_len, glb_comm, ppn, 1);
       CTF_int::cdealloc(dim_len);
       return topo;
     } else if (mach == TOPOLOGY_8D) {
@@ -358,7 +359,7 @@ namespace CTF_int {
       int * dim_len;
       if (1<<(int)log2(np) != np){
         factorize(np, &order, &dim_len);
-        topo = new topology(order, dim_len, glb_comm, 1);
+        topo = new topology(order, dim_len, glb_comm, ppn, 1);
         CTF_int::cdealloc(dim_len);
         return topo;
       }
@@ -496,14 +497,14 @@ namespace CTF_int {
           break;
 
       }
-      topo = new topology(order, dim_len, glb_comm, 1);
+      topo = new topology(order, dim_len, glb_comm, ppn, 1);
       CTF_int::cdealloc(dim_len);
       return topo;
     } else {
       int order;
       dim_len = (int*)CTF_int::alloc((log2(np)+1)*sizeof(int));
       factorize(np, &order, &dim_len);
-      topo = new topology(order, dim_len, glb_comm, 1);
+      topo = new topology(order, dim_len, glb_comm, ppn, 1);
       return topo;
     }
   }
@@ -602,17 +603,17 @@ namespace CTF_int {
   }
 
 
-  std::vector< topology* > create_topos_from_shapes(std::vector< std::vector<int>* > shapes, CommData cdt){
+  std::vector< topology* > create_topos_from_shapes(std::vector< std::vector<int>* > shapes, CommData cdt, int ppn){
     std::vector< topology* > topos;
     for (int i=0; i<(int)shapes.size(); i++){
-      topos.push_back(new topology(shapes[i]->size(), &shapes[i]->operator[](0), cdt));
+      topos.push_back(new topology(shapes[i]->size(), &shapes[i]->operator[](0), cdt, ppn));
     }
     return topos;
   }
 
-  std::vector< topology* > get_generic_topovec(CommData cdt){
+  std::vector< topology* > get_generic_topovec(CommData cdt, int ppn){
     std::vector< std::vector<int> * > shapes = get_all_shapes(cdt.np);
-    std::vector< topology* > topos = create_topos_from_shapes(shapes, cdt);
+    std::vector< topology* > topos = create_topos_from_shapes(shapes, cdt, ppn);
     for (int i=0; i<(int)shapes.size(); i++){
       delete shapes[i];
     }

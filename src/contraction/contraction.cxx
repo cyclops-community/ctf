@@ -4447,7 +4447,6 @@ namespace CTF_int {
         for (int j=0; j<orig_topo.order; j++){
           intra_node_lens[j] = orig_topo.lens[j] / inter_node_grids[i][j];
         }
-        intra_node_lens[orig_topo.order] = C->wrld->ppn;
         topology na_topo_i(orig_topo.order, orig_topo.lens, orig_topo.glb_comm, C->wrld->ppn, 0, intra_node_lens);
         // overwrite topology object in a way that also changes information in CommData objects pointed to ctrf
         C->topo->morph_to(na_topo_i);
