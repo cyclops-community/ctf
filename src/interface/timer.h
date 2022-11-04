@@ -49,7 +49,7 @@ namespace CTF {
    */
   class Timer{
     public:
-      char const * timer_name;
+      char timer_name[MAX_NAME_LENGTH];
       int index;
       int exited;
       int original;

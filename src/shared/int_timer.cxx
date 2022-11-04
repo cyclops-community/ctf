@@ -137,9 +137,12 @@ namespace CTF{
       if (index == (int)function_timers->size()) {
         function_timers->push_back(Function_timer(name, MPI_Wtime(), excl_time)); 
       }
-      timer_name = name;
+      strcpy(this->timer_name,name);
       exited = 0;
     }
+  #endif
+  #ifdef CRITTER
+    strcpy(this->timer_name,name);// Save name for subsequent critter invocation
   #endif
   }
     
@@ -152,6 +155,9 @@ namespace CTF{
         (*function_timers)[index].start_excl_time = excl_time;
       }
     }
+  #endif
+  #ifdef CRITTER
+  critter::start_timer(this->timer_name);
   #endif
   }
 
@@ -174,11 +180,15 @@ namespace CTF{
       }
     }
   #endif
+  #ifdef CRITTER
+  critter::stop_timer(this->timer_name);
+  #endif
   }
 
   Timer::~Timer(){ }
 
   void print_timers(char const * name){
+    #ifdef PROFILE
     int rank, np, i, j, len_symbols, nrecv_symbols;
 
     int is_fin = 0;
@@ -297,6 +307,7 @@ namespace CTF{
       fclose(output);
     } */
 
+    #endif
   }
 
   void Timer::exit(){

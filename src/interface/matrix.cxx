@@ -578,7 +578,9 @@ namespace CTF {
     if (this->sym[0] != NS){
       Matrix<dtype> A(this->nrow, this->ncol, *this->wrld);
       A["ij"] = this->operator[]("ij");
-      return A.cholesky(L, lower);
+      A.cholesky(L, lower);
+      t_cholesky.stop();
+      return;
     }
     int info;
     int m = this->nrow;
@@ -650,12 +652,16 @@ namespace CTF {
     if (this->sym[0] != NS){
       Matrix<dtype> B(this->nrow, this->ncol, *this->wrld);
       B["ij"] = this->operator[]("ij");
-      return B.solve_tri(L, X, lower, from_left, transp_L);
+      B.solve_tri(L, X, lower, from_left, transp_L);
+      t_solve_tri.stop();
+      return;
     }
     if (L.sym[0] != NS){
       Matrix<dtype> LF(this->nrow, this->ncol, *this->wrld);
       LF["ij"] = L["ij"];
-      return this->solve_tri(L, X, lower, from_left, transp_L);
+      this->solve_tri(L, X, lower, from_left, transp_L);
+      t_solve_tri.stop();
+      return;
     }
 
     int m = this->nrow;
@@ -748,7 +754,9 @@ namespace CTF {
     if (M.sym[0] != NS || M.edge_map[0].calc_phase() != M.edge_map[1].calc_phase()){
       Matrix<dtype> MM(M.nrow, M.ncol, "ij", proc_grid_2d["ij"], virt_grid_1d["j"], 0, *M.wrld);
       MM["ij"] = M.operator[]("ij");
-      return this->solve_spd(MM, X);
+      this->solve_spd(MM, X);
+      t_solve_spd.stop();
+      return;
     }
 
     int info;
@@ -929,7 +937,9 @@ namespace CTF {
     if (this->sym[0] != NS){
       Matrix<dtype> A(this->nrow, this->ncol, *this->wrld);
       A["ij"] = this->operator[]("ij");
-      return A.qr(Q,R);
+      A.qr(Q,R);
+      t_qr.stop();
+      return;
     }
     int info;
 
@@ -998,7 +1008,9 @@ namespace CTF {
     if (this->sym[0] != NS){
       Matrix<dtype> A(this->nrow, this->ncol, *this->wrld);
       A["ij"] = this->operator[]("ij");
-      return A.svd(U,S,VT,rank,threshold);
+      A.svd(U,S,VT,rank,threshold);
+      t_svd.stop();
+      return;
     }
 
     int info;
@@ -1143,7 +1155,9 @@ namespace CTF {
     if (this->sym[0] != NS){
       Matrix<dtype> A(this->nrow, this->ncol, *this->wrld);
       A["ij"] = this->operator[]("ij");
-      return A.svd_rand(U,S,VT,rank,iter,oversamp,U_guess);
+      A.svd_rand(U,S,VT,rank,iter,oversamp,U_guess);
+      t_svd.stop();
+      return;
     }
     int max_rank = std::min(std::min(nrow,ncol), (int64_t)rank+oversamp);
     IASSERT(rank+oversamp <= std::min(nrow,ncol) || U_guess==NULL);
@@ -1184,7 +1198,9 @@ namespace CTF {
     if (this->sym[0] != NS){
       Matrix<dtype> A(this->nrow, this->ncol, *this->wrld);
       A["ij"] = this->operator[]("ij");
-      return A.eigh(U,D);
+      A.eigh(U,D);
+      t_eigh.stop();
+      return;
     }
     int info;
 

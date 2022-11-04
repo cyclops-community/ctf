@@ -43,6 +43,15 @@ namespace CTF {
   else CTF::set_context((MPI_Comm)ARG);
 #endif
 
+#ifdef CRITTER
+#define TAU_FSTART CRITTER_START
+#define TAU_FSTOP CRITTER_STOP
+#endif
+
+#if !defined(PROFILE) && !defined(CRITTER)
+#define TAU_FSTART(ARG)
+#define TAU_FSTOP(ARG)
+#endif
 
 #endif
 
