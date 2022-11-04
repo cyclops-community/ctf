@@ -23,6 +23,7 @@ void train_off_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, b
 void train_ttm(int64_t sz, int64_t r, World & dw){
   Timer TTM("TTM");
   TTM.start();
+  srand48(dw.rank);
   for (int order=2; order<7; order++){
     int64_t n = 1;
     while (std::pow(n,order) < sz){
@@ -87,6 +88,7 @@ void train_ttm(int64_t sz, int64_t r, World & dw){
 void train_sparse_mttkrp(int64_t sz, int64_t R, World & dw){
   Timer sMTTKRP("sMTTKRP");
   sMTTKRP.start();
+  srand48(dw.rank);
   for (double sp = .1; sp>.000001; sp*=.25){
     int64_t n = (int64_t)cbrt(sz/sp);
     int64_t lens[3] = {n, n, n};
@@ -223,6 +225,7 @@ void train_sps_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, b
 void train_ccsd(int64_t n, int64_t m, World & dw){
   Timer ccsd_t("CCSD");
   ccsd_t.start();
+  srand48(dw.rank);
   int nv = sqrt(n);
   int no = sqrt(m);
   Integrals V(no, nv, dw);
@@ -271,18 +274,15 @@ void train_world(double dtime, World & dw, double step_size){
       }
       train_sparse_mttkrp(n*m/8, m, dw);
       train_dns_vec_mat(n, m, dw);
-      train_sps_vec_mat(n-2, m, dw, 0, 0, 0);
-      train_sps_vec_mat(n-4, m-2, dw, 1, 0, 0);
-      train_sps_vec_mat(n-1, m-4, dw, 1, 1, 0);
-      train_sps_vec_mat(n-2, m-3, dw, 1, 1, 1);
-      train_off_vec_mat(n+7, m-4, dw, 0, 0, 0);
-      train_off_vec_mat(n-2, m+6, dw, 1, 0, 0);
-      train_off_vec_mat(n-5, m+2, dw, 1, 1, 0);
-      train_off_vec_mat(n-3, m-1, dw, 1, 1, 1);
-      train_ccsd(n/2, m/2, dw);
+      train_sps_vec_mat(n, m, dw, 0, 0, 0);
+      train_sps_vec_mat(n, m, dw, 0, 0, 1);
+      train_off_vec_mat(n, m, dw, 0, 0, 0);
+      train_off_vec_mat(n, m, dw, 1, 0, 0);
+      train_off_vec_mat(n, m, dw, 1, 1, 0);
+      train_off_vec_mat(n, m, dw, 1, 1, 1);
+      train_ccsd(n, m, dw);
       train_sparse_mp3(n,m,dw);
       niter++;
-      // m *= 1.9;
       m *= step_size;
       n += 2;
       ctime = MPI_Wtime() - t_st;
@@ -310,7 +310,8 @@ void frize(std::set<int> & ps, int p){
   }
 }
 
-void train_all(double time, bool write_coeff, bool dump_data, std::string coeff_file, std::string data_dir){
+void train_all(double time, bool write_coeff, bool dump_data, std::string coeff_file, std::string data_dir,
+               int num_iterations, double time_jump, int verbose){
   World dw(MPI_COMM_WORLD);
   int np = dw.np;
   int rank;
@@ -333,13 +334,6 @@ void train_all(double time, bool write_coeff, bool dump_data, std::string coeff_
   MPI_Comm_split(dw.comm, color, key, &cm);
   World w(cm);
 
-  // number of iterations for training
-  int num_iterations = 5;
-
-  // control how much dtime should be increased upon each iteration
-  // dtime = dtime * time_dump at the end of each iteration
-  double time_jump = 1.5;
-
   double dtime = (time / (1- 1/time_jump)) / pow(time_jump, num_iterations - 1.0);
   for (int i=0; i<num_iterations; i++){
     // TODO probably need to adjust
@@ -351,7 +345,7 @@ void train_all(double time, bool write_coeff, bool dump_data, std::string coeff_
     if (color != end_color){
       train_world(dtime/5, w, step_size);
       CTF_int::update_all_models(cm);
-      if (rank == 0){
+      if (rank == 0 && verbose == 1){
         printf("Completed training round 1/5\n");
       }
     }
@@ -359,13 +353,13 @@ void train_all(double time, bool write_coeff, bool dump_data, std::string coeff_
     if (color != end_color)
       train_world(dtime/5, w, step_size);
     CTF_int::update_all_models(MPI_COMM_WORLD);
-    if (rank == 0){
+    if (rank == 0 && verbose == 1){
       printf("Completed training round 2/5\n");
     }
     if (color != end_color){
       train_world(dtime/5, w, step_size);
       CTF_int::update_all_models(cm);
-      if (rank == 0){
+      if (rank == 0 && verbose == 1){
         printf("Completed training round 3/5\n");
       }
     }
@@ -373,13 +367,13 @@ void train_all(double time, bool write_coeff, bool dump_data, std::string coeff_
     if (color != end_color)
       train_world(dtime/5, w, step_size);
     CTF_int::update_all_models(MPI_COMM_WORLD);
-    if (rank == 0){
+    if (rank == 0 && verbose == 1){
       printf("Completed training round 4/5\n");
     }
     train_world(dtime/5, dw, step_size);
     CTF_int::update_all_models(MPI_COMM_WORLD);
 
-    if (rank == 0){
+    if (rank == 0 && verbose == 1){
       printf("Completed training round 5/5\n");
     }
     // double dtime for next iteration
@@ -409,8 +403,8 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np;
-  double time;
+  int rank, np, num_iterations, verbose;
+  double time, time_jump;
   char * file_path;
   int const in_num = argc;
   char ** input_str = argv;
@@ -428,6 +422,21 @@ int main(int argc, char ** argv){
     if (time < 0) time = 5.0;
   } else time = 5.0;
 
+ if (getCmdOption(input_str, input_str+in_num, "-verbose")){
+   verbose = atoi(getCmdOption(input_str, input_str+in_num, "-verbose"));
+  if (verbose < 0 || verbose > 1) verbose = 0;
+  } else verbose = 0;
+
+  // number of iterations for training
+  if (getCmdOption(input_str, input_str+in_num, "-niter")){
+  num_iterations = atoi(getCmdOption(input_str, input_str+in_num, "-niter"));
+  } else num_iterations = 5;
+
+  // control how much dtime should be increased upon each iteration
+  // dtime = dtime * time_jump at the end of each iteration
+  if (getCmdOption(input_str, input_str+in_num, "-time_jump")){
+  time_jump = atof(getCmdOption(input_str, input_str+in_num, "-time_jump"));
+  } else time_jump = 1.5;
 
   // Boolean expression that are used to pass command line argument to function train_all
   bool write_coeff = false;
@@ -460,7 +469,7 @@ int main(int argc, char ** argv){
       printf("Executing a wide set of contractions to train model with time budget of %lf sec\n", time);
       if (write_coeff) printf("At the end of execution write new coefficients will be written to model file %s\n",file_path);
     }
-    train_all(time, write_coeff, dump_data, coeff_file, data_dir_str);
+    train_all(time, write_coeff, dump_data, coeff_file, data_dir_str, num_iterations, time_jump, verbose);
   }
 
 
