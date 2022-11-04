@@ -12,7 +12,8 @@ typedef foMPI_Win CTF_Win;
 #define MPI_Put(...) foMPI_Put(__VA_ARGS__)
 #else
 #ifdef CRITTER
-#include "critter.h"
+#include "critter_mpi.h"
+#include "critter_symbol.h"
 #else
 #include <mpi.h>
 #endif

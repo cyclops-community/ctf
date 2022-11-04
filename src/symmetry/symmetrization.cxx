@@ -76,14 +76,14 @@ namespace CTF_int {
     #ifdef PROF_SYM
     if (sym_tsr->wrld->rank == 0) 
       VPRINTF(2,"Desymmetrizing %s\n", sym_tsr->name);
+    CTF::Timer t_pf(spf);
+    t_pf.start();
     if (sym_tsr->profile) {
       char spf[80];
       strcpy(spf,"desymmetrize_");
       strcat(spf,sym_tsr->name);
-      CTF::Timer t_pf(spf);
       if (sym_tsr->wrld->rank == 0) 
         VPRINTF(2,"Desymmetrizing %s\n", sym_tsr->name);
-      t_pf.start();
     }
     #endif
 
@@ -229,9 +229,8 @@ namespace CTF_int {
       char spf[80];
       strcpy(spf,"desymmetrize_");
       strcat(spf,sym_tsr->name);
-      CTF::Timer t_pf(spf);
-      t_pf.stop();
     }
+    t_pf.stop();
     #endif
 
     TAU_FSTOP(desymmetrize);
@@ -247,14 +246,14 @@ namespace CTF_int {
     TAU_FSTART(symmetrize);
     
     #ifdef PROF_SYM
+    CTF::Timer t_pf(spf);
+    t_pf.start();
     if (sym_tsr->profile) {
       char spf[80];
       strcpy(spf,"symmetrize_");
       strcat(spf,sym_tsr->name);
-      CTF::Timer t_pf(spf);
       if (sym_tsr->wrld->rank == 0) 
         VPRINTF(2,"Symmetrizing %s\n", sym_tsr->name);
-      t_pf.start();
     }
     #endif
 
@@ -391,9 +390,8 @@ namespace CTF_int {
       char spf[80];
       strcpy(spf,"symmetrize_");
       strcat(spf,sym_tsr->name);
-      CTF::Timer t_pf(spf);
-      t_pf.stop();
     }
+    t_pf.stop();
     #endif
 
 

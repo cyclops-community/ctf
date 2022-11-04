@@ -2,7 +2,8 @@
 #define __PMPI_H__
 
 #ifdef CRITTER
-#include "critter.h"
+#include "critter_mpi.h"
+#include "critter_symbol.h"
 #else
 #include <mpi.h>
 #endif
