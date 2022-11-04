@@ -137,7 +137,7 @@ namespace CTF{
       if (index == (int)function_timers->size()) {
         function_timers->push_back(Function_timer(name, MPI_Wtime(), excl_time)); 
       }
-      timer_name = name;
+      strcpy(this->timer_name,name);
       exited = 0;
     }
   #endif
