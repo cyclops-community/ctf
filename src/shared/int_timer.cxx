@@ -157,7 +157,7 @@ namespace CTF{
     }
   #endif
   #ifdef CRITTER
-  critter::start_timer(this->timer_name);
+  critter_start_timer(this->timer_name);
   #endif
   }
 
@@ -181,7 +181,7 @@ namespace CTF{
     }
   #endif
   #ifdef CRITTER
-  critter::stop_timer(this->timer_name);
+  critter_stop_timer(this->timer_name);
   #endif
   }
 
