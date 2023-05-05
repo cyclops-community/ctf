@@ -16,7 +16,7 @@ def _ord_comp(o1,o2):
 
 
 type_index = {}
-type_index[np.bool] = 1
+type_index[np.bool_] = 1
 type_index[np.int32] = 2
 type_index[np.int64] = 3
 type_index[np.float32] = 4
