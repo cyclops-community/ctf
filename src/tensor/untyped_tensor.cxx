@@ -293,8 +293,6 @@ namespace CTF_int {
   }
 
   void tensor::copy_tensor_data(tensor const * other){
-    //FIXME: do not unfold
-//      if (other->is_folded) other->unfold();
     ASSERT(!other->is_folded);
     ASSERT(other->is_mapped);
 
