@@ -6,15 +6,9 @@
 
 namespace CTF_int {
 
-#ifdef USE_MPI_CPP
-  MPI_Datatype MPI_CTF_BOOL = MPI::BOOL;
-  MPI_Datatype MPI_CTF_DOUBLE_COMPLEX = MPI::DOUBLE_COMPLEX;
-  MPI_Datatype MPI_CTF_LONG_DOUBLE_COMPLEX = MPI::LONG_DOUBLE_COMPLEX;
-#else
   MPI_Datatype MPI_CTF_BOOL = MPI_CXX_BOOL;
   MPI_Datatype MPI_CTF_DOUBLE_COMPLEX = MPI_CXX_DOUBLE_COMPLEX;
   MPI_Datatype MPI_CTF_LONG_DOUBLE_COMPLEX = MPI_CXX_LONG_DOUBLE_COMPLEX;
-#endif
 
 #if USE_MKL
   void def_coo_to_csr_fl(int64_t nz, int nrow, float * csr_vs, int * csr_ja, int * csr_ia, float * coo_vs, int * coo_rs, int * coo_cs, bool to_csr){
