@@ -22,6 +22,10 @@ namespace CTF_int {
       virtual void load_coeff(std::string file_name){};
       virtual void write_coeff(std::string file_name){};
       virtual void dump_data(std::string path){};
+
+    protected:
+      /** \brief number of (learned) coefficients comprising the global model */
+      int num_model_coefficients;
   };
 
   void update_all_models(MPI_Comm cm);
@@ -75,7 +79,7 @@ namespace CTF_int {
 
       /**
        * \brief constructor
-       * \param[in] init_guess array of size nparam consisting of initial model parameter guesses
+       * \param[in] init_guess array of size nparam+1 consisting of initial model parameter guesses
        * \param[in] name identifier
        * \param[in] hist_size number of times to keep in history
        */
@@ -153,7 +157,7 @@ namespace CTF_int {
     public:
       /**
        * \brief constructor
-       * \param[in] init_guess array of size nparam consisting of initial model parameter guesses
+       * \param[in] init_guess array of size nparam+1 consisting of initial model parameter guesses
        * \param[in] name identifier
        * \param[in] hist_size number of times to keep in history
        */
