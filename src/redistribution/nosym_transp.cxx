@@ -12,9 +12,9 @@
 namespace CTF_int {
 
   //static double init_ct_ps[] = {COST_LATENCY, 1.5*COST_MEMBW};
-  LinModel<2> long_contig_transp_mdl(long_contig_transp_mdl_init,"long_contig_transp_mdl");
-  LinModel<2> shrt_contig_transp_mdl(shrt_contig_transp_mdl_init,"shrt_contig_transp_mdl");
-  LinModel<2> non_contig_transp_mdl(non_contig_transp_mdl_init,"non_contig_transp_mdl");
+  Model* long_contig_transp_mdl = select_model<2>(long_contig_transp_mdl_init,"long_contig_transp_mdl");
+  Model* shrt_contig_transp_mdl = select_model<2>(shrt_contig_transp_mdl_init,"shrt_contig_transp_mdl");
+  Model* non_contig_transp_mdl = select_model<2>(non_contig_transp_mdl_init,"non_contig_transp_mdl");
 
 
 //#define OPT_NOSYM_TR
@@ -448,11 +448,11 @@ namespace CTF_int {
       double tps[] = {0.0, 1.0, (double)tot_sz};
       bool should_run = true;
       if (contig0 < 4){
-        should_run = non_contig_transp_mdl.should_observe(tps);
+        should_run = non_contig_transp_mdl->should_observe(tps);
       } else if (contig0 <= 64){
-        should_run = shrt_contig_transp_mdl.should_observe(tps);
+        should_run = shrt_contig_transp_mdl->should_observe(tps);
       } else {
-        should_run = long_contig_transp_mdl.should_observe(tps);
+        should_run = long_contig_transp_mdl->should_observe(tps);
       }
       if (!should_run) return;
     }
@@ -509,11 +509,11 @@ namespace CTF_int {
     double exe_time = MPI_Wtime() - st_time;
     double tps[] = {exe_time, 1.0, (double)tot_sz};
     if (contig0 < 4){
-      non_contig_transp_mdl.observe(tps);
+      non_contig_transp_mdl->observe(tps);
     } else if (contig0 <= 64){
-      shrt_contig_transp_mdl.observe(tps);
+      shrt_contig_transp_mdl->observe(tps);
     } else {
-      long_contig_transp_mdl.observe(tps);
+      long_contig_transp_mdl->observe(tps);
     }
 #endif
     TAU_FSTOP(nosym_transpose);
@@ -780,11 +780,11 @@ namespace CTF_int {
     //this model ignores cache-line size
     double ps[] = {1.0, (double)tot_sz};
     if (contig0 < 4){
-      return non_contig_transp_mdl.est_time(ps);
+      return non_contig_transp_mdl->est_time(ps);
     } else if (contig0 <= 64){
-      return shrt_contig_transp_mdl.est_time(ps);
+      return shrt_contig_transp_mdl->est_time(ps);
     } else {
-      return long_contig_transp_mdl.est_time(ps);
+      return long_contig_transp_mdl->est_time(ps);
     }
   }
 

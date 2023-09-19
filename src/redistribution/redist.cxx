@@ -445,11 +445,11 @@ namespace CTF_int {
   }
 
   //static double init_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW};
-  LinModel<2> blres_mdl(blres_mdl_init,"blres_mdl");
+  Model* blres_mdl = select_model<2>(blres_mdl_init,"blres_mdl");
 
   double blres_est_time(int64_t tot_sz, int nv0, int nv1){
     double ps[] = {(double)nv0+nv1, (double)tot_sz};
-    return blres_mdl.est_time(ps);
+    return blres_mdl->est_time(ps);
   }
 
   void block_reshuffle(distribution const & old_dist,
@@ -519,7 +519,7 @@ namespace CTF_int {
     tps[1] = (double)num_old_virt+num_new_virt;
     tps[2] = (double)std::max(new_dist.size, new_dist.size);
 
-    if (!(blres_mdl.should_observe(tps))){
+    if (!(blres_mdl->should_observe(tps))){
       cdealloc(idx);
       cdealloc(old_loc_lda);
       cdealloc(new_loc_lda);
@@ -608,7 +608,7 @@ namespace CTF_int {
     tps[0] = exe_time;
     tps[1] = (double)num_old_virt+num_new_virt;
     tps[2] = (double)std::max(new_dist.size, new_dist.size);
-    blres_mdl.observe(tps);
+    blres_mdl->observe(tps);
     free(tps);
 #endif
 

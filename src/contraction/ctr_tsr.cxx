@@ -389,12 +389,12 @@ namespace CTF_int {
   int64_t seq_tsr_ctr::mem_fp(){ return 0; }
 
   //double seq_tsr_ctr_mig[] = {1e-6, 9.30e-11, 5.61e-10};
-  LinModel<3> seq_tsr_ctr_mdl_cst(seq_tsr_ctr_mdl_cst_init,"seq_tsr_ctr_mdl_cst");
-  LinModel<3> seq_tsr_ctr_mdl_ref(seq_tsr_ctr_mdl_ref_init,"seq_tsr_ctr_mdl_ref");
-  LinModel<3> seq_tsr_ctr_mdl_inr(seq_tsr_ctr_mdl_inr_init,"seq_tsr_ctr_mdl_inr");
-  LinModel<3> seq_tsr_ctr_mdl_off(seq_tsr_ctr_mdl_off_init,"seq_tsr_ctr_mdl_off");
-  LinModel<3> seq_tsr_ctr_mdl_cst_inr(seq_tsr_ctr_mdl_cst_inr_init,"seq_tsr_ctr_mdl_cst_inr");
-  LinModel<3> seq_tsr_ctr_mdl_cst_off(seq_tsr_ctr_mdl_cst_off_init,"seq_tsr_ctr_mdl_cst_off");
+  Model* seq_tsr_ctr_mdl_cst = select_model<3>(seq_tsr_ctr_mdl_cst_init,"seq_tsr_ctr_mdl_cst");
+  Model* seq_tsr_ctr_mdl_ref = select_model<3>(seq_tsr_ctr_mdl_ref_init,"seq_tsr_ctr_mdl_ref");
+  Model* seq_tsr_ctr_mdl_inr = select_model<3>(seq_tsr_ctr_mdl_inr_init,"seq_tsr_ctr_mdl_inr");
+  Model* seq_tsr_ctr_mdl_off = select_model<3>(seq_tsr_ctr_mdl_off_init,"seq_tsr_ctr_mdl_off");
+  Model* seq_tsr_ctr_mdl_cst_inr = select_model<3>(seq_tsr_ctr_mdl_cst_inr_init,"seq_tsr_ctr_mdl_cst_inr");
+  Model* seq_tsr_ctr_mdl_cst_off = select_model<3>(seq_tsr_ctr_mdl_cst_off_init,"seq_tsr_ctr_mdl_cst_off");
 
   uint64_t seq_tsr_ctr::est_membw(){
     uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A)*sr_A->el_size;
@@ -438,21 +438,21 @@ namespace CTF_int {
     double ps[] = {1.0, (double)est_membw(), est_fp()};
 //    printf("time estimate is %lf\n", seq_tsr_ctr_mdl.est_time(ps));
     if (is_custom && !is_inner){
-      return seq_tsr_ctr_mdl_cst.est_time(ps);
+      return seq_tsr_ctr_mdl_cst->est_time(ps);
     } else if (is_inner){
       if (is_custom){
         if (inner_params.offload)
-          return seq_tsr_ctr_mdl_cst_off.est_time(ps);
+          return seq_tsr_ctr_mdl_cst_off->est_time(ps);
         else
-          return seq_tsr_ctr_mdl_cst_inr.est_time(ps);
+          return seq_tsr_ctr_mdl_cst_inr->est_time(ps);
       } else {
         if (inner_params.offload)
-          return seq_tsr_ctr_mdl_off.est_time(ps);
+          return seq_tsr_ctr_mdl_off->est_time(ps);
         else
-          return seq_tsr_ctr_mdl_inr.est_time(ps);
+          return seq_tsr_ctr_mdl_inr->est_time(ps);
       }
     } else
-      return seq_tsr_ctr_mdl_ref.est_time(ps);
+      return seq_tsr_ctr_mdl_ref->est_time(ps);
     assert(0); //wont make it here
     return 0.0;
   }
@@ -469,25 +469,25 @@ namespace CTF_int {
     bool sr;
     if (is_custom && !is_inner){
       double tps[] = {0, 1.0, (double)est_membw(), est_fp()};
-      sr = seq_tsr_ctr_mdl_cst.should_observe(tps);
+      sr = seq_tsr_ctr_mdl_cst->should_observe(tps);
     } else if (is_inner){
       ASSERT(is_custom || func == NULL);
       double tps[] = {0.0, 1.0, (double)est_membw(), est_fp()};
       if (is_custom){
         if (inner_params.offload)
-          sr = seq_tsr_ctr_mdl_cst_off.should_observe(tps);
+          sr = seq_tsr_ctr_mdl_cst_off->should_observe(tps);
         else
-          sr = seq_tsr_ctr_mdl_cst_inr.should_observe(tps);
+          sr = seq_tsr_ctr_mdl_cst_inr->should_observe(tps);
       } else {
         if (inner_params.offload)
-          sr = seq_tsr_ctr_mdl_off.should_observe(tps);
+          sr = seq_tsr_ctr_mdl_off->should_observe(tps);
         else
-          sr = seq_tsr_ctr_mdl_inr.should_observe(tps);
+          sr = seq_tsr_ctr_mdl_inr->should_observe(tps);
       }
 
     } else {
        double tps[] = {0.0, 1.0, (double)est_membw(), est_fp()};
-       sr = seq_tsr_ctr_mdl_ref.should_observe(tps);
+       sr = seq_tsr_ctr_mdl_ref->should_observe(tps);
     }
 
     if (!sr) return;
@@ -518,11 +518,11 @@ namespace CTF_int {
                        func);
       double exe_time = MPI_Wtime()-st_time;
       double tps[] = {exe_time, 1.0, (double)est_membw(), est_fp()};
-      seq_tsr_ctr_mdl_cst.observe(tps);
+      seq_tsr_ctr_mdl_cst->observe(tps);
     } else if (is_inner){
       ASSERT(is_custom || func == NULL);
 //      double ps[] = {1.0, (double)est_membw(), est_fp()};
-//      double est_time = seq_tsr_ctr_mdl_inr.est_time(ps);
+//      double est_time = seq_tsr_ctr_mdl_inr->est_time(ps);
       double st_time = MPI_Wtime();
       sym_seq_ctr_inr(this->alpha,
                       A,
@@ -551,14 +551,14 @@ namespace CTF_int {
       double tps[] = {exe_time, 1.0, (double)est_membw(), est_fp()};
       if (is_custom){
         if (inner_params.offload)
-          seq_tsr_ctr_mdl_cst_off.observe(tps);
+          seq_tsr_ctr_mdl_cst_off->observe(tps);
         else
-          seq_tsr_ctr_mdl_cst_inr.observe(tps);
+          seq_tsr_ctr_mdl_cst_inr->observe(tps);
       } else {
         if (inner_params.offload)
-          seq_tsr_ctr_mdl_off.observe(tps);
+          seq_tsr_ctr_mdl_off->observe(tps);
         else
-          seq_tsr_ctr_mdl_inr.observe(tps);
+          seq_tsr_ctr_mdl_inr->observe(tps);
       }
 //      seq_tsr_ctr_mdl_inr.print_param_guess();
     } else {
@@ -585,7 +585,7 @@ namespace CTF_int {
                       idx_map_C);
       double exe_time = MPI_Wtime()-st_time;
       double tps[] = {exe_time, 1.0, (double)est_membw(), est_fp()};
-      seq_tsr_ctr_mdl_ref.observe(tps);
+      seq_tsr_ctr_mdl_ref->observe(tps);
     }
   }
 

@@ -840,4 +840,5 @@ namespace CTF_int {
   template class CubicModel<2>;
   template class CubicModel<3>;
   template class CubicModel<4>;
+
 }

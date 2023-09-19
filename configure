@@ -1297,6 +1297,7 @@ $SPMKL_COMMENT
 #then recompile with parameters without -DTUNE
 #Note: -DTUNE requires lapack (include -mkl or -llapack in LIBS) and the inclusion of above performance profiling flags
 #DEFS       += -DTUNE
+#NOTE: Should also specify the following environment variables: MODEL_TYPE and MAX_NUM_OBSERVATIONS. Possible options for MODEL_TYPE are Global.
 
 ### Optional: DEBUGGING AND VERBOSITY
 #uncomment below to enable CTF execution output (1 for basic contraction information on start-up and contractions)
