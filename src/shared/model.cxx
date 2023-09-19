@@ -709,14 +709,12 @@ namespace CTF_int {
         std::string model_name = std::string(name);
         ofs.open(path+"/"+model_name, std::ofstream::out | std::ofstream::app);
 
-        if (my_rank == 0){
-            // Dump the model coeffs
-            for(int i=0; i<nparam; i++){
-              ofs<<coeff_guess[i]<<" ";
-            }
-            ofs<<"\n";
+        // Write a header row explaining each column of subsequent data
+        ofs << "execution_time";
+        for(int j=1; j<mat_lda; j++){
+	  ofs << " parameter" << j;
         }
-
+        ofs << std::endl;
         // Dump the training data
         int num_records = std::min(nobs, (int64_t)hist_size);
         for(int i=0; i<num_records; i++){
