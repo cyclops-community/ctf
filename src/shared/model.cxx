@@ -105,7 +105,7 @@ namespace CTF_int {
 
   template <int nparam>
   struct time_param {
-    double p[nparam+1];
+    double p[nparam+1];	// '+1' is to include observed execution time
   };
 
   template <int nparam>
@@ -121,7 +121,7 @@ namespace CTF_int {
     //initialize the model as active by default
     is_active = true;
     //copy initial static coefficients to initialzie model (defined in init_model.cxx)
-    memcpy(coeff_guess, init_guess, nparam*sizeof(double));
+    memcpy(coeff_guess, init_guess, this->num_model_coefficients*sizeof(double));
     name = (char*)malloc(strlen(name_)+1);
     name[0] = '\0';
     strcpy(name, name_);
@@ -130,7 +130,7 @@ namespace CTF_int {
       regularization[i] = coeff_guess[i]*REG_LAMBDA;
     }*/
     hist_size = hist_size_;
-    mat_lda = nparam+1;
+    mat_lda = nparam+2;// includes execution time and coefficient (1.0) of bias term.
     time_param_mat = (double*)malloc(mat_lda*hist_size*sizeof(double));
     nobs = 0;
     is_tuned = false;
@@ -192,7 +192,10 @@ namespace CTF_int {
     assert(tp[0] >= 0.0);
 
     // Add the new instance of run process into time_param_mat
-    memcpy(time_param_mat+(nobs%hist_size)*mat_lda, tp, mat_lda*sizeof(double));
+    // This includes observed execution time, 1. for a bias term, and the observed input parameters.
+    time_param_mat[(nobs%hist_size)*mat_lda] = tp[0];
+    time_param_mat[(nobs%hist_size)*mat_lda + 1] = 1.;
+    memcpy(time_param_mat+(nobs%hist_size)*mat_lda + 2, tp+2, nparam*sizeof(double));
   /*   if (nobs < hist_size){
       memcpy(time_param_mat+nobs*mat_lda, tp, mat_lda*sizeof(double));
     } else {
@@ -224,7 +227,7 @@ namespace CTF_int {
   template <int nparam>
   void LinModel<nparam>::update(MPI_Comm cm){
 #ifdef TUNE
-    double S[nparam];
+    double S[this->num_model_coefficients];
     int lwork, liwork;
     double * work;
     int * iwork;
@@ -247,8 +250,8 @@ namespace CTF_int {
     //define the number of cols in the matrix to be the min of the number of observations and
     //the number we are willing to store (hist_size)
     int nrcol = std::min(nobs,(int64_t)hist_size);
-    //max of the number of local observations and nparam (will usually be the former)
-    int ncol = std::max(nrcol, nparam);
+    //max of the number of local observations and this->num_model_coefficients (will usually be the former)
+    int ncol = std::max(nrcol, this->num_model_coefficients);
     /*  time_param * sort_mat = (time_param*)malloc(sizeof(time_param)*ncol);
       memcpy(sort_mat, time_param_mat, sizeof(time_param)*ncol);
       std::sort(sort_mat, sort_mat+ncol, &comp_time_param);*/
@@ -257,52 +260,52 @@ namespace CTF_int {
     //compute the total number of observations over all processors
     MPI_Allreduce(&nrcol, &tot_nrcol, 1, MPI_INT, MPI_SUM, cm);
 
-    //if there has been more than 16*nparam observations per processor, tune the model
-    if (tot_nrcol >= 16.*np*nparam){
+    //if there has been more than 16*this->num_model_coefficients observations per processor, tune the model
+    if (tot_nrcol >= 16.*np*this->num_model_coefficients){
       is_tuned = true;
 
-      //add nparam to ncol to include regularization, don't do so if the number of local
+      //add this->num_model_coefficients to ncol to include regularization, don't do so if the number of local
       //observatins is less than the number of params, as in this case, the processor will
       //not do any local tuning
-      if (nrcol >= nparam) ncol += nparam;
+      if (nrcol >= this->num_model_coefficients) ncol += this->num_model_coefficients;
 
-      double * R = (double*)malloc(sizeof(double)*nparam*nparam);
+      double * R = (double*)malloc(sizeof(double)*this->num_model_coefficients*this->num_model_coefficients);
       double * b = (double*)malloc(sizeof(double)*ncol);
-      //if number of local observations less than than nparam don't do local QR
-      if (nrcol < nparam){
-        std::fill(R, R+nparam*nparam, 0.0);
+      //if number of local observations less than than this->num_model_coefficients don't do local QR
+      if (nrcol < this->num_model_coefficients){
+        std::fill(R, R+this->num_model_coefficients*this->num_model_coefficients, 0.0);
         std::fill(b, b+ncol, 0.0);
         //regularization done on every processor
 /*        if (rk == 0){
-          lda_cpy(sizeof(double), 1, nparam, 1, nparam, (char const*)regularization, (char*)R);
+          lda_cpy(sizeof(double), 1, this->num_model_coefficients, 1, this->num_model_coefficients, (char const*)regularization, (char*)R);
         }*/
       } else {
         //define tall-skinny matrix A that is almost the transpose of time_param, but excludes the first row of time_param (that has execution times that we will put into b
-        double * A = (double*)malloc(sizeof(double)*nparam*ncol);
+        double * A = (double*)malloc(sizeof(double)*this->num_model_coefficients*ncol);
         int i_st = 0;
 
         //figure out the maximum execution time any observation recorded
         // double max_time = 0.0;
-        // for (int i=0; i<ncol-nparam; i++){
+        // for (int i=0; i<ncol-this->num_model_coefficients; i++){
         //   max_time = std::max(time_param_mat[i*mat_lda],max_time);
         // }
-        /*for (int i=0; i<nparam; i++){
-          R[nparam*i+i] = REG_LAMBDA;
+        /*for (int i=0; i<this->num_model_coefficients; i++){
+          R[this->num_model_coefficients*i+i] = REG_LAMBDA;
         }*/
         // do regularization
         if (true){ //rk == 0){
-//          lda_cpy(sizeof(double), 1, nparam, 1, ncol, (char const*)regularization, (char*)A);
+//          lda_cpy(sizeof(double), 1, this->num_model_coefficients, 1, ncol, (char const*)regularization, (char*)A);
           //regularization done on every processor
           //                                         parameter observs.  coeffs.  times (sec)
-          //matrix Ax~=b has the form, e.g. nparam=2 [ REG_LAMBDA   0 ] [ x_1 ] = [ 0     ]
+          //matrix Ax~=b has the form, e.g. nparam=1 [ REG_LAMBDA   0 ] [ x_1 ] = [ 0     ]
           //                                         [ 0   REG_LAMBDA ] [ x_2 ]   [ 0     ]
           //                                         [ obs1p1  obs1p2 ]           [ obs1t ]
           // obsxpy is the yth parameter as observed [ obs2p1  obs2p2 ]           [ obs2t ]
           // in observation x                        [ ...     ...    ]           [ ...   ]
           // obsxt is the exe time of observation x  
-          for (int i=0; i<nparam; i++){
+          for (int i=0; i<this->num_model_coefficients; i++){
             b[i] = 0.0;
-            for (int j=0; j<nparam; j++){
+            for (int j=0; j<this->num_model_coefficients; j++){
               if (i==j){
                 if (coeff_guess[i] != 0.0){
                   A[ncol*j+i] = std::min(REG_LAMBDA,(avg_tot_time/coeff_guess[i])/1000.);
@@ -312,7 +315,7 @@ namespace CTF_int {
               } else      A[ncol*j+i] = 0.0;
             }
           }
-          i_st = nparam;
+          i_st = this->num_model_coefficients;
         }
         //find the max execution time over all processors
         // MPI_Allreduce(MPI_IN_PLACE, &max_time, 1, MPI_DOUBLE, MPI_MAX, cm);
@@ -326,7 +329,7 @@ namespace CTF_int {
           if (0){
           //if (time_param_mat[(i-i_st)*mat_lda] > max_time/3.){
             b[i] = 0.0;
-            for (int j=0; j<nparam; j++){
+            for (int j=0; j<this->num_model_coefficients; j++){
               A[i+j*ncol] = 0.0;
             }
           } else {
@@ -336,13 +339,13 @@ namespace CTF_int {
             //double rt_chnks = std::sqrt(b[i] / chunk);
             //double sfactor = rt_chnks/b[i];
             //b[i] = rt_chnks;
-            for (int j=0; j<nparam; j++){
+            for (int j=0; j<this->num_model_coefficients; j++){
               A[i+j*ncol] = /*sfactor**/time_param_mat[(i-i_st)*mat_lda+j+1];
             }
           }
         }
         /*for (int i=0; i<ncol; i++){
-          for (int j=0; j<nparam; j++){
+          for (int j=0; j<this->num_model_coefficients; j++){
             printf("%+1.3e ", A[i+j*ncol]);
           }
           printf (" |  %+1.3e\n",b[i]);
@@ -350,23 +353,23 @@ namespace CTF_int {
 
         //sequential code for fitting Ax=b (NOT USED, only works if running with 1 processor)
         if (false && np == 1){
-          cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, &dlwork, -1, &liwork, &info);
+          cdgelsd(ncol, this->num_model_coefficients, 1, A, ncol, b, ncol, S, -1, &rank, &dlwork, -1, &liwork, &info);
           assert(info == 0);
           lwork = (int)dlwork;
           work = (double*)malloc(sizeof(double)*lwork);
           iwork = (int*)malloc(sizeof(int)*liwork);
           std::fill(iwork, iwork+liwork, 0);
-          cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, work, lwork, iwork, &info);
+          cdgelsd(ncol, this->num_model_coefficients, 1, A, ncol, b, ncol, S, -1, &rank, work, lwork, iwork, &info);
           //cdgeqrf(
           assert(info == 0);
           free(work);
           free(iwork);
           free(A);
-          memcpy(coeff_guess, b, nparam*sizeof(double));
+          memcpy(coeff_guess, b, this->num_model_coefficients*sizeof(double));
           /*print();
           double max_resd_sq = 0.0;
-          for (int i=0; i<ncol-nparam; i++){
-            max_resd_sq = std::max(max_resd_sq, b[nparam+i]);
+          for (int i=0; i<ncol-this->num_model_coefficients; i++){
+            max_resd_sq = std::max(max_resd_sq, b[this->num_model_coefficients+i]);
           }
           printf("%s max residual sq is %lf\n",name,max_resd_sq);
           double max_err = 0.0;
@@ -379,27 +382,27 @@ namespace CTF_int {
         }
 
         //otherwise on the ith processor compute Q_iR_i=A_i and y_i=Q_i^Tb_i
-        double * tau = (double*)malloc(sizeof(double)*nparam);
+        double * tau = (double*)malloc(sizeof(double)*this->num_model_coefficients);
         int lwork;
         int info;
         double dlwork;
-        cdgeqrf(ncol, nparam, A, ncol, tau, &dlwork, -1, &info);
+        cdgeqrf(ncol, this->num_model_coefficients, A, ncol, tau, &dlwork, -1, &info);
         lwork = (int)dlwork;
         double * work = (double*)malloc(sizeof(double)*lwork);
-        cdgeqrf(ncol, nparam, A, ncol, tau, work, lwork, &info);
-        lda_cpy(sizeof(double), nparam, nparam, ncol, nparam, (const char *)A, (char*)R);
-        for (int i=0; i<nparam; i++){
-          for (int j=i+1; j<nparam; j++){
-            R[i*nparam+j] = 0.0;
+        cdgeqrf(ncol, this->num_model_coefficients, A, ncol, tau, work, lwork, &info);
+        lda_cpy(sizeof(double), this->num_model_coefficients, this->num_model_coefficients, ncol, this->num_model_coefficients, (const char *)A, (char*)R);
+        for (int i=0; i<this->num_model_coefficients; i++){
+          for (int j=i+1; j<this->num_model_coefficients; j++){
+            R[i*this->num_model_coefficients+j] = 0.0;
           }
         }
         //query how much space dormqr which computes Q_i^Tb_i needs
-        cdormqr('L', 'T', ncol, 1, nparam, A, ncol, tau, b, ncol, &dlwork, -1, &info);
+        cdormqr('L', 'T', ncol, 1, this->num_model_coefficients, A, ncol, tau, b, ncol, &dlwork, -1, &info);
         lwork = (int)dlwork;
         free(work);
         work = (double*)malloc(sizeof(double)*lwork);
         //actually run dormqr which computes Q_i^Tb_i needs
-        cdormqr('L', 'T', ncol, 1, nparam, A, ncol, tau, b, ncol, work, lwork, &info);
+        cdormqr('L', 'T', ncol, 1, this->num_model_coefficients, A, ncol, tau, b, ncol, work, lwork, &info);
         free(work);
         free(tau);
         free(A);
@@ -411,26 +414,26 @@ namespace CTF_int {
       //FIXME: can be smarter but not clear if necessary
       if (rk < sub_np){
         //all_R will have the Rs from each processor vertically stacked as [R_1^T .. R_32^T]^T
-        double * all_R = (double*)malloc(sizeof(double)*nparam*nparam*sub_np);
+        double * all_R = (double*)malloc(sizeof(double)*this->num_model_coefficients*this->num_model_coefficients*sub_np);
         //all_b will have the bs from each processor vertically stacked as [b_1^T .. b_32^T]^T
-        double * all_b = (double*)malloc(sizeof(double)*nparam*sub_np);
+        double * all_b = (double*)malloc(sizeof(double)*this->num_model_coefficients*sub_np);
         //gather all Rs from all the processors
-        MPI_Allgather(R, nparam*nparam, MPI_DOUBLE, all_R, nparam*nparam, MPI_DOUBLE, sub_comm);
-        double * Rs = (double*)malloc(sizeof(double)*nparam*nparam*sub_np);
+        MPI_Allgather(R, this->num_model_coefficients*this->num_model_coefficients, MPI_DOUBLE, all_R, this->num_model_coefficients*this->num_model_coefficients, MPI_DOUBLE, sub_comm);
+        double * Rs = (double*)malloc(sizeof(double)*this->num_model_coefficients*this->num_model_coefficients*sub_np);
         for (int i=0; i<sub_np; i++){
-          lda_cpy(sizeof(double), nparam, nparam, nparam, sub_np*nparam, (const char *)(all_R+i*nparam*nparam), (char*)(Rs+i*nparam));
+          lda_cpy(sizeof(double), this->num_model_coefficients, this->num_model_coefficients, this->num_model_coefficients, sub_np*this->num_model_coefficients, (const char *)(all_R+i*this->num_model_coefficients*this->num_model_coefficients), (char*)(Rs+i*this->num_model_coefficients));
         }
         //gather all bs from all the processors
-        MPI_Allgather(b, nparam, MPI_DOUBLE, all_b, nparam, MPI_DOUBLE, sub_comm);
+        MPI_Allgather(b, this->num_model_coefficients, MPI_DOUBLE, all_b, this->num_model_coefficients, MPI_DOUBLE, sub_comm);
         free(b);
         free(all_R);
         free(R);
-        ncol = sub_np*nparam;
+        ncol = sub_np*this->num_model_coefficients;
         b = all_b;
         double * A = Rs;
   /*      if (rk==0){
           for (int r=0; r<ncol; r++){
-            for (int c=0; c<nparam; c++){
+            for (int c=0; c<this->num_model_coefficients; c++){
               printf("A[%d, %d] = %lf, ", r,c,A[c*ncol+r]);
             }
             printf("b[%d] = %lf\n",r,b[r]);
@@ -438,42 +441,42 @@ namespace CTF_int {
         }*/
         //compute fit for a reduced system
         //                                         parameter observs.  coeffs.  times (sec)
-        //matrix Ax~=b has the form, e.g. nparam=2 [ R_1 ] [ x_1 ] = [ y_1  ]
+        //matrix Ax~=b has the form, e.g. nparam=1 [ R_1 ] [ x_1 ] = [ y_1  ]
         //                                         [ R_2 ] [ x_2 ]   [ y_2  ]
         //                                         [ ... ]           [ ... ]
         //                                         [ R_32 ]          [ y_32 ]
         //note 32 is p if p < 32
-        cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, &dlwork, -1, &liwork, &info);
+        cdgelsd(ncol, this->num_model_coefficients, 1, A, ncol, b, ncol, S, -1, &rank, &dlwork, -1, &liwork, &info);
         assert(info == 0);
         lwork = (int)dlwork;
         work = (double*)malloc(sizeof(double)*lwork);
         iwork = (int*)malloc(sizeof(int)*liwork);
         std::fill(iwork, iwork+liwork, 0);
-        cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, work, lwork, iwork, &info);
+        cdgelsd(ncol, this->num_model_coefficients, 1, A, ncol, b, ncol, S, -1, &rank, work, lwork, iwork, &info);
         //cdgeqrf(
         assert(info == 0);
         free(work);
         free(iwork);
         free(A);
         //double step = 1.;
-        //for (int ii=0; ii<nparam; ii++){
+        //for (int ii=0; ii<this->num_model_coefficients; ii++){
         //  if (b[ii] <= 0.){
         //    step = std::min(step, -.999*coeff_guess[ii]/(b[ii]-coeff_guess[ii]));
         //  }
         //}
         //assert(step>=0.);
         //if (step == 1.)
-        //  memcpy(coeff_guess, b, nparam*sizeof(double));
+        //  memcpy(coeff_guess, b, this->num_model_coefficients*sizeof(double));
         //else {
-        //  for (int ii=0; ii<nparam; ii++){
+        //  for (int ii=0; ii<this->num_model_coefficients; ii++){
         //    coeff_guess[ii] = (1.-step)*coeff_guess[ii] + step*b[ii];
         //  }
         //}
-        memcpy(coeff_guess, b, nparam*sizeof(double));
+        memcpy(coeff_guess, b, this->num_model_coefficients*sizeof(double));
         /*print();
         double max_resd_sq = 0.0;
-        for (int i=0; i<ncol-nparam; i++){
-          max_resd_sq = std::max(max_resd_sq, b[nparam+i]);
+        for (int i=0; i<ncol-this->num_model_coefficients; i++){
+          max_resd_sq = std::max(max_resd_sq, b[this->num_model_coefficients+i]);
         }
         printf("%s max residual sq is %lf\n",name,max_resd_sq);
         double max_err = 0.0;
@@ -485,8 +488,8 @@ namespace CTF_int {
       }
       MPI_Comm_free(&sub_comm);
       //broadcast new coefficient guess
-      MPI_Bcast(coeff_guess, nparam, MPI_DOUBLE, 0, cm);
-      /*for (int i=0; i<nparam; i++){
+      MPI_Bcast(coeff_guess, this->num_model_coefficients, MPI_DOUBLE, 0, cm);
+      /*for (int i=0; i<this->num_model_coefficients; i++){
         regularization[i] = coeff_guess[i]*REG_LAMBDA;
       }*/
     }
@@ -540,9 +543,9 @@ namespace CTF_int {
 
   template <int nparam>
   double LinModel<nparam>::est_time(double const * param){
-    double d = 0.;
+    double d = coeff_guess[0];
     for (int i=0; i<nparam; i++){
-      d+=param[i]*coeff_guess[i];
+      d+=param[i]*coeff_guess[1+i];
     }
     return std::max(0.0,d);
   }
@@ -551,7 +554,7 @@ namespace CTF_int {
   void LinModel<nparam>::print(){
     assert(name!=NULL);
     printf("double %s_init[] = {",name);
-    for (int i=0; i<nparam; i++){
+    for (int i=0; i<this->num_model_coefficients; i++){
       if (i>0) printf(", ");
       printf("%1.4E", coeff_guess[i]);
     }
@@ -583,12 +586,12 @@ namespace CTF_int {
     // Generate the new line in the file
     std::string new_coeff_str = model_name+" ";
     char buffer[64];
-    for(int i =0; i<nparam; i++){
+    for(int i =0; i<this->num_model_coefficients; i++){
       buffer[0] = '\0';
       std::sprintf(buffer,"%1.4E", coeff_guess[i]);
       std::string s(buffer);
       new_coeff_str += s;
-      if (i != nparam - 1){
+      if (i != this->num_model_coefficients - 1){
         new_coeff_str += " ";
       }
     }
@@ -662,7 +665,7 @@ namespace CTF_int {
 
         // Get the nparam coeffs
         // double coeff_from_file [nparam];
-        for(int i=0; i<nparam; i++){
+        for(int i=0; i<this->num_model_coefficients; i++){
           if(!std::getline(f,s,' ')){
             right_num_coeff = false;
             break;
@@ -690,7 +693,7 @@ namespace CTF_int {
     else if (!right_num_coeff){
       std::cout<<"Error! Number of coefficients in file does not match with the model"<<std::endl;
       // Initialize model coeff to be all 0s
-      for(int i = 0; i < nparam;i++){
+      for(int i = 0; i < this->num_model_coefficients;i++){
         coeff_guess[i] = 0.0;
       }
     }
@@ -711,7 +714,7 @@ namespace CTF_int {
 
         if (my_rank == 0){
             // Dump the model coeffs
-            for(int i=0; i<nparam; i++){
+            for(int i=0; i<this->num_model_coefficients; i++){
               ofs<<coeff_guess[i]<<" ";
             }
             ofs<<"\n";
@@ -719,10 +722,11 @@ namespace CTF_int {
 
         // Dump the training data
         int num_records = std::min(nobs, (int64_t)hist_size);
-        for(int i=0; i<num_records; i++){
-            std::string instance = "";
-           for(int j=0; j<mat_lda; j++){
-             ofs<<time_param_mat[i*mat_lda+j]<<" ";
+        for (int i=0; i<num_records; i++){
+           std::string instance = "";
+           ofs << time_param_mat[i*mat_lda] << " ";
+           for(int j=2; j<mat_lda; j++){
+             ofs << time_param_mat[i*mat_lda+j] << " ";
            }
            ofs<<"\n";
         }
@@ -767,7 +771,7 @@ namespace CTF_int {
   }
 
   /*static double * get_cube_param(double const * param, int nparam){
-    double * lparam = new double[nparam*(nparam+1)*(nparam+2)/6+nparam*(nparam+1)/2+nparam];
+    double * lparam = new double[nparam*this->num_model_coefficients*(nparam+2)/6+nparam*this->num_model_coefficients/2+nparam];
     cube_params(param, lparam, nparam);
     return lparam;
   }*/

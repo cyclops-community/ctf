@@ -6,10 +6,10 @@
 #include "dgtog_bucket.h"
 namespace CTF_int {
   //static double init_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW};
-  LinModel<3> dgtog_res_mdl(dgtog_res_mdl_init,"dgtog_res_mdl");
+  LinModel<2> dgtog_res_mdl(dgtog_res_mdl_init,"dgtog_res_mdl");
 
   double dgtog_est_time(int64_t tot_sz, int np){
-    double ps[] = {1.0, (double)log2(np), (double)tot_sz*log2(np)};
+    double ps[] = {(double)log2(np), (double)tot_sz*log2(np)};
     return dgtog_res_mdl.est_time(ps);
   }
 }

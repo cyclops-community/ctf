@@ -47,19 +47,19 @@ namespace CTF_int {
 
 
   //static double init_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW};
-  LinModel<3> alltoall_mdl(alltoall_mdl_init,"alltoall_mdl");
-  LinModel<3> alltoallv_mdl(alltoallv_mdl_init,"alltoallv_mdl");
+  LinModel<2> alltoall_mdl(alltoall_mdl_init,"alltoall_mdl");
+  LinModel<2> alltoallv_mdl(alltoallv_mdl_init,"alltoallv_mdl");
 
 #ifdef BGQ
   //static double init_lg_mdl[] = {COST_LATENCY, COST_LATENCY, 0.0, COST_NETWBW + 2.0*COST_MEMBW};
 #else
   //static double init_lg_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW + 2.0*COST_MEMBW, 0.0};
 #endif
-  LinModel<3> red_mdl(red_mdl_init,"red_mdl");
-  LinModel<3> red_mdl_cst(red_mdl_cst_init,"red_mdl_cst");
-  LinModel<3> allred_mdl(allred_mdl_init,"allred_mdl");
-  LinModel<3> allred_mdl_cst(allred_mdl_cst_init,"allred_mdl_cst");
-  LinModel<3> bcast_mdl(bcast_mdl_init,"bcast_mdl");
+  LinModel<2> red_mdl(red_mdl_init,"red_mdl");
+  LinModel<2> red_mdl_cst(red_mdl_cst_init,"red_mdl_cst");
+  LinModel<2> allred_mdl(allred_mdl_init,"allred_mdl");
+  LinModel<2> allred_mdl_cst(allred_mdl_cst_init,"allred_mdl_cst");
+  LinModel<2> bcast_mdl(bcast_mdl_init,"bcast_mdl");
 
 
   template <typename type>
@@ -369,12 +369,12 @@ namespace CTF_int {
 
 
   double CommData::estimate_alltoall_time(int64_t chunk_sz) {
-    double ps[] = {1.0, log2((double)np), log2((double)np)*np*chunk_sz};
+    double ps[] = {log2((double)np), log2((double)np)*np*chunk_sz};
     return alltoall_mdl.est_time(ps);
   }
 
   double CommData::estimate_alltoallv_time(int64_t tot_sz) {
-    double ps[] = {1.0, log2((double)np), log2((double)np)*tot_sz};
+    double ps[] = {log2((double)np), log2((double)np)*tot_sz};
     return alltoallv_mdl.est_time(ps);
   }
 
@@ -385,7 +385,7 @@ namespace CTF_int {
 
     int tsize_;
     MPI_Type_size(mdtype, &tsize_);
-    double tps_[] = {0.0, 1.0, log2(np), ((double)count)*tsize_};
+    double tps_[] = {0.0, log2(np), ((double)count)*tsize_};
     if (!bcast_mdl.should_observe(tps_)) return;
 #endif
 
@@ -398,7 +398,7 @@ namespace CTF_int {
     double exe_time = MPI_Wtime()-st_time;
     int tsize;
     MPI_Type_size(mdtype, &tsize);
-    double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize};
+    double tps[] = {exe_time, log2(np), ((double)count)*tsize};
     bcast_mdl.observe(tps);
 #endif
   }
@@ -411,7 +411,7 @@ namespace CTF_int {
 #ifdef TUNE
     int tsize_;
     MPI_Type_size(mdtype, &tsize_);
-    double tps_[] = {0.0, 1.0, log2(np), ((double)count)*tsize_*std::max(.5,(double)log2(np))};
+    double tps_[] = {0.0, log2(np), ((double)count)*tsize_*std::max(.5,(double)log2(np))};
     bool bsr = true;
     if (op >= MPI_MAX && op <= MPI_REPLACE)
       bsr = allred_mdl.should_observe(tps_);
@@ -428,7 +428,7 @@ namespace CTF_int {
     double exe_time = MPI_Wtime()-st_time;
     int tsize;
     MPI_Type_size(mdtype, &tsize);
-    double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize*std::max(.5,(double)log2(np))};
+    double tps[] = {exe_time, log2(np), ((double)count)*tsize*std::max(.5,(double)log2(np))};
     if (op >= MPI_MAX && op <= MPI_REPLACE)
       allred_mdl.observe(tps);
     else
@@ -442,7 +442,7 @@ namespace CTF_int {
     // change-of-observe
     int tsize_;
     MPI_Type_size(mdtype, &tsize_);
-    double tps_[] = {0.0, 1.0, log2(np), ((double)count)*tsize_*std::max(.5,(double)log2(np))};
+    double tps_[] = {0.0, log2(np), ((double)count)*tsize_*std::max(.5,(double)log2(np))};
     bool bsr = true;
     if (op >= MPI_MAX && op <= MPI_REPLACE)
       bsr = red_mdl.should_observe(tps_);
@@ -459,7 +459,7 @@ namespace CTF_int {
     double exe_time = MPI_Wtime()-st_time;
     int tsize;
     MPI_Type_size(mdtype, &tsize);
-    double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize*std::max(.5,(double)log2(np))};
+    double tps[] = {exe_time, log2(np), ((double)count)*tsize*std::max(.5,(double)log2(np))};
     if (op >= MPI_MAX && op <= MPI_REPLACE)
       red_mdl.observe(tps);
     else
@@ -479,7 +479,7 @@ namespace CTF_int {
     MPI_Barrier(cm);
     // change-of-observe
     int64_t tot_sz_ = std::max(send_displs[np-1]+send_counts[np-1], recv_displs[np-1]+recv_counts[np-1])*datum_size;
-    double tps_[] = {0.0, 1.0, log2(np), (double)tot_sz_};
+    double tps_[] = {0.0, log2(np), (double)tot_sz_};
     if (!alltoallv_mdl.should_observe(tps_)) return;
     #endif
 
@@ -572,7 +572,7 @@ namespace CTF_int {
 #endif
     double exe_time = MPI_Wtime()-st_time;
     int64_t tot_sz = std::max(send_displs[np-1]+send_counts[np-1], recv_displs[np-1]+recv_counts[np-1])*datum_size;
-    double tps[] = {exe_time, 1.0, log2(np), (double)tot_sz};
+    double tps[] = {exe_time, log2(np), (double)tot_sz};
     alltoallv_mdl.observe(tps);
   }
 
