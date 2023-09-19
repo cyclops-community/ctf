@@ -16,6 +16,9 @@
 namespace CTF_int {
   class Model {
     public:
+      virtual void observe(double const * time_param);
+      virtual bool should_observe(double const * time_param);
+      virtual double est_time(double const * param);
       virtual void update(MPI_Comm cm){};
       virtual void print(){};
       virtual void print_uo(){};
@@ -34,7 +37,7 @@ namespace CTF_int {
    * \brief Linear performance models, which given measurements, provides new model guess
    */
   template <int nparam>
-  class LinModel : Model {
+  class LinModel : public Model {
     private:
       /** \brief number of performance observations made (calls to observe() */
       int64_t nobs;
@@ -146,7 +149,7 @@ namespace CTF_int {
    * \brief Cubic performance models, which given measurements, provides new model guess
    */
   template <int nparam>
-  class CubicModel : Model {
+  class CubicModel : public Model {
     private:
       LinModel<nparam*(nparam+1)*(nparam+2)/6+nparam*(nparam+1)/2+nparam> lmdl;
 
@@ -221,6 +224,31 @@ namespace CTF_int {
 
   };
 
+  template<size_t nparam>
+  Model* select_model(double const * init_guess, char const * name){
+    char* model_type = getenv("MODEL_TYPE");
+    std::string model_type_str;
+    if (!model_type){
+      model_type_str = std::string("Global");
+    } else{
+      model_type_str = std::string(model_type);
+    }
+    char* max_num_observations_str = getenv("MAX_NUM_OBSERVATIONS");
+    int max_num_observations;
+    if (!max_num_observations_str){
+      max_num_observations = 1048576;
+    } else{
+      max_num_observations = atoi(max_num_observations_str);
+    }
+
+    if (model_type_str == "Global"){
+      return new LinModel<nparam>(init_guess,name,max_num_observations);
+    } else{
+      // NOTE: Use of CubicModel is inaccessible. It has not been tested recently.
+      assert(0);
+    }
+    return nullptr;
+  }
 }
 
 #endif

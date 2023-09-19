@@ -21,10 +21,10 @@ using namespace CTF;
 
 namespace CTF_int {
 
-  LinModel<3> spredist_mdl(spredist_mdl_init,"spredist_mdl");
+  Model* spredist_mdl = select_model<3>(spredist_mdl_init,"spredist_mdl");
   double spredist_est_time(int64_t size, int np){
     double ps[] = {1.0, (double)log2(np), (double)size*log2(np)};
-    return spredist_mdl.est_time(ps);
+    return spredist_mdl->est_time(ps);
   }
 
 //  static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
@@ -2987,7 +2987,7 @@ namespace CTF_int {
         // change-of-observe
         double nnz_frac_ = ((double)nnz_tot)/(old_dist.size*wrld->cdt.np);
         double tps_[] = {0.0, 1.0, (double)log2(wrld->cdt.np),  (double)std::max(old_dist.size, new_dist.size)*log2(wrld->cdt.np)*sr->el_size*nnz_frac_};
-        if (!spredist_mdl.should_observe(tps_)) return SUCCESS;
+        if (!spredist_mdl->should_observe(tps_)) return SUCCESS;
 
         double st_time = MPI_Wtime();
 #endif
@@ -3009,7 +3009,7 @@ namespace CTF_int {
         double exe_time = MPI_Wtime()-st_time;
         double nnz_frac = ((double)nnz_tot)/(old_dist.size*wrld->cdt.np);
         double tps[] = {exe_time, 1.0, (double)log2(wrld->cdt.np),  (double)std::max(old_dist.size, new_dist.size)*log2(wrld->cdt.np)*sr->el_size*nnz_frac};
-        spredist_mdl.observe(tps);
+        spredist_mdl->observe(tps);
 #endif
       } else {
         if (order <= 12)

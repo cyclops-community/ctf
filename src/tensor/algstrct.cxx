@@ -9,8 +9,8 @@
 using namespace std;
 
 namespace CTF_int {
-  LinModel<3> csrred_mdl(csrred_mdl_init,"csrred_mdl");
-  LinModel<3> csrred_mdl_cst(csrred_mdl_cst_init,"csrred_mdl_cst");
+  Model* csrred_mdl = select_model<3>(csrred_mdl_init,"csrred_mdl");
+  Model* csrred_mdl_cst = select_model<3>(csrred_mdl_cst_init,"csrred_mdl_cst");
 
 
   template<int l>
@@ -522,7 +522,7 @@ namespace CTF_int {
         double tps[] = {t_end, 1.0, log2((double)p), (double)sz_A};
 
         // note-quite-sure
-        csrred_mdl.observe(tps);
+        csrred_mdl->observe(tps);
         TAU_FSTOP(csr_reduce);
         char * data = out->all_data;
         delete out;
@@ -544,7 +544,7 @@ namespace CTF_int {
   double algstrct::estimate_csr_red_time(int64_t msg_sz, CommData const * cdt) const {
 
     double ps[] = {1.0, log2((double)cdt->np), (double)msg_sz};
-    return csrred_mdl.est_time(ps);
+    return csrred_mdl->est_time(ps);
   }
 
   void algstrct::acc(char * b, char const * beta, char const * a, char const * alpha) const {

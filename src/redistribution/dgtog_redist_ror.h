@@ -715,6 +715,6 @@ void dgtog_reshuffle(int const *          sym,
   double tps[] = {exe_time, 1.0, (double)log2(ord_glb_comm.np), (double)std::max(old_dist.size, new_dist.size)*log2(ord_glb_comm.np)*sr->el_size};
 
   // double-check
-   dgtog_res_mdl.observe(tps);
+   dgtog_res_mdl->observe(tps);
   TAU_FSTOP(dgtog_reshuffle);
 }
