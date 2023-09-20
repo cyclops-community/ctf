@@ -20,10 +20,16 @@
 #define DSYR   dsyr_
 #define CSYR   csyr_
 #define ZSYR   zsyr_
+#define SSYRK  ssyrk_
+#define DSYRK  dsyrk_
+#define CSYRK  csyrk_
+#define ZSYRK  zsyrk_
 #define SPOSV   sposv_
 #define DPOSV   dposv_
 #define CPOSV   cposv_
 #define ZPOSV   zposv_
+#define SGESV  sgesv_
+#define DGESV  dgesv_
 #define SSCAL sscal_
 #define DSCAL dscal_
 #define CSCAL cscal_
@@ -49,6 +55,12 @@
 #define DSYR   dsyr
 #define CSYR   csyr
 #define ZSYR   zsyr
+#define SGESV  sgesv
+#define DGESV  dgesv
+#define SSYRK  ssyrk
+#define DSYRK  dsyrk
+#define CSYRK  csyrk
+#define ZSYRK  zsyrk
 #define SPOSV   sposv
 #define DPOSV   dposv
 #define CPOSV   cposv
@@ -238,8 +250,100 @@ namespace CTF_BLAS {
             dtype *           A , 
             const int *        LDA );
 
+  extern "C"
+  void SGESV(
+            const int *         N, 
+            const int *         NRHS,
+            float *            A, 
+            const int *         LDA, 
+            int* ipiv,
+            float *            B, 
+            const int *         LDB, 
+            int *               INFO);
+ 
+
+  extern "C"
+  void DGESV(
+            const int *         N, 
+            const int *         NRHS,
+            double *            A, 
+            const int *         LDA, 
+            int* ipiv,
+            double *            B, 
+            const int *         LDB, 
+            int *               INFO);
+
+  template <typename dtype>
+  void gesv(
+            const int *         N, 
+            const int *         NRHS,
+            dtype *            A, 
+            const int *         LDA, 
+            int *         IPIV, 
+            dtype *            B, 
+            const int *         LDB, 
+            int *               INFO);
+
+  extern "C"
+  void SSYRK(const char *      UPLO ,
+            const char *      TRANS,
+            const int *        N ,
+            const int *        K, 
+            const float *     ALPHA, 
+            const float *     A , 
+            const int *       LDA ,
+            const float *    BETA, 
+            float *           C, 
+            const int *        LDC);
+
+  extern "C"
+  void DSYRK(const char *      UPLO ,
+            const char *      TRANS,
+            const int *        N ,
+            const int *        K, 
+            const double *     ALPHA, 
+            const double *     A , 
+            const int *       LDA ,
+            const double *    BETA, 
+            double *           C, 
+            const int *        LDC);
 
 
+  extern "C"
+  void CSYRK(const char *      UPLO ,
+            const char *      TRANS,
+            const int *        N ,
+            const int *        K, 
+            const std::complex<float> *     ALPHA, 
+            const std::complex<float> *     A , 
+            const int *       LDA ,
+            const std::complex<float> *    BETA, 
+            std::complex<float> *           C, 
+            const int *        LDC);
+
+  extern "C"
+  void ZSYRK(const char *      UPLO ,
+            const char *      TRANS,
+            const int *        N ,
+            const int *        K, 
+            const std::complex<double> *     ALPHA, 
+            const std::complex<double> *     A , 
+            const int *       LDA ,
+            const std::complex<double> *    BETA, 
+            std::complex<double> *           C, 
+            const int *        LDC);
+
+  template <typename dtype>
+  void syrk(const char *      UPLO ,
+            const char *      TRANS,
+            const int *        N ,
+            const int *        K, 
+            const dtype *     ALPHA, 
+            const dtype *     A , 
+            const int *       LDA ,
+            const dtype *    BETA, 
+            dtype *           C, 
+            const int *        LDC);
  
   extern "C"
   void SPOSV(char const *       UPLO ,

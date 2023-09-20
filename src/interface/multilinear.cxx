@@ -277,7 +277,6 @@ namespace CTF {
     free(op_lens);
     free(arrs);
     t_tttp.stop();
-    
   }
 
 
@@ -702,6 +701,9 @@ namespace CTF {
       IASSERT(!mat_list[i]->is_sparse);
     }
     dtype ** arrs = (dtype**)malloc(sizeof(dtype*)*T->order);
+    // Note: Buffer for safe re-distribution of lst_mode[buffer] data
+    int arrs_barrier_len = mat_list[mode]->lens[0]*mat_list[mode]->lens[1];
+    dtype * arrs_barrier = (dtype*)malloc(arrs_barrier_len*sizeof(dtype));
     int64_t * ldas = (int64_t*)malloc(T->order*sizeof(int64_t));
     int * phys_phase = (int*)malloc(T->order*sizeof(int));
     int * mat_strides = NULL;
@@ -744,6 +746,88 @@ namespace CTF {
 
       Timer t_solve_remap("Solve_remap_mats");
       t_solve_remap.start();
+      // Must distribute factor matrix for 'mode' in order to incorporate barrier terms into Hessian diagonals
+      // Distribute it first
+      if (mu>0){
+        Tensor<dtype> mmat;
+        Tensor<dtype> * mat ; 
+        mat = mat_list[mode];
+        int64_t tot_sz;
+        if (is_vec)
+          tot_sz = T->lens[mode];
+        else
+          tot_sz = T->lens[mode]*kd;
+        if (!is_vec) {
+          if (aux_mode_first){
+            mat_strides[2*mode+0] = k;
+            mat_strides[2*mode+1] = 1;
+          } else {
+            mat_strides[2*mode+0] = 1;
+            mat_strides[2*mode+1] = T->lens[mode];
+          }
+        }
+        int nrow, ncol;
+        if (aux_mode_first){
+          nrow = kd;
+          ncol = T->lens[mode];
+        } else {
+          nrow = T->lens[mode];
+          ncol = kd;
+        }
+        if (phys_phase[mode] == 1){
+          redist_mats[mode] = NULL;
+          if (T->wrld->np == 1){
+            IASSERT(div == 1);
+            std::copy(mat_list[mode]->data,mat_list[mode]->data+arrs_barrier_len,arrs_barrier);
+            //arrs_barrier = (dtype*)mat_list[mode]->data;
+            mat->read_all(arrs_barrier, true);
+          }
+          else{ //(i!=mode)
+            assert(0);	// TODO: might not be right
+            //std::copy(mat_list[mode]->data,mat_list[mode]->data+arrs_barrier_len,arrs_barrier);
+            arrs_barrier = (dtype*)T->sr->alloc(tot_sz);
+            mat->read_all(arrs_barrier, true);
+          }
+        } 
+        else {
+          int topo_dim = T->edge_map[mode].cdt;
+          IASSERT(T->edge_map[mode].type == CTF_int::PHYSICAL_MAP);
+          IASSERT(!T->edge_map[mode].has_child || T->edge_map[mode].child->type != CTF_int::PHYSICAL_MAP);
+          if (aux_mode_first){
+            mat_idx[0] = 'a';
+            mat_idx[1] = par_idx[topo_dim];
+          } else {
+            mat_idx[0] = par_idx[topo_dim];
+            mat_idx[1] = 'a';
+          }
+
+          int comm_lda = 1;
+          for (int l=0; l<topo_dim; l++){
+            comm_lda *= T->topo->dim_comm[l].np;
+          }
+          CTF_int::CommData cmdt(T->wrld->rank-comm_lda*T->topo->dim_comm[topo_dim].rank,T->topo->dim_comm[topo_dim].rank,T->wrld->cdt);
+          if (is_vec){
+            Vector<dtype> * v = new Vector<dtype>(mat_list[mode]->lens[0], par_idx[topo_dim], par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
+            v->operator[]("i") += mat_list[mode]->operator[]("i");
+            redist_mats[mode] = v;
+            arrs_barrier = (dtype*)v->data;
+            cmdt.bcast(v->data,v->size,T->sr->mdtype(),0);
+          } else {
+            Matrix<dtype> * m = new Matrix<dtype>(nrow, ncol, mat_idx, par[par_idx], Idx_Partition(), 0, *T->wrld, *T->sr);
+            m->operator[]("ij") += mat->operator[]("ij");
+            redist_mats[mode] = m;
+            arrs_barrier = (dtype*)m->data;
+            cmdt.bcast(m->data,m->size,T->sr->mdtype(),0);
+            if (aux_mode_first){
+              mat_strides[2*mode+0] = kd;
+              mat_strides[2*mode+1] = 1;
+            } else {
+              mat_strides[2*mode+0] = 1;
+              mat_strides[2*mode+1] = m->pad_edge_len[0]/phys_phase[mode];
+            }
+          }
+        }
+      }
       for (int i=0; i<T->order; i++){
         Tensor<dtype> mmat;
         Tensor<dtype> * mat ; 
@@ -882,6 +966,291 @@ namespace CTF {
       
       int I = T->pad_edge_len[mode]/T->edge_map[mode].np ;
       int R = mat_list[0]->lens[1-aux_mode_first];
+
+      Timer t_trav("Sort_nnz");
+      Timer t_LHS_work("LHS_work");
+      Timer t_solve_lhs("LHS_solves");
+      t_trav.start() ; 
+
+      /*
+      std::sort(pairs,pairs+ npair,[T,phys_phase,mode,ldas](Pair<dtype> i1, Pair<dtype> i2){
+        return (((i1.k/ldas[mode])%T->lens[mode])/phys_phase[mode] < ((i2.k/ldas[mode])%T->lens[mode])/phys_phase[mode] ) ; 
+      }) ;
+      */
+      
+      Pair<dtype> * pairs_copy = (Pair<dtype>*)malloc(npair*2*sizeof(int64_t)) ;
+      //int * indices = (int *)malloc(npair*sizeof(int64_t)) ;
+      int64_t * indices = (int64_t *)malloc(npair*sizeof(int64_t)) ;
+      int64_t * c = (int64_t *) calloc(I+1,sizeof(int64_t));
+      int64_t * count = (int64_t *) calloc(I,sizeof(int64_t));
+
+      for (int64_t i=0; i<npair ; i++){
+        int64_t key = pairs[i].k/ldas[mode] ; 
+        indices[i] = (key%T->lens[mode])/phys_phase[mode];
+        ++c[indices[i]];
+        ++count[indices[i]] ; 
+      }
+
+      for(int64_t i=1;i<=I;i++){
+        c[i]+=c[i-1];            
+      }
+
+      for(int64_t i=npair-1;i>=0;i--){
+        pairs_copy[c[indices[i]]-1]=pairs[i];        
+        --c[indices[i]] ;       
+      } 
+
+      std::copy(pairs_copy, pairs_copy+npair,pairs)  ;
+
+      free(c);
+      free(pairs_copy);
+      free(indices);
+      
+      t_trav.stop();
+
+      //int64_t I_s = std::ceil(float(I)/cm_size) ;
+      int batches = 1 ;
+      int64_t batched_I = I ; 
+      int64_t max_memuse = CTF_int::proc_bytes_available() ;
+      int64_t I_s ;
+      int64_t rows ;
+      int buffer = 2048*5; 
+
+      while (true){
+        if (max_memuse > ((std::ceil(float(I/batches)/cm_size)*cm_size*(R+1)*R) + buffer*R + 10 )*(int64_t)sizeof(dtype) *(int64_t)sizeof(dtype) ) {
+          break ;
+        }
+        else{
+          batches +=1 ;  
+        }
+      }
+      MPI_Allreduce(MPI_IN_PLACE, &batches, 1, MPI_INT, MPI_MAX, T->wrld->comm);
+      batched_I = I/batches ; 
+
+      int64_t total= 0;
+      for (int b =0 ; b<batches ; b++){
+        if (b != batches-1){
+          rows = batched_I; 
+        } 
+        else{
+          rows = batched_I + I%batches ;
+        }
+
+        I_s = std::ceil(float(rows)/cm_size) ;
+
+        dtype * LHS_list = (dtype *) calloc(I_s*cm_size*R*R,sizeof(dtype) );
+        if (LHS_list == 0){
+          printf("Memory full LHS for proc [%d] \n",T->wrld->rank);
+        }
+        
+        //define how the symmetric arrays are referenced, keep this consistent throughout
+        char* uplo = "L" ;
+        char* trans = "N" ; //if want to incorporate column major then change this 
+        char* trans1 = "N" ; //if want to incorporate column major then change this 
+        char* trans2 = "T" ; //if want to incorporate column major then change this 
+        int scale = 1 ;
+        double alpha = 1.0 ; 
+        double beta = 1.0 ; 
+        int info =0 ; 
+
+        t_LHS_work.start();
+        Timer t_scatter("Scatter and Sc_reduce");
+        //int * inds = (int*)malloc(T->order*sizeof(int));
+        
+        int sweeps ; 
+          
+        //double * row = (double *) malloc(R* sizeof(double) );
+        dtype * H = (dtype *) calloc(buffer*R,sizeof(dtype) ) ;
+        dtype * H2 = (dtype *) calloc(buffer*R,sizeof(dtype) ) ;	// Added by Edgward Hutter to account for possibility of negative phi'' elements
+        
+        for (int64_t j =0  ; j< rows ; j++){ 
+          sweeps = count[j+ b*batched_I]/buffer ;
+
+          if (sweeps >0){
+            for (int s = 0 ; s< sweeps ; s++){
+#ifdef _OPENMP
+              #pragma omp parallel for 
+#endif
+              for(int q = 0 ; q<buffer ; q++){
+                int64_t key = pairs[total + q].k ;
+                std::fill(
+                H + q*R,
+                H + (q+1)*R ,
+                std ::sqrt(pairs[total + q].d)) ;
+                for(int i = 0 ; i < T->order ; i++){
+                  if (i!=mode){
+                    int64_t ke= key/ldas[i];
+                    int index = (ke%T->lens[i])/phys_phase[i];
+                    CTF_int::default_vec_mul(&arrs[i][index*R], H+q*R, H+q*R, R) ;
+                  }
+                }
+              }
+              CTF_BLAS::syrk<dtype>(uplo,trans,&R,&buffer,&alpha,H,&R,&alpha,&LHS_list[j*R*R],&R) ;
+              std::fill(
+                  H,
+                  H+ buffer*R,
+                  0.);
+              total+=buffer ; 
+            }
+          }
+          sweeps = count[j+ b*batched_I]%buffer ;
+          if (sweeps>0){
+            //printf("Sweep count: %d\n",sweeps);
+#ifdef _OPENMP
+            #pragma omp parallel for
+#endif
+            for(int q = 0 ; q<sweeps ; q++){
+              int64_t key = pairs[total + q].k ;
+              std::fill(
+              H + q*R,
+              H + (q+1)*R ,
+              1.) ;
+              std::fill(
+              H2 + q*R,
+              H2 + (q+1)*R ,
+              pairs[total + q].d);
+              //if (pairs[total + q].d<0) printf("pairs[%d].d = %g\n",total+q,pairs[total + q].d);
+              for(int i = 0 ; i < T->order ; i++){
+                if (i!=mode){
+                  int64_t ke= key/ldas[i];
+                  int index = (ke%T->lens[i])/phys_phase[i];
+                  CTF_int::default_vec_mul(&arrs[i][index*R], H+q*R, H+q*R, R) ;
+                  CTF_int::default_vec_mul(&arrs[i][index*R], H2+q*R, H2+q*R, R) ;
+                }
+              }
+            }
+            //CTF_BLAS::syrk<dtype>(uplo,trans,&R,&sweeps,&alpha,H,&R,&alpha,&LHS_list[j*R*R],&R) ;
+            CTF_BLAS::gemm<dtype>(trans1,trans2,&R,&R,&sweeps,&alpha,H,&R,H2,&R,&beta,&LHS_list[j*R*R],&R) ;
+            std::fill(
+                H,
+                H+ sweeps*R,
+                0.);
+            total+=sweeps ; 
+          }
+        }
+ 
+        free(H) ;
+        //free(inds) ;
+        
+        t_LHS_work.stop();
+
+        //scatter reduce left hand sides and scatter right hand sides in a buffer
+        int* Recv_count = (int*) malloc(sizeof(int)*cm_size) ; 
+        std::fill(
+         Recv_count,
+         Recv_count + cm_size,
+         I_s*R*R);
+
+        t_scatter.start() ; 
+        MPI_Reduce_scatter( MPI_IN_PLACE, LHS_list, Recv_count , MPI_DOUBLE, MPI_SUM, slice_comm );
+        free(Recv_count);
+
+        for(int64_t i =0 ; i< I_s ; i++){
+          for(int r = 0 ; r<R ; r++){
+            LHS_list[R*R*i +r*R +r]+=regu; 
+            if (regu2 > 0) LHS_list[R*R*i +r*R +r]+=regu2;
+            if (mu>0) LHS_list[R*R*i +r*R +r]+=(mu/(arrs_barrier[i*R+r]*arrs_barrier[i*R+r])); 
+          }
+        }
+        dtype * arrs_buf = (dtype *) calloc(I_s*cm_size*R,sizeof(dtype) );
+
+        if (b == batches-1){
+          std::copy(&arrs[mode][b*batched_I*R],&arrs[mode][I*R],arrs_buf) ;
+        }
+        else{
+          std::copy(&arrs[mode][b*batched_I*R],&arrs[mode][(b+1)*batched_I*R],arrs_buf) ; 
+        }
+          
+        if (cm_rank == 0){
+          MPI_Scatter(arrs_buf, I_s*R, MPI_DOUBLE, MPI_IN_PLACE, I_s*R,  
+                     MPI_DOUBLE, 0, slice_comm);
+        }
+        else{
+          MPI_Scatter(NULL, I_s*R, MPI_DOUBLE, arrs_buf, I_s*R,  
+                     MPI_DOUBLE, 0, slice_comm);
+        }
+        t_scatter.stop() ; 
+
+        //call local spd solve on I/cm_size different systems locally (avoid calling solve on padding in lhs)
+        int* ipiv = (int*)malloc(sizeof(int)*R);
+        
+        t_solve_lhs.start() ;
+        for (int i=0; i<I_s; i++){
+          if (i + cm_rank*I_s + b*batched_I < I - (T->lens[mode] % T->edge_map[mode].np > 0 )  + (jr< T->lens[mode] % T->edge_map[mode].np )){
+            //CTF_BLAS::posv<dtype>(uplo,&R,&scale,&LHS_list[i*R*R],&R,&arrs_buf[i*R],&R,&info) ;
+            //CTF_BLAS::sysv<dtype>(uplo,&R,&scale,&LHS_list[i*R*R],&R,ipiv,&arrs_buf[i*R],&R,&info) ;
+            CTF_BLAS::gesv<dtype>(&R,&scale,&LHS_list[i*R*R],&R,ipiv,&arrs_buf[i*R],&R,&info) ;
+            //arrs_buf[i*R] /= LHS_list[i*R*R];
+            if (info>0){
+              printf("ref-%g, mu-%g\n",regu,mu);
+              for (int j=0; j<R; j++){
+                for (int k=0; k<R; k++){
+                  printf("%f ",LHS_list[i*R*R+j*R+k]);
+                }
+                printf("\n");
+              }
+            }
+            IASSERT(info==0);
+          }
+        }
+        t_solve_lhs.stop();
+
+        free(ipiv);
+        free(LHS_list) ;
+
+        //allgather on slice_comm should be used for preserving the mttkrp like mapping
+        if (cm_rank==0){
+          MPI_Gather(MPI_IN_PLACE, I_s*R, MPI_DOUBLE, arrs_buf, I_s*R, MPI_DOUBLE, 0, slice_comm);
+        }
+        else{
+          MPI_Gather(arrs_buf, I_s*R, MPI_DOUBLE, NULL, I_s*R, MPI_DOUBLE, 0, slice_comm);
+        }
+        
+        std::copy(arrs_buf, arrs_buf + rows*R, &arrs[mode][b*batched_I*R]) ; 
+        
+        free(arrs_buf) ;
+      }
+
+      free(count) ;
+
+      MPI_Comm_free(&slice_comm);
+
+      for (int j=0 ; j< T->order ; j++){
+        if (j==mode){
+          if (redist_mats[j] != NULL){
+            mat_list[j]->set_zero();
+            mat_list[j]->operator[]("ij") += redist_mats[j]->operator[]("ij");
+            delete redist_mats[j];
+          }
+          else {
+            IASSERT((dtype*)mat_list[j]->data == arrs[j]);
+          }
+        }
+        else {
+          if (redist_mats[j] != NULL){
+            if (redist_mats[j]->data != (char*)arrs[j])
+              T->sr->dealloc((char*)arrs[j]);
+            delete redist_mats[j];
+          } else {
+            if (arrs[j] != (dtype*)mat_list[j]->data)
+              T->sr->dealloc((char*)arrs[j]);
+          }
+        }
+      }
+    }
+    free(redist_mats);
+    if (mat_strides != NULL) free(mat_strides);
+    free(par_idx);
+    free(phys_phase);
+    free(ldas);
+    free(arrs_barrier);
+    free(arrs);
+    if (!T->is_sparse)
+      T->sr->pair_dealloc((char*)pairs);
+    t_solve_factor.stop();
+  }
+
+/*
       int I_s = std::ceil(float(I)/cm_size) ;
 
       double * LHS_list = (double *) malloc(I_s*cm_size*R*R* sizeof(double) );
@@ -997,8 +1366,10 @@ namespace CTF {
     free(phys_phase);
     free(ldas);
     free(arrs);
+    free(arrs_barrier);
     if (!T->is_sparse)
       T->sr->pair_dealloc((char*)pairs);
     t_solve_factor.stop();
   }
+*/
 }
