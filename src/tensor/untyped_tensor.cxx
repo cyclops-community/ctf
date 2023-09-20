@@ -21,7 +21,7 @@ using namespace CTF;
 
 namespace CTF_int {
 
-  LinModel<3> spredist_mdl(spredist_mdl_init,"spredist_mdl");
+  GlobalCostModel<3> spredist_mdl(spredist_mdl_init,"spredist_mdl");
   double spredist_est_time(int64_t size, int np){
     double ps[] = {1.0, (double)log2(np), (double)size*log2(np)};
     return spredist_mdl.est_time(ps);

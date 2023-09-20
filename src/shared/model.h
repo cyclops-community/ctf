@@ -34,7 +34,7 @@ namespace CTF_int {
    * \brief Linear performance models, which given measurements, provides new model guess
    */
   template <int nparam>
-  class LinModel : Model {
+  class GlobalCostModel : Model {
     private:
       /** \brief number of performance observations made (calls to observe() */
       int64_t nobs;
@@ -79,10 +79,10 @@ namespace CTF_int {
        * \param[in] name identifier
        * \param[in] hist_size number of times to keep in history
        */
-      LinModel(double const * init_guess, char const * name, int hist_size=32768);
+      GlobalCostModel(double const * init_guess, char const * name, int hist_size=32768);
 
-      LinModel();
-      ~LinModel();
+      GlobalCostModel();
+      ~GlobalCostModel();
 
       /**
        * \brief updates model based on observarions
@@ -146,9 +146,9 @@ namespace CTF_int {
    * \brief Cubic performance models, which given measurements, provides new model guess
    */
   template <int nparam>
-  class CubicModel : Model {
+  class GlobalPolyCostModel : Model {
     private:
-      LinModel<nparam*(nparam+1)*(nparam+2)/6+nparam*(nparam+1)/2+nparam> lmdl;
+      GlobalCostModel<nparam*(nparam+1)*(nparam+2)/6+nparam*(nparam+1)/2+nparam> lmdl;
 
     public:
       /**
@@ -157,9 +157,9 @@ namespace CTF_int {
        * \param[in] name identifier
        * \param[in] hist_size number of times to keep in history
        */
-      CubicModel(double const * init_guess, char const * name, int hist_size=8192);
+      GlobalPolyCostModel(double const * init_guess, char const * name, int hist_size=8192);
 
-      ~CubicModel();
+      ~GlobalPolyCostModel();
 
       /**
        * \brief updates model based on observarions
