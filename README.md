@@ -26,6 +26,12 @@ First, its necessary to run the configure script, which can be set to the approp
 ```
 then execute ./configure with the appropriate options. Successful execution of this script, will generate a `config.mk` file and a `setup.py` file, needed for C++ and Python builds, respectively, as well as a how-did-i-configure file with info on how the build was configured. You may modify the `config.mk` and `setup.py` files thereafter, subsequent executions of configure will prompt to overwrite these files.
 
+Note: there is a (now-fixed) [bug](https://github.com/pmodels/mpich/pull/6543) in recent versions of MPICH that causes a segmentation fault in CTF when executing with 2 or more processors.
+The bug can be remedied without rebuilding CTF by setting an environment variable as follows,
+```sh
+export MPIR_CVAR_DEVICE_COLLECTIVES=none
+```
+
 ### Dependencies and Supplemental Packages
 
 The strict library dependencies of Cyclops are MPI and BLAS libraries.

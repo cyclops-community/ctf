@@ -89,6 +89,7 @@ jobs:
         shell: bash
         run:
           export OMP_NUM_THREADS=1;
+          export MPIR_CVAR_DEVICE_COLLECTIVES=none;
           make test2
 
 
@@ -125,4 +126,5 @@ jobs:
         run:
           source ./envs/py3env/bin/activate;
           export OMP_NUM_THREADS=1;
+          export MPIR_CVAR_DEVICE_COLLECTIVES=none;
           make python_test2
