@@ -339,6 +339,25 @@ namespace CTF_int {
        * \brief sorts n sets of pairs using std::sort 
        */
       virtual void sort(int64_t n, char * pairs) const;
+
+      /**
+       * \brief converts pair array into struct of arrays
+       * \param[in] n number of key, value pairs to extract
+       * \param[in] pairs to convert
+       * \param[in,out] keys array of keys
+       * \param[in,out] vals array of values
+       */
+      virtual void to_s_of_a(int64_t n, char const * pairs, int64_t * keys, char * vals) const;
+
+       /**
+       * \brief converts pair array into array of structs
+       * \param[in] n number of key, value pairs to extract
+       * \param[in] keys array of keys
+       * \param[in] vals array of values
+       * \param[in,out] pairs to convert
+       */
+      virtual void to_a_of_s(int64_t n, int64_t const * keys, char const * vals, char * pairs) const;
+
  
       /** estimate time in seconds necessary for CSR reduction with input of size msg_sz */
       double estimate_csr_red_time(int64_t msg_sz, CommData const * cdt) const;

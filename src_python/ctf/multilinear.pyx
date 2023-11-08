@@ -1,8 +1,8 @@
 import numpy as np
-from tensor cimport Tensor, tensor, ctensor
+from ctf.tensor cimport Tensor, tensor, ctensor
 from libcpp cimport bool
 from libc.stdlib cimport malloc, free
-from profile import timer
+from ctf.profile import timer
 
 cdef extern from "ctf.hpp" namespace "CTF":
     cdef void TTTP_ "CTF::TTTP"[dtype](Tensor[dtype] * T, int num_ops, int * modes, Tensor[dtype] ** mat_list, bool aux_mode_first)

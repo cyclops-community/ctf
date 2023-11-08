@@ -1,9 +1,9 @@
 from libcpp cimport bool
 
-from tensor cimport ctensor, tensor
+from ctf.tensor cimport ctensor, tensor
 
-from helper import *
-from chelper cimport *
+from ctf.helper import *
+from ctf.chelper cimport *
 from libc.stdlib cimport malloc, free
 
 import ctf.profile

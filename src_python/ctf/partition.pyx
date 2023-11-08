@@ -1,5 +1,5 @@
 from libc.stdlib cimport malloc, free
-from chelper cimport *
+from ctf.chelper cimport *
 
 cdef class partition:
     """

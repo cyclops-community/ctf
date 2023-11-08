@@ -51,8 +51,8 @@ class KnowValues(unittest.TestCase):
         b_np = ctf.to_nparray(b_dn)
         c_np = ctf.to_nparray(c_dn)
 
-        c_sp.i("ijk") << 2.3*a_sp.i("ijl")*b_sp.i("kjl") + 7*c_sp.i("ijk") - a_sp.i("ijk") - 1. * a_sp.i("ijk") - 2 * b_sp.i("ijk")
-        c_dn.i("ijk") << 2.3*a_dn.i("ijl")*b_dn.i("kjl") + 7*c_dn.i("ijk") - a_dn.i("ijk") - 1. * a_dn.i("ijk") - 2 * b_dn.i("ijk")
+        c_sp.i("ijk") << a_sp.i("ijl")*b_sp.i("kjl")*2.3 + c_sp.i("ijk")*7 - a_sp.i("ijk") - a_sp.i("ijk") -  b_sp.i("ijk")*2
+        c_dn.i("ijk") << a_dn.i("ijl")*b_dn.i("kjl")*2.3 + c_dn.i("ijk")*7 - a_dn.i("ijk") -  a_dn.i("ijk") -  b_dn.i("ijk")*2
         c_np += 2.3*np.einsum("ijl,kjl->ijk",a_np,b_np) + 7*c_np - a_np - 1. * a_np - 2 * b_np
         self.assertTrue(allclose(c_np,c_dn))  
         self.assertTrue(allclose(c_np,c_sp))  
@@ -62,7 +62,11 @@ class KnowValues(unittest.TestCase):
         b0 = np.arange(27.).reshape(3,3,3)
         a1 = ctf.astensor(a0)
         b1 = ctf.astensor(b0)
-        .2*b1.i("ijk") << .7*a1.i("kij")
+        b1i = b1.i("ijk")
+        b1i.scale(.2)
+        a1i = b1.i("kij")
+        a1i.scale(.7)
+        b1i << a1i
         b0 = .2*b0 + .7*a0.transpose([1,2,0])
         self.assertTrue(allclose(b0,b1))
 

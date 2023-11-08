@@ -24,6 +24,7 @@ from ctf.partition cimport idx_partition
 
 #from ctf.helper import ctf.helper._ord_comp, ctf.helper.type_index, ctf.helper._rev_array, ctf.helper._get_np_dtype, ctf.helper._get_num_str, ctf.helper._use_align_for_pair
 from ctf.chelper cimport *
+#cdef extern from "numpy/arrayobject.h":
 #from ctf.tensor_aux import ctf.tensor_aux.astensor, ctf.tensor_aux.transpose, ctf.tensor_aux.power, ctf.tensor_aux.dot, ctf.tensor_aux.reshape, ctf.tensor_aux.zeros, ctf.tensor_aux.conj, ctf.tensor_aux._match_tensor_types, ctf.tensor_aux._div, ctf.tensor_aux._setgetitem_helper, ctf.tensor_aux.trace, ctf.tensor_aux.diagonal, ctf.tensor_aux.take, ctf.tensor_aux.ravel tensorctf.tensor_aux.dot
 #from ctf.term import itensor
 #from ctf.world import comm
@@ -735,7 +736,9 @@ cdef class tensor:
 
         [idx_A, idx_B, idx_C, out_tsr] = tsr._ufunc_interpret(otsr)
         out_tsr.i(idx_C) << tsr.i(idx_A)
-        out_tsr.i(idx_C) << -1*otsr.i(idx_B)
+        iotsr = otsr.i(idx_B)
+        iotsr.scale(-1)
+        out_tsr.i(idx_C) << iotsr
         return out_tsr
 
     def __isub__(self, other_in):
@@ -747,9 +750,13 @@ cdef class tensor:
             raise ValueError('CTF PYTHON ERROR: invalid call to __isub__ (-=)')
         if self.dtype != other.dtype:
             [tsr, otsr] = ctf.tensor_aux._match_tensor_types(self,other) # solve the bug when np.float64 -= np.int64
-            self.i(idx_C) << -1*otsr.i(idx_A)
+            iotsr = otsr.i(idx_A)
+            iotsr.scale(-1)
+            self.i(idx_C) << iotsr
         else:
-            self.i(idx_C) << -1*other.i(idx_A)
+            iotsr = other.i(idx_A)
+            iotsr.scale(-1)
+            self.i(idx_C) << iotsr
         return self
 
     def __truediv__(self, other):
@@ -1691,17 +1698,9 @@ cdef class tensor:
         cdef int64_t * cinds
         cdef char * cdata
         cdef int64_t n
-        self.dt.read_local(&n,&cdata,unpack_sym)
-        inds = np.empty(n, dtype=np.int64)
-        vals = np.empty(n, dtype=self.dtype)
-
-        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=ctf.helper._use_align_for_pair(self.dtype)))
-        d = buf.data
-        buf.data = cdata
-        vals[:] = buf['b'][:]
-        inds[:] = buf['a'][:]
-        buf.data = d
-        delete_pairs(self.dt, cdata)
+        self.dt.read_local(&n,&cinds,&cdata,unpack_sym)
+        inds = _cast_carray_as_python(n, <char*>cinds, np.int64)
+        vals = _cast_carray_as_python(n, cdata, self.dtype)
         return inds, vals
 
     def dot(self, other, out=None):
@@ -1793,16 +1792,9 @@ cdef class tensor:
         cdef int64_t * cinds
         cdef char * cdata
         cdef int64_t n
-        self.dt.read_local_nnz(&n,&cdata,unpack_sym)
-        inds = np.empty(n, dtype=np.int64)
-        vals = np.empty(n, dtype=self.dtype)
-        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=ctf.helper._use_align_for_pair(self.dtype)))
-        d = buf.data
-        buf.data = cdata
-        vals[:] = buf['b'][:]
-        inds[:] = buf['a'][:]
-        buf.data = d
-        delete_arr(self.dt, cdata)
+        self.dt.read_local_nnz(&n,&cinds,&cdata,unpack_sym)
+        inds = _cast_carray_as_python(n, <char*>cinds, np.int64)
+        vals = _cast_carray_as_python(n, cdata, self.dtype)
         return inds, vals
 
     def tot_size(self, unpack=True):
@@ -1839,17 +1831,11 @@ cdef class tensor:
                 return
         cvals = <char*> malloc(sz*tB)
         self.dt.allread(&sz, cvals, unpack)
-        cdef cnp.ndarray buf = np.empty(sz, dtype=self.dtype)
-        odata = buf.data
-        buf.data = cvals
+        vals = _cast_carray_as_python(sz, cvals, self.dtype)
         if arr is None:
-            sbuf = np.asarray(buf)
-            free(odata)
-            return buf
+            return vals
         else:
-            arr[:] = buf[:]
-            free(cvals)
-            buf.data = odata
+            arr[:] = vals[:]
 
     def read_all_nnz(self, unpack=True):
         """
@@ -1869,16 +1855,9 @@ cdef class tensor:
         cdef int64_t * cinds
         cdef char * cdata
         cdef int64_t n
-        cdata = self.dt.read_all_pairs(&n, unpack, True)
-        inds = np.empty(n, dtype=np.int64)
-        vals = np.empty(n, dtype=self.dtype)
-        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=ctf.helper._use_align_for_pair(self.dtype)))
-        d = buf.data
-        buf.data = cdata
-        vals[:] = buf['b'][:]
-        inds[:] = buf['a'][:]
-        buf.data = d
-        delete_arr(self.dt, cdata)
+        self.dt.read_all_pairs(&n, unpack, &cinds, &cdata, True)
+        inds = _cast_carray_as_python(n, <char*>cinds, np.int64)
+        vals = _cast_carray_as_python(n, cdata, self.dtype)
         return inds, vals
 
     def __read_all(self, arr):
@@ -1893,11 +1872,8 @@ cdef class tensor:
         sz = self.dt.get_tot_size(False)
         tB = arr.dtype.itemsize
         self.dt.get_raw_data(&cvals, &sz)
-        cdef cnp.ndarray buf = np.empty(sz, dtype=self.dtype)
-        odata = buf.data
-        buf.data = cvals
-        arr[:] = buf[:]
-        buf.data = odata
+        vals = _cast_carray_as_python(sz, cvals, self.dtype)
+        arr[:] = vals[:]
 
     def __write_all(self, arr):
         """
@@ -1911,12 +1887,9 @@ cdef class tensor:
         sz = self.dt.get_tot_size(False)
         tB = arr.dtype.itemsize
         self.dt.get_raw_data(&cvals, &sz)
-        cdef cnp.ndarray buf = np.empty(sz, dtype=self.dtype)
-        odata = buf.data
-        buf.data = cvals
+        vals = _cast_carray_as_python(sz, cvals, self.dtype)
         rarr = arr.ravel()
-        buf[:] = rarr[:]
-        buf.data = odata
+        vals[:] = rarr[:]
 
     def conj(self):
         """

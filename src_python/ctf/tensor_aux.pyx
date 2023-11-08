@@ -14,6 +14,7 @@ from ctf.chelper cimport *
 from ctf.tensor cimport tensor, ctensor
 from ctf.profile import timer
 from ctf.linalg import svd
+from ctf.term cimport itensor
 
 cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void pow_helper[dtype](ctensor * A, ctensor * B, ctensor * C, char * idx_A, char * idx_B, char * idx_C);
@@ -514,9 +515,6 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
         if axis > len(A.shape):
             raise IndexError("CTF PYTHON ERROR: axis out of bounds")
         if indices.shape == () or indices.shape== (1,):
-            total_size = 1
-            for i in range(len(A.shape)):
-                total_size *= A[i]
             if indices >= A.shape[axis]:
                 raise IndexError("CTF PYTHON ERROR: index out of bounds")
             ret_shape = list(A.shape)
@@ -542,9 +540,6 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
         else:
             if len(indices.shape) > 1:
                 raise ValueError("CTF PYTHON ERROR: current ctf does not support when specify axis and the len(indices.shape) > 1")
-            total_size = 1
-            for i in range(len(A.shape)):
-                total_size *= A[i]
             for i in range(len(indices)):
                 if indices[i] >= A.shape[axis]:
                     raise IndexError("index out of bounds")
@@ -2479,7 +2474,9 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     operand = new_operands[0].i(inds[0])
     for i in range(1,numop):
         operand = operand * new_operands[i].i(inds[i])
-    out_scale*output.i(out_inds) << operand
+    itsr = output.i(out_inds)
+    itsr.scale(out_scale)
+    itsr << operand
     if out is None:
         if len(out_inds) == 0:
             output = output.item()
@@ -2752,5 +2749,3 @@ def _comp_all(tensor A, axis=None, out=None, keepdims=None):
     if axis is None:
         x = A._bool_sum()
         return x == A.tot_size()
-
-

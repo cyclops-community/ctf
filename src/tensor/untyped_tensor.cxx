@@ -2405,6 +2405,13 @@ namespace CTF_int {
     return ipr.ptr;
   }
 
+  void tensor::read_all_pairs(int64_t * num_pair, bool unpack, int64_t ** inds, char ** vals, bool nonzero_only) const {
+    char * pairs = read_all_pairs(num_pair, unpack, nonzero_only);
+    *inds = (int64_t*)malloc(sizeof(int64_t)*(*num_pair));
+    *vals = (char*)malloc(sr->el_size*(*num_pair));
+    sr->to_s_of_a(*num_pair, pairs, *inds, *vals);
+  }
+
   int64_t tensor::get_tot_size(bool packed=false){
     if (!packed){
       int64_t tsize = 1;

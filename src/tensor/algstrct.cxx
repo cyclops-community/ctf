@@ -262,6 +262,48 @@ namespace CTF_int {
 
   }
 
+  void algstrct::to_s_of_a(int64_t n, char const * pairs, int64_t * keys, char * vals) const {
+    ConstPairIterator rA(this, pairs);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<n; i++){
+      keys[i] = rA[i].k();
+      rA[i].read_val(vals + i*el_size);
+    }
+  }
+
+  void algstrct::to_a_of_s(int64_t n, int64_t const * keys, char const * vals, char * pairs) const {
+    PairIterator wA(this, pairs);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<n; i++){
+      wA[i].write_key(keys[i]);
+      wA[i].write_val(vals + i*el_size);
+    }
+  }
+
+  void ConstPairIterator::permute(int64_t n, int order, int64_t const * old_lens, int64_t const * new_lda, PairIterator wA){
+    ConstPairIterator rA = * this;
+#ifdef USE_OMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<n; i++){
+      int64_t k = rA[i].k();
+      int64_t k_new = 0;
+      for (int j=0; j<order; j++){
+        k_new += (k%old_lens[j])*new_lda[j];
+        k = k/old_lens[j];
+      }
+      ((int64_t*)wA[i].ptr)[0] = k_new;
+      wA[i].write_val(rA[i].d());
+      //printf("value %lf old key %ld new key %ld\n",((double*)wA[i].d())[0], rA[i].k(), wA[i].k());
+    }
+
+
+  }
+
   void algstrct::scal(int          n,
                       char const * alpha,
                       char       * X,
@@ -916,26 +958,6 @@ namespace CTF_int {
 
   void PairIterator::sort(int64_t n){
     sr->sort(n, ptr);
-  }
-
-  void ConstPairIterator::permute(int64_t n, int order, int64_t const * old_lens, int64_t const * new_lda, PairIterator wA){
-    ConstPairIterator rA = * this;
-#ifdef USE_OMP
-    #pragma omp parallel for
-#endif
-    for (int64_t i=0; i<n; i++){
-      int64_t k = rA[i].k();
-      int64_t k_new = 0;
-      for (int j=0; j<order; j++){
-        k_new += (k%old_lens[j])*new_lda[j];
-        k = k/old_lens[j];
-      }
-      ((int64_t*)wA[i].ptr)[0] = k_new;
-      wA[i].write_val(rA[i].d());
-      //printf("value %lf old key %ld new key %ld\n",((double*)wA[i].d())[0], rA[i].k(), wA[i].k());
-    }
-
-
   }
 
   void ConstPairIterator::pin(int64_t n, int order, int64_t const * lens, int const * divisor, PairIterator pi_new){
