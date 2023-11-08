@@ -60,7 +60,7 @@ jobs:
       - name: Install dependencies on macos
         if: startsWith(matrix.config.os, 'macos')
         run: |
-          brew install gcc mpich python-setuptools
+          brew install mpich
 
       - name: Configure Cyclops and Build Scalapack
         if: matrix.config.build_scalapack
@@ -108,7 +108,7 @@ jobs:
         run: |
           virtualenv -p python3 ./envs/py3env;
           source ./envs/py3env/bin/activate;
-          pip install numpy cython
+          pip install numpy cython setuptools
 
       - name: Build Python library
         run:
