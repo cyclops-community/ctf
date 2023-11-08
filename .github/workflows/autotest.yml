@@ -60,7 +60,7 @@ jobs:
       - name: Install dependencies on macos
         if: startsWith(matrix.config.os, 'macos')
         run: |
-          brew install gcc mpich
+          brew install gcc mpich python-setuptools
 
       - name: Configure Cyclops and Build Scalapack
         if: matrix.config.build_scalapack
