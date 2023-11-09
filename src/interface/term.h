@@ -23,7 +23,7 @@ namespace CTF_int {
    * This ensures the set iteration order is consistent across nodes
    */
   struct tensor_name_less {
-    bool operator()(CTF::Idx_Tensor* A, CTF::Idx_Tensor* B);
+    bool operator()(CTF::Idx_Tensor* A, CTF::Idx_Tensor* B) const;
   };
 
 

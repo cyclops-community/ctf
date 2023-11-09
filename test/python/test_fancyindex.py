@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import unittest
-import numpy
+import numpy as np
 import ctf
 import ctf.random
 import os
@@ -11,13 +11,13 @@ def allclose(a, b):
     return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() < 1e-10
 
 def a0_and_a1():
-    a0 = numpy.arange(60.).reshape(5,4,3)
+    a0 = np.arange(60.).reshape(5,4,3)
     a1 = ctf.astensor(a0)
     return a0, a1
 
 class KnowValues(unittest.TestCase):
     def test__getitem__(self):
-        a0 = numpy.arange(12.).reshape(4,3)
+        a0 = np.arange(12.).reshape(4,3)
         a1 = ctf.astensor(a0)
         self.assertTrue(allclose(a1[3], a0[3]))
         self.assertEqual(a1[(3,1)], a1[3,1])
@@ -32,21 +32,21 @@ class KnowValues(unittest.TestCase):
         with self.assertRaises(IndexError):
             a1[[3,4]]
 
-        a0 = numpy.arange(60.).reshape(5,4,3)
+        a0 = np.arange(60.).reshape(5,4,3)
         a1 = ctf.astensor(a0)
         self.assertTrue(allclose(a1[1:3,:,2:], a0[1:3,:,2:]))
 
 #    def test_fancyindex(self):
-#        a0 = numpy.arange(60.).reshape(5,4,3)
+#        a0 = np.arange(60.).reshape(5,4,3)
 #        a1 = ctf.astensor(a0)
-#        idx = numpy.arange(3)
+#        idx = np.arange(3)
 #        self.assertTrue(a1[idx,idx,:].shape == (3, 3))
 #        self.assertTrue(a1[:,idx,idx].shape == (5, 3))
 #        self.assertTrue(a1[idx,:,idx].shape == (3, 4))
 #        self.assertTrue(allclose(a1[idx,idx+1,:], a0[idx,idx+1,:]))
 
     def test__getitem__(self):
-        a0 = numpy.arange(12.).reshape(4,3)
+        a0 = np.arange(12.).reshape(4,3)
         a1 = ctf.astensor(a0)
         self.assertTrue(a1.shape == (4,3))
         self.assertTrue(a1[1].shape == (3,))
@@ -159,8 +159,8 @@ class KnowValues(unittest.TestCase):
 # Some advanced fancy indices which involve multiple dimensions of a tensor.
 # Remove these tests if they are not compatible to the distributed tensor
 # structure.
-        #idx = numpy.array([1,2,3])
-        #idy = numpy.array([0,2])
+        #idx = np.array([1,2,3])
+        #idy = np.array([0,2])
         #a0, a1 = a0_and_a1()
         #a1[idx[:,None],idy] = 99
         #a0[idx[:,None],idy] = 99
@@ -178,9 +178,9 @@ class KnowValues(unittest.TestCase):
         #a0[idx[:,None,None],idy[:,None],idy] = 99
         #self.assertTrue(allclose(a1, a0))
 
-        #bidx = numpy.zeros(5, dtype=bool)
-        #bidy = numpy.zeros(4, dtype=bool)
-        #bidz = numpy.zeros(3, dtype=bool)
+        #bidx = np.zeros(5, dtype=bool)
+        #bidy = np.zeros(4, dtype=bool)
+        #bidz = np.zeros(3, dtype=bool)
         #bidx[idx] = True
         #bidy[idy] = True
         #bidz[idy] = True
@@ -215,11 +215,11 @@ class KnowValues(unittest.TestCase):
 
 
     def test__getslice__(self):
-        a0 = ctf.astensor(numpy.arange(12.).reshape(4,3))
+        a0 = ctf.astensor(np.arange(12.).reshape(4,3))
         self.assertTrue(a0[1:].shape == (3,3))
 
     def test__setslice__(self):
-        a0 = ctf.astensor(numpy.arange(12.).reshape(4,3))
+        a0 = ctf.astensor(np.arange(12.).reshape(4,3))
         a0[1:3] = 9
 
     def test_slice_sym_4d(self):
@@ -287,7 +287,7 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(allclose(ref, dat))
 
 def run_tests():
-    numpy.random.seed(5330);
+    np.random.seed(5330);
     wrld = ctf.comm()
     if ctf.comm().rank() != 0:
         result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))

@@ -24,6 +24,7 @@ from ctf.partition cimport idx_partition
 
 #from ctf.helper import ctf.helper._ord_comp, ctf.helper.type_index, ctf.helper._rev_array, ctf.helper._get_np_dtype, ctf.helper._get_num_str, ctf.helper._use_align_for_pair
 from ctf.chelper cimport *
+#cdef extern from "numpy/arrayobject.h":
 #from ctf.tensor_aux import ctf.tensor_aux.astensor, ctf.tensor_aux.transpose, ctf.tensor_aux.power, ctf.tensor_aux.dot, ctf.tensor_aux.reshape, ctf.tensor_aux.zeros, ctf.tensor_aux.conj, ctf.tensor_aux._match_tensor_types, ctf.tensor_aux._div, ctf.tensor_aux._setgetitem_helper, ctf.tensor_aux.trace, ctf.tensor_aux.diagonal, ctf.tensor_aux.take, ctf.tensor_aux.ravel tensorctf.tensor_aux.dot
 #from ctf.term import itensor
 #from ctf.world import comm
@@ -423,7 +424,7 @@ cdef class tensor:
         if dtype is float:
             dtype = np.float64
 
-        if dtype == np.complex:
+        if dtype == complex:
             dtype = np.complex128
 
 
@@ -447,7 +448,7 @@ cdef class tensor:
             self.sym = np.asarray([0]*self.ndim)
         else:
             self.sym = np.asarray(sym)
-        if self.dtype == np.bool:
+        if self.dtype == np.bool_:
             self.itemsize = 1
         else:
             self.itemsize = np.dtype(self.dtype).itemsize
@@ -488,7 +489,7 @@ cdef class tensor:
                 self.dt = new Tensor[complex64_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
             if self.dtype == np.complex128:
                 self.dt = new Tensor[complex128_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
-            if self.dtype == np.bool:
+            if self.dtype == np.bool_:
                 self.dt = new Tensor[bool](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
             if self.dtype == np.int64:
                 self.dt = new Tensor[int64_t](self.ndim, sp, clens, csym, wrld[0], idx.encode(), prl.ip[0], blk.ip[0])
@@ -507,7 +508,7 @@ cdef class tensor:
                 self.dt = new Tensor[complex64_t](self.ndim, sp, clens, csym)
             elif self.dtype == np.complex128:
                 self.dt = new Tensor[complex128_t](self.ndim, sp, clens, csym)
-            elif self.dtype == np.bool:
+            elif self.dtype == np.bool_:
                 self.dt = new Tensor[bool](self.ndim, sp, clens, csym)
             elif self.dtype == np.int64:
                 self.dt = new Tensor[int64_t](self.ndim, sp, clens, csym)
@@ -601,7 +602,7 @@ cdef class tensor:
             raise ValueError("Universal functions among tensors with different order, i.e. Fortran vs C are not currently supported")
         out_order = self.order
         out_dtype = ctf.helper._get_np_dtype([self.dtype, other.dtype])
-        out_dims = np.zeros(np.maximum(self.ndim, other.ndim), dtype=np.int)
+        out_dims = np.zeros(np.maximum(self.ndim, other.ndim), dtype=int)
         out_sp = min(self.sp,other.sp)
         out_sym = [SYM.NS]*len(out_dims)
         ind_coll = ctf.helper._get_num_str(3*out_dims.size)
@@ -735,7 +736,9 @@ cdef class tensor:
 
         [idx_A, idx_B, idx_C, out_tsr] = tsr._ufunc_interpret(otsr)
         out_tsr.i(idx_C) << tsr.i(idx_A)
-        out_tsr.i(idx_C) << -1*otsr.i(idx_B)
+        iotsr = otsr.i(idx_B)
+        iotsr.scale(-1)
+        out_tsr.i(idx_C) << iotsr
         return out_tsr
 
     def __isub__(self, other_in):
@@ -747,9 +750,13 @@ cdef class tensor:
             raise ValueError('CTF PYTHON ERROR: invalid call to __isub__ (-=)')
         if self.dtype != other.dtype:
             [tsr, otsr] = ctf.tensor_aux._match_tensor_types(self,other) # solve the bug when np.float64 -= np.int64
-            self.i(idx_C) << -1*otsr.i(idx_A)
+            iotsr = otsr.i(idx_A)
+            iotsr.scale(-1)
+            self.i(idx_C) << iotsr
         else:
-            self.i(idx_C) << -1*other.i(idx_A)
+            iotsr = other.i(idx_A)
+            iotsr.scale(-1)
+            self.i(idx_C) << iotsr
         return self
 
     def __truediv__(self, other):
@@ -833,7 +840,7 @@ cdef class tensor:
             self.dt.true_divide[int16_t](<ctensor*>self.dt)
         elif self.dtype == np.int8:
             self.dt.true_divide[int8_t](<ctensor*>self.dt)
-        elif self.dtype == np.bool:
+        elif self.dtype == np.bool_:
             self.dt.true_divide[bool](<ctensor*>self.dt)
 
     def __matmul__(self, other):
@@ -1064,7 +1071,7 @@ cdef class tensor:
                     dims_keep = tuple(dims_keep)
                     if out.shape != dims_keep:
                         raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
-            B = tensor((1,), dtype=np.bool)
+            B = tensor((1,), dtype=np.bool_)
             index_A = ctf.helper._get_num_str(self.ndim)
             if self.dtype == np.float64:
                 all_helper[double](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
@@ -1076,7 +1083,7 @@ cdef class tensor:
                 all_helper[int16_t](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
             elif self.dtype == np.int8:
                 all_helper[int8_t](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
-            elif self.dtype == np.bool:
+            elif self.dtype == np.bool_:
                 all_helper[bool](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
             if out is not None:
                 if out.dtype != B.get_type():
@@ -1129,12 +1136,12 @@ cdef class tensor:
             index_temp = ctf.helper._rev_array(index_A)
             index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
             index_B = ctf.helper._rev_array(index_B)
-            B = tensor(dim_ret, dtype=np.bool)
+            B = tensor(dim_ret, dtype=np.bool_)
             if self.dtype == np.float64:
                 all_helper[double](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
             elif self.dtype == np.int64:
                 all_helper[int64_t](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-            elif self.dtype == np.bool:
+            elif self.dtype == np.bool_:
                 all_helper[bool](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
             elif self.dtype == np.int32:
                 all_helper[int32_t](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
@@ -1182,7 +1189,7 @@ cdef class tensor:
                 for i in range(len(dim_ret)):
                     if dim_ret[i] is not out.shape[i]:
                         raise ValueError('CTF PYTHON ERROR: output parameter dimensions mismatch')
-            B = tensor(dim_ret, dtype=np.bool)
+            B = tensor(dim_ret, dtype=np.bool_)
             index_A = ctf.helper._get_num_str(self.ndim)
             index_temp = ctf.helper._rev_array(index_A)
             index_B = ""
@@ -1200,7 +1207,7 @@ cdef class tensor:
                 all_helper[int16_t](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
             elif self.dtype == np.int8:
                 all_helper[int8_t](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-            elif self.dtype == np.bool:
+            elif self.dtype == np.bool_:
                 all_helper[bool](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
             if out is not None:
                 if out.dtype is not B.get_type():
@@ -1617,7 +1624,7 @@ cdef class tensor:
             if dtype == float:
                 dtype = np.float64
             if str(dtype) == "<class 'bool'>":
-                dtype = np.bool
+                dtype = np.bool_
             if str(dtype) == "<class 'complex'>":
                 dtype = np.complex128
             B = tensor(self.shape, sp=self.sp, dtype = dtype)
@@ -1628,10 +1635,10 @@ cdef class tensor:
                 dtype = np.int64
             if dtype == float:
                 dtype = np.float64
-            # np.bool doesnot have itemsize
-            if (self.dtype != np.bool and dtype != np.bool) and self.itemsize > dtype.itemsize:
+            # np.bool_ doesnot have itemsize
+            if (self.dtype != np.bool_ and dtype != np.bool_) and self.itemsize > dtype.itemsize:
                 raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'safe'".format(self.dtype,dtype))
-            if dtype == np.bool and self.dtype != np.bool:
+            if dtype == np.bool_ and self.dtype != np.bool_:
                 raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'safe'".format(self.dtype,dtype))
             str_self = str(self.dtype)
             str_dtype = str(dtype)
@@ -1670,7 +1677,7 @@ cdef class tensor:
                 raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'same_kind'".format(self.dtype,dtype))
             if 'complex' in str_self and ('int' in str_dtype or ('float' in str_dtype)):
                 raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'same_kind'".format(self.dtype,dtype))
-            if self.dtype != np.bool and dtype == np.bool:
+            if self.dtype != np.bool_ and dtype == np.bool_:
                 raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'same_kind'".format(self.dtype,dtype))
         else:
             raise ValueError("casting must be one of 'no', 'equiv', 'safe', 'same_kind', or 'unsafe'")
@@ -1691,17 +1698,9 @@ cdef class tensor:
         cdef int64_t * cinds
         cdef char * cdata
         cdef int64_t n
-        self.dt.read_local(&n,&cdata,unpack_sym)
-        inds = np.empty(n, dtype=np.int64)
-        vals = np.empty(n, dtype=self.dtype)
-
-        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=ctf.helper._use_align_for_pair(self.dtype)))
-        d = buf.data
-        buf.data = cdata
-        vals[:] = buf['b'][:]
-        inds[:] = buf['a'][:]
-        buf.data = d
-        delete_pairs(self.dt, cdata)
+        self.dt.read_local(&n,&cinds,&cdata,unpack_sym)
+        inds = _cast_carray_as_python(n, <char*>cinds, np.int64)
+        vals = _cast_carray_as_python(n, cdata, self.dtype)
         return inds, vals
 
     def dot(self, other, out=None):
@@ -1793,16 +1792,9 @@ cdef class tensor:
         cdef int64_t * cinds
         cdef char * cdata
         cdef int64_t n
-        self.dt.read_local_nnz(&n,&cdata,unpack_sym)
-        inds = np.empty(n, dtype=np.int64)
-        vals = np.empty(n, dtype=self.dtype)
-        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=ctf.helper._use_align_for_pair(self.dtype)))
-        d = buf.data
-        buf.data = cdata
-        vals[:] = buf['b'][:]
-        inds[:] = buf['a'][:]
-        buf.data = d
-        delete_arr(self.dt, cdata)
+        self.dt.read_local_nnz(&n,&cinds,&cdata,unpack_sym)
+        inds = _cast_carray_as_python(n, <char*>cinds, np.int64)
+        vals = _cast_carray_as_python(n, cdata, self.dtype)
         return inds, vals
 
     def tot_size(self, unpack=True):
@@ -1839,17 +1831,11 @@ cdef class tensor:
                 return
         cvals = <char*> malloc(sz*tB)
         self.dt.allread(&sz, cvals, unpack)
-        cdef cnp.ndarray buf = np.empty(sz, dtype=self.dtype)
-        odata = buf.data
-        buf.data = cvals
+        vals = _cast_carray_as_python(sz, cvals, self.dtype)
         if arr is None:
-            sbuf = np.asarray(buf)
-            free(odata)
-            return buf
+            return vals
         else:
-            arr[:] = buf[:]
-            free(cvals)
-            buf.data = odata
+            arr[:] = vals[:]
 
     def read_all_nnz(self, unpack=True):
         """
@@ -1869,16 +1855,9 @@ cdef class tensor:
         cdef int64_t * cinds
         cdef char * cdata
         cdef int64_t n
-        cdata = self.dt.read_all_pairs(&n, unpack, True)
-        inds = np.empty(n, dtype=np.int64)
-        vals = np.empty(n, dtype=self.dtype)
-        cdef cnp.ndarray buf = np.empty(len(inds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=ctf.helper._use_align_for_pair(self.dtype)))
-        d = buf.data
-        buf.data = cdata
-        vals[:] = buf['b'][:]
-        inds[:] = buf['a'][:]
-        buf.data = d
-        delete_arr(self.dt, cdata)
+        self.dt.read_all_pairs(&n, unpack, &cinds, &cdata, True)
+        inds = _cast_carray_as_python(n, <char*>cinds, np.int64)
+        vals = _cast_carray_as_python(n, cdata, self.dtype)
         return inds, vals
 
     def __read_all(self, arr):
@@ -1893,11 +1872,8 @@ cdef class tensor:
         sz = self.dt.get_tot_size(False)
         tB = arr.dtype.itemsize
         self.dt.get_raw_data(&cvals, &sz)
-        cdef cnp.ndarray buf = np.empty(sz, dtype=self.dtype)
-        odata = buf.data
-        buf.data = cvals
-        arr[:] = buf[:]
-        buf.data = odata
+        vals = _cast_carray_as_python(sz, cvals, self.dtype)
+        arr[:] = vals[:]
 
     def __write_all(self, arr):
         """
@@ -1911,12 +1887,9 @@ cdef class tensor:
         sz = self.dt.get_tot_size(False)
         tB = arr.dtype.itemsize
         self.dt.get_raw_data(&cvals, &sz)
-        cdef cnp.ndarray buf = np.empty(sz, dtype=self.dtype)
-        odata = buf.data
-        buf.data = cvals
+        vals = _cast_carray_as_python(sz, cvals, self.dtype)
         rarr = arr.ravel()
-        buf[:] = rarr[:]
-        buf.data = odata
+        vals[:] = rarr[:]
 
     def conj(self):
         """
@@ -2058,8 +2031,8 @@ cdef class tensor:
 #        cdef cnp.ndarray buf = np.empty(len(iinds), dtype=np.dtype([('a','i8'),('b',self.dtype)],align=False))
         cdef char * alpha
         cdef char * beta
-    # if type is np.bool, assign the st with 1, since bool does not have itemsize in numpy
-        if self.dtype == np.bool:
+    # if type is np.bool_, assign the st with 1, since bool does not have itemsize in numpy
+        if self.dtype == np.bool_:
             st = 1
         else:
             st = self.itemsize
@@ -2086,6 +2059,7 @@ cdef class tensor:
             free(alpha)
         if b is not None:
             free(beta)
+    put = write
 
     def _get_slice(self, offsets, ends):
         cdef char * alpha
@@ -2257,7 +2231,7 @@ cdef class tensor:
             else:
                 self.write([],[])
             return
-        if isinstance(value, (np.int, np.float, np.complex, np.number)):
+        if isinstance(value, (int, float, complex, np.number)):
             tval = np.asarray([value],dtype=self.dtype)[0]
         else:
             tval = ctf.tensor_aux.astensor(value,dtype=self.dtype)
@@ -2659,7 +2633,7 @@ cdef class tensor:
             else:
                 new_shape.append(b.shape[i])
 
-        c = tensor(new_shape, dtype=np.bool, sp=self.sp)
+        c = tensor(new_shape, dtype=np.bool_, sp=self.sp)
         # <
         if op == 0:
             c.dt.elementwise_smaller(<ctensor*>self.dt,<ctensor*>b.dt)
@@ -2690,3 +2664,4 @@ cdef class tensor:
             return c
 
 
+ndarray = tensor

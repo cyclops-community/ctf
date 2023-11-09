@@ -49,7 +49,7 @@ cdef class term:
             return self.dtype
 
     def scale(self, scl):
-        if isinstance(scl, (np.int, np.float, np.double, np.number)):
+        if isinstance(scl, (int, float, np.double, np.number)):
             tm_old = self.tm
             self.tm = (deref(self.tm) * <double>scl).clone()
             if tm_old != self.tm:
@@ -254,9 +254,9 @@ cdef class itensor(term):
             tensor_svd_cmplx(self.tsr.dt, self.string.encode(),  VT_string.encode(), U_string.encode(), rank, threshold, use_svd_rand, num_iter, oversamp, ctsrs)
         else:
             raise ValueError('CTF PYTHON ERROR: SVD must be called on real or complex single/double precision tensor')
-        cdef cnp.ndarray lens_U = cnp.ndarray(ctsrs[2].order,dtype=np.int)
-        cdef cnp.ndarray lens_S = cnp.ndarray(ctsrs[1].order,dtype=np.int)
-        cdef cnp.ndarray lens_VT = cnp.ndarray(ctsrs[0].order,dtype=np.int)
+        cdef cnp.ndarray lens_U = cnp.ndarray(ctsrs[2].order,dtype=int)
+        cdef cnp.ndarray lens_S = cnp.ndarray(ctsrs[1].order,dtype=int)
+        cdef cnp.ndarray lens_VT = cnp.ndarray(ctsrs[0].order,dtype=int)
         for i in range(ctsrs[0].order):
             lens_VT[i] = ctsrs[0].lens[i]
         if _ord_comp(self.tsr.order, 'F'):

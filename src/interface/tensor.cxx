@@ -360,15 +360,7 @@ namespace CTF {
     *data = (dtype*)CTF_int::alloc((*npair)*sizeof(dtype));
     CTF_int::memprof_dealloc(*global_idx);
     CTF_int::memprof_dealloc(*data);
-    CTF_int::PairIterator pairs(sr, cpairs);
-
-#ifdef _OPENMP
-    #pragma omp parallel for
-#endif
-    for (i=0; i<(*npair); i++){
-      (*global_idx)[i] = pairs[i].k();
-      pairs[i].read_val((char*)((*data)+i));
-    }
+    sr->to_s_of_a(*npair, cpairs, *global_idx, (char*)*data);
     if (cpairs != NULL) sr->pair_dealloc(cpairs);
   }
 
@@ -425,13 +417,14 @@ namespace CTF {
     int64_t i;
     char * cpairs = sr->pair_alloc(npair);
     Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
-#ifdef _OPENMP
-    #pragma omp parallel for
-#endif
-    for (i=0; i<npair; i++){
-      pairs[i].k = global_idx[i];
-      pairs[i].d = data[i];
-    }
+    sr->to_a_of_s(npair, global_idx, (char*)data, (char*)pairs);
+//#ifdef _OPENMP
+//    #pragma omp parallel for
+//#endif
+//    for (i=0; i<npair; i++){
+//      pairs[i].k = global_idx[i];
+//      pairs[i].d = data[i];
+//    }
     ret = CTF_int::tensor::read(npair, cpairs);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read\n"); IASSERT(0); return; }
     for (i=0; i<npair; i++){
@@ -463,16 +456,17 @@ namespace CTF {
                             int64_t const * global_idx,
                             dtype const *   data) {
     int ret;
-    int64_t i;
+    //int64_t i;
     char * cpairs = sr->pair_alloc(npair);
     Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
-#ifdef _OPENMP
-    #pragma omp parallel for
-#endif
-    for (i=0; i<npair; i++){
-      pairs[i].k = global_idx[i];
-      pairs[i].d = data[i];
-    }
+    sr->to_a_of_s(npair, global_idx, (char*)data, (char*)pairs);
+//#ifdef _OPENMP
+//    #pragma omp parallel for
+//#endif
+//    for (i=0; i<npair; i++){
+//      pairs[i].k = global_idx[i];
+//      pairs[i].d = data[i];
+//    }
     /*char * cpairs = sr->pair_alloc(npair);
     CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
     for (i=0; i<npair; i++){
@@ -721,10 +715,11 @@ namespace CTF {
     int64_t i;
     char * cpairs = sr->pair_alloc(npair);
     Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
-    for (i=0; i<npair; i++){
-      pairs[i].k = global_idx[i];
-      pairs[i].d = data[i];
-    }
+    sr->to_a_of_s(npair, global_idx, (char*)data, (char*)pairs);
+    //for (i=0; i<npair; i++){
+    //  pairs[i].k = global_idx[i];
+    //  pairs[i].d = data[i];
+    //}
     ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, cpairs);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read\n"); IASSERT(0); return; }
     for (i=0; i<npair; i++){

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import unittest
-import numpy
+import numpy as np
 import ctf
 import os
 import sys
@@ -23,7 +23,7 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(allclose(BB,CC))  
 
 def run_tests():
-    numpy.random.seed(5330);
+    np.random.seed(5330);
     wrld = ctf.comm()
     if ctf.comm().rank() != 0:
         result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))

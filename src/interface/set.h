@@ -663,6 +663,30 @@ namespace CTF {
         std::sort((dtypePair<dtype>*)pairs,((dtypePair<dtype>*)pairs)+n);
       }
 
+      void to_s_of_a(int64_t n, char const * pairs, int64_t * keys, char * vals) const {
+        Pair<dtype> const * dpairs = (Pair<dtype> const *)pairs;
+        dtype * dvals = (dtype*)vals;
+#ifdef _OPENMP
+        #pragma omp parallel for
+#endif
+        for (int64_t i=0; i<n; i++){
+          keys[i] = dpairs[i].k;
+          dvals[i] = dpairs[i].d;
+        }
+      }
+
+      void to_a_of_s(int64_t n, int64_t const * keys, char const * vals, char * pairs) const {
+        Pair<dtype> * dpairs = (Pair<dtype>*)pairs;
+        dtype const * dvals = (dtype const*)vals;
+#ifdef _OPENMP
+        #pragma omp parallel for
+#endif
+        for (int64_t i=0; i<n; i++){
+          dpairs[i].k = keys[i];
+          dpairs[i].d = dvals[i];
+        }
+      }
+
       void copy(char * a, char const * b) const {
         ((dtype *)a)[0] = ((dtype const *)b)[0];
       }

@@ -1096,7 +1096,7 @@ namespace CTF_int {
 
 
 namespace CTF_int {
-  bool tensor_name_less::operator()(CTF::Idx_Tensor* A, CTF::Idx_Tensor* B) {
+  bool tensor_name_less::operator()(CTF::Idx_Tensor* A, CTF::Idx_Tensor* B) const {
     if (A == NULL && B != NULL) {
       return true;
     } else if (A == NULL || B == NULL) {

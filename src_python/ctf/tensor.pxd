@@ -1,8 +1,8 @@
 from libc.stdint cimport int64_t
 from libcpp cimport bool
 cimport numpy as cnp
-from partition cimport Idx_Partition
-from world cimport World
+from ctf.partition cimport Idx_Partition
+from ctf.world cimport World
 
 cdef extern from "ctf.hpp" namespace "CTF":
     cdef cppclass Term:
@@ -61,6 +61,7 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
         void reshape(ctensor * tsr, char * alpha, char * beta)
         void allread(int64_t * num_pair, char * data, bool unpack)
         char * read_all_pairs(int64_t * num_pair, bool unpack, bool nonzeros_only)
+        void read_all_pairs(int64_t * num_pair, bool unpack, int64_t ** inds, char ** vals, bool nonzero_only) const;
         void slice(int64_t *, int64_t *, char *, ctensor *, int64_t *, int64_t *, char *)
         int64_t get_tot_size(bool packed)
         void get_raw_data(char **, int64_t * size)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import unittest
-import numpy
+import numpy as np
 import ctf
 import os
 import sys
@@ -21,10 +21,10 @@ class KnowValues(unittest.TestCase):
         c1.fill_sp_random(0., 1., 0.1)
 
         d1 = ctf.einsum('ijk,jkl->ijkl', a1, b1)
-        e1 = numpy.einsum('ijk,jkl->ijkl', ctf.to_nparray(a1), ctf.to_nparray(b1))
+        e1 = np.einsum('ijk,jkl->ijkl', ctf.to_nparray(a1), ctf.to_nparray(b1))
         self.assertTrue(allclose(d1,e1))  
         d2 = ctf.einsum('ijk,jkl->ijkl', a1, c1)
-        e2 = numpy.einsum('ijk,jkl->ijkl', ctf.to_nparray(a1), ctf.to_nparray(c1))
+        e2 = np.einsum('ijk,jkl->ijkl', ctf.to_nparray(a1), ctf.to_nparray(c1))
         self.assertTrue(allclose(d2,e2))  
 
     def test_scaled_expression(self):
@@ -51,18 +51,22 @@ class KnowValues(unittest.TestCase):
         b_np = ctf.to_nparray(b_dn)
         c_np = ctf.to_nparray(c_dn)
 
-        c_sp.i("ijk") << 2.3*a_sp.i("ijl")*b_sp.i("kjl") + 7*c_sp.i("ijk") - a_sp.i("ijk") - 1. * a_sp.i("ijk") - 2 * b_sp.i("ijk")
-        c_dn.i("ijk") << 2.3*a_dn.i("ijl")*b_dn.i("kjl") + 7*c_dn.i("ijk") - a_dn.i("ijk") - 1. * a_dn.i("ijk") - 2 * b_dn.i("ijk")
-        c_np += 2.3*numpy.einsum("ijl,kjl->ijk",a_np,b_np) + 7*c_np - a_np - 1. * a_np - 2 * b_np
+        c_sp.i("ijk") << a_sp.i("ijl")*b_sp.i("kjl")*2.3 + c_sp.i("ijk")*7 - a_sp.i("ijk") - a_sp.i("ijk") -  b_sp.i("ijk")*2
+        c_dn.i("ijk") << a_dn.i("ijl")*b_dn.i("kjl")*2.3 + c_dn.i("ijk")*7 - a_dn.i("ijk") -  a_dn.i("ijk") -  b_dn.i("ijk")*2
+        c_np += 2.3*np.einsum("ijl,kjl->ijk",a_np,b_np) + 7*c_np - a_np - 1. * a_np - 2 * b_np
         self.assertTrue(allclose(c_np,c_dn))  
         self.assertTrue(allclose(c_np,c_sp))  
 
     def test_complex(self):
-        a0 = numpy.arange(27.).reshape(3,3,3)
-        b0 = numpy.arange(27.).reshape(3,3,3)
+        a0 = np.arange(27.).reshape(3,3,3)
+        b0 = np.arange(27.).reshape(3,3,3)
         a1 = ctf.astensor(a0)
         b1 = ctf.astensor(b0)
-        .2*b1.i("ijk") << .7*a1.i("kij")
+        b1i = b1.i("ijk")
+        b1i.scale(.2)
+        a1i = b1.i("kij")
+        a1i.scale(.7)
+        b1i << a1i
         b0 = .2*b0 + .7*a0.transpose([1,2,0])
         self.assertTrue(allclose(b0,b1))
 
@@ -96,7 +100,7 @@ class KnowValues(unittest.TestCase):
             self.assertTrue(allclose(ctf.vecnorm(X),ctf.vecnorm(Y)))
 
 def run_tests():
-    numpy.random.seed(5330);
+    np.random.seed(5330);
     wrld = ctf.comm()
     if ctf.comm().rank() != 0:
         result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))
