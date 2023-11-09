@@ -4441,7 +4441,7 @@ namespace CTF_int {
     if (C->wrld->ppn != 1 && !is_sparse()){
       TAU_FSTART(node_aware_remapping_calc);
       std::vector<int> pe_grid(orig_topo.lens, orig_topo.lens + orig_topo.order);
-      std::vector<std::vector<int> > inter_node_grids = CTF_int::get_inter_node_grids(pe_grid, C->wrld->np/C->wrld->ppn);
+      std::vector<std::vector<int> > inter_node_grids = CTF_int::get_inter_node_grids(pe_grid, std::max(1,C->wrld->np/C->wrld->ppn));
       //std::vector< std::vector<int> > intra_node_grids = CTF_int::get_all_shapes(C->wrld->ppn()){
       int * intra_node_lens = (int*)CTF_int::alloc((orig_topo.order)*sizeof(int));
       int64_t best_topo_index;
