@@ -1294,7 +1294,7 @@ namespace CTF {
     dtype * d = (dtype*)CTF_int::alloc(sizeof(dtype)*n);
     Timer __t("SCALAPACK_PGEIGH");
     __t.start();
-    CTF_SCALAPACK::pgeigh('U', n, npr, npc, A, desca, d, u, desca);
+    CTF_SCALAPACK::pgeigh('U', n, pr, pc, A, desca, d, u, desca);
     __t.stop();
 
     int phase = D.edge_map[0].calc_phase();
