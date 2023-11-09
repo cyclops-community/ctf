@@ -101,7 +101,7 @@ namespace CTF_int {
                      CommData    cdt,
                      int         ppn_,
                      bool        activate,
-                     int const * intra_node_lens) : unord_glb_comm(cdt), glb_comm(cdt) {
+                     int const * intra_node_lens) : glb_comm(cdt), unord_glb_comm(cdt) {
     order        = order_;
     lens         = (int*)CTF_int::alloc(order_*sizeof(int));
     ppn          = ppn_;

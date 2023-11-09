@@ -4427,8 +4427,10 @@ namespace CTF_int {
     TAU_FSTOP(pre_ctr_func_barrier);
   #endif
 
+#ifndef NODE_AWARE
 #define NODE_AWARE 1
-#ifdef NODE_AWARE
+#endif
+#if NODE_AWARE
     /* reorder processor grid to account for node-awareness */
     topology orig_topo = *(C->topo);
     int64_t node_aware_send_to_rank;
@@ -4443,7 +4445,7 @@ namespace CTF_int {
       //std::vector< std::vector<int> > intra_node_grids = CTF_int::get_all_shapes(C->wrld->ppn()){
       int * intra_node_lens = (int*)CTF_int::alloc((orig_topo.order)*sizeof(int));
       int64_t best_topo_index;
-      for (int64_t i=0; i<inter_node_grids.size(); i++){
+      for (int64_t i=0; i<(int64_t)inter_node_grids.size(); i++){
         for (int j=0; j<orig_topo.order; j++){
           intra_node_lens[j] = orig_topo.lens[j] / inter_node_grids[i][j];
         }
@@ -4580,7 +4582,7 @@ namespace CTF_int {
     //A->unfold();
     //B->unfold();
 
-#ifdef NODE_AWARE
+#if NODE_AWARE
     if (enable_node_aware) {
       TAU_FSTART(node_aware_backmapping);
       /* reorder processor grid to account for node-awareness */

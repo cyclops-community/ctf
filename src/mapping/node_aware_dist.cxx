@@ -31,8 +31,8 @@ namespace CTF_int {
       order = t.order + 1;
       sgf = t.sgf;
       ogf = t.ogf; 
-      assert(sgf.size() > pos);
-      assert(ogf.size() > pos);
+      assert((int)sgf.size() > pos);
+      assert((int)ogf.size() > pos);
       sgf[pos].push_back(el);
       std::sort(sgf[pos].begin(), sgf[pos].end());
       auto it = std::find(ogf[pos].begin(), ogf[pos].end(), el);
@@ -41,7 +41,7 @@ namespace CTF_int {
     }
 
     bool find(int pos, int el) {
-      if (ogf.size() <= pos) {
+      if ((int)ogf.size() <= pos) {
         printf("Find problem! order %d, size: %ld, pos: %d, el: %d\n"
               , order, ogf.size(), pos, el);
         assert(0);
@@ -142,7 +142,6 @@ namespace CTF_int {
     // 2.) we remove identical branches
     // 3.) we go to step 1
 
-    size_t b(0);
     size_t n(rGrid.size());
     std::vector<Tree> treeVec;
     treeVec.emplace_back(0, nodeGrid, openGridFactors);
@@ -169,7 +168,7 @@ namespace CTF_int {
       // however: if a potential element is already in the list,
       //          do not add it
       for (size_t t(b); t < e; t++){
-        for (auto i(0); i < n; i++)
+        for (auto i(0); i < (int)n; i++)
         if ( treeVec[t].find(i, f) ){
           bool distinct(true);
           auto cand = Tree(treeVec[t], i, f);
