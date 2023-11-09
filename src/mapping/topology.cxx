@@ -566,7 +566,7 @@ namespace CTF_int {
   *  \return all possible collections of natural numbers that multiply to size (excluding 1s)
    */
   std::vector< std::vector<int>* > get_all_shapes(int size){
-    int nfact, * factors;
+    int nfact, * factors = NULL;
     factorize(size, &nfact, &factors);
     if (nfact <= 1){
       std::vector<std::vector<int>*> shapes;
