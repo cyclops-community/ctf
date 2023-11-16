@@ -285,10 +285,13 @@ namespace CTF {
       }
       cppn = getenv("CTF_PPN");
       if (cppn != NULL){
-        if (rank == 0)
-          printf("Assuming %d processes per node due to CTF_PPN environment variable\n",
-                    atoi(cppn));
-        ASSERT(atoi(cppn)>=1);
+        int icppn = atoi(cppn);
+        if (rank == 0){
+          printf("CTF_PPN environment variable set to %d\n",icppn);
+          if (icppn<1 || all_np % icppn!=0) printf("This CTF_PPN value is invalid given the number of processors, aborting.\n");
+        }
+        assert(icppn>=1);
+        assert(all_np % icppn == 0);
   #ifdef BGQ
         CTF_int::set_memcap(.75);
   #else

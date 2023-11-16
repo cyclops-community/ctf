@@ -131,37 +131,63 @@ namespace CTF_int {
     int stride, cut;
     double tot_comm_nodes[order];
     int rank = glb_comm.rank;
-    int my_color[order];
+    /**
+     * The average number of nodes each processor communicates with, g, is the average number of nodes in each communicator - 1.
+     * Each set of communicators is associated with a stride s, a communicator size t, and the number of communicator sets v = p/(st).
+     * Let k be the number of processes per node If s >= k, g=t-1.
+     * If s>k, each node-boundary adds a node to min(d,s) communicators where d is the distance between the node boundary and the nearest multiple of st.
+     */
     if (intra_node_lens == NULL) {
-      stride = 1; cut = 0;
+      int s = 1, t, v;
       for (int i = 0; i < order; i++) {
-        my_color[i] = rank / (stride * lens[i]) * stride + cut;
-        stride *= lens[i];
-        cut = (rank - (rank/stride)*stride);
-      }
-      std::vector<int> nodes[order];
-      for (int r = 0; r < glb_comm.np; r++) {
-        stride = 1; cut = 0;
-        for (int i = 0; i < order; i++) {
-          int color = r / (stride * lens[i]) * stride + cut;
-          if (color == my_color[i]) {
-            int node_id = r / ppn;
-            if (std::find(nodes[i].begin(), nodes[i].end(), node_id) == nodes[i].end()) {
-              nodes[i].push_back(node_id);
-            }
+        if (i>0) s *= lens[i-1];
+        t = lens[i];
+        v = glb_comm.np/(s*t);
+        if (s >= ppn) tot_comm_nodes[i] = t-1;
+        else {
+          tot_comm_nodes[i] = 0.;
+          for (int j=0; j<glb_comm.np/ppn; j++){
+            int d = std::min((j*ppn)%(s*t),s*t-((j*ppn)%(s*t)));
+            tot_comm_nodes[i] += ((double)std::min(s,d))/(v*s);
           }
-          stride *= lens[i];
-          cut = (r - (r/stride)*stride);
         }
       }
-      int sum_comm_nodes[order];
-      for (int i = 0; i < order; i++) {
-        // number of nodes I need to communicate with
-        int sz = nodes[i].size() - 1;
-        MPI_Allreduce(&sz, &sum_comm_nodes[i], 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-        tot_comm_nodes[i] = sum_comm_nodes[i] / (double)glb_comm.np;
-      }
     }
+
+    // OLD inefficient code equivalent to above, but maybe useful for debugging above if issues arise
+    //if (intra_node_lens == NULL) {
+    //  stride = 1; cut = 0;
+    //  for (int i = 0; i < order; i++) {
+    //    my_color[i] = rank / (stride * lens[i]) * stride + cut;
+    //    stride *= lens[i];
+    //    cut = (rank - (rank/stride)*stride);
+    //  }
+    //  std::vector<int> nodes[order];
+    //  for (int r = 0; r < glb_comm.np; r++) {
+    //    stride = 1; cut = 0;
+    //    for (int i = 0; i < order; i++) {
+    //      int color = r / (stride * lens[i]) * stride + cut;
+    //      if (color == my_color[i]) {
+    //        int node_id = r / ppn;
+    //        if (std::find(nodes[i].begin(), nodes[i].end(), node_id) == nodes[i].end()) {
+    //          nodes[i].push_back(node_id);
+    //        }
+    //      }
+    //      stride *= lens[i];
+    //      cut = (r - (r/stride)*stride);
+    //    }
+    //  }
+    //  int sum_comm_nodes[order];
+    //  for (int i = 0; i < order; i++) {
+    //    // number of nodes I need to communicate with
+    //    int sz = nodes[i].size() - 1;
+    //    MPI_Allreduce(&sz, &sum_comm_nodes[i], 1, MPI_INT, MPI_SUM, glb_comm.cm);
+    //    tot_comm_nodes[i] = sum_comm_nodes[i] / (double)glb_comm.np;
+    //    if (std::abs(tot_comm_nodes[i] - tot_comm_nodes_new[i]) > 1.e-6)
+    //      printf("%d %lf %lf\n",i,tot_comm_nodes[i], tot_comm_nodes_new[i]);
+    //    assert(std::abs(tot_comm_nodes[i] - tot_comm_nodes_new[i])<= 1.e-6);
+    //  }
+    //}
     stride = 1; cut = 0;
     for (int i=0; i<order; i++){
       lda[i] = stride;
