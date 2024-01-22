@@ -481,7 +481,7 @@ namespace CTF_int {
 
     TAU_FSTART(block_reshuffle);
 #ifdef TUNE
-    MPI_Barrier(glb_comm.cm);
+    PMPI_Barrier(glb_comm.cm);
     double st_time = MPI_Wtime();
 #endif
 
@@ -602,7 +602,7 @@ namespace CTF_int {
     cdealloc(reqs);
 
 #ifdef TUNE
-    MPI_Barrier(glb_comm.cm);
+    PMPI_Barrier(glb_comm.cm);
     double exe_time = MPI_Wtime()-st_time;
     tps = (double*)malloc(3*sizeof(double));
     tps[0] = exe_time;

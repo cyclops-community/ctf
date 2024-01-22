@@ -255,7 +255,7 @@ namespace CTF_int {
     int tot_nrcol;
 
     //compute the total number of observations over all processors
-    MPI_Allreduce(&nrcol, &tot_nrcol, 1, MPI_INT, MPI_SUM, cm);
+    PMPI_Allreduce(&nrcol, &tot_nrcol, 1, MPI_INT, MPI_SUM, cm);
 
     //if there has been more than 16*nparam observations per processor, tune the model
     if (tot_nrcol >= 16.*np*nparam){
@@ -315,7 +315,7 @@ namespace CTF_int {
           i_st = nparam;
         }
         //find the max execution time over all processors
-        // MPI_Allreduce(MPI_IN_PLACE, &max_time, 1, MPI_DOUBLE, MPI_MAX, cm);
+        // PMPI_Allreduce(MPI_IN_PLACE, &max_time, 1, MPI_DOUBLE, MPI_MAX, cm);
         //double chunk = max_time / 1000.;
         //printf("%s chunk = %+1.2e\n",name,chunk);
 
@@ -406,7 +406,7 @@ namespace CTF_int {
       }
       int sub_np = np; //std::min(np,32);
       MPI_Comm sub_comm;
-      MPI_Comm_split(cm, rk<sub_np, rk, &sub_comm);
+      PMPI_Comm_split(cm, rk<sub_np, rk, &sub_comm);
       //use only data from the first 32 processors, so that this doesn't take too long
       //FIXME: can be smarter but not clear if necessary
       if (rk < sub_np){
@@ -415,13 +415,13 @@ namespace CTF_int {
         //all_b will have the bs from each processor vertically stacked as [b_1^T .. b_32^T]^T
         double * all_b = (double*)malloc(sizeof(double)*nparam*sub_np);
         //gather all Rs from all the processors
-        MPI_Allgather(R, nparam*nparam, MPI_DOUBLE, all_R, nparam*nparam, MPI_DOUBLE, sub_comm);
+        PMPI_Allgather(R, nparam*nparam, MPI_DOUBLE, all_R, nparam*nparam, MPI_DOUBLE, sub_comm);
         double * Rs = (double*)malloc(sizeof(double)*nparam*nparam*sub_np);
         for (int i=0; i<sub_np; i++){
           lda_cpy(sizeof(double), nparam, nparam, nparam, sub_np*nparam, (const char *)(all_R+i*nparam*nparam), (char*)(Rs+i*nparam));
         }
         //gather all bs from all the processors
-        MPI_Allgather(b, nparam, MPI_DOUBLE, all_b, nparam, MPI_DOUBLE, sub_comm);
+        PMPI_Allgather(b, nparam, MPI_DOUBLE, all_b, nparam, MPI_DOUBLE, sub_comm);
         free(b);
         free(all_R);
         free(R);
@@ -485,7 +485,7 @@ namespace CTF_int {
       }
       MPI_Comm_free(&sub_comm);
       //broadcast new coefficient guess
-      MPI_Bcast(coeff_guess, nparam, MPI_DOUBLE, 0, cm);
+      PMPI_Bcast(coeff_guess, nparam, MPI_DOUBLE, 0, cm);
       /*for (int i=0; i<nparam; i++){
         regularization[i] = coeff_guess[i]*REG_LAMBDA;
       }*/
@@ -497,9 +497,9 @@ namespace CTF_int {
     double tot_time_total;
     double over_time_total;
     double under_time_total;
-    MPI_Allreduce(&tot_time, &tot_time_total, 1, MPI_DOUBLE, MPI_SUM, cm);
-    MPI_Allreduce(&over_time, &over_time_total, 1, MPI_DOUBLE, MPI_SUM, cm);
-    MPI_Allreduce(&under_time, &under_time_total, 1, MPI_DOUBLE, MPI_SUM, cm);
+    PMPI_Allreduce(&tot_time, &tot_time_total, 1, MPI_DOUBLE, MPI_SUM, cm);
+    PMPI_Allreduce(&over_time, &over_time_total, 1, MPI_DOUBLE, MPI_SUM, cm);
+    PMPI_Allreduce(&under_time, &under_time_total, 1, MPI_DOUBLE, MPI_SUM, cm);
 
 
     // NOTE: to change the minimum number of observations and the threshold,
@@ -729,7 +729,7 @@ namespace CTF_int {
         ofs.close();
       }
       rank++;
-      MPI_Barrier(MPI_COMM_WORLD);
+      PMPI_Barrier(MPI_COMM_WORLD);
     }
   }
 
