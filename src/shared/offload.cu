@@ -230,7 +230,7 @@ namespace CTF_int{
     }  
   
     cublasStatus_t status = 
-      cublasDgemm(cuhandle, cuA, cuB, m, n, k, &alpha, 
+      cublasSgemm(cuhandle, cuA, cuB, m, n, k, &alpha,
                   dev_A, lda_A, 
                   dev_B, lda_B, &beta, 
                   dev_C, lda_C);
