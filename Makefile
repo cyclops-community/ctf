@@ -118,7 +118,7 @@ $(BDIR)/lib_python/ctf/tensor.o: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $
 	cd src_python; \
 	ln -sf $(BDIR)/setup.py setup.py; \
 	mkdir -p $(BDIR)/lib_python/ctf && cp ctf/__init__.py $(BDIR)/lib_python/ctf/ ; \
-	LDFLAGS="-L$(BDIR)/lib_shared" python setup.py build_ext -j4 --force -b $(BDIR)/lib_python/ -t $(BDIR)/lib_python/; \
+	LDFLAGS="-L$(BDIR)/lib_shared" python setup.py build_ext --force -b $(BDIR)/lib_python/ -t $(BDIR)/lib_python/; \
 	rm setup.py; \
 	cd ..;
 
