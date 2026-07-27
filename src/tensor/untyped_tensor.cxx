@@ -1087,6 +1087,17 @@ namespace CTF_int {
       tsr_A->write(blk_sz_B, sr->mulid(), sr->addid(), blk_data_B, 'r');
       all_data_A = blk_data_B;
       sz_A = blk_sz_B;
+    } else if (tsr_A->is_sparse && tsr_A->has_symmetry() && !tsr_B->has_symmetry()){
+      // sparse symmetric A stores only canonically-ordered keys, so unpack it
+      // via desymmetrizing summation before extracting pairs (issue #132)
+      int nosym[tsr_A->order];
+      std::fill(nosym, nosym+tsr_A->order, NS);
+      tensor A_ns(tsr_A->sr, tsr_A->order, tsr_A->lens, nosym, tsr_A->wrld, true, NULL, 0, 1);
+      int idx[tsr_A->order];
+      for (int k=0; k<tsr_A->order; k++) idx[k] = k;
+      summation desym(tsr_A, idx, tsr_A->sr->mulid(), &A_ns, idx, tsr_A->sr->mulid());
+      desym.execute();
+      A_ns.read_local_nnz(&sz_A, &all_data_A, true);
     } else {
       tsr_A->read_local_nnz(&sz_A, &all_data_A, true);
       //printf("sz_A=%ld\n",sz_A);
