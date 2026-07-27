@@ -515,7 +515,8 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
         if axis > len(A.shape):
             raise IndexError("CTF PYTHON ERROR: axis out of bounds")
         if indices.shape == () or indices.shape== (1,):
-            if indices >= A.shape[axis]:
+            index = indices.item()
+            if index >= A.shape[axis]:
                 raise IndexError("CTF PYTHON ERROR: index out of bounds")
             ret_shape = list(A.shape)
             if indices.shape == ():
@@ -526,7 +527,7 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
             for i in range(axis+1, len(A.shape),1):
                 begin *= A.shape[i]
             next_slot = A.shape[axis] * begin
-            start = indices * begin
+            start = index * begin
             arange_times = 1
             for i in range(0, axis):
                 arange_times *= A.shape[i]
