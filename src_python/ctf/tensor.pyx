@@ -688,6 +688,11 @@ cdef class tensor:
         out_tsr.i(idx_C) << tsr.i(idx_A)*otsr.i(idx_B)
         return out_tsr
 
+    # opt out of numpy ufunc dispatch so that np scalars/arrays return
+    # NotImplemented from binops and python falls back to our reflected
+    # operators (otherwise e.g. np.ndarray*tensor yields an object ndarray)
+    __array_ufunc__ = None
+
     def __add__(self, other):
         [tsr, otsr] = ctf.tensor_aux._match_tensor_types(self,other)
 
@@ -696,6 +701,9 @@ cdef class tensor:
         out_tsr.i(idx_C) << tsr.i(idx_A)
         out_tsr.i(idx_C) << otsr.i(idx_B)
         return out_tsr
+
+    def __radd__(self, other):
+        return self.__add__(other)
 
     def __iadd__(self, other_in):
         other = ctf.tensor_aux.astensor(other_in)
@@ -719,6 +727,9 @@ cdef class tensor:
         out_tsr.i(idx_C) << tsr.i(idx_A)*otsr.i(idx_B)
         return out_tsr
 
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
     def __imul__(self, other_in):
         other = ctf.tensor_aux.astensor(other_in)
         if np.result_type(self.dtype, other.dtype) != self.dtype:
@@ -733,6 +744,16 @@ cdef class tensor:
 
     def __sub__(self, other):
         [tsr, otsr] = ctf.tensor_aux._match_tensor_types(self,other)
+
+        [idx_A, idx_B, idx_C, out_tsr] = tsr._ufunc_interpret(otsr)
+        out_tsr.i(idx_C) << tsr.i(idx_A)
+        iotsr = otsr.i(idx_B)
+        iotsr.scale(-1)
+        out_tsr.i(idx_C) << iotsr
+        return out_tsr
+
+    def __rsub__(self, other):
+        [tsr, otsr] = ctf.tensor_aux._match_tensor_types(other, self)
 
         [idx_A, idx_B, idx_C, out_tsr] = tsr._ufunc_interpret(otsr)
         out_tsr.i(idx_C) << tsr.i(idx_A)
@@ -761,6 +782,9 @@ cdef class tensor:
 
     def __truediv__(self, other):
         return ctf.tensor_aux._div(self,other)
+
+    def __rtruediv__(self, other):
+        return ctf.tensor_aux._div(other,self)
 
     def __itruediv__(self, other_in):
         other = ctf.tensor_aux.astensor(other_in)
@@ -813,6 +837,11 @@ cdef class tensor:
         if modulus is not None:
             raise ValueError('CTF PYTHON ERROR: powering function does not accept third parameter (modulus)')
         return ctf.tensor_aux.power(self,other)
+
+    def __rpow__(self, other, modulus):
+        if modulus is not None:
+            raise ValueError('CTF PYTHON ERROR: powering function does not accept third parameter (modulus)')
+        return ctf.tensor_aux.power(other,self)
 
     # def __ipow__(self, other_in):
     #     [tsr, otsr] = ctf.tensor_aux._match_tensor_types(self, other)

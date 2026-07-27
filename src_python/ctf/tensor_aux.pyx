@@ -9,7 +9,7 @@ ctypedef double complex complex128_t
 ctypedef float complex complex64_t
 import numpy as np
 from copy import deepcopy
-from ctf.helper import _ord_comp, type_index, _rev_array, _get_np_dtype, _get_np_div_dtype, _get_num_str, _use_align_for_pair
+from ctf.helper import _ord_comp, type_index, _rev_array, _get_np_dtype, _get_np_div_dtype, _get_num_str, _use_align_for_pair, _is_weak_scalar
 from ctf.chelper cimport *
 from ctf.tensor cimport tensor, ctensor
 from ctf.profile import timer
@@ -1977,7 +1977,10 @@ def _match_tensor_types(first, other):
         otsr = other
     else:
         otsr = tensor(copy=astensor(other),sp=first.sp)
-    out_dtype = _get_np_dtype([tsr.dtype, otsr.dtype])
+    # pass python scalars to np.result_type unconverted so that weak (NEP 50)
+    # promotion applies, e.g. 2.*float32 tensor yields float32
+    out_dtype = np.result_type(first if _is_weak_scalar(first) else tsr.dtype,
+                               other if _is_weak_scalar(other) else otsr.dtype)
     if tsr.dtype != out_dtype:
         tsr = tensor(copy=tsr, dtype = out_dtype)
     if otsr.dtype != out_dtype:
@@ -1994,7 +1997,11 @@ def _div(first, other):
         otsr = other
     else:
         otsr = tensor(copy=astensor(other))
-    out_dtype = _get_np_div_dtype(tsr.dtype, otsr.dtype)
+    # use scalar value 1 of the operand's python type for weak (NEP 50) promotion;
+    # promotion depends only on the type, and 1 avoids divide-by-zero warnings
+    num = type(first)(1) if _is_weak_scalar(first) else np.ones(1, dtype=tsr.dtype)
+    den = type(other)(1) if _is_weak_scalar(other) else np.ones(1, dtype=otsr.dtype)
+    out_dtype = np.true_divide(num, den).dtype
     if tsr.dtype != out_dtype:
         tsr = tensor(copy=tsr, dtype = out_dtype)
     if otsr.dtype != out_dtype:

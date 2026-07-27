@@ -31,6 +31,11 @@ def _get_np_div_dtype(typ1, typ2):
 def _get_np_dtype(typs):
     return np.sum([np.zeros(1,dtype=typ) for typ in typs]).dtype
 
+def _is_weak_scalar(x):
+    # python scalars promote weakly (NEP 50), numpy scalars/arrays strongly
+    # (np.float64 subclasses float, so exclude np.generic explicitly)
+    return isinstance(x, (bool, int, float, complex)) and not isinstance(x, np.generic)
+
 def _use_align_for_pair(typ):
     return np.dtype(typ).itemsize % 8 != 0
 
