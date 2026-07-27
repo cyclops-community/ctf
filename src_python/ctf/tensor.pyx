@@ -1640,76 +1640,17 @@ cdef class tensor:
         >>> a.astype(np.float64).dtype
         <class 'numpy.float64'>
         """
-        if dtype == 'D':
-            return self.astype(np.complex128, order, casting)
-        if dtype == 'd':
-            return self.astype(np.float64, order, casting)
+        if casting not in ('no', 'equiv', 'safe', 'same_kind', 'unsafe'):
+            raise ValueError("casting must be one of 'no', 'equiv', 'safe', 'same_kind', or 'unsafe'")
+        # normalize builtin types, dtype objects and char codes to scalar type classes
+        dtype = np.dtype(dtype).type
         if dtype == self.dtype:
             return self.copy()
-        if casting == 'unsafe':
-            # may add more types
-            if dtype == int:
-                dtype = np.int64
-            if dtype == float:
-                dtype = np.float64
-            if str(dtype) == "<class 'bool'>":
-                dtype = np.bool_
-            if str(dtype) == "<class 'complex'>":
-                dtype = np.complex128
-            B = tensor(self.shape, sp=self.sp, dtype = dtype)
-            self._convert_type(B)
-            return B
-        elif casting == 'safe':
-            if dtype == int:
-                dtype = np.int64
-            if dtype == float:
-                dtype = np.float64
-            # np.bool_ doesnot have itemsize
-            if (self.dtype != np.bool_ and dtype != np.bool_) and self.itemsize > dtype.itemsize:
-                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'safe'".format(self.dtype,dtype))
-            if dtype == np.bool_ and self.dtype != np.bool_:
-                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'safe'".format(self.dtype,dtype))
-            str_self = str(self.dtype)
-            str_dtype = str(dtype)
-            if "float" in str_self and "int" in str_dtype:
-                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'safe'".format(self.dtype,dtype))
-            elif "complex" in str_self and ("int" in str_dtype or "float" in str_dtype):
-                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'safe'".format(self.dtype,dtype))
-            B = tensor(self.shape, sp=self.sp, dtype = dtype)
-            self._convert_type(B)
-            return B
-        elif casting == 'equiv':
-            # only allows byte-wise change
-            if dtype == int:
-                dtype = np.int64
-            if dtype == float:
-                dtype = np.float64
-            if self.dtype != dtype:
-                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'safe'".format(self.dtype,dtype))
-        elif casting == 'no':
-            if dtype == int:
-                dtype = np.int64
-            if dtype == float:
-                dtype = np.float64
-            if self.dtype != dtype:
-                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'no'".format(self.dtype,dtype))
-            B = tensor(copy = self)
-            return B
-        elif casting == 'same_kind':
-            if dtype == int:
-                dtype = np.int64
-            if dtype == float:
-                dtype = np.float64
-            str_self = str(self.dtype)
-            str_dtype = str(dtype)
-            if 'float' in str_self and 'int' in str_dtype:
-                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'same_kind'".format(self.dtype,dtype))
-            if 'complex' in str_self and ('int' in str_dtype or ('float' in str_dtype)):
-                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'same_kind'".format(self.dtype,dtype))
-            if self.dtype != np.bool_ and dtype == np.bool_:
-                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'same_kind'".format(self.dtype,dtype))
-        else:
-            raise ValueError("casting must be one of 'no', 'equiv', 'safe', 'same_kind', or 'unsafe'")
+        if not np.can_cast(self.dtype, dtype, casting=casting):
+            raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule '{2}'".format(self.dtype,dtype,casting))
+        B = tensor(self.shape, sp=self.sp, dtype = dtype)
+        self._convert_type(B)
+        return B
 
     def read_local(self, unpack_sym=True):
         """
