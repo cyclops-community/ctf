@@ -140,6 +140,8 @@ namespace CTF {
       vals[i] = start + ((dtype)inds[i])*step;
     }
     v.write(m, inds, vals);
+    delete [] vals;
+    free(inds);
     return v;
   }
 
