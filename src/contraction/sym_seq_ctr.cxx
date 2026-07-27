@@ -598,6 +598,29 @@ namespace CTF_int{
             order_C,       idx_map_C,
             &idx_max,     &rev_idx_map);
 
+    if (idx_max == 0){
+      // all operands are scalars; the SWITCH_ORD_CALL below cannot dispatch on idx_max-1 = -1
+      if (!sr_C->isequal(beta, sr_C->mulid())){
+        if (sr_C->isequal(beta, sr_C->addid()) || sr_C->isequal(beta, NULL)){
+          sr_C->set(C, sr_C->addid(), 1);
+        } else {
+          sr_C->mul(C, beta, C);
+        }
+      }
+      if (alpha == NULL){
+        func->acc_f(A, B, C, sr_C);
+        CTF_FLOPS_ADD(2);
+      } else {
+        char tmp[sr_C->el_size];
+        sr_C->mul(A, alpha, tmp);
+        func->acc_f(tmp, B, C, sr_C);
+        CTF_FLOPS_ADD(3);
+      }
+      CTF_int::cdealloc(rev_idx_map);
+      TAU_FSTOP(sym_seq_ctr_cust);
+      return 0;
+    }
+
     dlen_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order_A);
     dlen_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order_B);
     dlen_C = (int64_t*)CTF_int::alloc(sizeof(int64_t)*order_C);
