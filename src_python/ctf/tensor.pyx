@@ -1819,7 +1819,10 @@ cdef class tensor:
         cdef char * cvals
         cdef int64_t sz
         sz = self.dt.get_tot_size(not unpack)
-        tB = self.dtype.itemsize
+        # self.dtype may hold a scalar type object (e.g. np.float64) unsafely cast
+        # to cnp.dtype, so C-level field access like self.dtype.itemsize reads
+        # garbage (0 under numpy>=2); use the itemsize computed in __cinit__
+        tB = self.itemsize
         if self.dt.wrld.np == 1 and self.sp == 0 and np.all(self.sym == SYM.NS):
             arr_in = arr
             if arr is None:
