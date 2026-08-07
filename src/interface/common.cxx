@@ -47,19 +47,19 @@ namespace CTF_int {
 
 
   //static double init_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW};
-  LinModel<3> alltoall_mdl(alltoall_mdl_init,"alltoall_mdl");
-  LinModel<3> alltoallv_mdl(alltoallv_mdl_init,"alltoallv_mdl");
+  GlobalCostModel<3> alltoall_mdl(alltoall_mdl_init,"alltoall_mdl");
+  GlobalCostModel<3> alltoallv_mdl(alltoallv_mdl_init,"alltoallv_mdl");
 
 #ifdef BGQ
   //static double init_lg_mdl[] = {COST_LATENCY, COST_LATENCY, 0.0, COST_NETWBW + 2.0*COST_MEMBW};
 #else
   //static double init_lg_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW + 2.0*COST_MEMBW, 0.0};
 #endif
-  LinModel<3> red_mdl(red_mdl_init,"red_mdl");
-  LinModel<3> red_mdl_cst(red_mdl_cst_init,"red_mdl_cst");
-  LinModel<3> allred_mdl(allred_mdl_init,"allred_mdl");
-  LinModel<3> allred_mdl_cst(allred_mdl_cst_init,"allred_mdl_cst");
-  LinModel<3> bcast_mdl(bcast_mdl_init,"bcast_mdl");
+  GlobalCostModel<3> red_mdl(red_mdl_init,"red_mdl");
+  GlobalCostModel<3> red_mdl_cst(red_mdl_cst_init,"red_mdl_cst");
+  GlobalCostModel<3> allred_mdl(allred_mdl_init,"allred_mdl");
+  GlobalCostModel<3> allred_mdl_cst(allred_mdl_cst_init,"allred_mdl_cst");
+  GlobalCostModel<3> bcast_mdl(bcast_mdl_init,"bcast_mdl");
 
 
   template <typename type>

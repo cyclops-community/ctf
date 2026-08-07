@@ -67,8 +67,8 @@ namespace CTF_int{
   /*offload_tsr::~offload_tsr(){
   }*/
 
-  LinModel<2> upload_mdl(upload_mdl_init,"upload_mdl");
-  LinModel<2> download_mdl(download_mdl_init,"download_mdl");
+  GlobalCostModel<2> upload_mdl(upload_mdl_init,"upload_mdl");
+  GlobalCostModel<2> download_mdl(download_mdl_init,"download_mdl");
 
   double estimate_download_time(int64_t size){
     double ps[] = {1.0, (double)size};

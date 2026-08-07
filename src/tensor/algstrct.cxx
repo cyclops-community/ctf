@@ -9,8 +9,8 @@
 using namespace std;
 
 namespace CTF_int {
-  LinModel<3> csrred_mdl(csrred_mdl_init,"csrred_mdl");
-  LinModel<3> csrred_mdl_cst(csrred_mdl_cst_init,"csrred_mdl_cst");
+  GlobalCostModel<3> csrred_mdl(csrred_mdl_init,"csrred_mdl");
+  GlobalCostModel<3> csrred_mdl_cst(csrred_mdl_cst_init,"csrred_mdl_cst");
 
 
   template<int l>

@@ -117,7 +117,7 @@ namespace CTF_int {
 #define REG_LAMBDA 1.E6
 
   template <int nparam>
-  LinModel<nparam>::LinModel(double const * init_guess, char const * name_, int hist_size_){
+  GlobalCostModel<nparam>::GlobalCostModel(double const * init_guess, char const * name_, int hist_size_){
     //initialize the model as active by default
     is_active = true;
     //copy initial static coefficients to initialzie model (defined in init_model.cxx)
@@ -146,7 +146,7 @@ namespace CTF_int {
 
 
   template <int nparam>
-  LinModel<nparam>::LinModel(){
+  GlobalCostModel<nparam>::GlobalCostModel(){
     //initialize the model as active by default
     is_active = true;
     name = NULL;
@@ -154,7 +154,7 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  LinModel<nparam>::~LinModel(){
+  GlobalCostModel<nparam>::~GlobalCostModel(){
     if (name != NULL) free(name);
 #ifdef TUNE
     if (time_param_mat != NULL) free(time_param_mat);
@@ -163,7 +163,7 @@ namespace CTF_int {
 
 
   template <int nparam>
-  void LinModel<nparam>::observe(double const * tp){
+  void GlobalCostModel<nparam>::observe(double const * tp){
 #ifdef TUNE
     /*for (int i=0; i<nobs; i++){
       bool is_same = true;
@@ -210,7 +210,7 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  bool LinModel<nparam>::should_observe(double const * tp){
+  bool GlobalCostModel<nparam>::should_observe(double const * tp){
 #ifndef TUNE
     ASSERT(0);
     assert(0);
@@ -222,7 +222,7 @@ namespace CTF_int {
 
 
   template <int nparam>
-  void LinModel<nparam>::update(MPI_Comm cm){
+  void GlobalCostModel<nparam>::update(MPI_Comm cm){
 #ifdef TUNE
     double S[nparam];
     int lwork, liwork;
@@ -539,7 +539,7 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  double LinModel<nparam>::est_time(double const * param){
+  double GlobalCostModel<nparam>::est_time(double const * param){
     double d = 0.;
     for (int i=0; i<nparam; i++){
       d+=param[i]*coeff_guess[i];
@@ -548,7 +548,7 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  void LinModel<nparam>::print(){
+  void GlobalCostModel<nparam>::print(){
     assert(name!=NULL);
     printf("double %s_init[] = {",name);
     for (int i=0; i<nparam; i++){
@@ -559,7 +559,7 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  void LinModel<nparam>::print_uo(){
+  void GlobalCostModel<nparam>::print_uo(){
     if (nobs > 0){
       printf("%s is_tuned = %d is_active = %d (%ld) avg_tot_time = %lf avg_over_time = %lf avg_under_time = %lf\n",name,(int)is_tuned,(int)is_active,nobs,avg_tot_time,avg_over_time,avg_under_time);
     }
@@ -567,12 +567,12 @@ namespace CTF_int {
 
 
   template <int nparam>
-  double* LinModel<nparam>::get_coeff(){
+  double* GlobalCostModel<nparam>::get_coeff(){
       return coeff_guess;
   }
 
   template <int nparam>
-  void LinModel<nparam>::write_coeff(std::string file_name){
+  void GlobalCostModel<nparam>::write_coeff(std::string file_name){
     int my_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     // Only first process needs to dump the coefficient
@@ -633,7 +633,7 @@ namespace CTF_int {
 
 
   template <int nparam>
-  void LinModel<nparam>::load_coeff(std::string file_name){
+  void GlobalCostModel<nparam>::load_coeff(std::string file_name){
     // Generate the model name
     std::string model_name = std::string(name);
 
@@ -697,7 +697,7 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  void LinModel<nparam>::dump_data(std::string path){
+  void GlobalCostModel<nparam>::dump_data(std::string path){
     int rank = 0;
     int np, my_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -734,11 +734,11 @@ namespace CTF_int {
   }
 
 
-  template class LinModel<1>;
-  template class LinModel<2>;
-  template class LinModel<3>;
-  template class LinModel<4>;
-  template class LinModel<5>;
+  template class GlobalCostModel<1>;
+  template class GlobalCostModel<2>;
+  template class GlobalCostModel<3>;
+  template class GlobalCostModel<4>;
+  template class GlobalCostModel<5>;
 
   /**
    * Given params e.g. [x,y,z] outputs params [x,y,z,x*x,x*y,x*z,y*y,y*z,z*z,x*x*x,x*x*y,x*x*z,x*y*x, ....] etc
@@ -774,20 +774,20 @@ namespace CTF_int {
 
 
   template <int nparam>
-  CubicModel<nparam>::CubicModel(double const * init_guess, char const * name, int hist_size)
+  GlobalPolyCostModel<nparam>::GlobalPolyCostModel(double const * init_guess, char const * name, int hist_size)
     : lmdl(init_guess, name, hist_size)
   { }
 
   template <int nparam>
-  CubicModel<nparam>::~CubicModel(){}
+  GlobalPolyCostModel<nparam>::~GlobalPolyCostModel(){}
 
   template <int nparam>
-  void CubicModel<nparam>::update(MPI_Comm cm){
+  void GlobalPolyCostModel<nparam>::update(MPI_Comm cm){
     lmdl.update(cm);
   }
 
   template <int nparam>
-  void CubicModel<nparam>::observe(double const * time_param){
+  void GlobalPolyCostModel<nparam>::observe(double const * time_param){
     double ltime_param[nparam*(nparam+1)*(nparam+2)/6+nparam*(nparam+1)/2+nparam+1];
     ltime_param[0] = time_param[0];
     cube_params(time_param+1, ltime_param+1, nparam);
@@ -795,49 +795,49 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  bool CubicModel<nparam>::should_observe(double const * time_param){
+  bool GlobalPolyCostModel<nparam>::should_observe(double const * time_param){
     return lmdl.should_observe(time_param);
   }
 
   template <int nparam>
-  double CubicModel<nparam>::est_time(double const * param){
+  double GlobalPolyCostModel<nparam>::est_time(double const * param){
     double lparam[nparam*(nparam+1)*(nparam+2)/6+nparam*(nparam+1)/2+nparam];
     cube_params(param, lparam, nparam);
     return lmdl.est_time(lparam);
   }
 
   template <int nparam>
-  void CubicModel<nparam>::print(){
+  void GlobalPolyCostModel<nparam>::print(){
     lmdl.print();
   }
 
   template <int nparam>
-  void CubicModel<nparam>::print_uo(){
+  void GlobalPolyCostModel<nparam>::print_uo(){
     lmdl.print_uo();
   }
 
   template <int nparam>
-  double* CubicModel<nparam>::get_coeff(){
+  double* GlobalPolyCostModel<nparam>::get_coeff(){
     return lmdl.get_coeff();
   }
 
   template <int nparam>
-  void CubicModel<nparam>::load_coeff(std::string file_name){
+  void GlobalPolyCostModel<nparam>::load_coeff(std::string file_name){
     lmdl.load_coeff(file_name);
   }
 
   template <int nparam>
-  void CubicModel<nparam>::write_coeff(std::string file_name){
+  void GlobalPolyCostModel<nparam>::write_coeff(std::string file_name){
     lmdl.write_coeff(file_name);
   }
 
   template <int nparam>
-  void CubicModel<nparam>::dump_data(std::string path){
+  void GlobalPolyCostModel<nparam>::dump_data(std::string path){
     lmdl.dump_data(path);
   }
 
-  template class CubicModel<1>;
-  template class CubicModel<2>;
-  template class CubicModel<3>;
-  template class CubicModel<4>;
+  template class GlobalPolyCostModel<1>;
+  template class GlobalPolyCostModel<2>;
+  template class GlobalPolyCostModel<3>;
+  template class GlobalPolyCostModel<4>;
 }
