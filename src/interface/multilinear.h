@@ -57,7 +57,22 @@ namespace CTF {
       
   */
   template<typename dtype>
-  void Solve_Factor(Tensor<dtype> * T, Tensor<dtype> ** mat_list, Tensor<dtype> * RHS, int mode, bool aux_mode_first);
+  void Solve_Factor(Tensor<dtype> * T, Tensor<dtype> ** mat_list, Tensor<dtype> * RHS, int mode, bool aux_mode_first, double regu, double regu2, double mu);
+
+  template<typename dtype>
+  void Sparse_add(Tensor<dtype> * T, Tensor<dtype> * M,double alpha, double beta);
+
+  template<typename dtype>
+  void Sparse_mul(Tensor<dtype> * T, Tensor<dtype> * M);
+
+  template<typename dtype>
+  void Sparse_exp(Tensor<dtype> * T);
+
+  template<typename dtype>
+  void Sparse_log(Tensor<dtype> * T);
+
+  template<typename dtype>
+  void get_index_tensor(Tensor<dtype> * T);
 }
 
 #endif

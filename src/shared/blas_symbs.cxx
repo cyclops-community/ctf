@@ -71,6 +71,42 @@ namespace CTF_BLAS {
   INST_SYR(std::complex<float>,C)
   INST_SYR(std::complex<double>,Z)
 #undef INST_GEMM
+  
+  template <typename dtype>
+  void syrk(const char *      UPLO ,
+            const char *      TRANS,
+            const int *        N ,
+            const int *        K, 
+            const dtype *     ALPHA, 
+            const dtype *     A , 
+            const int *       LDA ,
+            const dtype *    BETA, 
+            dtype *           C, 
+            const int *        LDC){
+     printf("CTF ERROR SYRK not available for this type.\n");
+    ASSERT(0);
+    assert(0);
+  }
+
+#define INST_SYRK(dtype,s)                     \
+  template <>                                  \
+  void syrk<dtype>(const char *      a ,    \
+            const char *      b,           \
+            const int *        c ,              \
+            const int *        d,               \ 
+            const dtype *     e,            \
+            const dtype *     f ,             \
+            const int *       g ,           \
+            const dtype *    h,            \ 
+            dtype *           i,              \
+            const int *       j){ \
+    s ## SYRK(a,b,c,d,e,f,g,h,i,j); \
+  }
+  INST_SYRK(float,S)
+  INST_SYRK(double,D)
+  INST_SYRK(std::complex<float>,C)
+  INST_SYRK(std::complex<double>,Z)
+#undef INST_SYRK
 
 
   template <typename dtype>
@@ -107,6 +143,37 @@ namespace CTF_BLAS {
   INST_POSV(std::complex<double>,Z)
 #undef INST_GEMM
 
+  template <typename dtype>
+  void gesv(
+            const int *         N, 
+            const int *         NRHS,
+            dtype *            A, 
+            const int *         LDA, 
+            int *         IPIV, 
+            dtype *            B, 
+            const int *         LDB, 
+            int *               INFO){
+     printf("CTF ERROR SYSV not available for this type.\n");
+    ASSERT(0);
+    assert(0);
+  }
+
+#define INST_GESV(dtype,s)                     \
+  template <>                                  \
+  void gesv<dtype>(\
+            const int *    b, \
+            const int *    c, \
+            dtype *        d, \
+            const int *    e, \
+            int *    e1, \
+            dtype *        f, \
+            const int *    g, \
+            int *          h){ \
+    s ## GESV(b,c,d,e,e1,f,g,h); \
+  }
+  INST_GESV(float,S)
+  INST_GESV(double,D)
+#undef INST_GESV
 
 
 #ifdef USE_BATCH_GEMM
