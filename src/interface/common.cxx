@@ -383,7 +383,7 @@ namespace CTF_int {
 
   void CommData::bcast(void * buf, int64_t count, MPI_Datatype mdtype, int root){
 #ifdef TUNE
-    MPI_Barrier(cm);
+    PMPI_Barrier(cm);
 
     int tsize_;
     MPI_Type_size(mdtype, &tsize_);
@@ -396,7 +396,7 @@ namespace CTF_int {
 #endif
     MPI_Bcast(buf, count, mdtype, root, cm);
 #ifdef TUNE
-    MPI_Barrier(cm);
+    PMPI_Barrier(cm);
     double exe_time = MPI_Wtime()-st_time;
     int tsize;
     MPI_Type_size(mdtype, &tsize);
@@ -407,7 +407,7 @@ namespace CTF_int {
 
   void CommData::allred(void * inbuf, void * outbuf, int64_t count, MPI_Datatype mdtype, MPI_Op op){
 #ifdef TUNE
-    MPI_Barrier(cm);
+    PMPI_Barrier(cm);
 #endif
 
 #ifdef TUNE
@@ -425,7 +425,7 @@ namespace CTF_int {
     double st_time = MPI_Wtime();
     MPI_Allreduce(inbuf, outbuf, count, mdtype, op, cm);
 #ifdef TUNE
-    MPI_Barrier(cm);
+    PMPI_Barrier(cm);
 #endif
     double exe_time = MPI_Wtime()-st_time;
     int tsize;
@@ -439,7 +439,7 @@ namespace CTF_int {
 
   void CommData::red(void * inbuf, void * outbuf, int64_t count, MPI_Datatype mdtype, MPI_Op op, int root){
 #ifdef TUNE
-    MPI_Barrier(cm);
+    PMPI_Barrier(cm);
 
     // change-of-observe
     int tsize_;
@@ -456,7 +456,7 @@ namespace CTF_int {
     double st_time = MPI_Wtime();
     MPI_Reduce(inbuf, outbuf, count, mdtype, op, root, cm);
 #ifdef TUNE
-    MPI_Barrier(cm);
+    PMPI_Barrier(cm);
 #endif
     double exe_time = MPI_Wtime()-st_time;
     int tsize;
@@ -478,7 +478,7 @@ namespace CTF_int {
                              int64_t const * recv_displs){
 
     #ifdef TUNE
-    MPI_Barrier(cm);
+    PMPI_Barrier(cm);
     // change-of-observe
     int64_t tot_sz_ = std::max(send_displs[np-1]+send_counts[np-1], recv_displs[np-1]+recv_counts[np-1])*datum_size;
     double tps_[] = {0.0, 1.0, log2(np), (double)tot_sz_};
@@ -570,7 +570,7 @@ namespace CTF_int {
       CTF_int::cdealloc(i32_recv_displs);
     }
 #ifdef TUNE
-    MPI_Barrier(cm);
+    PMPI_Barrier(cm);
 #endif
     double exe_time = MPI_Wtime()-st_time;
     int64_t tot_sz = std::max(send_displs[np-1]+send_counts[np-1], recv_displs[np-1]+recv_counts[np-1])*datum_size;
