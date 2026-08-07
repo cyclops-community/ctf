@@ -234,28 +234,28 @@ namespace CTF_int {
     return size_A+size_B+size_C;
   }
 
-  LinModel<3> seq_tsr_spctr_cst_off_k0(seq_tsr_spctr_cst_off_k0_init,"seq_tsr_spctr_cst_off_k0");
-  LinModel<3> seq_tsr_spctr_cst_off_k1(seq_tsr_spctr_cst_off_k1_init,"seq_tsr_spctr_cst_off_k1");
-  LinModel<3> seq_tsr_spctr_cst_off_k2(seq_tsr_spctr_cst_off_k2_init,"seq_tsr_spctr_cst_off_k2");
-  LinModel<3> seq_tsr_spctr_off_k0(seq_tsr_spctr_off_k0_init,"seq_tsr_spctr_off_k0");
-  LinModel<3> seq_tsr_spctr_off_k1(seq_tsr_spctr_off_k1_init,"seq_tsr_spctr_off_k1");
-  LinModel<3> seq_tsr_spctr_off_k2(seq_tsr_spctr_off_k2_init,"seq_tsr_spctr_off_k2");
-  LinModel<3> seq_tsr_spctr_cst_k0(seq_tsr_spctr_cst_k0_init,"seq_tsr_spctr_cst_k0");
-  LinModel<3> seq_tsr_spctr_cst_k1(seq_tsr_spctr_cst_k1_init,"seq_tsr_spctr_cst_k1");
-  LinModel<3> seq_tsr_spctr_cst_k2(seq_tsr_spctr_cst_k2_init,"seq_tsr_spctr_cst_k2");
-  LinModel<3> seq_tsr_spctr_cst_k3(seq_tsr_spctr_cst_k3_init,"seq_tsr_spctr_cst_k3");
-  LinModel<3> seq_tsr_spctr_cst_k4(seq_tsr_spctr_cst_k4_init,"seq_tsr_spctr_cst_k4");
-  LinModel<3> seq_tsr_spctr_cst_k5(seq_tsr_spctr_cst_k5_init,"seq_tsr_spctr_cst_k5");
-  LinModel<3> seq_tsr_spctr_k0(seq_tsr_spctr_k0_init,"seq_tsr_spctr_k0");
-  LinModel<3> seq_tsr_spctr_k1(seq_tsr_spctr_k1_init,"seq_tsr_spctr_k1");
-  LinModel<3> seq_tsr_spctr_k2(seq_tsr_spctr_k2_init,"seq_tsr_spctr_k2");
-  LinModel<3> seq_tsr_spctr_k3(seq_tsr_spctr_k3_init,"seq_tsr_spctr_k3");
-  LinModel<3> seq_tsr_spctr_k4(seq_tsr_spctr_k4_init,"seq_tsr_spctr_k4");
-  LinModel<3> seq_tsr_spctr_k5(seq_tsr_spctr_k5_init,"seq_tsr_spctr_k5");
+  LinModel<2> seq_tsr_spctr_cst_off_k0(seq_tsr_spctr_cst_off_k0_init,"seq_tsr_spctr_cst_off_k0");
+  LinModel<2> seq_tsr_spctr_cst_off_k1(seq_tsr_spctr_cst_off_k1_init,"seq_tsr_spctr_cst_off_k1");
+  LinModel<2> seq_tsr_spctr_cst_off_k2(seq_tsr_spctr_cst_off_k2_init,"seq_tsr_spctr_cst_off_k2");
+  LinModel<2> seq_tsr_spctr_off_k0(seq_tsr_spctr_off_k0_init,"seq_tsr_spctr_off_k0");
+  LinModel<2> seq_tsr_spctr_off_k1(seq_tsr_spctr_off_k1_init,"seq_tsr_spctr_off_k1");
+  LinModel<2> seq_tsr_spctr_off_k2(seq_tsr_spctr_off_k2_init,"seq_tsr_spctr_off_k2");
+  LinModel<2> seq_tsr_spctr_cst_k0(seq_tsr_spctr_cst_k0_init,"seq_tsr_spctr_cst_k0");
+  LinModel<2> seq_tsr_spctr_cst_k1(seq_tsr_spctr_cst_k1_init,"seq_tsr_spctr_cst_k1");
+  LinModel<2> seq_tsr_spctr_cst_k2(seq_tsr_spctr_cst_k2_init,"seq_tsr_spctr_cst_k2");
+  LinModel<2> seq_tsr_spctr_cst_k3(seq_tsr_spctr_cst_k3_init,"seq_tsr_spctr_cst_k3");
+  LinModel<2> seq_tsr_spctr_cst_k4(seq_tsr_spctr_cst_k4_init,"seq_tsr_spctr_cst_k4");
+  LinModel<2> seq_tsr_spctr_cst_k5(seq_tsr_spctr_cst_k5_init,"seq_tsr_spctr_cst_k5");
+  LinModel<2> seq_tsr_spctr_k0(seq_tsr_spctr_k0_init,"seq_tsr_spctr_k0");
+  LinModel<2> seq_tsr_spctr_k1(seq_tsr_spctr_k1_init,"seq_tsr_spctr_k1");
+  LinModel<2> seq_tsr_spctr_k2(seq_tsr_spctr_k2_init,"seq_tsr_spctr_k2");
+  LinModel<2> seq_tsr_spctr_k3(seq_tsr_spctr_k3_init,"seq_tsr_spctr_k3");
+  LinModel<2> seq_tsr_spctr_k4(seq_tsr_spctr_k4_init,"seq_tsr_spctr_k4");
+  LinModel<2> seq_tsr_spctr_k5(seq_tsr_spctr_k5_init,"seq_tsr_spctr_k5");
 
   double seq_tsr_spctr::est_time_fp(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
 //    return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
-    double ps[] = {1.0, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C)};
+    double ps[] = {(double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C)};
     switch (krnl_type){
       case 0:
         if (is_custom){
@@ -378,7 +378,7 @@ namespace CTF_int {
 
     }
 
-    double tps_[] = {0.0, 1.0, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_B, nnz_frac_B, nnz_frac_C)};
+    double tps_[] = {0.0, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_B, nnz_frac_B, nnz_frac_C)};
    // Check if we need to execute this function for the sake of training
    bool bsr = true;
    switch (krnl_type){
@@ -550,7 +550,7 @@ namespace CTF_int {
     }
 
     double exe_time = MPI_Wtime() - st_time;
-    double tps[] = {exe_time, 1.0, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_B, nnz_frac_B, nnz_frac_C)};
+    double tps[] = {exe_time, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_B, nnz_frac_B, nnz_frac_C)};
     switch (krnl_type){
       case 0:
         if (is_custom){
@@ -995,22 +995,22 @@ namespace CTF_int {
     }
   }
 
-  LinModel<2> pin_keys_mdl(pin_keys_mdl_init,"pin_keys_mdl");
+  LinModel<1> pin_keys_mdl(pin_keys_mdl_init,"pin_keys_mdl");
   double spctr_pin_keys::est_time_fp(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
     switch (AxBxC){
       case 0:
       {
-        double ps[] = {1.0, dns_blk_sz*nnz_frac_A};
+        double ps[] = {dns_blk_sz*nnz_frac_A};
         return pin_keys_mdl.est_time(ps);
       }
       case 1:
       {
-        double ps[] = {1.0, dns_blk_sz*nnz_frac_B};
+        double ps[] = {dns_blk_sz*nnz_frac_B};
         return pin_keys_mdl.est_time(ps);
       }
       case 2:
       {
-        double ps[] = {1.0, dns_blk_sz*nnz_frac_C};
+        double ps[] = {dns_blk_sz*nnz_frac_C};
         return 2.*pin_keys_mdl.est_time(ps);
       }
     }
@@ -1084,7 +1084,7 @@ namespace CTF_int {
     pi.pin(nnz, order, lens, divisor, pi_new);
 
     double exe_time = MPI_Wtime()-st_time;
-    double tps[] = {exe_time, 1.0, (double)nnz};
+    double tps[] = {exe_time, (double)nnz};
     pin_keys_mdl.observe(tps);
 
     TAU_FSTOP(spctr_pin_keys);
@@ -1109,7 +1109,7 @@ namespace CTF_int {
         }
         depin(sr_C, order, lens, divisor, nblk_C, virt_dim, phys_rank, new_C, new_nnz_C, size_blk_C, new_C, true);
         double exe_time = MPI_Wtime()-st_time;
-        double tps[] = {exe_time, 1.0, (double)nnz};
+        double tps[] = {exe_time, (double)nnz};
         pin_keys_mdl.observe(tps);
         break;
     }

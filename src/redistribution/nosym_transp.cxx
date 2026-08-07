@@ -12,9 +12,9 @@
 namespace CTF_int {
 
   //static double init_ct_ps[] = {COST_LATENCY, 1.5*COST_MEMBW};
-  LinModel<2> long_contig_transp_mdl(long_contig_transp_mdl_init,"long_contig_transp_mdl");
-  LinModel<2> shrt_contig_transp_mdl(shrt_contig_transp_mdl_init,"shrt_contig_transp_mdl");
-  LinModel<2> non_contig_transp_mdl(non_contig_transp_mdl_init,"non_contig_transp_mdl");
+  LinModel<1> long_contig_transp_mdl(long_contig_transp_mdl_init,"long_contig_transp_mdl");
+  LinModel<1> shrt_contig_transp_mdl(shrt_contig_transp_mdl_init,"shrt_contig_transp_mdl");
+  LinModel<1> non_contig_transp_mdl(non_contig_transp_mdl_init,"non_contig_transp_mdl");
 
 
 //#define OPT_NOSYM_TR
@@ -445,7 +445,7 @@ namespace CTF_int {
       }
       tot_sz *= nvirt_A;
 
-      double tps[] = {0.0, 1.0, (double)tot_sz};
+      double tps[] = {0.0, (double)tot_sz};
       bool should_run = true;
       if (contig0 < 4){
         should_run = non_contig_transp_mdl.should_observe(tps);
@@ -507,7 +507,7 @@ namespace CTF_int {
     tot_sz *= nvirt_A;
 
     double exe_time = MPI_Wtime() - st_time;
-    double tps[] = {exe_time, 1.0, (double)tot_sz};
+    double tps[] = {exe_time, (double)tot_sz};
     if (contig0 < 4){
       non_contig_transp_mdl.observe(tps);
     } else if (contig0 <= 64){

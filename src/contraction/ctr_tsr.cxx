@@ -435,7 +435,7 @@ namespace CTF_int {
 
   double seq_tsr_ctr::est_time_fp(int nlyr){
     //return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
-    double ps[] = {1.0, (double)est_membw(), est_fp()};
+    double ps[] = {(double)est_membw(), est_fp()};
 //    printf("time estimate is %lf\n", seq_tsr_ctr_mdl.est_time(ps));
     if (is_custom && !is_inner){
       return seq_tsr_ctr_mdl_cst.est_time(ps);
@@ -468,11 +468,11 @@ namespace CTF_int {
     // Check if we need to execute this function for the sake of training
     bool sr;
     if (is_custom && !is_inner){
-      double tps[] = {0, 1.0, (double)est_membw(), est_fp()};
+      double tps[] = {0, (double)est_membw(), est_fp()};
       sr = seq_tsr_ctr_mdl_cst.should_observe(tps);
     } else if (is_inner){
       ASSERT(is_custom || func == NULL);
-      double tps[] = {0.0, 1.0, (double)est_membw(), est_fp()};
+      double tps[] = {0.0, (double)est_membw(), est_fp()};
       if (is_custom){
         if (inner_params.offload)
           sr = seq_tsr_ctr_mdl_cst_off.should_observe(tps);
@@ -486,7 +486,7 @@ namespace CTF_int {
       }
 
     } else {
-       double tps[] = {0.0, 1.0, (double)est_membw(), est_fp()};
+       double tps[] = {0.0, (double)est_membw(), est_fp()};
        sr = seq_tsr_ctr_mdl_ref.should_observe(tps);
     }
 
@@ -517,11 +517,11 @@ namespace CTF_int {
                        idx_map_C,
                        func);
       double exe_time = MPI_Wtime()-st_time;
-      double tps[] = {exe_time, 1.0, (double)est_membw(), est_fp()};
+      double tps[] = {exe_time, (double)est_membw(), est_fp()};
       seq_tsr_ctr_mdl_cst.observe(tps);
     } else if (is_inner){
       ASSERT(is_custom || func == NULL);
-//      double ps[] = {1.0, (double)est_membw(), est_fp()};
+//      double ps[] = {(double)est_membw(), est_fp()};
 //      double est_time = seq_tsr_ctr_mdl_inr.est_time(ps);
       double st_time = MPI_Wtime();
       sym_seq_ctr_inr(this->alpha,
@@ -548,7 +548,7 @@ namespace CTF_int {
                       func);
       double exe_time = MPI_Wtime()-st_time;
  //     printf("exe_time = %E est_time = %E abs_err = %e rel_err = %lf\n", exe_time,est_time,fabs(exe_time-est_time),fabs(exe_time-est_time)/exe_time);
-      double tps[] = {exe_time, 1.0, (double)est_membw(), est_fp()};
+      double tps[] = {exe_time, (double)est_membw(), est_fp()};
       if (is_custom){
         if (inner_params.offload)
           seq_tsr_ctr_mdl_cst_off.observe(tps);
@@ -584,7 +584,7 @@ namespace CTF_int {
                       sym_C,
                       idx_map_C);
       double exe_time = MPI_Wtime()-st_time;
-      double tps[] = {exe_time, 1.0, (double)est_membw(), est_fp()};
+      double tps[] = {exe_time, (double)est_membw(), est_fp()};
       seq_tsr_ctr_mdl_ref.observe(tps);
     }
   }
