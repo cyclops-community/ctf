@@ -462,7 +462,7 @@ namespace CTF_int {
       ConstPairIterator(algstrct const * sr_, char const * ptr_);
 
       /** \brief indexing moves by \param[in] n pairs */
-      ConstPairIterator operator[](int n) const;
+      ConstPairIterator operator[](int64_t n) const;
 
       /** \brief returns key of pair at head of ptr */
       int64_t k() const;
@@ -513,7 +513,7 @@ namespace CTF_int {
       PairIterator(algstrct const * sr_, char * ptr_);
 
       /** \brief indexing moves by \param[in] n pairs */
-      PairIterator operator[](int n) const;
+      PairIterator operator[](int64_t n) const;
 
       /** \brief returns key of pair at head of ptr */
       int64_t k() const;

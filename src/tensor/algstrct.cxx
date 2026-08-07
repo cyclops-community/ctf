@@ -891,7 +891,7 @@ namespace CTF_int {
     sr=sr_; ptr=ptr_;
   }
 
-  ConstPairIterator ConstPairIterator::operator[](int n) const { 
+  ConstPairIterator ConstPairIterator::operator[](int64_t n) const { 
     return ConstPairIterator(sr,ptr+sr->pair_size()*n);
   }
 
@@ -916,7 +916,7 @@ namespace CTF_int {
     ptr=ptr_;
   }
 
-  PairIterator PairIterator::operator[](int n) const { 
+  PairIterator PairIterator::operator[](int64_t n) const { 
     return PairIterator(sr,ptr+sr->pair_size()*n);
   }
 
