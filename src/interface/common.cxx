@@ -4,10 +4,6 @@
 #include "../shared/util.h"
 #include <random>
 
-#ifdef USE_MPI_CPP
-#define MPI_CXX_DOUBLE_COMPLEX MPI::DOUBLE_COMPLEX
-#endif
-
 
 namespace CTF_int {
   int64_t computed_flop_count = 0;
