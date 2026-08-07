@@ -10,6 +10,12 @@ FULLFNAME="${FDIR}/${FNAME}"
 if grep -Fxq "$FULLFNAME" $SCRIPT_DIR/visited_list.txt
 then
   exit 0
+elif [[ "$FNAME" == "critter"*"h" ]]; then
+  echo \#include \<$FNAME\>
+  exit 0
+elif [[ "$FNAME" == "omp.h" ]]; then
+  echo \#include \<$FNAME\>
+  exit 0
 else
   echo $FULLFNAME >> $SCRIPT_DIR/visited_list.txt
   TMP_FILE="${FNAME}.tmp.concat"
