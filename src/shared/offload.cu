@@ -67,17 +67,17 @@ namespace CTF_int{
   /*offload_tsr::~offload_tsr(){
   }*/
 
-  LinModel<2> upload_mdl(upload_mdl_init,"upload_mdl");
-  LinModel<2> download_mdl(download_mdl_init,"download_mdl");
+  Model* upload_mdl = select_model<2>(upload_mdl_init,"upload_mdl");
+  Model* download_mdl = select_model<2>(download_mdl_init,"download_mdl");
 
   double estimate_download_time(int64_t size){
     double ps[] = {1.0, (double)size};
-    return download_mdl.est_time(ps);
+    return download_mdl->est_time(ps);
   }
 
   double estimate_upload_time(int64_t size){
     double ps[] = {1.0, (double)size};
-    return upload_mdl.est_time(ps);
+    return upload_mdl->est_time(ps);
   }
 
 
@@ -137,7 +137,7 @@ namespace CTF_int{
                                  cudaMemcpyDeviceToHost);
     double exe_time = MPI_Wtime()-st_time;
     double tps[] = {exe_time, 1.0, (double)nbytes};
-    download_mdl.observe(tps);
+    download_mdl->observe(tps);
     TAU_FSTOP(cuda_download);
     assert(err == cudaSuccess);
   }
@@ -151,7 +151,7 @@ namespace CTF_int{
 
     double exe_time = MPI_Wtime()-st_time;
     double tps[] = {exe_time, 1.0, (double)nbytes};
-    upload_mdl.observe(tps);
+    upload_mdl->observe(tps);
     TAU_FSTOP(cuda_upload);
     assert(err == cudaSuccess);
   }
