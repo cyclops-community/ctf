@@ -1052,7 +1052,7 @@ namespace CTF_int {
     int64_t * padding_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_B->order);
     int64_t * toffset_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*tsr_B->order);
 
-    if (tsr_B->wrld->np <= tsr_A->wrld->np && !tsr_A->is_sparse){
+    if (tsr_B->wrld->np < tsr_A->wrld->np && !tsr_A->is_sparse){
       //usually 'read' elements of B from A, since B may be smalelr than A
       if (tsr_B->order == 0 || tsr_B->has_zero_edge_len){
         blk_sz_B = 0;
