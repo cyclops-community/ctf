@@ -73,8 +73,8 @@ namespace CTF_int {
     return tot_time;
   }
 
-  double spctr_offload::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
-    return rec_ctr->est_time_rec(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C) + est_time_fp(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+  double spctr_offload::est_time_rec(int nlyr, int nblk_A, int nblk_B, int nblk_C, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
+    return rec_ctr->est_time_rec(nlyr, nblk_A, nblk_B, nblk_C, nnz_frac_A, nnz_frac_B, nnz_frac_C) + est_time_fp(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
   int64_t spctr_offload::spmem_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
@@ -82,7 +82,7 @@ namespace CTF_int {
   }
 
   int64_t spctr_offload::mem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
-    return rec_ctr->mem_rec(nnz_frac_A, nnz_frac_B, nnz_frac_C) + spmem_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C);
+    return rec_ctr->spmem_rec(nnz_frac_A, nnz_frac_B, nnz_frac_C) + spmem_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
   void spctr_offload::run(char * A, int nblk_A, int64_t const * size_blk_A,
